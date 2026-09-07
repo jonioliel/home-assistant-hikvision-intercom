@@ -7,6 +7,11 @@ Source of truth: [CODEX_MASTER_SPEC.md](CODEX_MASTER_SPEC.md).
 Real-device evidence is pending. HA setup, entities, access manager and panel arrive in later phases.
 No production release is available.
 
+[Current Phase 0 test source](https://github.com/jonioliel/home-assistant-hikvision-intercom/tree/phase/0-protocol-probe) · [Download test source ZIP](https://github.com/jonioliel/home-assistant-hikvision-intercom/archive/refs/heads/phase/0-protocol-probe.zip)
+
+HACS, Hassfest and Python CI passed on the uploaded tooling. The physical Phase 0 gate remains
+open, so development stays on its phase branch until the device evidence is reviewed.
+
 ## Run Phase 0
 
 Use Python 3.12 or newer on a computer that can reach one test station:

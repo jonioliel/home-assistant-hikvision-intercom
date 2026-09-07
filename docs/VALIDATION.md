@@ -25,10 +25,17 @@ All protocol fixtures are synthetic. No physical intercom was contacted.
 Public repository created:
 https://github.com/jonioliel/home-assistant-hikvision-intercom
 
-The source push was rejected by automatic approval review because explicit approval for publishing
-the project and full Master Spec to this public destination was required.
-No source was pushed. HACS, Hassfest and Linux CI are prepared but have not run remotely.
-No GitHub Release or tag exists. main remains at the specification baseline; Phase 0 is unmerged.
+The owner explicitly approved public publication. All source, tests, documentation, Git history
+and the complete Master Spec have been pushed to the dedicated Phase 0 branch.
 
-Pending: owner approval for the exact public push, actual station reports and the physical gate
-in PHASE_0.md. Device tests and HACS install/upgrade acceptance cannot be inferred from synthetic tests.
+GitHub validation on ba2f7e48e0c5612d1f27906d243c9ef9a4382fc9:
+- [HACS: passed](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34155356525)
+- [Hassfest: passed](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34155356524)
+- [Python 3.12 and 3.14, pytest/Ruff/mypy: passed](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34155356680)
+
+The tested source is available from:
+https://github.com/jonioliel/home-assistant-hikvision-intercom/tree/phase/0-protocol-probe
+
+No GitHub Release or tag exists. main remains the baseline while the physical Phase 0 gate is open.
+The next input required is the actual station report and physical observations in PHASE_0.md.
+Device tests and HACS install/upgrade acceptance cannot be inferred from the CI results.

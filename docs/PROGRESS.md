@@ -20,5 +20,7 @@ Permanent requirements: camera in HA and panel; explicit relay selection enforce
 persistent offline sync/tombstones; secret redaction and administrator-only access management.
 
 Local validation: 86 tests passed; Ruff and strict mypy passed. See VALIDATION.md.
-GitHub repository created; source push awaits owner approval after auto-review rejection.
-HACS/Hassfest/GitHub Actions have not run remotely. No release published.
+The owner approved publication and all source/history/specification files were uploaded.
+GitHub HACS, Hassfest and Python checks passed on ba2f7e4 (Python 3.12 and 3.14).
+Phase 0 test sources are on phase/0-protocol-probe. The physical gate is still open;
+no production release has been published.
