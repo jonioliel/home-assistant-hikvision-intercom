@@ -1,0 +1,23 @@
+{
+  "name": "user_search_00",
+  "method": "POST",
+  "path": "/ISAPI/AccessControl/UserInfo/Search?format=json",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "UserInfoSearch": {
+      "searchID": "REDACTED",
+      "responseStatusStrg": "NO MATCH",
+      "numOfMatches": 0,
+      "totalMatches": 0
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 154
+}

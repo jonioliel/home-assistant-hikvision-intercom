@@ -56,6 +56,9 @@ def argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Read door capabilities only after the station is known to expose it",
     )
+    parser.add_argument(
+        "--extended", action="store_true", help="Read system/access/credential/stream capabilities"
+    )
     parser.add_argument("--output", type=Path, help="New output directory (never overwrites)")
     return parser
 
@@ -146,7 +149,9 @@ async def execute(
             port=args.http_port or (443 if args.scheme == "https" else 80),
             limits=limits,
         )
-        report = await client.run(remote_capabilities_exposed=args.remote_capabilities_exposed)
+        report = await client.run(
+            remote_capabilities_exposed=args.remote_capabilities_exposed, extended=args.extended
+        )
         report.observations["rtsp_port_not_probed"] = args.rtsp_port
         if args.call_seconds and "scan_stopped" not in report.observations:
             print(

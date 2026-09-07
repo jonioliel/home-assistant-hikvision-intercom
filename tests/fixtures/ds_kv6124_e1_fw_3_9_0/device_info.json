@@ -1,0 +1,50 @@
+{
+  "name": "device_info",
+  "method": "GET",
+  "path": "/ISAPI/System/deviceInfo",
+  "elapsed_ms": 156,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "DeviceInfo": {
+      "@version": "2.0",
+      "deviceName": "REDACTED",
+      "deviceID": "REDACTED",
+      "deviceDescription": "REDACTED",
+      "deviceLocation": "REDACTED",
+      "systemContact": "REDACTED",
+      "model": "DS-KV6124-E1",
+      "serialNumber": "REDACTED",
+      "macAddress": "REDACTED",
+      "firmwareVersion": "V3.9.0",
+      "firmwareReleasedDate": "build 260115",
+      "bootVersion": "REDACTED",
+      "bootReleasedDate": "REDACTED",
+      "hardwareVersion": "REDACTED",
+      "deviceType": "REDACTED",
+      "subDeviceType": "REDACTED",
+      "telecontrolID": "REDACTED",
+      "supportBeep": "REDACTED",
+      "supportVideoLoss": "REDACTED",
+      "alarmOutNum": "0",
+      "alarmInNum": "4",
+      "RS485Num": "REDACTED",
+      "OEMCode": "REDACTED",
+      "bspVersion": "REDACTED",
+      "dspVersion": "REDACTED",
+      "encryptionModel": "REDACTED",
+      "productionDate": "REDACTED",
+      "displayInterfaceSize": "REDACTED",
+      "releaseRegion": "REDACTED"
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 1274
+}

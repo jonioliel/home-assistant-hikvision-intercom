@@ -1,0 +1,59 @@
+{
+  "name": "stream_channel_101",
+  "method": "GET",
+  "path": "/ISAPI/Streaming/channels/101",
+  "elapsed_ms": 94,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "StreamingChannel": {
+      "id": "REDACTED",
+      "channelName": "REDACTED",
+      "enabled": "true",
+      "Transport": {
+        "ControlProtocolList": {
+          "ControlProtocol": [
+            {
+              "streamingTransport": "RTSP"
+            },
+            {
+              "streamingTransport": "HTTP"
+            }
+          ]
+        },
+        "Security": {
+          "enabled": "REDACTED"
+        }
+      },
+      "Video": {
+        "enabled": "true",
+        "videoInputChannelID": "1",
+        "videoCodecType": "H.264",
+        "videoScanType": "REDACTED",
+        "videoResolutionWidth": "2688",
+        "videoResolutionHeight": "1520",
+        "videoQualityControlType": "REDACTED",
+        "constantBitRate": "4096",
+        "fixedQuality": "REDACTED",
+        "vbrUpperCap": "REDACTED",
+        "vbrLowerCap": "REDACTED",
+        "maxFrameRate": "2500",
+        "keyFrameInterval": "REDACTED",
+        "snapShotImageType": "JPEG",
+        "GovLength": "REDACTED"
+      },
+      "Audio": {
+        "enabled": "true",
+        "audioInputChannelID": "1",
+        "audioCompressionType": "G.711ulaw"
+      }
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 1226
+}

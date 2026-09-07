@@ -1,0 +1,50 @@
+{
+  "name": "card_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/CardInfo/capabilities?format=json",
+  "elapsed_ms": 94,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "CardInfo": {
+      "supportFunction": {
+        "@opt": "post,delete,put,get,setUp"
+      },
+      "CardInfoSearchCond": {
+        "maxResults": {
+          "@min": 1,
+          "@max": 30
+        },
+        "EmployeeNoList": {
+          "maxSize": 30
+        }
+      },
+      "CardInfoDelCond": {
+        "EmployeeNoList": {
+          "maxSize": 30
+        }
+      },
+      "cardNo": {
+        "@min": 1,
+        "@max": 32
+      },
+      "employeeNo": {
+        "@min": 1,
+        "@max": 32
+      },
+      "cardType": {
+        "@opt": "normalCard"
+      },
+      "checkCardNo": "REDACTED",
+      "maxRecordNum": 6000,
+      "numberPerPerson": 5
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 515
+}

@@ -4,13 +4,15 @@ Local-first Home Assistant integration for DS-KV6124-E1 stations, distributed th
 Source of truth: [CODEX_MASTER_SPEC.md](CODEX_MASTER_SPEC.md).
 
 **Phase 0: protocol reconnaissance.** The read-only probe and tests are implemented.
-Real-device evidence is pending. HA setup, entities, access manager and panel arrive in later phases.
+Remote read APIs, PIN mode and short camera decoding are verified on the target firmware.
+Physical call/relay/credential acceptance is pending. HA setup, entities, access manager and panel
+arrive in later phases.
 No production release is available.
 
 [Current Phase 0 test source](https://github.com/jonioliel/home-assistant-hikvision-intercom/tree/phase/0-protocol-probe) · [Download test source ZIP](https://github.com/jonioliel/home-assistant-hikvision-intercom/archive/refs/heads/phase/0-protocol-probe.zip)
 
 HACS, Hassfest and Python CI passed on the uploaded tooling. The physical Phase 0 gate remains
-open, so development stays on its phase branch until the device evidence is reviewed.
+open, so development stays on its phase branch until the remaining physical evidence is reviewed.
 
 ## Run Phase 0
 
@@ -72,10 +74,15 @@ Unselected relays must have no entity, control, action target or access-permissi
 If Windows blocks compiled mypy, install its pure Python build:
 python -m pip install --force-reinstall --no-binary mypy mypy==1.20.2
 
-Current fixtures are synthetic and prove no firmware behavior. Use focused phase branches.
+Synthetic parser fixtures and sanitized real-firmware observations are kept separately.
+See [the capability matrix](docs/CAPABILITY_MATRIX.md) for what was actually verified.
+Use focused phase branches.
 Merge to main only after phase checks pass. Device-dependent phases remain open pending evidence.
 Manifest, metadata, Git tag and changelog must use the same Semantic Version.
 GitHub Releases require successful Python CI, HACS and Hassfest on the release commit.
 Pre-1.0 releases are marked as prereleases. See [progress](docs/PROGRESS.md).
 
 Independent community project, not an official Hikvision product.
+
+Remote checks on the target firmware are documented in [the capability matrix](docs/CAPABILITY_MATRIX.md).
+They confirm read APIs and short camera decoding; physical relay/PIN/card/call acceptance remains open.

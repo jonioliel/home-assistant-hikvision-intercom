@@ -1,0 +1,58 @@
+{
+  "name": "video_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/VideoIntercom/capabilities",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "VideoIntercomCap": {
+      "@version": "2.0",
+      "isSupportDeviceId": "true",
+      "isSupportOperationTime": "true",
+      "isSupportCallerInfo": "true",
+      "isSupportCallSignal": "true",
+      "isSupportCallStatus": "true",
+      "isSupportCallElevator": "true",
+      "isSupportWorkStatus": "true",
+      "isSupportElevatorControlCfg": "true",
+      "isSupportKeyCfg": "true",
+      "isSupportWorkModeCfg": "true",
+      "isSupportPrivilegePasswordStatus": "true",
+      "isSupportPrivilegePassword": "true",
+      "isSupportSubModules": "false",
+      "isSupportSubModulesCfg": "false",
+      "isSupportGetSubModulePicture": "false",
+      "isSupportIssueCards": "true",
+      "isSupportSendCardCfg": "true",
+      "isSupportRingBackTone": "true",
+      "isSupportCallPriority": "true",
+      "isSupportPhoneCfg": "true",
+      "isSupportRemoteOpenDoor": "true",
+      "isSupportAlarmUploadCfg": "true",
+      "isSupportDeviceLanguageCfg": "true",
+      "isSupportSecurityMode": "true",
+      "isSupportDeviceCommunication": "true",
+      "isSupportAutoSync": "true",
+      "isSupportKeyCfgWeekPlan": "true",
+      "isSupportKeyCfgHolidayPlan": "true",
+      "isSupportKeyCfgHolidayGroup": "true",
+      "isSupportKeyCfgPlanTemplate": "true",
+      "isSupportProtocolFileManage": "false",
+      "isSupportStreamSwitch": "true",
+      "isSupportAlarmControlByPhone": "false",
+      "isSupportBroadcastRealtime": "false",
+      "isSupportDeletePrivilegePasswordList": "true",
+      "isSupportCallCfg": "true"
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 2178
+}

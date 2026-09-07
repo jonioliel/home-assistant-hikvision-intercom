@@ -1,0 +1,121 @@
+[
+  {
+    "path": "/ISAPI/System/capabilities",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/System/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/capabilities",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/UserInfo/capabilities",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/UserInfo/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/CardInfo/capabilities",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/CardInfo/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/Streaming/channels/101",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/Streaming/channels/101",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/RemoteControl/door/capabilities",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/AccessControl/RemoteControl/door/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/System/deviceInfo",
+    "status": 401,
+    "authorization_sent": false,
+    "digest_challenge": true,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/System/deviceInfo",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/System/capabilities",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/Event/notification/alertStream",
+    "status": 200,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  },
+  {
+    "path": "/ISAPI/System/capabilities",
+    "status": 401,
+    "authorization_sent": true,
+    "digest_challenge": false,
+    "stale_true": false
+  }
+]

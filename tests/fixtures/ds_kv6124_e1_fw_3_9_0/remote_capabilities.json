@@ -1,0 +1,29 @@
+{
+  "name": "remote_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/RemoteControl/door/capabilities",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "RemoteControlDoor": {
+      "@version": "2.0",
+      "doorNo": {
+        "@min": "1",
+        "@max": "2"
+      },
+      "cmd": {
+        "@opt": "open,close,alwaysOpen,resume"
+      }
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 212
+}

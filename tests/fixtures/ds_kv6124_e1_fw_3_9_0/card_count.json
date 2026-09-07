@@ -1,0 +1,20 @@
+{
+  "name": "card_count",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/CardInfo/Count?format=json",
+  "elapsed_ms": 94,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "CardInfoCount": {
+      "cardNumber": 0
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 44
+}

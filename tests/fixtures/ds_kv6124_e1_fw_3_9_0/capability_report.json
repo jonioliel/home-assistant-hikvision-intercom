@@ -1,0 +1,1161 @@
+{
+  "schema_version": 1,
+  "tool_version": "0.1.0-alpha.1",
+  "evidence_source": "device_probe",
+  "identity": {
+    "model": "DS-KV6124-E1",
+    "serial": "REDACTED",
+    "firmware": "V3.9.0 build 260115"
+  },
+  "features": {
+    "call_status": true,
+    "event_stream": true,
+    "users": true,
+    "cards": true,
+    "pin_password": null,
+    "door_right": null,
+    "right_plan": null,
+    "remote_unlock": null,
+    "remote_unlock_ids": [],
+    "work_status": true,
+    "snapshot": true,
+    "rtsp": null
+  },
+  "evidence": {
+    "call_status": [
+      "call_status"
+    ],
+    "work_status": [
+      "work_status"
+    ],
+    "users": [
+      "user_search_00"
+    ],
+    "cards": [
+      "card_search_00"
+    ],
+    "snapshot": [
+      "snapshot"
+    ],
+    "event_stream": [
+      "alert_stream"
+    ]
+  },
+  "observations": {
+    "feature_semantics": "users/cards prove search reads only; writes, PIN, rights, unlock and RTSP need manual tests",
+    "rtsp_port_not_probed": 554,
+    "unattended_call_samples": [
+      {
+        "offset_seconds": 0.0,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 1.125,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 2.203,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 3.297,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 4.391,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 5.485,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 6.578,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 7.672,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 8.766,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 9.86,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      },
+      {
+        "offset_seconds": 10.938,
+        "http_status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        }
+      }
+    ],
+    "short_stream_reconnects": [
+      {
+        "http_status": 500,
+        "outcome": "error",
+        "elapsed_ms": 94,
+        "event_count": 0
+      },
+      {
+        "http_status": 500,
+        "outcome": "error",
+        "elapsed_ms": 78,
+        "event_count": 0
+      }
+    ]
+  },
+  "records": [
+    {
+      "name": "device_info",
+      "method": "GET",
+      "path": "/ISAPI/System/deviceInfo",
+      "elapsed_ms": 156,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "DeviceInfo": {
+          "@version": "2.0",
+          "deviceName": "REDACTED",
+          "deviceID": "REDACTED",
+          "deviceDescription": "REDACTED",
+          "deviceLocation": "REDACTED",
+          "systemContact": "REDACTED",
+          "model": "DS-KV6124-E1",
+          "serialNumber": "REDACTED",
+          "macAddress": "REDACTED",
+          "firmwareVersion": "V3.9.0",
+          "firmwareReleasedDate": "build 260115",
+          "bootVersion": "REDACTED",
+          "bootReleasedDate": "REDACTED",
+          "hardwareVersion": "REDACTED",
+          "deviceType": "REDACTED",
+          "subDeviceType": "REDACTED",
+          "telecontrolID": "REDACTED",
+          "supportBeep": "REDACTED",
+          "supportVideoLoss": "REDACTED",
+          "alarmOutNum": "0",
+          "alarmInNum": "4",
+          "RS485Num": "REDACTED",
+          "OEMCode": "REDACTED",
+          "bspVersion": "REDACTED",
+          "dspVersion": "REDACTED",
+          "encryptionModel": "REDACTED",
+          "productionDate": "REDACTED",
+          "displayInterfaceSize": "REDACTED",
+          "releaseRegion": "REDACTED"
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 1274
+    },
+    {
+      "name": "video_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/VideoIntercom/capabilities",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "VideoIntercomCap": {
+          "@version": "2.0",
+          "isSupportDeviceId": "true",
+          "isSupportOperationTime": "true",
+          "isSupportCallerInfo": "true",
+          "isSupportCallSignal": "true",
+          "isSupportCallStatus": "true",
+          "isSupportCallElevator": "true",
+          "isSupportWorkStatus": "true",
+          "isSupportElevatorControlCfg": "true",
+          "isSupportKeyCfg": "true",
+          "isSupportWorkModeCfg": "true",
+          "isSupportPrivilegePasswordStatus": "true",
+          "isSupportPrivilegePassword": "true",
+          "isSupportSubModules": "false",
+          "isSupportSubModulesCfg": "false",
+          "isSupportGetSubModulePicture": "false",
+          "isSupportIssueCards": "true",
+          "isSupportSendCardCfg": "true",
+          "isSupportRingBackTone": "true",
+          "isSupportCallPriority": "true",
+          "isSupportPhoneCfg": "true",
+          "isSupportRemoteOpenDoor": "true",
+          "isSupportAlarmUploadCfg": "true",
+          "isSupportDeviceLanguageCfg": "true",
+          "isSupportSecurityMode": "true",
+          "isSupportDeviceCommunication": "true",
+          "isSupportAutoSync": "true",
+          "isSupportKeyCfgWeekPlan": "true",
+          "isSupportKeyCfgHolidayPlan": "true",
+          "isSupportKeyCfgHolidayGroup": "true",
+          "isSupportKeyCfgPlanTemplate": "true",
+          "isSupportProtocolFileManage": "false",
+          "isSupportStreamSwitch": "true",
+          "isSupportAlarmControlByPhone": "false",
+          "isSupportBroadcastRealtime": "false",
+          "isSupportDeletePrivilegePasswordList": "true",
+          "isSupportCallCfg": "true"
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 2178
+    },
+    {
+      "name": "call_status",
+      "method": "GET",
+      "path": "/ISAPI/VideoIntercom/callStatus?format=json",
+      "elapsed_ms": 63,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "CallStatus": {
+          "status": "idle"
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 42
+    },
+    {
+      "name": "work_status",
+      "method": "GET",
+      "path": "/ISAPI/VideoIntercom/WorkStatus",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "WorkStatus": {
+          "@version": "2.0",
+          "lockStatusList": {
+            "node": {
+              "lockID": "1",
+              "lockStatus": "offline"
+            }
+          }
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 236
+    },
+    {
+      "name": "send_card_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/VideoIntercom/SendCardCfg/capabilities",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "SendCardCfg": {
+          "@version": "2.0",
+          "enabled": "REDACTED"
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 161
+    },
+    {
+      "name": "user_count",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/UserInfo/Count?format=json",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "UserInfoCount": {
+          "userNumber": 0,
+          "bindCardUserNumber": 0
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 71
+    },
+    {
+      "name": "user_search_00",
+      "method": "POST",
+      "path": "/ISAPI/AccessControl/UserInfo/Search?format=json",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "UserInfoSearch": {
+          "searchID": "REDACTED",
+          "responseStatusStrg": "NO MATCH",
+          "numOfMatches": 0,
+          "totalMatches": 0
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 154
+    },
+    {
+      "name": "card_count",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/CardInfo/Count?format=json",
+      "elapsed_ms": 94,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "CardInfoCount": {
+          "cardNumber": 0
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 44
+    },
+    {
+      "name": "card_search_00",
+      "method": "POST",
+      "path": "/ISAPI/AccessControl/CardInfo/Search?format=json",
+      "elapsed_ms": 94,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "CardInfoSearch": {
+          "searchID": "REDACTED",
+          "responseStatusStrg": "NO MATCH",
+          "numOfMatches": 0,
+          "totalMatches": 0
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 154
+    },
+    {
+      "name": "access_event_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/AcsEventTotalNum/capabilities?format=json",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "AcsEvent": {
+          "AcsEventTotalNumCond": {
+            "major": {
+              "@opt": "0,1,2,3,5"
+            },
+            "minorAlarm": {
+              "@opt": "1028,1029,1034,3"
+            },
+            "minorException": {
+              "@opt": "38,39,1031"
+            },
+            "minorOperation": {
+              "@opt": "112,113,123,126,134,135,241,311,312,1024,1028,1029,1031,1057,1058,1055,1056,9729"
+            },
+            "minorEvent": {
+              "@opt": "1,9,21,22,25,26,92,214,215,216,148,181,150,229"
+            },
+            "startTime": {
+              "@min": 1,
+              "@max": 32
+            },
+            "endTime": {
+              "@min": 1,
+              "@max": 32
+            },
+            "cardNo": {
+              "@min": 1,
+              "@max": 10
+            },
+            "name": {
+              "@min": 0,
+              "@max": 32
+            },
+            "picEnable": "REDACTED",
+            "employeeNoString": {
+              "@min": 1,
+              "@max": 36
+            }
+          },
+          "totalNum": {
+            "@min": 0,
+            "@max": 1000
+          }
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 764
+    },
+    {
+      "name": "snapshot",
+      "method": "GET",
+      "path": "/ISAPI/Streaming/channels/101/picture",
+      "elapsed_ms": 438,
+      "http_status": 200,
+      "headers": {
+        "content-type": "image/jpeg"
+      },
+      "payload": {
+        "image": "OMITTED"
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 24706
+    },
+    {
+      "name": "alert_stream",
+      "method": "GET",
+      "path": "/ISAPI/Event/notification/alertStream",
+      "elapsed_ms": 4000,
+      "http_status": 200,
+      "headers": {
+        "content-type": "multipart/mixed"
+      },
+      "payload": [
+        {
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "channelID": 1,
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "videoloss",
+          "eventState": "inactive",
+          "eventDescription": "REDACTED"
+        }
+      ],
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 337
+    },
+    {
+      "name": "system_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/System/capabilities",
+      "elapsed_ms": 109,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "DeviceCap": {
+          "@version": "2.0",
+          "isSupportDeviceInfo": "true",
+          "SysCap": {
+            "isSupportDst": "true",
+            "NetworkCap": {
+              "isSupportWireless": "false",
+              "isSupportPPPoE": "false",
+              "isSupportBond": "false",
+              "isSupport802_1x": "false",
+              "isSupportNtp": "true",
+              "isSupportFtp": "true",
+              "isSupportHttps": "true",
+              "SnmpCap": {
+                "isSupport": "false"
+              },
+              "isSupportSSH": "true",
+              "isSupportEZVIZ": "true",
+              "isSupportEhome": "false",
+              "isSupportEZVIZQRCode": "true",
+              "isSupportEZVIZUnbind": "true",
+              "isSupportWirelessDial": "false",
+              "VerificationCodeModification": {
+                "verificationCodeType": {
+                  "@opt": "normal,empty",
+                  "#text": "REDACTED"
+                },
+                "isSupportDeclarationURL": "true",
+                "isSupportPrivacyPolicyURL": "true",
+                "verificationCodeModify": {
+                  "@opt": "true,false",
+                  "#text": "REDACTED"
+                },
+                "Hyperlinks": {
+                  "declarationURL": "REDACTED",
+                  "privacyPolicyURL": "REDACTED"
+                }
+              },
+              "isSupportWebSocket": "true",
+              "isSupportWebSocketS": "true",
+              "isSupportSip": "true",
+              "isSupportAsynPingTest": "true"
+            },
+            "IOCap": {
+              "IOInputPortNums": "REDACTED",
+              "IOOutputPortNums": "REDACTED"
+            },
+            "SerialCap": {
+              "supportRS232Config": "REDACTED",
+              "rs422PortNums": "REDACTED",
+              "rs232PortNums": "REDACTED"
+            },
+            "VideoCap": "REDACTED",
+            "AudioCap": {
+              "audioInputNums": "REDACTED",
+              "audioOutputNums": "REDACTED",
+              "isSupportSoundClassificationParams": "true",
+              "isSupportGetSoundClassificationSchedule": "true",
+              "isSupportModifySoundClassificationSchedule": "true",
+              "isSupportSearchSoundClassificationDetection": "true"
+            },
+            "isSupportSubscribeEvent": "false",
+            "isSupportGettingWorkingStatus": "true"
+          },
+          "isSupportSnapshot": "true",
+          "SecurityCap": {
+            "supportUserNums": "REDACTED",
+            "userBondIpNums": "REDACTED",
+            "userBondMacNums": "REDACTED",
+            "isSupCertificate": "REDACTED",
+            "issupIllegalLoginLock": "REDACTED",
+            "isSupportOnlineUser": "true",
+            "isSupportAnonymous": "false",
+            "isSupportStreamEncryption": "false",
+            "securityVersion": "REDACTED",
+            "keyIterateNum": "REDACTED",
+            "isSupportUserCheck": "true",
+            "isSupportSecurityQuestionConfig": "true",
+            "SecurityLimits": "REDACTED",
+            "RSAKeyLength": "REDACTED",
+            "isSupportConfigFileImport": "true",
+            "isSupportConfigFileExport": "true",
+            "isIrreversible": "REDACTED",
+            "salt": "REDACTED",
+            "isSupportDeviceCertificatesManagement": "true",
+            "isSupportSecurityEmail": "true",
+            "DoubleVerificationCap": "REDACTED",
+            "isSupportEncryptCertificate": "true",
+            "isSupportCertificateCustomID": "true",
+            "isNotSupportLogSeverCertificate": "REDACTED"
+          },
+          "EventCap": {
+            "isSupportHDFull": "false",
+            "isSupportHDError": "false",
+            "isSupportNicBroken": "false",
+            "isSupportIpConflict": "false",
+            "isSupportIllAccess": "false",
+            "isSupportViException": "false",
+            "isSupportViMismatch": "false",
+            "isSupportRecordException": "false",
+            "isSupportMotionDetection": "true",
+            "isSupportVideoLoss": "false",
+            "isSupportTamperDetection": "false",
+            "isSupportHumanRecognition": "true",
+            "isSupportFaceContrast": "true",
+            "isSupportFaceSnap": "true"
+          },
+          "RacmCap": {
+            "SecurityLog": {
+              "isSupportSecurityLog": "true",
+              "isSupportLogServer": "true",
+              "SecurityLogTypeList": "REDACTED"
+            }
+          },
+          "isSupportGIS": "true",
+          "isSupportCompass": "true",
+          "isSupportFaceCaptureStatistics": "false",
+          "VideoIntercomCap": {
+            "isSupportDeviceId": "true",
+            "isSupportOperationTime": "true",
+            "isSupportCallerInfo": "true",
+            "isSupportCallSignal": "true",
+            "isSupportCallStatus": "true",
+            "isSupportCallElevator": "true",
+            "isSupportElevatorControlCfg": "true",
+            "isSupportKeyCfg": "true",
+            "isSupportWorkModeCfg": "true",
+            "isSupportPrivilegePasswordStatus": "true",
+            "isSupportPrivilegePassword": "true",
+            "isSupportSubModules": "false",
+            "isSupportSubModulesCfg": "false",
+            "isSupportIssueCards": "true",
+            "isSupportSendCardCfg": "true",
+            "isSupportRingBackTone": "true",
+            "isSupportCallPriority": "true",
+            "isSupportPhoneCfg": "true",
+            "isSupportRemoteOpenDoor": "true",
+            "isSupportSecurityMode": "true",
+            "isSupportDeviceCommunication": "true",
+            "isSupportAutoSync": "true",
+            "isSupportKeyCfgWeekPlan": "true",
+            "isSupportKeyCfgHolidayPlan": "true",
+            "isSupportKeyCfgHolidayGroup": "true",
+            "isSupportKeyCfgPlanTemplate": "true",
+            "isSupportProtocolFileManage": "false",
+            "isSupportStreamSwitch": "true",
+            "isSupportAlarmControlByPhone": "false",
+            "isSupportBroadcastRealtime": "false",
+            "isSupportCallCfg": "true"
+          },
+          "supportImageChannel": "REDACTED",
+          "IOTCap": {
+            "supportChannelNum": "REDACTED",
+            "isSupportIOTChannelCap": "true",
+            "satusSearchTaskCap": {
+              "maxResults": "30",
+              "filterType": {
+                "@opt": "all,online,offline"
+              }
+            },
+            "channelConfigList": {
+              "channelConfig": [
+                {
+                  "unitType": "REDACTED",
+                  "floorNumber": {
+                    "@min": "REDACTED",
+                    "@max": "10"
+                  },
+                  "roomNumber": {
+                    "@min": "1",
+                    "@max": "99"
+                  },
+                  "isSupportZeroFloorNumber": "false"
+                },
+                {
+                  "unitType": "REDACTED",
+                  "floorNumber": {
+                    "@min": "0",
+                    "@max": "999"
+                  },
+                  "roomNumber": {
+                    "@min": "1",
+                    "@max": "9999"
+                  },
+                  "isSupportMoreFeatures": "true"
+                }
+              ]
+            },
+            "isSupportConfigTemplate": "true",
+            "isSupportConfigReport": "true",
+            "isSupportSearchMoreIOTSource": "false",
+            "isSupportEncryptImportIOTChannelFile": "true"
+          },
+          "isSupportImageCap": "true",
+          "isSupportPictureServer": "true",
+          "isSupportAlgorithmsInfo": "true",
+          "isSupportAccessControlCap": "true",
+          "isSupportMultiDeviceID": "false",
+          "isSupportRemovePlaybackRecord": "false",
+          "isSupportSearchImportDeviceDataTaskProgress": "true",
+          "isSupportSearchExportDeviceDataTaskProgress": "true",
+          "isSupportAddImportDeviceDataTask": "true",
+          "isSupportAddExportDeviceDataTask": "true",
+          "isSupportSubModuleBacklight": "false",
+          "isSupportStartNetworkCapture": "true",
+          "isSupportStopNetworkCapture": "true",
+          "isSupportGetNetworkCaptureStatus": "true",
+          "isSupportVoiceTalkEvent": "true",
+          "isSupportCallCaptureImageEvent": "true",
+          "isSupportMainAndSubRecord": "true"
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 9099
+    },
+    {
+      "name": "access_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/capabilities",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "AccessControl": {
+          "@version": "2.0",
+          "isSupportM1CardEncryptCfg": "true",
+          "isSupportDeployInfo": "true",
+          "isSupportRemoteControlDoor": "true",
+          "isSupportUserInfo": "true",
+          "EmployeeNoInfo": {
+            "employeeNo": "REDACTED",
+            "characterType": "REDACTED"
+          },
+          "isSupportCardInfo": "true",
+          "isSupportCardOperations": "true",
+          "isSupportAcsEvent": "true",
+          "isSupportAcsEventTotalNum": "true",
+          "isSupportClearEventCardLinkageCfg": "true",
+          "isSupportAcsWorkStatus": "true",
+          "isSupportDoorCfg": "true",
+          "isSupportCardReaderCfg": "false",
+          "isSupportAcsCfg": "true",
+          "isSupportCaptureCardInfo": "true",
+          "isSupportNFCCfg": "true",
+          "isSupportRFCardCfg": "true",
+          "isSupportMaintenanceDataExport": "true",
+          "isSupportClearPictureCfg": "true",
+          "isSupportEventStorageCfg": "true",
+          "isSupportPwMgrParams": "true",
+          "isSupportGetUserAvailablePw": "true",
+          "isSupportCardRightWeekPlanCfg": "true",
+          "isSupportCardRightHolidayPlanCfg": "true",
+          "isSupportUserRightHolidayGroupCfg": "true",
+          "isSupportUserRightPlanTemplate": "true",
+          "isSupportSearchUserRightWeekPlan": "true",
+          "isSupportSearchUserRightHolidayPlan": "true",
+          "isSupportSearchUserRightPlanTemplate": "true",
+          "isSupportSearchUserRightHolidayGroup": "true",
+          "isSupportDoorSecurityModulePairParams": "true",
+          "isSupportQRCodeEncryption": "true",
+          "isSupportQRCodeInfo": "true"
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 2231
+    },
+    {
+      "name": "user_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/UserInfo/capabilities?format=json",
+      "elapsed_ms": 94,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "UserInfo": {
+          "supportFunction": {
+            "@opt": "post,delete,put,get,setUp"
+          },
+          "UserInfoSearchCond": {
+            "maxResults": {
+              "@min": 1,
+              "@max": 30
+            },
+            "EmployeeNoList": {
+              "maxSize": 30
+            },
+            "fuzzySearch": {
+              "@min": 1,
+              "@max": 32
+            },
+            "fuzzySearchType": {
+              "@size": 3,
+              "@opt": [
+                "employeeNo",
+                "name",
+                "roomNo"
+              ]
+            }
+          },
+          "UserInfoDelCond": {
+            "EmployeeNoList": {
+              "maxSize": 30,
+              "employeeNo": {
+                "@min": 1,
+                "@max": 32
+              }
+            },
+            "loginPassword": {
+              "@min": 8,
+              "@max": 16
+            }
+          },
+          "employeeNo": {
+            "@min": 1,
+            "@max": 32
+          },
+          "name": {
+            "@min": 0,
+            "@max": 32
+          },
+          "userType": {
+            "@opt": "normal"
+          },
+          "Valid": {
+            "enable": "REDACTED",
+            "beginTime": {
+              "@min": 1,
+              "@max": 32
+            },
+            "endTime": {
+              "@min": 1,
+              "@max": 32
+            },
+            "timeType": {
+              "@opt": "local,UTC"
+            }
+          },
+          "password": {
+            "@min": 4,
+            "@max": 8
+          },
+          "localPassword": {
+            "@min": 4,
+            "@max": 8
+          },
+          "RightPlan": {
+            "maxSize": 1,
+            "doorNo": {
+              "@min": 1,
+              "@max": 2
+            },
+            "maxPlanTemplate": 4,
+            "planTemplateNo": {
+              "@min": 1,
+              "@max": 255
+            }
+          },
+          "floorNumber": {
+            "@min": 0,
+            "@max": 999
+          },
+          "roomNumber": {
+            "@min": 1,
+            "@max": 9999
+          },
+          "dynamicCode": {
+            "@min": 6,
+            "@max": 6
+          },
+          "localUIRight": "REDACTED",
+          "callNumbersDetails": {
+            "roomNumber": {
+              "@min": 1,
+              "@max": 9999
+            },
+            "roomNumberSeq": "REDACTED"
+          },
+          "callNumbers": {
+            "maxSize": 5,
+            "@min": 1,
+            "@max": 4
+          },
+          "floorNumbers": {
+            "maxSize": 5,
+            "@min": 0,
+            "@max": 999
+          },
+          "checkUser": "REDACTED",
+          "maxRecordNum": 2000
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 1656
+    },
+    {
+      "name": "card_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/CardInfo/capabilities?format=json",
+      "elapsed_ms": 94,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "CardInfo": {
+          "supportFunction": {
+            "@opt": "post,delete,put,get,setUp"
+          },
+          "CardInfoSearchCond": {
+            "maxResults": {
+              "@min": 1,
+              "@max": 30
+            },
+            "EmployeeNoList": {
+              "maxSize": 30
+            }
+          },
+          "CardInfoDelCond": {
+            "EmployeeNoList": {
+              "maxSize": 30
+            }
+          },
+          "cardNo": {
+            "@min": 1,
+            "@max": 32
+          },
+          "employeeNo": {
+            "@min": 1,
+            "@max": 32
+          },
+          "cardType": {
+            "@opt": "normalCard"
+          },
+          "checkCardNo": "REDACTED",
+          "maxRecordNum": 6000,
+          "numberPerPerson": 5
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 515
+    },
+    {
+      "name": "stream_channel_101",
+      "method": "GET",
+      "path": "/ISAPI/Streaming/channels/101",
+      "elapsed_ms": 94,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "StreamingChannel": {
+          "id": "REDACTED",
+          "channelName": "REDACTED",
+          "enabled": "true",
+          "Transport": {
+            "ControlProtocolList": {
+              "ControlProtocol": [
+                {
+                  "streamingTransport": "RTSP"
+                },
+                {
+                  "streamingTransport": "HTTP"
+                }
+              ]
+            },
+            "Security": {
+              "enabled": "REDACTED"
+            }
+          },
+          "Video": {
+            "enabled": "true",
+            "videoInputChannelID": "1",
+            "videoCodecType": "H.264",
+            "videoScanType": "REDACTED",
+            "videoResolutionWidth": "2688",
+            "videoResolutionHeight": "1520",
+            "videoQualityControlType": "REDACTED",
+            "constantBitRate": "4096",
+            "fixedQuality": "REDACTED",
+            "vbrUpperCap": "REDACTED",
+            "vbrLowerCap": "REDACTED",
+            "maxFrameRate": "2500",
+            "keyFrameInterval": "REDACTED",
+            "snapShotImageType": "JPEG",
+            "GovLength": "REDACTED"
+          },
+          "Audio": {
+            "enabled": "true",
+            "audioInputChannelID": "1",
+            "audioCompressionType": "G.711ulaw"
+          }
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 1226
+    },
+    {
+      "name": "pin_mode_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/UserAndRight/PwMgrParams/capabilities?format=json",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "PwMgrParamsCap": {
+          "pwMgrMode": {
+            "@opt": [
+              "platform",
+              "local"
+            ],
+            "@def": "platform"
+          }
+        }
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 104
+    },
+    {
+      "name": "pin_mode",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/UserAndRight/PwMgrParams?format=json",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "payload": {
+        "pwMgrMode": "local"
+      },
+      "namespaces": [],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 25
+    },
+    {
+      "name": "remote_capabilities",
+      "method": "GET",
+      "path": "/ISAPI/AccessControl/RemoteControl/door/capabilities",
+      "elapsed_ms": 78,
+      "http_status": 200,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "payload": {
+        "RemoteControlDoor": {
+          "@version": "2.0",
+          "doorNo": {
+            "@min": "1",
+            "@max": "2"
+          },
+          "cmd": {
+            "@opt": "open,close,alwaysOpen,resume"
+          }
+        }
+      },
+      "namespaces": [
+        "http://www.isapi.org/ver20/XMLSchema"
+      ],
+      "outcome": "observed",
+      "error": null,
+      "truncated": false,
+      "bytes_received": 212
+    }
+  ],
+  "pending_manual_tests": [
+    "physical_bell_call_status_sequence",
+    "rtsp_live_video",
+    "physical_relay_to_api_door_mapping",
+    "pin_mode_set_change_remove_and_keypad_authentication",
+    "card_add_remove_and_reader_authentication",
+    "per_door_rights_enforcement_and_denial",
+    "user_card_crud_readback_and_delete_process"
+  ]
+}

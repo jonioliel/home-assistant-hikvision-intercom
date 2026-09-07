@@ -1,0 +1,82 @@
+{
+  "evidence_source": "live_device_remote_validation",
+  "capture_date_utc": "2026-09-07",
+  "identity": {
+    "model": "DS-KV6124-E1",
+    "serial": "REDACTED",
+    "firmware": "V3.9.0 build 260115"
+  },
+  "features": {
+    "call_status": true,
+    "event_stream": true,
+    "users": true,
+    "cards": true,
+    "pin_password": null,
+    "door_right": null,
+    "right_plan": null,
+    "remote_unlock": null,
+    "remote_unlock_ids": [],
+    "work_status": true,
+    "snapshot": true,
+    "rtsp": true
+  },
+  "evidence": {
+    "call_status": [
+      "call_status"
+    ],
+    "work_status": [
+      "work_status"
+    ],
+    "users": [
+      "user_search_00"
+    ],
+    "cards": [
+      "card_search_00"
+    ],
+    "snapshot": [
+      "snapshot"
+    ],
+    "event_stream": [
+      "alert_stream"
+    ],
+    "rtsp": [
+      "media_observation.json"
+    ]
+  },
+  "limitations": [
+    "RTSP decoding was performed separately using PyAV 16.1.0; the ISAPI CLI does not probe RTSP.",
+    "Five decoded frames establish a short live-video read, not HA streaming acceptance or a soak test.",
+    "CallStatus was idle only; bell, answer and hangup transitions remain unverified.",
+    "Historical AccessControllerEvent entries have currentEvent=false; no live access semantics inferred.",
+    "Two short stream reconnections returned HTTP 500; a later retry returned HTTP 200. Cause and recovery timing unknown.",
+    "Read capabilities advertise writes and door IDs; no writes or physical effects were tested."
+  ],
+  "pin_mode_observed": "local",
+  "pending_tests": [
+    "physical_bell_call_status_sequence",
+    "physical_relay_to_api_door_mapping",
+    "pin_mode_set_change_remove_and_keypad_authentication",
+    "card_add_remove_and_reader_authentication",
+    "per_door_rights_enforcement_and_denial",
+    "user_card_crud_readback_and_delete_process"
+  ],
+  "media": {
+    "evidence_source": "authorized_live_device_read",
+    "saved_media": false,
+    "rtsp": {
+      "path": "/Streaming/Channels/101",
+      "transport": "TCP",
+      "codec": "h264",
+      "width": 2688,
+      "height": 1520,
+      "decoded_frames": 5,
+      "elapsed_ms": 1547
+    },
+    "snapshot": {
+      "decoded": true,
+      "width": 704,
+      "height": 576,
+      "bytes": 24705
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "access_event_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/AcsEventTotalNum/capabilities?format=json",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "AcsEvent": {
+      "AcsEventTotalNumCond": {
+        "major": {
+          "@opt": "0,1,2,3,5"
+        },
+        "minorAlarm": {
+          "@opt": "1028,1029,1034,3"
+        },
+        "minorException": {
+          "@opt": "38,39,1031"
+        },
+        "minorOperation": {
+          "@opt": "112,113,123,126,134,135,241,311,312,1024,1028,1029,1031,1057,1058,1055,1056,9729"
+        },
+        "minorEvent": {
+          "@opt": "1,9,21,22,25,26,92,214,215,216,148,181,150,229"
+        },
+        "startTime": {
+          "@min": 1,
+          "@max": 32
+        },
+        "endTime": {
+          "@min": 1,
+          "@max": 32
+        },
+        "cardNo": {
+          "@min": 1,
+          "@max": 10
+        },
+        "name": {
+          "@min": 0,
+          "@max": 32
+        },
+        "picEnable": "REDACTED",
+        "employeeNoString": {
+          "@min": 1,
+          "@max": 36
+        }
+      },
+      "totalNum": {
+        "@min": 0,
+        "@max": 1000
+      }
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 764
+}

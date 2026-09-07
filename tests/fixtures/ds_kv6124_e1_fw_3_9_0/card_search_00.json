@@ -1,0 +1,23 @@
+{
+  "name": "card_search_00",
+  "method": "POST",
+  "path": "/ISAPI/AccessControl/CardInfo/Search?format=json",
+  "elapsed_ms": 94,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "CardInfoSearch": {
+      "searchID": "REDACTED",
+      "responseStatusStrg": "NO MATCH",
+      "numOfMatches": 0,
+      "totalMatches": 0
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 154
+}

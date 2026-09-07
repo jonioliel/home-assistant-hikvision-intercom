@@ -1,0 +1,19 @@
+{
+  "evidence_source": "authorized_live_device_read",
+  "saved_media": false,
+  "rtsp": {
+    "path": "/Streaming/Channels/101",
+    "transport": "TCP",
+    "codec": "h264",
+    "width": 2688,
+    "height": 1520,
+    "decoded_frames": 5,
+    "elapsed_ms": 1547
+  },
+  "snapshot": {
+    "decoded": true,
+    "width": 704,
+    "height": 576,
+    "bytes": 24705
+  }
+}

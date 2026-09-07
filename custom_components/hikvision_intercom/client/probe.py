@@ -60,6 +60,18 @@ ENDPOINTS = (
     ProbeEndpoint("snapshot", "/ISAPI/Streaming/channels/101/picture", mode="snapshot"),
     ProbeEndpoint("alert_stream", "/ISAPI/Event/notification/alertStream", mode="stream"),
 )
+READ_CAPABILITIES = (
+    ProbeEndpoint("system_capabilities", "/ISAPI/System/capabilities"),
+    ProbeEndpoint("access_capabilities", "/ISAPI/AccessControl/capabilities"),
+    ProbeEndpoint("user_capabilities", "/ISAPI/AccessControl/UserInfo/capabilities?format=json"),
+    ProbeEndpoint("card_capabilities", "/ISAPI/AccessControl/CardInfo/capabilities?format=json"),
+    ProbeEndpoint("stream_channel_101", "/ISAPI/Streaming/channels/101"),
+    ProbeEndpoint(
+        "pin_mode_capabilities",
+        "/ISAPI/AccessControl/UserAndRight/PwMgrParams/capabilities?format=json",
+    ),
+    ProbeEndpoint("pin_mode", "/ISAPI/AccessControl/UserAndRight/PwMgrParams?format=json"),
+)
 REMOTE_CAPABILITIES = ProbeEndpoint(
     "remote_capabilities", "/ISAPI/AccessControl/RemoteControl/door/capabilities"
 )
@@ -112,8 +124,43 @@ def _http_error(status: int) -> None:
 
 
 def _stream_documents(body: bytes) -> list[dict[str, Any]]:
-    """Keep complete XML event frames only; partial frames cannot prove support."""
-    documents = []
+    """Parse complete length-delimited JSON/XML events and legacy XML frames.
+
+    Target firmware emits JSON MIME parts with Content-Length. Rely on that length,
+    not a guessed boundary string: captured parts can include extra framing bytes.
+    """
+    documents: list[dict[str, Any]] = []
+    mime_headers = False
+    for match in re.finditer(
+        rb"(?:^|\n)Content-Type:[ \t]*(application/json|application/xml|text/xml)[^\r\n]*\r?\n",
+        body,
+        re.IGNORECASE,
+    ):
+        mime_headers = True
+        end = body.find(b"\r\n\r\n", match.start(), match.start() + 2048)
+        if end < 0:
+            continue
+        header = body[match.start() : end]
+        length_match = re.search(
+            rb"(?:^|\n)Content-Length:[ \t]*([0-9]{1,7})\r?$", header, re.IGNORECASE | re.MULTILINE
+        )
+        if not length_match:
+            continue
+        length = int(length_match.group(1))
+        start = end + 4
+        if not 0 < length <= 1_048_576 or start + length > len(body):
+            continue
+        try:
+            parsed = parse_payload(body[start : start + length])
+            check_response_status(parsed.data)
+            if "EventNotificationAlert" in parsed.data or isinstance(
+                parsed.data.get("eventType"), str
+            ):
+                documents.append(parsed.data)
+        except HikvisionError:
+            continue
+    if mime_headers:
+        return documents
     for match in re.finditer(
         rb"<EventNotificationAlert\b[^>]*>.*?</EventNotificationAlert\s*>", body, re.DOTALL
     ):
@@ -144,7 +191,7 @@ class ProbeClient:
             raise HikvisionValidationError("Invalid scheme or port")
         self._base_url = f"{scheme}://{validate_host(host)}:{port}"
         self._session = session
-        self._auth = httpx.DigestAuth(username, password)
+        self._credentials = (username, password)
         self._secrets = tuple(value for value in (host, username, password) if value)
         self.limits = limits or ProbeLimits()
 
@@ -156,7 +203,7 @@ class ProbeClient:
         search_id: str = "phase0",
     ) -> ProbeRecord:
         """Record a bounded observation. A Digest challenge is the only auth replay."""
-        if endpoint not in (*ENDPOINTS, REMOTE_CAPABILITIES):
+        if endpoint not in (*ENDPOINTS, *READ_CAPABILITIES, REMOTE_CAPABILITIES):
             raise HikvisionValidationError("Endpoint is not in the read-only allowlist")
         if not 0 <= position <= self.limits.page_size * self.limits.max_pages:
             raise HikvisionValidationError("Search position exceeds probe limits")
@@ -180,7 +227,9 @@ class ProbeClient:
                 async with self._session.stream(
                     endpoint.method,
                     self._base_url + endpoint.path,
-                    auth=self._auth,
+                    # Target firmware rejects a cached Digest after the stream closes.
+                    # Start one fresh challenge flow per read, with no extra auth retry.
+                    auth=httpx.DigestAuth(*self._credentials),
                     json=request_body,
                     follow_redirects=False,
                     timeout=httpx.Timeout(duration, connect=min(duration, 5)),
@@ -257,12 +306,16 @@ class ProbeClient:
         check_response_status(parsed.data)
         record.outcome = "observed" if not record.truncated else "incomplete"
 
-    async def run(self, *, remote_capabilities_exposed: bool = False) -> CapabilityReport:
+    async def run(
+        self, *, remote_capabilities_exposed: bool = False, extended: bool = False
+    ) -> CapabilityReport:
         """Read serially, stop on auth failure and never crawl or mutate the station."""
         import uuid
 
         report = CapabilityReport()
-        endpoints = (*ENDPOINTS, REMOTE_CAPABILITIES) if remote_capabilities_exposed else ENDPOINTS
+        endpoints = (*ENDPOINTS, *READ_CAPABILITIES) if extended else ENDPOINTS
+        if remote_capabilities_exposed:
+            endpoints = (*endpoints, REMOTE_CAPABILITIES)
         for endpoint in endpoints:
             position = 0
             search_id = uuid.uuid4().hex
@@ -280,7 +333,9 @@ class ProbeClient:
                     break
                 matches = find_values(record.payload, "numOfMatches")
                 total = find_values(record.payload, "totalMatches")
-                status = find_values(record.payload, "responseSearchStatusStrg")
+                status = find_values(record.payload, "responseStatusStrg") or find_values(
+                    record.payload, "responseSearchStatusStrg"
+                )
                 try:
                     count = int(matches[0])
                 except (IndexError, TypeError, ValueError):
@@ -302,6 +357,7 @@ def _read_shape_matches(feature: str, payload: Any, root: str) -> bool:
     """An empty, redacted or incorrectly typed wrapper is not support evidence."""
     values = find_values(payload, root)
     if feature == "call_status":
+        values = [value.get("status") if isinstance(value, dict) else value for value in values]
         return any(
             isinstance(value, (str, int))
             and not isinstance(value, bool)
@@ -313,7 +369,8 @@ def _read_shape_matches(feature: str, payload: Any, root: str) -> bool:
             isinstance(value, dict)
             and "numOfMatches" in value
             and str(value["numOfMatches"]).isdigit()
-            and value.get("responseSearchStatusStrg") in {"OK", "MORE", "NO MATCH"}
+            and value.get("responseStatusStrg", value.get("responseSearchStatusStrg"))
+            in {"OK", "MORE", "NO MATCH"}
             for value in values
         )
     return any(isinstance(value, dict) and bool(value) for value in values)
@@ -352,7 +409,11 @@ def build_capabilities(report: CapabilityReport) -> None:
                     setattr(report.identity, attribute, values[0])
             release = find_values(record.payload, "firmwareReleasedDate")
             if report.identity.firmware and release and release[0] != REDACTED:
-                report.identity.firmware += f" build {release[0]}"
+                report.identity.firmware += (
+                    f" {release[0]}"
+                    if str(release[0]).startswith("build ")
+                    else f" build {release[0]}"
+                )
         if record.name == "snapshot" and record.payload == {"image": "OMITTED"}:
             report.features.snapshot = True
             report.evidence["snapshot"] = [record.name]

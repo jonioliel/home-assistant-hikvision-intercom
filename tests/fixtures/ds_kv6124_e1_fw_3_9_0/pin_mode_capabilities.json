@@ -1,0 +1,26 @@
+{
+  "name": "pin_mode_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/UserAndRight/PwMgrParams/capabilities?format=json",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "PwMgrParamsCap": {
+      "pwMgrMode": {
+        "@opt": [
+          "platform",
+          "local"
+        ],
+        "@def": "platform"
+      }
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 104
+}

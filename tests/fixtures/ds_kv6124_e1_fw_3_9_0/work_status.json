@@ -1,0 +1,28 @@
+{
+  "name": "work_status",
+  "method": "GET",
+  "path": "/ISAPI/VideoIntercom/WorkStatus",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "WorkStatus": {
+      "@version": "2.0",
+      "lockStatusList": {
+        "node": {
+          "lockID": "1",
+          "lockStatus": "offline"
+        }
+      }
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 236
+}

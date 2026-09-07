@@ -1,0 +1,23 @@
+{
+  "name": "send_card_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/VideoIntercom/SendCardCfg/capabilities",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "SendCardCfg": {
+      "@version": "2.0",
+      "enabled": "REDACTED"
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 161
+}

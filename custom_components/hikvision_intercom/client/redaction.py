@@ -15,7 +15,25 @@ _SENSITIVE = re.compile(
     re.IGNORECASE,
 )
 _LIMIT_ATTRIBUTES = {"@min", "@max", "@minlength", "@maxlength", "@size", "@step"}
-_NUMERIC_FIELDS = {
+_CAPABILITY_LIMIT_FIELDS = {
+    "maxrecordnum",
+    "numberperperson",
+    "maxsize",
+    "maxplantemplate",
+}
+_NUMERIC_FIELDS = _CAPABILITY_LIMIT_FIELDS | {
+    "bindcardusernumber",
+    "majoreventtype",
+    "subeventtype",
+    "activepostcount",
+    "videoresolutionwidth",
+    "videoresolutionheight",
+    "maxframerate",
+    "constantbitrate",
+    "videoinputchannelid",
+    "audioinputchannelid",
+    "alarmoutnum",
+    "alarminnum",
     "statuscode",
     "errorcode",
     "usernumber",
@@ -41,6 +59,13 @@ _NUMERIC_FIELDS = {
     "minlength",
 }
 _ENUM_FIELDS = {
+    "responsestatusstrg",
+    "videocodectype",
+    "audiocompressiontype",
+    "streamingtransport",
+    "snapshotimagetype",
+    "charactertype",
+    "unlocktype",
     "callstatus",
     "status",
     "eventtype",
@@ -51,6 +76,7 @@ _ENUM_FIELDS = {
     "cardtype",
     "usertype",
     "pinmode",
+    "pwmgrmode",
     "workstatus",
     "doorright",
     "lockstatus",
@@ -72,7 +98,7 @@ def safe_namespaces(namespaces: list[str]) -> list[str]:
     return [value if value in _KNOWN_NAMESPACES else REDACTED for value in namespaces]
 
 
-def sanitize(value: Any, secrets: tuple[str, ...] = (), field: str = "") -> Any:
+def sanitize(value: Any, secrets: tuple[str, ...] = (), field: str = "", parent: str = "") -> Any:
     """Recursively retain only protocol evidence, including bounds on secret fields."""
     key = field.casefold()
     if isinstance(value, dict):
@@ -86,30 +112,62 @@ def sanitize(value: Any, secrets: tuple[str, ...] = (), field: str = "") -> Any:
             )
             if any(secret and secret in safe_key for secret in secrets):
                 safe_key = f"redacted_field_{index}"
-            if _SENSITIVE.search(key) and name.casefold() not in _LIMIT_ATTRIBUTES:
+            child_key = name.casefold()
+            safe_flag = child_key.startswith("issupport") and str(child).casefold() in {
+                "true",
+                "false",
+                "0",
+                "1",
+            }
+            bounds = (
+                isinstance(child, dict)
+                and bool(child)
+                and all(k.casefold() in _LIMIT_ATTRIBUTES for k in child)
+            )
+            if (
+                _SENSITIVE.search(key)
+                and child_key not in _LIMIT_ATTRIBUTES | _CAPABILITY_LIMIT_FIELDS
+                and not safe_flag
+                and not bounds
+            ):
                 output[safe_key] = REDACTED
             else:
-                output[safe_key] = sanitize(child, secrets, name)
+                output[safe_key] = sanitize(child, secrets, name, field)
         return output
     if isinstance(value, list):
         if _SENSITIVE.search(key):
             return [REDACTED for _ in value]
-        return [sanitize(child, secrets, field) for child in value]
-    if _SENSITIVE.search(key):
-        return REDACTED
+        return [sanitize(child, secrets, field, parent) for child in value]
     if value is None:
         return None
     text = str(value)
     if any(secret and secret in text for secret in secrets):
         return REDACTED
+    # A CardInfoCount/cardNumber is a count; every credential cardNumber stays private.
+    if key == "cardnumber" and parent.casefold() == "cardinfocount":
+        return (
+            value
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0
+            else REDACTED
+        )
+    if key == "numberperperson" and parent.casefold() == "cardinfo":
+        return value if re.fullmatch(r"[0-9]{1,10}", text) else REDACTED
+    if key.startswith("issupport") and str(value).casefold() in {"true", "false", "0", "1"}:
+        return value
+    if _SENSITIVE.search(key):
+        return REDACTED
     if key in _LIMIT_ATTRIBUTES or key in _NUMERIC_FIELDS:
         return value if re.fullmatch(r"[0-9]{1,10}", text) else REDACTED
-    if key.startswith("issupport") or key in {"enable", "enabled"}:
+    if key.startswith("issupport") or key in {"enable", "enabled", "currentevent"}:
         return value if text.casefold() in {"true", "false", "0", "1"} else REDACTED
     if key == "model":
         return value if re.fullmatch(r"DS-[A-Z0-9()/_-]{1,60}", text) else REDACTED
     if key in {"firmwareversion", "firmwarereleasedate", "firmwarereleaseddate"}:
-        return value if re.fullmatch(r"[Vv0-9. /_-]+(?:build [0-9]+)?", text) else REDACTED
+        return (
+            value
+            if re.fullmatch(r"(?:[Vv0-9. /_-]+(?:build [0-9]+)?|build [0-9]{6})", text)
+            else REDACTED
+        )
     if key == "statusstring":
         return (
             value

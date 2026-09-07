@@ -1,0 +1,21 @@
+{
+  "name": "user_count",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/UserInfo/Count?format=json",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "UserInfoCount": {
+      "userNumber": 0,
+      "bindCardUserNumber": 0
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 71
+}

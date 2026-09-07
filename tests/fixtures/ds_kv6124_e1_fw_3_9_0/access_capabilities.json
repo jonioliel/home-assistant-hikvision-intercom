@@ -1,0 +1,58 @@
+{
+  "name": "access_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/capabilities",
+  "elapsed_ms": 78,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "AccessControl": {
+      "@version": "2.0",
+      "isSupportM1CardEncryptCfg": "true",
+      "isSupportDeployInfo": "true",
+      "isSupportRemoteControlDoor": "true",
+      "isSupportUserInfo": "true",
+      "EmployeeNoInfo": {
+        "employeeNo": "REDACTED",
+        "characterType": "REDACTED"
+      },
+      "isSupportCardInfo": "true",
+      "isSupportCardOperations": "true",
+      "isSupportAcsEvent": "true",
+      "isSupportAcsEventTotalNum": "true",
+      "isSupportClearEventCardLinkageCfg": "true",
+      "isSupportAcsWorkStatus": "true",
+      "isSupportDoorCfg": "true",
+      "isSupportCardReaderCfg": "false",
+      "isSupportAcsCfg": "true",
+      "isSupportCaptureCardInfo": "true",
+      "isSupportNFCCfg": "true",
+      "isSupportRFCardCfg": "true",
+      "isSupportMaintenanceDataExport": "true",
+      "isSupportClearPictureCfg": "true",
+      "isSupportEventStorageCfg": "true",
+      "isSupportPwMgrParams": "true",
+      "isSupportGetUserAvailablePw": "true",
+      "isSupportCardRightWeekPlanCfg": "true",
+      "isSupportCardRightHolidayPlanCfg": "true",
+      "isSupportUserRightHolidayGroupCfg": "true",
+      "isSupportUserRightPlanTemplate": "true",
+      "isSupportSearchUserRightWeekPlan": "true",
+      "isSupportSearchUserRightHolidayPlan": "true",
+      "isSupportSearchUserRightPlanTemplate": "true",
+      "isSupportSearchUserRightHolidayGroup": "true",
+      "isSupportDoorSecurityModulePairParams": "true",
+      "isSupportQRCodeEncryption": "true",
+      "isSupportQRCodeInfo": "true"
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 2231
+}

@@ -17,7 +17,10 @@ Only fixed user/card Search endpoints use POST; other probes use GET.
 There is no arbitrary endpoint/body, unlock, configuration or credential-write option.
 Use --remote-capabilities-exposed only after independently observing that the station exposes the
 door-capabilities endpoint. It reads metadata and never activates a relay.
-RTSP is not probed; an open port or product documentation cannot prove usable live video.
+The CLI does not probe RTSP; an open port or product documentation cannot prove usable live video.
+Use --extended for fixed system/access/user/card/stream and PIN-mode metadata reads.
+The owner-authorized session separately decoded live RTSP and snapshot frames in memory;
+see CAPABILITY_MATRIX.md and the media fixture for results and limitations.
 
 ## Output
 
@@ -42,9 +45,11 @@ Snapshot evidence is a complete response with JPEG framing and matching media ty
 visual validity and live video need manual verification.
 Unlock, PIN, door rights, RightPlan and RTSP stay null until functional tests establish them.
 
-## First owner task
+## Initial commissioning capture
 
-Run the normal probe on one test station and then the 90-second bell capture. Return sanitized
+Remote read-only evidence has been collected for the current station. The next missing input is
+the physical bell sequence, relay mapping and credential acceptance. For a new station,
+run the normal probe and then the 90-second bell capture. Return sanitized
 ZIP files and approximate seconds for idle, bell press, answer, end and return to idle.
 If missing from the report, transcribe model/firmware from the device UI. Note the current
 PIN Mode label and reported capacities if visible. Do not change PIN mode or permissions yet.

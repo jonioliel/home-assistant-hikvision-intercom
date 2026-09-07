@@ -1,0 +1,208 @@
+{
+  "name": "alert_stream",
+  "method": "GET",
+  "path": "/ISAPI/Event/notification/alertStream",
+  "elapsed_ms": 10015,
+  "http_status": 200,
+  "headers": {
+    "content-type": "multipart/mixed"
+  },
+  "payload": [
+    {
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "channelID": 1,
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "videoloss",
+      "eventState": "inactive",
+      "eventDescription": "REDACTED"
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 92,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 25,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 1,
+        "subEventType": 1028,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 92,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 25,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 92,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 216,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 22,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 3,
+        "subEventType": 1024,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    },
+    {
+      "channelID": 1,
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "AccessControllerEvent",
+      "eventState": "active",
+      "eventDescription": "REDACTED",
+      "AccessControllerEvent": {
+        "deviceName": "REDACTED",
+        "majorEventType": 5,
+        "subEventType": 21,
+        "serialNo": "REDACTED",
+        "currentEvent": false
+      }
+    }
+  ],
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 6767
+}

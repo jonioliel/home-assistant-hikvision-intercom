@@ -1,0 +1,20 @@
+{
+  "name": "call_status",
+  "method": "GET",
+  "path": "/ISAPI/VideoIntercom/callStatus?format=json",
+  "elapsed_ms": 63,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "CallStatus": {
+      "status": "idle"
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 42
+}

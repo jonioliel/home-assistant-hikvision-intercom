@@ -4,7 +4,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
 | Phase | Status | Gate |
 | --- | --- | --- |
-| 0 — Reconnaissance | Tooling implemented; device evidence pending | Probe, call sequence, relay mapping, PIN/card findings |
+| 0 — Reconnaissance | Remote reads and video verified; physical gate open | Probe, call sequence, relay mapping, PIN/card findings |
 | 1 — Core integration | Not started | Phase 0 evidence |
 | 2 — Access backend | Not started | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
@@ -19,8 +19,14 @@ Do not describe physical Phase 0, the full project or installation acceptance as
 Permanent requirements: camera in HA and panel; explicit relay selection enforced by backend/UI;
 persistent offline sync/tombstones; secret redaction and administrator-only access management.
 
-Local validation: 86 tests passed; Ruff and strict mypy passed. See VALIDATION.md.
+Local validation: 118 tests passed with 90% coverage; Ruff and strict mypy passed.
+See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and limits.
 The owner approved publication and all source/history/specification files were uploaded.
 GitHub HACS, Hassfest and Python checks passed on ba2f7e4 (Python 3.12 and 3.14).
 Phase 0 test sources are on phase/0-protocol-probe. The physical gate is still open;
 no production release has been published.
+
+Remote evidence now covers 20 successful ISAPI reads, idle call samples, local PIN mode,
+real JSON alert-stream fixtures and independently decoded RTSP/snapshot frames.
+Bell transitions, relay mapping and PIN/card/rights acceptance still require an on-site witness.
+Two stream reconnections returned HTTP 500 before a later successful retry.

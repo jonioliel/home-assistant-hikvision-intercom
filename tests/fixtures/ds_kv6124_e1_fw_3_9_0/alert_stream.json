@@ -1,0 +1,28 @@
+{
+  "name": "alert_stream",
+  "method": "GET",
+  "path": "/ISAPI/Event/notification/alertStream",
+  "elapsed_ms": 4000,
+  "http_status": 200,
+  "headers": {
+    "content-type": "multipart/mixed"
+  },
+  "payload": [
+    {
+      "ipAddress": "REDACTED",
+      "portNo": "REDACTED",
+      "protocol": "REDACTED",
+      "channelID": 1,
+      "dateTime": "REDACTED",
+      "activePostCount": 1,
+      "eventType": "videoloss",
+      "eventState": "inactive",
+      "eventDescription": "REDACTED"
+    }
+  ],
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 337
+}

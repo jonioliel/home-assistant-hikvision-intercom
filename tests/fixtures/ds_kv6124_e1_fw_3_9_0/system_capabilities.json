@@ -1,0 +1,230 @@
+{
+  "name": "system_capabilities",
+  "method": "GET",
+  "path": "/ISAPI/System/capabilities",
+  "elapsed_ms": 109,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "DeviceCap": {
+      "@version": "2.0",
+      "isSupportDeviceInfo": "true",
+      "SysCap": {
+        "isSupportDst": "true",
+        "NetworkCap": {
+          "isSupportWireless": "false",
+          "isSupportPPPoE": "false",
+          "isSupportBond": "false",
+          "isSupport802_1x": "false",
+          "isSupportNtp": "true",
+          "isSupportFtp": "true",
+          "isSupportHttps": "true",
+          "SnmpCap": {
+            "isSupport": "false"
+          },
+          "isSupportSSH": "true",
+          "isSupportEZVIZ": "true",
+          "isSupportEhome": "false",
+          "isSupportEZVIZQRCode": "true",
+          "isSupportEZVIZUnbind": "true",
+          "isSupportWirelessDial": "false",
+          "VerificationCodeModification": {
+            "verificationCodeType": {
+              "@opt": "normal,empty",
+              "#text": "REDACTED"
+            },
+            "isSupportDeclarationURL": "true",
+            "isSupportPrivacyPolicyURL": "true",
+            "verificationCodeModify": {
+              "@opt": "true,false",
+              "#text": "REDACTED"
+            },
+            "Hyperlinks": {
+              "declarationURL": "REDACTED",
+              "privacyPolicyURL": "REDACTED"
+            }
+          },
+          "isSupportWebSocket": "true",
+          "isSupportWebSocketS": "true",
+          "isSupportSip": "true",
+          "isSupportAsynPingTest": "true"
+        },
+        "IOCap": {
+          "IOInputPortNums": "REDACTED",
+          "IOOutputPortNums": "REDACTED"
+        },
+        "SerialCap": {
+          "supportRS232Config": "REDACTED",
+          "rs422PortNums": "REDACTED",
+          "rs232PortNums": "REDACTED"
+        },
+        "VideoCap": "REDACTED",
+        "AudioCap": {
+          "audioInputNums": "REDACTED",
+          "audioOutputNums": "REDACTED",
+          "isSupportSoundClassificationParams": "true",
+          "isSupportGetSoundClassificationSchedule": "true",
+          "isSupportModifySoundClassificationSchedule": "true",
+          "isSupportSearchSoundClassificationDetection": "true"
+        },
+        "isSupportSubscribeEvent": "false",
+        "isSupportGettingWorkingStatus": "true"
+      },
+      "isSupportSnapshot": "true",
+      "SecurityCap": {
+        "supportUserNums": "REDACTED",
+        "userBondIpNums": "REDACTED",
+        "userBondMacNums": "REDACTED",
+        "isSupCertificate": "REDACTED",
+        "issupIllegalLoginLock": "REDACTED",
+        "isSupportOnlineUser": "true",
+        "isSupportAnonymous": "false",
+        "isSupportStreamEncryption": "false",
+        "securityVersion": "REDACTED",
+        "keyIterateNum": "REDACTED",
+        "isSupportUserCheck": "true",
+        "isSupportSecurityQuestionConfig": "true",
+        "SecurityLimits": "REDACTED",
+        "RSAKeyLength": "REDACTED",
+        "isSupportConfigFileImport": "true",
+        "isSupportConfigFileExport": "true",
+        "isIrreversible": "REDACTED",
+        "salt": "REDACTED",
+        "isSupportDeviceCertificatesManagement": "true",
+        "isSupportSecurityEmail": "true",
+        "DoubleVerificationCap": "REDACTED",
+        "isSupportEncryptCertificate": "true",
+        "isSupportCertificateCustomID": "true",
+        "isNotSupportLogSeverCertificate": "REDACTED"
+      },
+      "EventCap": {
+        "isSupportHDFull": "false",
+        "isSupportHDError": "false",
+        "isSupportNicBroken": "false",
+        "isSupportIpConflict": "false",
+        "isSupportIllAccess": "false",
+        "isSupportViException": "false",
+        "isSupportViMismatch": "false",
+        "isSupportRecordException": "false",
+        "isSupportMotionDetection": "true",
+        "isSupportVideoLoss": "false",
+        "isSupportTamperDetection": "false",
+        "isSupportHumanRecognition": "true",
+        "isSupportFaceContrast": "true",
+        "isSupportFaceSnap": "true"
+      },
+      "RacmCap": {
+        "SecurityLog": {
+          "isSupportSecurityLog": "true",
+          "isSupportLogServer": "true",
+          "SecurityLogTypeList": "REDACTED"
+        }
+      },
+      "isSupportGIS": "true",
+      "isSupportCompass": "true",
+      "isSupportFaceCaptureStatistics": "false",
+      "VideoIntercomCap": {
+        "isSupportDeviceId": "true",
+        "isSupportOperationTime": "true",
+        "isSupportCallerInfo": "true",
+        "isSupportCallSignal": "true",
+        "isSupportCallStatus": "true",
+        "isSupportCallElevator": "true",
+        "isSupportElevatorControlCfg": "true",
+        "isSupportKeyCfg": "true",
+        "isSupportWorkModeCfg": "true",
+        "isSupportPrivilegePasswordStatus": "true",
+        "isSupportPrivilegePassword": "true",
+        "isSupportSubModules": "false",
+        "isSupportSubModulesCfg": "false",
+        "isSupportIssueCards": "true",
+        "isSupportSendCardCfg": "true",
+        "isSupportRingBackTone": "true",
+        "isSupportCallPriority": "true",
+        "isSupportPhoneCfg": "true",
+        "isSupportRemoteOpenDoor": "true",
+        "isSupportSecurityMode": "true",
+        "isSupportDeviceCommunication": "true",
+        "isSupportAutoSync": "true",
+        "isSupportKeyCfgWeekPlan": "true",
+        "isSupportKeyCfgHolidayPlan": "true",
+        "isSupportKeyCfgHolidayGroup": "true",
+        "isSupportKeyCfgPlanTemplate": "true",
+        "isSupportProtocolFileManage": "false",
+        "isSupportStreamSwitch": "true",
+        "isSupportAlarmControlByPhone": "false",
+        "isSupportBroadcastRealtime": "false",
+        "isSupportCallCfg": "true"
+      },
+      "supportImageChannel": "REDACTED",
+      "IOTCap": {
+        "supportChannelNum": "REDACTED",
+        "isSupportIOTChannelCap": "true",
+        "satusSearchTaskCap": {
+          "maxResults": "30",
+          "filterType": {
+            "@opt": "all,online,offline"
+          }
+        },
+        "channelConfigList": {
+          "channelConfig": [
+            {
+              "unitType": "REDACTED",
+              "floorNumber": {
+                "@min": "REDACTED",
+                "@max": "10"
+              },
+              "roomNumber": {
+                "@min": "1",
+                "@max": "99"
+              },
+              "isSupportZeroFloorNumber": "false"
+            },
+            {
+              "unitType": "REDACTED",
+              "floorNumber": {
+                "@min": "0",
+                "@max": "999"
+              },
+              "roomNumber": {
+                "@min": "1",
+                "@max": "9999"
+              },
+              "isSupportMoreFeatures": "true"
+            }
+          ]
+        },
+        "isSupportConfigTemplate": "true",
+        "isSupportConfigReport": "true",
+        "isSupportSearchMoreIOTSource": "false",
+        "isSupportEncryptImportIOTChannelFile": "true"
+      },
+      "isSupportImageCap": "true",
+      "isSupportPictureServer": "true",
+      "isSupportAlgorithmsInfo": "true",
+      "isSupportAccessControlCap": "true",
+      "isSupportMultiDeviceID": "false",
+      "isSupportRemovePlaybackRecord": "false",
+      "isSupportSearchImportDeviceDataTaskProgress": "true",
+      "isSupportSearchExportDeviceDataTaskProgress": "true",
+      "isSupportAddImportDeviceDataTask": "true",
+      "isSupportAddExportDeviceDataTask": "true",
+      "isSupportSubModuleBacklight": "false",
+      "isSupportStartNetworkCapture": "true",
+      "isSupportStopNetworkCapture": "true",
+      "isSupportGetNetworkCaptureStatus": "true",
+      "isSupportVoiceTalkEvent": "true",
+      "isSupportCallCaptureImageEvent": "true",
+      "isSupportMainAndSubRecord": "true"
+    }
+  },
+  "namespaces": [
+    "http://www.isapi.org/ver20/XMLSchema"
+  ],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 9099
+}
