@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DeviceInfo version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">
+  <deviceName>SYNTHETIC PRIVATE STATION</deviceName>
+  <model>DS-KV6124-E1</model>
+  <serialNumber>SYNTHETIC-SERIAL-SECRET</serialNumber>
+  <firmwareVersion>V3.9.0</firmwareVersion>
+  <firmwareReleasedDate>260115</firmwareReleasedDate>
+  <macAddress>00:11:22:33:44:55</macAddress>
+</DeviceInfo>

@@ -1,0 +1,41 @@
+name: Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  python:
+    uses: ./.github/workflows/tests.yml
+  hacs:
+    uses: ./.github/workflows/hacs.yml
+  hassfest:
+    uses: ./.github/workflows/hassfest.yml
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: [python, hacs, hassfest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Validate version and prepare notes
+        id: prepare
+        run: python tools/prepare_release.py
+      - name: Publish versioned GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.prepare.outputs.tag }}
+          PRERELEASE: ${{ steps.prepare.outputs.prerelease }}
+        shell: bash
+        run: |
+          flag=""
+          if [[ "$PRERELEASE" == "true" ]]; then flag="--prerelease"; fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md $flag

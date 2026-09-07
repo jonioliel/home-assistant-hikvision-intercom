@@ -1,0 +1,109 @@
+"""Bounded callers can parse untrusted XML/JSON without executing XML entities."""
+
+import json
+from dataclasses import dataclass
+from typing import Any
+from xml.etree.ElementTree import Element, ParseError
+
+from defusedxml.common import DefusedXmlException
+from defusedxml.ElementTree import fromstring
+
+from ..exceptions import (
+    HikvisionAuthError,
+    HikvisionCapacityError,
+    HikvisionConflictError,
+    HikvisionDeviceError,
+    HikvisionUnsupportedError,
+    HikvisionValidationError,
+)
+
+
+@dataclass(slots=True)
+class ParsedPayload:
+    """Raw in-memory structure; sanitize before storing or exposing."""
+
+    data: dict[str, Any]
+    namespaces: list[str]
+
+
+def local_name(tag: str) -> str:
+    """Strip an XML namespace."""
+    return tag.rsplit("}", 1)[-1]
+
+
+def _element(element: Element) -> Any:
+    result: dict[str, Any] = {f"@{local_name(k)}": v for k, v in element.attrib.items()}
+    for child in element:
+        key = local_name(child.tag)
+        value = _element(child)
+        if key not in result:
+            result[key] = value
+        elif isinstance(result[key], list):
+            result[key].append(value)
+        else:
+            result[key] = [result[key], value]
+    value = (element.text or "").strip()
+    if not result:
+        return value
+    if value:
+        result["#text"] = value
+    return result
+
+
+def parse_payload(body: bytes) -> ParsedPayload:
+    """Parse by content, including firmware with incorrect content-type headers."""
+    try:
+        text = body.decode("utf-8-sig").strip()
+        if text.startswith(("{", "[")):
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise HikvisionValidationError("Expected a JSON object")
+            return ParsedPayload(data, [])
+        if text.startswith("<"):
+            root = fromstring(text, forbid_dtd=True, forbid_entities=True, forbid_external=True)
+            namespaces = sorted(
+                {
+                    element.tag[1:].split("}", 1)[0]
+                    for element in root.iter()
+                    if element.tag.startswith("{")
+                }
+            )
+            return ParsedPayload({local_name(root.tag): _element(root)}, namespaces)
+    except (ValueError, UnicodeError, ParseError, DefusedXmlException, RecursionError):
+        raise HikvisionValidationError("Malformed or unsafe response body") from None
+    raise HikvisionValidationError("Response is neither XML nor JSON")
+
+
+def find_values(data: Any, key: str) -> list[Any]:
+    """Return exact field matches; names, enum values and limits remain unmodified."""
+    values: list[Any] = []
+    if isinstance(data, dict):
+        for name, value in data.items():
+            if name.casefold() == key.casefold():
+                values.append(value)
+            values.extend(find_values(value, key))
+    elif isinstance(data, list):
+        for value in data:
+            values.extend(find_values(value, key))
+    return values
+
+
+def check_response_status(data: dict[str, Any]) -> None:
+    """HTTP success cannot override an ISAPI ResponseStatus error.
+
+    Code 1 is the generic ISAPI success code; all other reported codes fail.
+    Symbolic classifications are conservative and will be extended from fixtures.
+    """
+    for code in find_values(data, "statusCode"):
+        if str(code) == "1":
+            continue
+        subcodes = {str(s).casefold() for s in find_values(data, "subStatusCode")}
+        if subcodes & {"notsupport", "notsupported", "methodnotallowed"}:
+            raise HikvisionUnsupportedError("Operation explicitly unsupported")
+        if subcodes & {"unauthorized", "nopermission"}:
+            raise HikvisionAuthError("Device denied authorization")
+        if subcodes & {"cardnoalreadyexist", "employeenoalreadyexist"}:
+            raise HikvisionConflictError("Device reported a record conflict")
+        if subcodes & {"cardfull", "userfull"}:
+            raise HikvisionCapacityError("Device reported capacity exhaustion")
+        raise HikvisionDeviceError("Device reported an unsuccessful ResponseStatus")

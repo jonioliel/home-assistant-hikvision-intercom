@@ -1,0 +1,16 @@
+{
+  "UserInfoSearch": {
+    "searchID": "SYNTHETIC-SEARCH-ID",
+    "responseSearchStatusStrg": "OK",
+    "numOfMatches": 1,
+    "totalMatches": 1,
+    "UserInfo": [{
+      "employeeNo": "SYNTHETIC-EMPLOYEE-SECRET",
+      "name": "SYNTHETIC PERSON SECRET",
+      "password": "SYNTHETIC-PIN-SECRET",
+      "doorRight": "1,2",
+      "RightPlan": [{"doorNo": 1, "planTemplateNo": "1"}],
+      "CardInfo": [{"cardNo": "SYNTHETIC-CARD-SECRET", "cardType": "normalCard"}]
+    }]
+  }
+}
