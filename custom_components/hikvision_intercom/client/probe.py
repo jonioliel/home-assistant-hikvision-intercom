@@ -225,6 +225,15 @@ class ProbeClient:
         if endpoint.mode == "stream" and 200 <= record.http_status < 300:
             documents = _stream_documents(body)
             record.payload = sanitize(documents, self._secrets)
+            if not documents and body.strip().startswith((b"<", b"{")):
+                try:
+                    parsed = parse_payload(body)
+                except HikvisionValidationError:
+                    pass
+                else:
+                    record.payload = sanitize(parsed.data, self._secrets)
+                    record.namespaces = safe_namespaces(parsed.namespaces)
+                    check_response_status(parsed.data)
             record.outcome = "observed" if documents else "no_complete_event"
             return
         if endpoint.mode == "snapshot" and 200 <= record.http_status < 300:
@@ -289,6 +298,27 @@ class ProbeClient:
         return report
 
 
+def _read_shape_matches(feature: str, payload: Any, root: str) -> bool:
+    """An empty, redacted or incorrectly typed wrapper is not support evidence."""
+    values = find_values(payload, root)
+    if feature == "call_status":
+        return any(
+            isinstance(value, (str, int))
+            and not isinstance(value, bool)
+            and value not in {"", REDACTED}
+            for value in values
+        )
+    if feature in {"users", "cards"}:
+        return any(
+            isinstance(value, dict)
+            and "numOfMatches" in value
+            and str(value["numOfMatches"]).isdigit()
+            and value.get("responseSearchStatusStrg") in {"OK", "MORE", "NO MATCH"}
+            for value in values
+        )
+    return any(isinstance(value, dict) and bool(value) for value in values)
+
+
 def build_capabilities(report: CapabilityReport) -> None:
     """Only matching response structures establish read support.
 
@@ -305,7 +335,9 @@ def build_capabilities(report: CapabilityReport) -> None:
             r for r in report.records if r.name == prefix or r.name.startswith(prefix + "_")
         ]
         supported = [
-            r.name for r in candidates if r.outcome == "observed" and find_values(r.payload, root)
+            r.name
+            for r in candidates
+            if r.outcome == "observed" and _read_shape_matches(feature, r.payload, root)
         ]
         if supported:
             setattr(report.features, feature, True)

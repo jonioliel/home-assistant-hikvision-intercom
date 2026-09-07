@@ -50,6 +50,21 @@ def _element(element: Element) -> Any:
     return result
 
 
+def _validate_shape(data: Any) -> None:
+    """Bound recursive traversal before redaction and capability inspection."""
+    stack = [(data, 0)]
+    nodes = 0
+    while stack:
+        value, depth = stack.pop()
+        nodes += 1
+        if depth > 48 or nodes > 20_000:
+            raise HikvisionValidationError("Response structure exceeds traversal limits")
+        if isinstance(value, dict):
+            stack.extend((child, depth + 1) for child in value.values())
+        elif isinstance(value, list):
+            stack.extend((child, depth + 1) for child in value)
+
+
 def parse_payload(body: bytes) -> ParsedPayload:
     """Parse by content, including firmware with incorrect content-type headers."""
     try:
@@ -58,6 +73,7 @@ def parse_payload(body: bytes) -> ParsedPayload:
             data = json.loads(text)
             if not isinstance(data, dict):
                 raise HikvisionValidationError("Expected a JSON object")
+            _validate_shape(data)
             return ParsedPayload(data, [])
         if text.startswith("<"):
             root = fromstring(text, forbid_dtd=True, forbid_entities=True, forbid_external=True)
@@ -68,7 +84,9 @@ def parse_payload(body: bytes) -> ParsedPayload:
                     if element.tag.startswith("{")
                 }
             )
-            return ParsedPayload({local_name(root.tag): _element(root)}, namespaces)
+            data = {local_name(root.tag): _element(root)}
+            _validate_shape(data)
+            return ParsedPayload(data, namespaces)
     except (ValueError, UnicodeError, ParseError, DefusedXmlException, RecursionError):
         raise HikvisionValidationError("Malformed or unsafe response body") from None
     raise HikvisionValidationError("Response is neither XML nor JSON")

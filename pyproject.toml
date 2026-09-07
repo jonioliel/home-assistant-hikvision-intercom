@@ -21,6 +21,7 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.ruff]
+extend-exclude = ["CODEX_MASTER_SPEC.md"]
 target-version = "py312"
 line-length = 100
 

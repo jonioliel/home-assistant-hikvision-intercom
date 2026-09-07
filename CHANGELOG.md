@@ -12,6 +12,12 @@ Semantic Versioning is used throughout the project.
 - HACS layout, Python CI, HACS, Hassfest and gated GitHub Release workflow.
 - Real-device commissioning runbook and phase tracking.
 
+### Fixed
+- Reject malformed/empty capability wrappers as support evidence.
+- Bound nested payload traversal before redaction.
+- Retain device errors inside a successful event-stream HTTP response.
+- Preserve the original Master Spec verbatim by excluding its code fences from formatting.
+
 ### Security
 - No relay, configuration, user or card mutations in the probe.
 - TLS verification by default; redirects, environment proxies and transport retries disabled.

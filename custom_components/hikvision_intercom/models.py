@@ -3,6 +3,8 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .const import VERSION
+
 type JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
 
 
@@ -56,7 +58,7 @@ class CapabilityReport:
     """Phase 0 report, not permission to enable unverified production features."""
 
     schema_version: int = 1
-    tool_version: str = "0.1.0-alpha.1"
+    tool_version: str = VERSION
     evidence_source: str = "device_probe"
     identity: StationIdentity = field(default_factory=StationIdentity)
     features: IntercomCapabilities = field(default_factory=IntercomCapabilities)

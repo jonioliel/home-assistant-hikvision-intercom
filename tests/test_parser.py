@@ -86,3 +86,11 @@ def test_response_status_error_even_if_http_would_be_200(subcode, error, xml):
 def test_success_code_and_missing_status_are_not_errors():
     check_response_status({"ResponseStatus": {"statusCode": "1"}})
     check_response_status({"CallStatus": {"callStatus": "future_state"}})
+
+
+def test_deep_response_rejected_before_recursive_export():
+    data = {}
+    for _ in range(60):
+        data = {"nested": data}
+    with pytest.raises(HikvisionValidationError, match="traversal"):
+        parse_payload(json.dumps(data).encode())

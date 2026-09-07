@@ -400,3 +400,123 @@ async def test_call_capture_preserves_unknown_values_and_is_bounded():
     assert report.records
     assert report.records[0].payload == {"CallStatus": {"callStatus": "future_firmware_state"}}
     assert report.observations["call_timeline"][0]["offset_seconds"] >= 0
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"UserInfoSearch": "invalid"},
+        {"UserInfoSearch": {}},
+        {"UserInfoSearch": {"numOfMatches": "bad", "responseSearchStatusStrg": "OK"}},
+    ],
+)
+def test_malformed_search_wrapper_is_not_support(payload):
+    report = CapabilityReport(
+        records=[
+            ProbeRecord("user_search_00", "POST", "/search", outcome="observed", payload=payload)
+        ]
+    )
+    build_capabilities(report)
+    assert report.features.users is None
+
+
+@pytest.mark.parametrize(
+    "payload", [{"CallStatus": {}}, {"callStatus": "REDACTED"}, {"callStatus": None}]
+)
+def test_empty_or_redacted_call_state_is_not_support(payload):
+    report = CapabilityReport(
+        records=[ProbeRecord("call_status", "GET", "/status", outcome="observed", payload=payload)]
+    )
+    build_capabilities(report)
+    assert report.features.call_status is None
+
+
+async def test_stream_error_inside_http_200_is_retained():
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda _: response(data={"statusCode": 6, "subStatusCode": "notSupport"})
+        )
+    ) as session:
+        record = await client_for(session).probe(endpoint("alert_stream"))
+    assert record.outcome == "unsupported"
+    assert record.payload["subStatusCode"] == "notSupport"
+
+
+async def test_complete_cli_engine_against_local_http_server(monkeypatch):
+    from tools.probe_ds_kv6124 import argument_parser, execute
+
+    requests = []
+
+    async def serve(reader, writer):
+        header = await reader.readuntil(b"\r\n\r\n")
+        lines = header.decode().split("\r\n")
+        method, target, _ = lines[0].split()
+        headers = dict(line.split(": ", 1) for line in lines[1:] if ": " in line)
+        size = int(next((v for k, v in headers.items() if k.lower() == "content-length"), "0"))
+        body = await reader.readexactly(size) if size else b""
+        requests.append((method, target, body))
+        status = 200
+        media = "application/json"
+        data = b"{}"
+        if target.endswith("deviceInfo"):
+            data = (FIXTURES / "device_info.xml").read_bytes()
+            media = "application/xml"
+        elif "UserInfo/Search" in target:
+            data = (FIXTURES / "users.json").read_bytes()
+        elif "CardInfo/Search" in target:
+            data = json.dumps(
+                {
+                    "CardInfoSearch": {
+                        "numOfMatches": 0,
+                        "totalMatches": 0,
+                        "responseSearchStatusStrg": "NO MATCH",
+                    }
+                }
+            ).encode()
+        elif "callStatus" in target:
+            data = b'{"CallStatus":{"callStatus":"synthetic_idle"}}'
+        elif "alertStream" in target:
+            data = (
+                b"<EventNotificationAlert><eventType>synthetic_event</eventType>"
+                b"</EventNotificationAlert>"
+            )
+            media = "application/xml"
+        else:
+            status = 404
+        writer.write(
+            f"HTTP/1.1 {status} Result\r\nContent-Type: {media}\r\n"
+            f"Content-Length: {len(data)}\r\nConnection: close\r\n\r\n".encode()
+            + data
+        )
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+
+    monkeypatch.setenv("HTTP_PROXY", "http://unreachable.invalid:9")
+    async with await asyncio.start_server(serve, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        args = argument_parser().parse_args(
+            [
+                "--http-port",
+                str(port),
+                "--timeout",
+                "5",
+                "--stream-seconds",
+                "3",
+                "--call-seconds",
+                "2",
+                "--call-interval",
+                "10",
+            ]
+        )
+        report = await execute(args, "127.0.0.1", "probe-user", "probe-secret")
+    assert report.identity.model == "DS-KV6124-E1"
+    assert report.features.users is True
+    assert report.features.cards is True
+    assert report.features.event_stream is True
+    assert report.observations["call_timeline"]
+    assert len(requests) == 13
+    assert all(method == "GET" or "/Search?" in target for method, target, _ in requests)
+    exported = json.dumps(report.to_dict())
+    for secret in ("SYNTHETIC-PIN-SECRET", "SYNTHETIC-CARD-SECRET", "probe-secret", "127.0.0.1"):
+        assert secret not in exported

@@ -18,3 +18,7 @@ Do not describe physical Phase 0, the full project or installation acceptance as
 
 Permanent requirements: camera in HA and panel; explicit relay selection enforced by backend/UI;
 persistent offline sync/tombstones; secret redaction and administrator-only access management.
+
+Local validation: 86 tests passed; Ruff and strict mypy passed. See VALIDATION.md.
+GitHub repository created; source push awaits owner approval after auto-review rejection.
+HACS/Hassfest/GitHub Actions have not run remotely. No release published.

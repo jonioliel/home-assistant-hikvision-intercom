@@ -1033,8 +1033,8 @@ The global HA database is the desired state.
 ```python
 @dataclass(slots=True)
 class ManagedUser:
-    id: str  # UUID in HA
-    employee_no: str  # canonical Hikvision ID across all stations
+    id: str                    # UUID in HA
+    employee_no: str           # canonical Hikvision ID across all stations
     display_name: str
     active: bool
     user_type: str
