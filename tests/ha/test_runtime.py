@@ -214,3 +214,14 @@ async def test_camera_optional_failure(hass, loaded_entry, device_io):
     loaded_entry.runtime_data.profile = replace(PROFILE, stream=False, snapshot=False)
     assert await camera.stream_source() is None
     assert await camera.async_camera_image() is None
+
+
+async def test_home_assistant_stop_closes_session(hass, loaded_entry):
+    from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+
+    runtime = loaded_entry.runtime_data
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert runtime.session.is_closed
+    with pytest.raises(ServiceValidationError):
+        await runtime.async_unlock(1)

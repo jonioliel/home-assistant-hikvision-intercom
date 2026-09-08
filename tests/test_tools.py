@@ -24,7 +24,7 @@ def test_versions_and_hacs_layout():
     assert manifest["documentation"].endswith("/home-assistant-hikvision-intercom")
     assert json.loads((ROOT / "hacs.json").read_text()) == {
         "name": "Hikvision Intercom Manager",
-        "homeassistant": "2026.9.0",
+        "homeassistant": "2026.9.1",
     }
     components = [
         p.name

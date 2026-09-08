@@ -7,7 +7,8 @@ from datetime import datetime
 import httpx
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryError,
@@ -49,6 +50,8 @@ class IntercomRuntime:
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
 
     async def async_unlock(self, physical_index: int) -> None:
+        if self.session.is_closed:
+            raise ServiceValidationError("The intercom connection is closed")
         selected = next(
             (lock for lock in self.locks if lock.physical_index == physical_index), None
         )
@@ -144,6 +147,11 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         if isinstance(err, HikvisionError):
             raise ConfigEntryNotReady("Intercom could not be reached or validated") from None
         raise
+
+    async def stop(_event: Event) -> None:
+        await entry.runtime_data.async_close()
+
+    entry.async_on_unload(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop))
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     async_register_services(hass)
     return True
