@@ -289,3 +289,18 @@ async def test_event_capability_uses_actual_limits(event_capability):
     invalid["AcsEvent"]["AcsEventCond"]["maxResults"]["@max"] = True
     core._get.return_value = invalid
     assert not await EventClient(core).async_capabilities()
+
+
+def test_observed_nested_multipart_headers_and_extra_blank_lines():
+    header = (
+        b"Content-Type: multipart/form-data; boundary=MIME_boundary\r\n"
+        b'--MIME_boundary\r\nContent-Disposition: form-data; name="Event"\r\n'
+    )
+    wire = (
+        mime(b'{"eventType":"videoloss"}') + b"\r\n" + header + mime(json.dumps(payload()).encode())
+    )
+    parser = EventFrames()
+    docs = []
+    for offset in range(0, len(wire), 17):
+        docs.extend(parser.feed(wire[offset : offset + 17]))
+    assert len(docs) == 2 and docs[1] == payload()

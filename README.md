@@ -129,3 +129,7 @@ Python tests, real HA tests, HACS and Hassfest on the exact release commit. Mani
 version, Git tag and CHANGELOG use matching semantic versions. Pre-1.0 releases are prereleases.
 
 Independent community project, not an official Hikvision product.
+
+Phase 4 on the development branch adds native `event` entities and the administrator
+Events view. See [event behavior and recovery](docs/EVENTS.md). This development work
+is not yet the published HACS release; publication still awaits main-branch approval.

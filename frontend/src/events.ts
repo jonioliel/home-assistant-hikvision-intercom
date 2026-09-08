@@ -1,4 +1,4 @@
-import { LitElement, html, nothing, type PropertyValues } from "lit";
+import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
@@ -26,7 +26,36 @@ interface AuditPage {
 }
 
 export class IntercomEvents extends LitElement {
-  static styles = styles;
+  static styles = [
+    styles,
+    css`
+      :host {
+        height: auto;
+        overflow: visible;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+      }
+      .audit-row {
+        background: var(--surface);
+        border: 1px solid var(--divider-color, #dce5e6);
+        border-radius: 12px;
+      }
+      input,
+      select {
+        min-width: 0;
+        width: 100%;
+      }
+      @media (max-width: 650px) {
+        .form-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    `,
+  ];
   static properties = {
     hass: { attribute: false },
     stations: { attribute: false },
@@ -102,26 +131,29 @@ export class IntercomEvents extends LitElement {
       <p class="muted">${this.t("audit_retention")}</p>
       <form @submit=${this.apply} class="form-grid">
         <label
-          >${this.t("station")}<select name="station_id">
+          >${this.t("station")}<select name="station_id" aria-label=${this.t("station")}>
             <option value="">${this.t("all")}</option>
             ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
           </select></label
         >
         <label>${this.t("person")}<input name="person" maxlength="128" /></label>
         <label
-          >${this.t("result")}<select name="result">
+          >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
             <option value="">${this.t("all")}</option>
             ${["granted", "denied", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
           </select></label
         >
         <label
-          >${this.t("authentication")}<select name="authentication">
+          >${this.t("authentication")}<select
+            name="authentication"
+            aria-label=${this.t("authentication")}
+          >
             <option value="">${this.t("all")}</option>
             ${["card", "pin", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
           </select></label
         >
         <label
-          >${this.t("door")}<select name="door">
+          >${this.t("door")}<select name="door" aria-label=${this.t("door")}>
             <option value="">${this.t("all")}</option>
             <option value="1">1</option>
           </select></label

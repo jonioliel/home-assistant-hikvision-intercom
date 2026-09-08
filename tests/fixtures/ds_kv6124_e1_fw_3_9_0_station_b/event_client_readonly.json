@@ -1,0 +1,27 @@
+{
+  "query": {
+    "credential_writes": 0,
+    "physical_commands": 0,
+    "query_capability": true,
+    "query_verified": true,
+    "count": 241,
+    "record_fields": [
+      "cardNo",
+      "doorNo",
+      "employeeNoString",
+      "major",
+      "mask",
+      "minor",
+      "name",
+      "time"
+    ]
+  },
+  "stream": {
+    "credential_writes": 0,
+    "physical_commands": 0,
+    "framed_documents": 13,
+    "normalized_access_events": 11,
+    "duration_seconds": 12,
+    "bounded_capture_complete": true
+  }
+}

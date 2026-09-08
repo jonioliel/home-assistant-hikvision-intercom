@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0-alpha.1 — Phase 4 (prepared; publication pending)
+
+- Add bounded alert-stream framing for the station's nested JSON MIME messages.
+- Normalize documented access events without inferring physical door movement or call answer.
+- Add native doorbell/access event entities, call-status edge fallback and reconnect cleanup.
+- Persist up to 5,000 masked audit records with 30-day retention, filters and history recovery.
+- Provide the Hebrew/English administrator Events view; no PINs or complete cards in event state.
+- Validate the production client with 241 queried records and a bounded live stream capture.
+
+
 Semantic Versioning is used throughout the project.
 
 ## [Unreleased]

@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .access_runtime import SIGNAL_ACCESS_CHANGED
-from .client.events import EventClient, create_event_session
+from .client.events import EventClient, HistoryWindowFull, create_event_session
 from .const import DOMAIN
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
@@ -41,6 +41,7 @@ class EventManager:
         self._timer: asyncio.TimerHandle | None = None
         self._save_lock = asyncio.Lock()
         self._closing = False
+        self._prune_timer: asyncio.TimerHandle | None = None
 
     async def async_load(self) -> None:
         data = await self.store.async_load()
@@ -54,6 +55,16 @@ class EventManager:
         self.cache.load(data, datetime.now(UTC))
         # Persist the event ID key before it can be used by a stream.
         await self.store.async_save(self._data())
+        self._prune_timer = self.hass.loop.call_later(3600, self._prune)
+
+    @callback
+    def _prune(self) -> None:
+        before = len(self.cache.rows)
+        self.cache.prune(datetime.now(UTC))
+        if len(self.cache.rows) != before:
+            self.changed()
+        if not self._closing:
+            self._prune_timer = self.hass.loop.call_later(3600, self._prune)
 
     def _data(self) -> dict[str, Any]:
         return {
@@ -121,6 +132,9 @@ class EventManager:
 
     async def async_close(self) -> None:
         self._closing = True
+        if self._prune_timer:
+            self._prune_timer.cancel()
+            self._prune_timer = None
         if self._timer:
             self._timer.cancel()
             self._timer = None
@@ -266,22 +280,44 @@ class StationEvents:
                     self.history_state = "unavailable"
                 else:
                     await self.runtime.client.async_confirm_identity()
-                    end = datetime.now(UTC) - timedelta(seconds=2)
+                    end = datetime.now(UTC).replace(microsecond=0) - timedelta(seconds=2)
                     saved = timestamp(self.manager.cursors.get(self.runtime.station_id))
                     start = max(saved or end - timedelta(days=1), end - timedelta(days=30))
                     if start >= end:
                         start = end - timedelta(minutes=5)
-                    # Overlap prevents a boundary event being missed; cache deduplicates.
-                    rows = await self.client.async_history(start - timedelta(seconds=2), end)
+                    start = start.replace(microsecond=0)
+                    end = min(end, start + timedelta(days=1))
+                    # Narrow dense windows; never advance the cursor over omitted pages.
+                    async with asyncio.timeout(120):
+                        while True:
+                            try:
+                                rows = await self.client.async_history(
+                                    start - timedelta(seconds=2), end
+                                )
+                                break
+                            except HistoryWindowFull:
+                                if (end - start).total_seconds() <= 1:
+                                    raise
+                                end = start + timedelta(
+                                    seconds=max(1, int((end - start).total_seconds() / 2))
+                                )
                     for row in rows:
                         when = timestamp(row.get("time"))
                         if when is None or when < start - timedelta(seconds=2) or when > end:
                             raise ValueError("History time filter was not honored")
                     occurrences: dict[str, int] = {}
                     for row in rows:
-                        import json
-
-                        identity = json.dumps(row, sort_keys=True)
+                        projected = normalize_event(
+                            row,
+                            self.runtime.station_id,
+                            self.manager.key,
+                            received=datetime.now(UTC),
+                            selected_api=None,
+                            historical=True,
+                        )
+                        if projected is None:
+                            raise ValueError("Malformed historical event")
+                        identity = projected["id"]
                         occurrence = occurrences.get(identity, 0)
                         occurrences[identity] = occurrence + 1
                         self.ingest(row, historical=True, occurrence=occurrence)
@@ -296,7 +332,17 @@ class StationEvents:
             except (HikvisionError, TimeoutError, ValueError):
                 # Keep the old cursor; incompleteness is visible and can be retried.
                 self.history_state = "incomplete"
-            await asyncio.sleep(60 if self.history_state in {"incomplete", "offline"} else 300)
+            caught_up = timestamp(self.manager.cursors.get(self.runtime.station_id))
+            delay = 300
+            if self.history_state in {"incomplete", "offline"}:
+                delay = 60
+            elif (
+                self.history_state == "recovered"
+                and caught_up
+                and (datetime.now(UTC) - caught_up).total_seconds() > 310
+            ):
+                delay = 5
+            await asyncio.sleep(delay)
 
     async def async_close(self) -> None:
         if self._closed:

@@ -8,7 +8,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
 | 2 — Access backend | Software complete; all CI passed; publication awaiting approval | Verified credential and permission behavior |
 | 3 — Admin panel | Software complete; all CI passed; publication awaiting approval | All CI; publication awaiting approval |
-| 4 — Events | Implemented; runtime validation in progress | Verified event behavior |
+| 4 — Events | Software implemented; final validation in progress | Verified event behavior |
 | 5 — Hardening | Not started | Nine-device soak and HACS install/upgrade acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
 
@@ -65,3 +65,9 @@ Phase 3 final `f7d925a` passed all CI: 281 protocol, 86 HA and 12 browser tests.
 Phase 4 adds event framing, verified access normalization, event entities, bounded audit storage
 and an administrator history view. A read-only manufacturer-documented event query returned
 241 records in nine pages, with no credential writes or physical commands.
+
+Phase 4 checkpoint `b0b7f67` passed 320 protocol and 94 real HA tests; the browser run
+identified a filter-label locator problem, since fixed with explicit accessible labels.
+All 14 local browser tests then passed. The production stream parser was subsequently
+verified against nested MIME framing: 13 documents / 11 access events in 12 seconds.
+Final Phase 4 adds a framing regression and capability-bounded dense-window recovery.

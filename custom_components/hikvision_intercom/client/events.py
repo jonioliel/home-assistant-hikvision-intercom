@@ -29,6 +29,10 @@ MAX_DOCUMENT = 262_144
 MAX_PART = 4_194_304
 
 
+class HistoryWindowFull(HikvisionValidationError):
+    """A narrower time window is needed to respect station pagination limits."""
+
+
 class EventFrames:
     """Incremental MIME parser for the captured Content-Length framing.
 
@@ -62,6 +66,11 @@ class EventFrames:
                     documents.append(parse_payload(bytes(self.body)).data)
                     self.body.clear()
                 continue
+            # Observed firmware adds blank CRLF lines between completed MIME parts.
+            while self.buffer.startswith(b"\r\n"):
+                del self.buffer[:2]
+            if not self.buffer:
+                break
             end = self.buffer.find(b"\r\n\r\n")
             if end < 0:
                 if len(self.buffer) > 8192:
@@ -75,6 +84,9 @@ class EventFrames:
                 rb"(?:^|\n)Content-Length:\s*([0-9]{1,8})\r?$", headers, re.I | re.M
             )
             types = re.findall(rb"(?:^|\n)Content-Type:[ \t]*([^\r\n;]+)", headers, re.I)
+            # The observed stream nests form-data headers around JSON parts.
+            # Only a single leaf content type and body length may drive parsing.
+            types = [kind for kind in types if not kind.strip().lower().startswith(b"multipart/")]
             if len(lengths) != 1 or len(types) != 1:
                 raise HikvisionValidationError("Unsupported event framing")
             self.remaining = int(lengths[0])
@@ -212,6 +224,8 @@ class EventClient:
                     or status not in {"OK", "MORE", "NO MATCH", "NOMATCH"}
                 ):
                     raise HikvisionValidationError("Inconsistent event pagination")
+                if found > self.position_limit + self.page_size:
+                    raise HistoryWindowFull("Event history window exceeds station capacity")
                 total = found
                 page_key = json.dumps(rows, sort_keys=True)
                 if count and page_key in seen:
@@ -225,4 +239,4 @@ class EventClient:
                     return records
                 if not count or status != "MORE":
                     raise HikvisionValidationError("Incomplete event search")
-        raise HikvisionValidationError("Event recovery exceeded page limit")
+        raise HistoryWindowFull("Event recovery exceeded page limit")
