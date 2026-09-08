@@ -434,3 +434,13 @@ templates reference 255 weekly IDs. No resource is inferred free. The read used 
 calls after identity confirmation, without credential, schedule, clock or relay mutations.
 See [the observed contract and sanitized fixture](SCHEDULE_INVENTORY.md). Physical gates and
 mandatory acceptance (28/38) are unchanged.
+
+
+Code commit `a6c4c25d8c50b8d7a06fae8bf24b9d95049404dd` passed all required branch gates:
+[Python / actual HA / frontend](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34285972179),
+[HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34285972146) and
+[Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34285972221).
+Verified CI totals: **533 protocol/access + 165 actual HA + 77 browser = 775 tests**.
+Both Python versions passed; strict mypy checked 35 modules; ConfigFlow coverage remains 100%.
+The exact code was fast-forwarded to main, and the gated 0.15.0-alpha.1 release was dispatched
+against that frozen SHA. This paragraph records CI success; publication is verified separately.

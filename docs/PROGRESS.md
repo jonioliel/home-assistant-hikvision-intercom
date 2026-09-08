@@ -239,3 +239,8 @@ The two schedule features remain partial. Phase 6 still has 3/9 implemented feat
 and 4 unimplemented; Phase 5 remains 8/9 deliverables. Mandatory acceptance stays 28/38 (73.7%).
 No physical gate has been closed by this read-only development. The 0.14 report is retained as a
 historical scope audit; the evidence above updates its schedule-reading limitation.
+
+
+0.15 code checkpoint `a6c4c25`: all required branch checks passed with 775 tests (533 protocol/access,
+165 actual HA, 77 browser), strict typing for 35 modules and ConfigFlow coverage 100%. HACS and
+Hassfest passed. The code was merged to main and submitted to the gated release workflow.
