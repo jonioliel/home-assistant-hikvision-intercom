@@ -289,3 +289,17 @@ New actual Home Assistant tests exercise the five admin-only commands, persisted
 private debug logs, safe malformed/oversized input errors, failed storage and multi-page event
 report/export. Their GitHub CI results are recorded after execution below. Device I/O is mocked;
 no physical credential, relay or call test was performed in this release's development.
+
+
+CSV/report code `442d798eb16f5a4b85b0682be416e2454ecdf833` passed every branch check:
+**394 protocol/access + 134 actual Home Assistant + 51 browser tests (579 total)**.
+Python 3.12/3.14, Ruff, mypy (27 modules), TypeScript, formatting, reproducible frontend
+bundle, HACS and Hassfest all pass. ConfigFlow remains at 100% line coverage.
+
+- [Python/HA/frontend checks](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34268116415)
+- [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34268116401)
+- [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34268116403)
+
+HA job 102202548749 completed 134 tests; browser job 102202548790 completed 51 tests.
+These tests use mock station I/O. The exact main code commit is submitted to the gated
+release workflow for `v0.11.0-alpha.1`; the validation documentation commit changes no runtime.

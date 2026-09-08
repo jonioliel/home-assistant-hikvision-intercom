@@ -173,3 +173,10 @@ privacy and retention limits. [Deferred validation](DEFERRED_VALIDATION.md) pres
 manufacturer basis, failed/untested firmware behavior and exact future commissioning steps.
 No live device action or new ISAPI behavior was introduced. The mandatory tally remains 28/38;
 optional additions do not close physical gates or imply two-way audio/schedules are available.
+
+
+CSV/report code `442d798eb16f5a4b85b0682be416e2454ecdf833` passed all branch CI:
+394 protocol/access + 134 actual HA + 51 browser tests, HACS, Hassfest, Ruff, mypy,
+TypeScript and reproducible bundle. Checks:34268116415; HACS34268116401;
+Hassfest34268116403. The owner-authorized main update and exact-commit release gate
+advance `0.11.0-alpha.1`. No physical acceptance item changed status.
