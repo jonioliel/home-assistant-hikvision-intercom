@@ -1,4 +1,4 @@
-# CSV and activity reports — 0.11.0-alpha.1
+# CSV and activity reports — introduced in 0.11, updated for 0.14
 
 These Phase 6 features use the existing central database, synchronization engine and retained
 normalized event cache. They introduce no ISAPI endpoint. All five WebSocket commands require
@@ -77,18 +77,23 @@ Then choose **Generate report** or **Export filtered events CSV**. The report us
 records in the cache, including pages not loaded in the browser. Editing filters without applying
 them does not change the selected query. Applying new filters clears the previous report.
 
-Reports show generation time, totals, authentication results/methods, station breakdown and UTC
+Reports show generation time, totals, authentication results/methods, station breakdown and station-local
 calendar-day groups. Unlocking records are separate from authentication so one access operation
 is not automatically counted twice as two authentications. Counts are event records, not distinct
 people, visits, attendance or proof that a door physically moved.
 
 The cache retains at most 5,000 records for 30 days. A report neither downloads more history nor
 infers missing events. Recovery, incomplete/unsupported history and storage warnings remain visible.
-Zero matches means no retained match. Daily boundaries use UTC; individual timestamps retain their
-recorded offset/time-source information. Reports are snapshots and are regenerated explicitly.
+Zero matches means no retained match. From 0.14 daily boundaries follow each record’s station
+display zone; fleet daily rows can combine different UTC intervals. Date filters use the selected
+station zone, or the HA zone for all stations, and are converted to UTC for querying. Stored
+timestamps and time-source information are preserved. Reports are snapshots and are regenerated
+explicitly. See [time zones and DST](TIME_ZONES.md).
 
 Exported rows contain timestamp, station, employee ID, person name, event type, authentication,
-result, door, masked card suffix, recovery flag and time source. They can contain personal names
+result, door, masked card suffix, recovery flag and time source. From 0.14 they also append
+display_timestamp (ISO with offset) and display_timezone, preserving the original timestamp.
+They can contain personal names
 and identifiers; they never contain PINs, full card numbers or raw device responses. The export
 is an administrator download, not the pseudonymous Sync diagnostics support report.
 

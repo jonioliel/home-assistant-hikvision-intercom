@@ -2,6 +2,10 @@
 
 Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
+[Current Hebrew scope and phase audit — 0.14](STATUS_0_14_HE.md): mandatory v1 acceptance
+28/38 (73.7%); Phase 5 deliverables8/9 (88.9%); Phase 6 software features3/9 (33.3%).
+These use distinct denominators and are not effort estimates or interchangeable completion rates.
+
 | Phase | Status | Remaining gate |
 | --- | --- | --- |
 | 0 — Reconnaissance | Protocol baseline and active relay mapping verified | Ring sequence and changed-PIN behavior |
