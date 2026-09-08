@@ -2,8 +2,8 @@
 
 This integration is still a prerelease. Mandatory software phases 0–5 are implemented;
 physical commissioning and installation acceptance remain open. Phase 6 is optional future work.
-The public HACS release remains 0.2.0-alpha.1 until publication is explicitly approved and
-all checks pass on the exact main commit. Development branches contain the later features.
+Version 0.6.0-alpha.1 combines Phases 2–5 for HACS installation and owner testing.
+Publication is gated by all required checks on the exact main commit.
 
 ## Backups and migrations
 

@@ -4,7 +4,25 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
-## [0.6.0-alpha.1] — Phase 5 (prepared; publication pending)
+## [0.6.0-alpha.1] - 2026-09-08
+
+### Combined release — Phases 2–5
+
+This prerelease includes all changes below for versions 0.3–0.5 as well as Phase 5.
+It upgrades the public 0.2 core integration with central user/PIN/card management,
+the Hebrew/English administrator panel, camera/live-video views, synchronization,
+import/conflict review, native events and bounded audit history.
+
+Select `0.6.0-alpha.1` in HACS (enable beta versions if needed) and restart Home Assistant.
+Requires Home Assistant 2026.9.1+. Back up HA before upgrading; configuration and private
+access data migrate while preserving existing credentials and confirmed relay permissions.
+Downgrading requires the matching backup. See [upgrade guidance](https://github.com/jonioliel/home-assistant-hikvision-intercom/blob/main/docs/HARDENING.md).
+
+Validation: 328 protocol tests, 104 real Home Assistant tests and 14 browser tests;
+Ruff, mypy, TypeScript, reproducible frontend bundle, HACS and Hassfest.
+The release workflow reruns required checks on the exact publication commit.
+
+### Phase 5 hardening
 
 - Add private-free diagnostics for request timing, capability limits and synchronization queues.
 - Add translated Repairs for storage failure, changed identity/mapping, capability regression,
@@ -16,7 +34,7 @@ Semantic Versioning is used throughout the project.
 - Physical PIN/card lifecycle, nine-station soak and real HACS install/upgrade remain acceptance gates.
 
 
-## [0.5.0-alpha.1] — Phase 4 (prepared; publication pending)
+## [0.5.0-alpha.1] — Phase 4 (included in 0.6.0-alpha.1)
 
 - Add bounded alert-stream framing for the station's nested JSON MIME messages.
 - Normalize documented access events without inferring physical door movement or call answer.
@@ -26,7 +44,7 @@ Semantic Versioning is used throughout the project.
 - Validate the production client with 241 queried records and a bounded live stream capture.
 
 
-## [0.4.0-alpha.1] - 2026-09-08
+## [0.4.0-alpha.1] — Phase 3 (included in 0.6.0-alpha.1)
 
 ### Added — Phase 3
 - Bundled Lit/TypeScript administrator sidebar: overview, users/editor, devices and sync matrix.
@@ -40,10 +58,10 @@ Semantic Versioning is used throughout the project.
 
 ### Validation and scope
 - The panel uses the Phase 2 backend. Events/audit capture follows in Phase 4.
-- Publication to the default branch/release is awaiting explicit owner approval after an automated approval rejection.
+- Published together with Phases 2, 4 and 5 in the 0.6.0-alpha.1 prerelease.
 - Physical acceptance and installation/upgrade on the owner's HA host remain pending.
 
-## [0.3.0-alpha.1] — Phase 2 (prepared; publication pending)
+## [0.3.0-alpha.1] — Phase 2 (included in 0.6.0-alpha.1)
 
 ### Added — Phase 2
 - Capability-driven user/card access client with bounded complete pagination and explicit write transactions.

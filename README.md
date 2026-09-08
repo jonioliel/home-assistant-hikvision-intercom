@@ -4,10 +4,10 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Development version `0.6.0-alpha.1` implements the mandatory software phases 0–5.**
+**Version `0.6.0-alpha.1` implements the mandatory software phases 0–5.**
 It includes user/card/PIN administration, cameras, one active lock per station, events,
 audit history, recovery and Repairs. Physical commissioning and installation acceptance remain open.
-Publication of Phases 2–5 awaits approval; the published HACS version remains `0.2.0-alpha.1`.
+The `0.6.0-alpha.1` prerelease brings Phases 2–5 together for installation and owner testing.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
@@ -66,7 +66,7 @@ editor. Standard HA camera/lock entities remain available alongside the dedicate
 ## HACS installation and updates
 
 Requires Home Assistant 2026.9.1 or newer and an existing HACS installation.
-Use a published core release (`0.2.0-alpha.1` or newer):
+Select `0.6.0-alpha.1` for the complete administrator panel and access/event features:
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
@@ -133,6 +133,5 @@ version, Git tag and CHANGELOG use matching semantic versions. Pre-1.0 releases 
 
 Independent community project, not an official Hikvision product.
 
-Phase 4 on the development branch adds native `event` entities and the administrator
-Events view. See [event behavior and recovery](docs/EVENTS.md). This development work
-is not yet the published HACS release; publication still awaits main-branch approval.
+Native `event` entities and the administrator Events view are included in `0.6.0-alpha.1`.
+See [event behavior and recovery](docs/EVENTS.md).
