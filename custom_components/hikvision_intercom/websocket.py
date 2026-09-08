@@ -41,6 +41,11 @@ COMMANDS = {
     "overview": {},
     "events/list": {"filters": dict},
     "users/list": {},
+    "users/csv_export": {},
+    "users/csv_preview": {"csv": str, "mode": str},
+    "users/csv_apply": {"csv": str, "mode": str, "review_token": str},
+    "events/report": {"filters": dict},
+    "events/export": {"filters": dict},
     "users/get": {"user_id": str},
     "users/create": {"data": dict},
     "users/update": {"user_id": str, "revision": int, "data": dict},
@@ -150,6 +155,21 @@ async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> A
     manager = get_manager(hass)
     if command == "sync/diagnostics":
         return {"integration_version": VERSION, **manager.sync_diagnostics()}
+    if command in {"events/report", "events/export"}:
+        try:
+            return await get_events(hass).async_report(
+                msg["filters"], export=command == "events/export"
+            )
+        except HikvisionValidationError:
+            raise AccessError("invalid_fields") from None
+    if command == "users/csv_export":
+        return await manager.async_export_csv()
+    if command == "users/csv_preview":
+        return await manager.async_preview_csv(msg["csv"], msg["mode"])
+    if command == "users/csv_apply":
+        return await manager.async_import_csv(
+            msg["csv"], msg["mode"], review_token=msg["review_token"]
+        )
     if command == "events/list":
         try:
             return get_events(hass).query(msg["filters"])
@@ -313,7 +333,8 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             for key, kind in fields.items():
                 if kind in {int, bool} and type(msg[key]) is not kind:
                     raise AccessError("invalid_fields")
-            if len(json.dumps(msg, ensure_ascii=False).encode()) > 65_536:
+            maximum = 1_048_576 if command in {"users/csv_preview", "users/csv_apply"} else 65_536
+            if len(json.dumps(msg, ensure_ascii=False).encode()) > maximum:
                 raise AccessError("request_too_large")
             limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
             admitted = limiter.acquire(connection.user.id, hass.loop.time())

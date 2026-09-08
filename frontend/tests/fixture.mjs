@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.10.0-alpha.1",
+  version: "0.11.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -226,6 +226,60 @@ const fake = {
           (!message.filters.person || row.person_name?.includes(message.filters.person)),
       );
       return { records, next: null, storage_failed: false, stations: {} };
+    }
+    if (command === "users/csv_preview")
+      return {
+        review_token: "synthetic-csv-review",
+        errors: [],
+        counts: { create: 1, update: 0, unchanged: 0 },
+        rows: [
+          {
+            line: 2,
+            employee_no: "9001",
+            display_name: "CSV Resident",
+            operation: "create",
+            changed_fields: ["display_name", "pin", "assignments"],
+            active: true,
+            pin_configured: true,
+            card_count: 1,
+            stations: ["station-0"],
+            access_removed: false,
+          },
+        ],
+      };
+    if (command === "users/csv_apply")
+      return { saved: 1, counts: { create: 1, update: 0, unchanged: 0 } };
+    if (command === "users/csv_export")
+      return {
+        csv: '\ufeff"employee_no","display_name"\r\n"9001","CSV Resident"\r\n',
+        count: 1,
+        stations: [],
+      };
+    if (["events/report", "events/export"].includes(command)) {
+      const counts = {
+        records: 260,
+        authentication: 200,
+        granted: 180,
+        denied: 20,
+        unknown: 0,
+        other: 60,
+        recovered: 90,
+      };
+      return {
+        generated_at: "2026-09-08T12:30:00Z",
+        oldest: "2026-09-08T01:00:00Z",
+        newest: "2026-09-08T12:00:00Z",
+        day_timezone: "UTC",
+        totals: counts,
+        methods: { card: 150, pin: 50 },
+        by_station: [{ station_id: "station-0", ...counts }],
+        by_day: [{ day: "2026-09-08", ...counts }],
+        storage_failed: false,
+        stations: {},
+        ...(command === "events/export"
+          ? { csv: '\ufeff"timestamp","masked_card"\r\n"2026-09-08T12:00:00Z","•••• 3210"\r\n' }
+          : {}),
+      };
     }
     if (command === "users/create") {
       const { pin, cards, ...fields } = message.data;

@@ -268,7 +268,9 @@ class EventCache:
             for station_id, (_, row) in latest.items()
         }
 
-    def query(self, filters: dict[str, Any], now: datetime) -> dict[str, Any]:
+    def query(
+        self, filters: dict[str, Any], now: datetime, *, all_records: bool = False
+    ) -> dict[str, Any]:
         allowed = {
             "station_id",
             "person",
@@ -337,10 +339,10 @@ class EventCache:
             if index is None:
                 raise HikvisionValidationError("Event cursor expired")
             matches = matches[index + 1 :]
-        page = matches[:limit]
+        page = matches if all_records else matches[:limit]
         return {
             "records": copy.deepcopy(page),
-            "next": page[-1]["id"] if len(matches) > limit else None,
+            "next": page[-1]["id"] if not all_records and len(matches) > limit else None,
             "retention_days": 30,
             "capacity": self.limit,
         }

@@ -169,3 +169,37 @@ async def test_history_failure_preserves_cursor_and_success_does_not_trigger(has
     assert manager.cursors[loaded_entry.entry_id] != old and monitor.history_state == "recovered"
     assert len(manager.query({})["records"]) == 2
     assert state(hass, "access").state == "unknown"
+
+
+async def test_event_report_and_csv_cover_all_filtered_pages_without_credentials(
+    hass, loaded_entry, hass_ws_client
+):
+    import csv
+    import io
+
+    monitor = loaded_entry.runtime_data.events
+    for i in range(230):
+        monitor.ingest(
+            live(
+                1 if i % 2 else 150,
+                serialNo=i + 1000,
+                cardNo="000099991234",
+                password="PRIVATE_PIN",
+                name="=UNTRUSTED()",
+            )
+        )
+    await hass.async_block_till_done()
+    client = await hass_ws_client(hass)
+    result = await request(client, "events/report", filters={})
+    assert result["success"]
+    assert result["result"]["totals"]["records"] == 230
+    assert "PRIVATE_PIN" not in str(result) and "000099991234" not in str(result)
+    result = await request(client, "events/export", filters={"result": "denied"})
+    assert result["success"] and result["result"]["totals"]["records"] == 115
+    rows = list(csv.DictReader(io.StringIO(result["result"]["csv"].removeprefix("\ufeff"))))
+    assert len(rows) == 115 and all(row["person_name"].startswith("'=") for row in rows)
+    assert "PRIVATE_PIN" not in str(result) and "000099991234" not in str(result)
+    result = await request(client, "events/report", filters={"before": "cursor"})
+    assert result["error"]["code"] == "invalid_fields"
+    result = await request(client, "events/export", filters={"limit": 1})
+    assert result["error"]["code"] == "invalid_fields"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import uuid4
 
@@ -16,6 +16,15 @@ from ..exceptions import (
     HikvisionError,
     HikvisionTimeoutError,
     HikvisionUnsupportedError,
+)
+from .csv_transfer import (
+    CsvRules,
+    desired_fields,
+    export_users,
+    parse_csv,
+    public_error,
+    row_patch,
+    validate_csv_targets,
 )
 from .diagnostics import SAFE_ERRORS, SyncDiagnostics, error_code
 from .engine import SyncEngine
@@ -311,6 +320,181 @@ class AccessManager:
             if station.driver and (caps := station.driver.capabilities):
                 desired_person(user, next(iter(station.driver.client.enabled_doors)), caps)
                 desired_cards(user, caps)
+
+    def export_csv(self) -> dict[str, Any]:
+        users = self.repository.users()
+        return {
+            "csv": export_users(users),
+            "count": len(users),
+            "stations": [{"id": s.id, "name": s.name} for s in self.stations.values()],
+        }
+
+    async def async_export_csv(self) -> dict[str, Any]:
+        users = self.repository.users()
+        stations = [{"id": s.id, "name": s.name} for s in self.stations.values()]
+        return {
+            "csv": await asyncio.to_thread(export_users, users),
+            "count": len(users),
+            "stations": stations,
+        }
+
+    def _csv_rules(self) -> CsvRules:
+        return {
+            key: (
+                station.name,
+                station.lock_enabled,
+                next(iter(station.driver.client.enabled_doors), None) if station.driver else None,
+                station.driver.capabilities if station.driver else None,
+            )
+            for key, station in self.stations.items()
+        }
+
+    async def async_preview_csv(self, content: str, mode: str) -> dict[str, Any]:
+        preview, _changes, _stamp = await asyncio.to_thread(
+            self._bulk_preview, content, mode, self.repository.preview_copy(), self._csv_rules()
+        )
+        return preview
+
+    def _bulk_preview(
+        self,
+        content: str,
+        mode: str,
+        repository: AccessRepository | None = None,
+        rules: CsvRules | None = None,
+    ) -> tuple[dict[str, Any], list[dict[str, Any]], str]:
+        if mode not in {"create", "upsert"}:
+            raise AccessError("csv_invalid_mode")
+        repository = repository if repository is not None else self.repository
+        rules = rules if rules is not None else self._csv_rules()
+        parsed = parse_csv(content)
+        existing = {user.employee_no: user for user in repository.users()}
+        stations = {key: item[0] for key, item in rules.items()}
+        changes, rows, errors = [], [], []
+        seen: set[str] = set()
+        for line, row in parsed:
+            try:
+                employee = validate_identifier(row["employee_no"])
+                if employee in seen:
+                    raise AccessError("csv_duplicate_employee")
+                seen.add(employee)
+                previous = existing.get(employee)
+                if previous and mode == "create":
+                    raise AccessError("employee_conflict")
+                data = row_patch(row, previous, stations)
+                user = build_user(data, employee_no=employee, now=utc_now(), previous=previous)
+                validate_csv_targets(user, rules)
+                before = desired_fields(previous) if previous else {}
+                after = desired_fields(user)
+                fields = [key for key in after if before.get(key) != after[key]]
+                operation = "create" if previous is None else "update" if fields else "unchanged"
+                if operation != "unchanged":
+                    changes.append(
+                        {
+                            "user_id": previous.id if previous else None,
+                            "revision": previous.revision if previous else None,
+                            "data": data,
+                        }
+                    )
+                targets = set(user.assignments) | (set(previous.assignments) if previous else set())
+                rows.append(
+                    {
+                        "line": line,
+                        "employee_no": employee,
+                        "display_name": user.display_name,
+                        "operation": operation,
+                        "changed_fields": fields,
+                        "active": user.active,
+                        "pin_configured": user.pin is not None,
+                        "card_count": len(user.cards),
+                        "stations": sorted(targets),
+                        "access_removed": bool(
+                            previous
+                            and (
+                                not user.active
+                                or set(previous.assignments) - set(user.assignments)
+                                or any(
+                                    a.enabled and not user.assignments.get(sid, a).enabled
+                                    for sid, a in previous.assignments.items()
+                                )
+                            )
+                        ),
+                    }
+                )
+            except (AccessError, HikvisionError) as err:
+                errors.append({"line": line, "code": public_error(err)})
+        if not errors:
+            try:
+                repository.preview_bulk(changes)
+            except AccessError as err:
+                errors.append({"line": None, "code": err.code})
+        stamp = repository.bulk_stamp()
+        captured_rules = {
+            key: [
+                *rule[:3],
+                {
+                    field: sorted(value) if isinstance(value, frozenset) else value
+                    for field, value in asdict(rule[3]).items()
+                }
+                if rule[3] is not None
+                else None,
+            ]
+            for key, rule in rules.items()
+        }
+        token = repository.fingerprint(
+            {"content": content, "mode": mode, "stamp": stamp, "stations": captured_rules}
+        )
+        return (
+            {
+                "rows": rows,
+                "errors": errors,
+                "review_token": None if errors else token,
+                "counts": {
+                    key: sum(row["operation"] == key for row in rows)
+                    for key in ("create", "update", "unchanged")
+                },
+            },
+            changes,
+            stamp,
+        )
+
+    def preview_csv(self, content: str, mode: str) -> dict[str, Any]:
+        return self._bulk_preview(content, mode)[0]
+
+    async def async_import_csv(
+        self, content: str, mode: str, *, review_token: str
+    ) -> dict[str, Any]:
+        rules = self._csv_rules()
+        preview, changes, stamp = await asyncio.to_thread(
+            self._bulk_preview, content, mode, self.repository.preview_copy(), rules
+        )
+        if preview["errors"]:
+            raise AccessError("csv_validation_failed")
+        if (
+            not review_token
+            or preview["review_token"] != review_token
+            or self._csv_rules() != rules
+        ):
+            raise AccessError("csv_review_stale")
+        users = await self.repository.async_bulk_apply(
+            changes, stamp=stamp, validate=lambda user: validate_csv_targets(user, rules)
+        )
+        changed_ids = {user.id for user in users}
+        state = self.repository.snapshot()
+        targets = {key for user in users for key in user.assignments}
+        targets.update(
+            key for key, bindings in state["bindings"].items() if changed_ids.intersection(bindings)
+        )
+        for collection in ("retired_cards", "retired_pins"):
+            targets.update(
+                key
+                for item in state[collection].values()
+                if item["user_id"] in changed_ids
+                for key in item["targets"]
+            )
+        for station_id in targets.intersection(self.stations):
+            self.request(station_id)
+        self._changed()
+        return {"counts": preview["counts"], "saved": len(users)}
 
     async def async_create(self, data: dict[str, Any], *, sync_now: bool = True) -> dict[str, Any]:
         self._validate(build_user(data, employee_no="100000000", now=utc_now()))

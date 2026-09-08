@@ -60,6 +60,10 @@ Its access rescan reads capabilities and inventory; **Sync now** requests pendin
 **Sync** shows per-user/per-station revisions, conflicts and pending removals. Its read-only review
 compares ten fields, previews logical changes and fleet impact, and protects against stale approvals. **Events** provides
 bounded audit history with filters and distinguishes recovered records from live events.
+**Users** also supports reviewed CSV batches (up to 500 rows), a blank template and secret-free
+exports. **Events** generates activity reports and CSV across all matching retained records.
+See [CSV rules and reporting limits](docs/CSV_AND_REPORTS.md) and the
+[deferred commissioning ledger](docs/DEFERRED_VALIDATION.md).
 
 A device-record review is required before adoption, overwrite or resuming a conflicted deletion.
 An offline target remains pending; the panel does not wait for all stations before closing a saved

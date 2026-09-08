@@ -10,7 +10,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional future | Outside mandatory v1 | Follow-on work |
+| 6 — Optional extensions | CSV bulk import/export and basic activity reporting implemented in 0.11 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -163,3 +163,13 @@ Hassfest, Ruff, mypy, TypeScript and reproducible bundle. ConfigFlow coverage is
 Python checks34262840733; HACS34262840762; Hassfest34262840704.
 It advances the main implementation to 0.10.0-alpha.1; the requirement-based tally remains
 28 closed / 10 open / 2 owner-excluded. Physical acceptance has not been inferred from CI.
+
+
+0.11.0-alpha.1 advances two optional Phase 6 features under the owner's continuation request:
+reviewed CSV batches with atomic central storage and filtered activity reporting/export.
+Large plans/encoding run outside the HA event loop; station queues remain independent and
+coalesce batch scheduling. The [CSV guide](CSV_AND_REPORTS.md) records interchange semantics,
+privacy and retention limits. [Deferred validation](DEFERRED_VALIDATION.md) preserves the
+manufacturer basis, failed/untested firmware behavior and exact future commissioning steps.
+No live device action or new ISAPI behavior was introduced. The mandatory tally remains 28/38;
+optional additions do not close physical gates or imply two-way audio/schedules are available.

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("overview shows HA cameras and only enabled online release buttons", async ({ page }) => {
   await page.goto("/");
@@ -1087,4 +1088,195 @@ test("unverified PIN readback is never labelled as matching", async ({ page }) =
   const dialog = await openReview(page);
   await expect(dialog.locator('[data-field="pin"]')).toContainText("Unverified");
   await expect(dialog.locator('[data-field="pin"]')).not.toContainText("Matches");
+});
+
+const csvImport =
+  'employee_no,display_name,pin,cards,stations\r\n9001,CSV Resident,735291,"[""000012345678""]","{""station-0"":true}"\r\n';
+
+async function uploadCsv(page, contents = csvImport) {
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Import CSV", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByLabel("CSV file")
+    .setInputFiles({ name: "residents.csv", mimeType: "text/csv", buffer: Buffer.from(contents) });
+  await expect(dialog.getByText("residents.csv", { exact: true })).toBeVisible();
+  return dialog;
+}
+
+test("CSV requires preview and explicit confirmation while keeping credentials out of the DOM", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const dialog = await uploadCsv(page);
+  await expect(dialog.getByRole("button", { name: "Apply & sync batch" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Preview changes" }).click();
+  await expect(dialog.getByText("CSV Resident", { exact: true })).toBeVisible();
+  expect(await dialog.textContent()).not.toContain("735291");
+  expect(await dialog.textContent()).not.toContain("000012345678");
+  page.once("dialog", (popup) => popup.dismiss());
+  await dialog.getByRole("button", { name: "Apply & sync batch" }).click();
+  expect(
+    await page.evaluate(() => window.calls.some((item) => item.type.endsWith("users/csv_apply"))),
+  ).toBeFalsy();
+  page.once("dialog", (popup) => popup.accept());
+  await dialog.getByRole("button", { name: "Apply & sync batch" }).click();
+  await expect(dialog).toHaveCount(0);
+  const calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("users/csv_apply")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toMatchObject({
+    csv: csvImport,
+    mode: "create",
+    review_token: "synthetic-csv-review",
+  });
+  await page.getByRole("button", { name: "Import CSV", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Preview changes" }),
+  ).toBeDisabled();
+});
+
+test("CSV mode changes invalidate preview and server errors prevent partial confirmation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const dialog = await uploadCsv(page);
+  await dialog.getByRole("button", { name: "Preview changes" }).click();
+  await expect(dialog.getByRole("button", { name: "Apply & sync batch" })).toBeEnabled();
+  await dialog.getByLabel("Import mode").selectOption("upsert");
+  await expect(dialog.getByRole("button", { name: "Apply & sync batch" })).toBeDisabled();
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      const result = await original(message);
+      if (message.type.endsWith("users/csv_preview")) {
+        result.errors = [{ line: 3, code: "pin_conflict" }];
+        result.review_token = null;
+      }
+      return result;
+    };
+  });
+  await dialog.getByRole("button", { name: "Preview changes" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Line 3");
+  await expect(dialog.getByRole("button", { name: "Apply & sync batch" })).toBeDisabled();
+});
+
+test("CSV stale apply requires another preview and never automatically retries", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("users/csv_apply")) {
+        window.calls.push(message);
+        throw { code: "review_stale" };
+      }
+      return original(message);
+    };
+  });
+  const dialog = await uploadCsv(page);
+  await dialog.getByRole("button", { name: "Preview changes" }).click();
+  page.once("dialog", (popup) => popup.accept());
+  await dialog.getByRole("button", { name: "Apply & sync batch" }).click();
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Apply & sync batch" })).toBeDisabled();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((item) => item.type.endsWith("users/csv_apply")).length,
+    ),
+  ).toBe(1);
+});
+
+test("CSV export downloads credential-free content and template", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  const exported = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export users CSV" }).click();
+  const download = await exported;
+  expect(download.suggestedFilename()).toBe("hikvision-users.csv");
+  const text = await readFile((await download.path())!, "utf8");
+  expect(text).toContain("CSV Resident");
+  expect(text).not.toContain("pin");
+  await page.getByRole("button", { name: "Import CSV", exact: true }).click();
+  const template = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download blank template" }).click();
+  const file = await template;
+  expect(await readFile((await file.path())!, "utf8")).toContain("employee_no,display_name");
+});
+
+test("activity report covers retained matches and export uses applied filters", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  const events = page.locator("hikvision-intercom-events");
+  await events.getByLabel("Result", { exact: true }).selectOption("denied");
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await events.getByRole("button", { name: "Generate report" }).click();
+  const report = events.locator(".activity-report");
+  await expect(report).toContainText("260");
+  await expect(report).toContainText("200");
+  await report.getByText("Daily breakdown", { exact: true }).click();
+  await expect(report).toContainText("UTC");
+  const downloadEvent = page.waitForEvent("download");
+  await events.getByRole("button", { name: "Export filtered events CSV" }).click();
+  const download = await downloadEvent;
+  expect(await readFile((await download.path())!, "utf8")).toContain("•••• 3210");
+  const call = await page.evaluate(() =>
+    window.calls.findLast((item) => item.type.endsWith("events/export")),
+  );
+  expect(call.filters).toEqual({ result: "denied" });
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await expect(report).toHaveCount(0);
+});
+
+test("late report export is discarded when filters change", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      const result = await original(message);
+      if (message.type.endsWith("events/export"))
+        return new Promise((resolve) => {
+          window.finishExport = () => resolve(result);
+        });
+      return result;
+    };
+  });
+  let downloads = 0;
+  page.on("download", () => downloads++);
+  const events = page.locator("hikvision-intercom-events");
+  await events.getByRole("button", { name: "Export filtered events CSV" }).click();
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.evaluate(() => window.finishExport());
+  await expect(events.locator(".activity-report")).toHaveCount(0);
+  expect(downloads).toBe(0);
+});
+
+test("Hebrew mobile CSV preview and activity reports fit the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "משתמשים", exact: true }).click();
+  await page.getByRole("button", { name: "ייבוא CSV", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByLabel("קובץ CSV")
+    .setInputFiles({ name: "demo.csv", mimeType: "text/csv", buffer: Buffer.from(csvImport) });
+  await dialog.getByRole("button", { name: "תצוגה מקדימה", exact: true }).click();
+  await expect(dialog.getByText("CSV Resident", { exact: true })).toBeVisible();
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBeTruthy();
+  await page.screenshot({ path: "test-results/csv-he-mobile.png", fullPage: true });
+  await dialog.getByRole("button", { name: "סגירה", exact: true }).click();
+  await page.getByRole("button", { name: "אירועים", exact: true }).click();
+  await page.getByRole("button", { name: "הפקת דוח", exact: true }).click();
+  await expect(page.locator(".activity-report")).toContainText("260");
+  expect(
+    await page
+      .locator("hikvision-intercom-panel")
+      .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth <= 390),
+  ).toBeTruthy();
+  await page.screenshot({ path: "test-results/report-he-mobile.png", fullPage: true });
 });

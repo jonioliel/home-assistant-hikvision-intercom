@@ -158,11 +158,22 @@ class AccessRepository:
             text_field(station, 128)
             stations(employees)
 
-    async def _commit(self, change: Callable[[dict[str, Any]], T]) -> T:
+    def preview_copy(self) -> AccessRepository:
+        """Detached state for CPU-only planning; no persistence method is used on this copy."""
+        copied = AccessRepository(self._save)
+        copied._state = self.snapshot()
+        return copied
+
+    async def _commit(self, change: Callable[[dict[str, Any]], T], *, offload: bool = False) -> T:
         async with self._lock:
-            candidate = deepcopy(self._state)
-            result = change(candidate)
-            self._validate_collisions(candidate)
+
+            def prepare() -> tuple[dict[str, Any], T]:
+                candidate = deepcopy(self._state)
+                result = change(candidate)
+                self._validate_collisions(candidate)
+                return candidate, result
+
+            candidate, result = await asyncio.to_thread(prepare) if offload else prepare()
             if candidate != self._state:
                 saving = asyncio.ensure_future(self._save(deepcopy(candidate)))
                 cancelled = False
@@ -291,37 +302,95 @@ class AccessRepository:
     async def async_update(
         self, user_id: str, data: dict[str, Any], *, expected_revision: int
     ) -> ManagedUser:
-        def update(state: dict[str, Any]) -> ManagedUser:
-            if user_id not in state["users"]:
-                raise AccessError("user_not_found")
-            old = ManagedUser.from_private(state["users"][user_id])
-            if type(expected_revision) is not int or old.revision != expected_revision:
-                raise AccessError("revision_conflict")
-            user = build_user(data, employee_no=old.employee_no, now=utc_now(), previous=old)
-            if user.employee_no != old.employee_no and old.identity_locked:
-                raise AccessError("identity_migration_required")
-            desired_numbers = {card.card_no.value for card in user.cards}
-            removed = [card for card in old.cards if card.card_no.value not in desired_numbers]
-            targets = set(old.assignments) | {
-                station for station, bindings in state["bindings"].items() if user_id in bindings
-            }
-            self._retire_pin(state, old, user, targets)
-            for card in removed:
-                if targets:
-                    state["retired_cards"][str(uuid4())] = {
-                        "user_id": user_id,
-                        "card_no": card.card_no.value,
-                        "targets": sorted(targets),
-                        "confirmed": [],
-                    }
-            # Re-adding to the same person cancels retirement and preserves ownership.
-            for key, retired in list(state["retired_cards"].items()):
-                if retired["user_id"] == user_id and retired["card_no"] in desired_numbers:
-                    del state["retired_cards"][key]
-            state["users"][user.id] = user.private()
-            return user
+        return await self._commit(
+            lambda state: self._update_user(state, user_id, data, expected_revision)
+        )
 
-        return await self._commit(update)
+    def _update_user(
+        self, state: dict[str, Any], user_id: str, data: dict[str, Any], expected_revision: int
+    ) -> ManagedUser:
+        if user_id not in state["users"]:
+            raise AccessError("user_not_found")
+        old = ManagedUser.from_private(state["users"][user_id])
+        if type(expected_revision) is not int or old.revision != expected_revision:
+            raise AccessError("revision_conflict")
+        user = build_user(data, employee_no=old.employee_no, now=utc_now(), previous=old)
+        if user.employee_no != old.employee_no and old.identity_locked:
+            raise AccessError("identity_migration_required")
+        desired_numbers = {card.card_no.value for card in user.cards}
+        removed = [card for card in old.cards if card.card_no.value not in desired_numbers]
+        targets = set(old.assignments) | {
+            station for station, bindings in state["bindings"].items() if user_id in bindings
+        }
+        self._retire_pin(state, old, user, targets)
+        for card in removed:
+            if targets:
+                state["retired_cards"][str(uuid4())] = {
+                    "user_id": user_id,
+                    "card_no": card.card_no.value,
+                    "targets": sorted(targets),
+                    "confirmed": [],
+                }
+        # Re-adding to the same person cancels retirement and preserves ownership.
+        for key, retired in list(state["retired_cards"].items()):
+            if retired["user_id"] == user_id and retired["card_no"] in desired_numbers:
+                del state["retired_cards"][key]
+        state["users"][user.id] = user.private()
+        return user
+
+    def bulk_stamp(self, state: dict[str, Any] | None = None) -> str:
+        """Ignore sync progress, but bind desired revisions and ownership/cleanup targets."""
+        state = self._state if state is None else state
+        return self.fingerprint(
+            {
+                "users": {
+                    key: [u["employee_no"], u["revision"], u["identity_locked"]]
+                    for key, u in state["users"].items()
+                },
+                "tombstones": sorted(state["tombstones"]),
+                "bindings": {key: sorted(records) for key, records in state["bindings"].items()},
+                "retired_cards": state["retired_cards"],
+                "retired_pins": state["retired_pins"],
+            }
+        )
+
+    def _bulk_users(
+        self, state: dict[str, Any], changes: list[dict[str, Any]]
+    ) -> list[ManagedUser]:
+        users = []
+        for change in changes:
+            if change["user_id"] is None:
+                user = build_user(
+                    change["data"], employee_no=change["data"]["employee_no"], now=utc_now()
+                )
+                state["users"][user.id] = user.private()
+            else:
+                user = self._update_user(
+                    state, change["user_id"], change["data"], change["revision"]
+                )
+            users.append(user)
+        self._validate_collisions(state)
+        return users
+
+    def preview_bulk(self, changes: list[dict[str, Any]]) -> list[ManagedUser]:
+        return self._bulk_users(self.snapshot(), changes)
+
+    async def async_bulk_apply(
+        self,
+        changes: list[dict[str, Any]],
+        *,
+        stamp: str,
+        validate: Callable[[ManagedUser], None],
+    ) -> list[ManagedUser]:
+        def apply(state: dict[str, Any]) -> list[ManagedUser]:
+            if stamp != self.bulk_stamp(state):
+                raise AccessError("csv_review_stale")
+            users = self._bulk_users(state, changes)
+            for user in users:
+                validate(user)
+            return users
+
+        return await self._commit(apply, offload=True)
 
     async def async_delete(self, user_id: str, *, expected_revision: int) -> None:
         def delete(state: dict[str, Any]) -> None:

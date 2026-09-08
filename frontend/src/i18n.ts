@@ -1,4 +1,74 @@
 const en = {
+  csv_review_stale:
+    "Central data or the file changed after preview. Preview the batch again before applying.",
+  csv_import: "Import CSV",
+  csv_export: "Export users CSV",
+  csv_hint:
+    "Upload UTF-8 CSV, review every change, then apply the complete batch. Up to 500 rows / 256 KiB. No station writes occur during preview.",
+  csv_file: "CSV file",
+  csv_mode: "Import mode",
+  csv_create_only: "Create new users only",
+  csv_update_existing: "Create and update matching employee IDs",
+  csv_template: "Download blank template",
+  csv_format: "CSV format and station identifiers",
+  csv_columns_hint:
+    "Required: employee_no, display_name. Optional: active (true/false), valid_from, valid_until, stations, pin, cards. Missing columns and blank optional cells preserve existing values. Keep employee and credential numbers as text when editing spreadsheets.",
+  csv_clear_hint:
+    "CLEAR in pin removes the PIN; [] in cards removes every card; {} in stations removes every assignment. CLEAR in both validity columns removes expiry; otherwise both dates require a timezone. Export omits PINs and card numbers and is not a credentials backup.",
+  csv_station_hint:
+    "Stations is a JSON object mapping an ID below (or a unique station name) to true/false. Existing assignments are replaced only when this cell is filled.",
+  csv_example: "Station assignment example:",
+  csv_card_example:
+    "Cards is a JSON list of complete numbers as strings. It replaces the card list and preserves labels/enabled state for matching existing cards. Example:",
+  csv_line: "Line",
+  csv_no_stations: "No station assignments",
+  csv_revocation: "This change revokes access on one or more stations.",
+  csv_preview: "Preview changes",
+  csv_apply: "Apply & sync batch",
+  csv_confirm:
+    "Save {count} user changes and synchronize affected stations? Credential and assignment replacements can revoke access. Offline stations will reconcile when reconnected.",
+  csv_saved: "Batch saved. Synchronization requested.",
+  bulk_create: "Create",
+  bulk_update: "Update",
+  bulk_unchanged: "Unchanged",
+  csv_field_employee_no: "Employee ID",
+  csv_field_display_name: "Name",
+  csv_field_active: "Active state",
+  csv_field_user_type: "User type",
+  csv_field_valid_from: "Validity start",
+  csv_field_valid_until: "Validity end",
+  csv_field_pin: "PIN",
+  csv_field_cards: "Cards",
+  csv_field_assignments: "Station assignments",
+  csv_too_large: "CSV exceeds 256 KiB. Split it into smaller files.",
+  csv_too_many_rows: "CSV exceeds 500 rows. Split the batch.",
+  csv_invalid_encoding: "Use a valid UTF-8 CSV file.",
+  csv_invalid_headers: "CSV headers are missing, duplicated or unsupported. Use the template.",
+  csv_invalid_columns: "A CSV row has the wrong number of columns.",
+  csv_empty: "CSV contains no user rows.",
+  csv_invalid_format: "CSV could not be parsed. Check quoting and column separators.",
+  csv_invalid_json: "Cards or stations contain invalid JSON or duplicate keys.",
+  csv_invalid_mode: "Unsupported CSV import mode.",
+  csv_duplicate_employee: "An employee ID appears more than once in the file.",
+  csv_station_ambiguous:
+    "A station reference is duplicated or its name is ambiguous. Use its unique ID.",
+  csv_validation_failed:
+    "The batch no longer passes validation. Preview it again; no partial import was saved.",
+  activity_report: "Activity report",
+  report_generated: "Generated at",
+  report_records: "Records",
+  report_auth: "Authentication events",
+  report_other: "Other event records",
+  report_daily: "Daily breakdown",
+  report_utc: "Daily groups use UTC.",
+  report_date: "Date",
+  report_generate: "Generate report",
+  report_export: "Export filtered events CSV",
+  report_filter_hint:
+    "Report and export use the last applied filters and all matching retained records, including unloaded pages. Click Filter after changing the fields.",
+  report_scope:
+    "Counts describe retained events, not unique visitors. Unlocking records are separate from authentication. Retention, recovery gaps and device reporting can make this incomplete. Card numbers remain masked in exports.",
+
   review_present: "Present on this station",
   review_refresh: "Read comparison again",
   review_hint:
@@ -324,6 +394,75 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  csv_review_stale:
+    "הנתונים המרכזיים או הקובץ השתנו מאז התצוגה המקדימה. יש להציג שוב את האצווה לפני אישור.",
+  csv_import: "ייבוא CSV",
+  csv_export: "ייצוא משתמשים CSV",
+  csv_hint:
+    "יש להעלות CSV בקידוד UTF-8, לבדוק את השינויים ולאשר את האצווה. עד 500 שורות / 256 KiB. התצוגה המקדימה אינה כותבת לציוד.",
+  csv_file: "קובץ CSV",
+  csv_mode: "מצב ייבוא",
+  csv_create_only: "יצירת משתמשים חדשים בלבד",
+  csv_update_existing: "יצירה ועדכון לפי מזהה עובד תואם",
+  csv_template: "הורדת תבנית ריקה",
+  csv_format: "מבנה CSV ומזהי אינטרקומים",
+  csv_columns_hint:
+    "חובה: employee_no, display_name. רשות: active (true/false), valid_from, valid_until, stations, pin, cards. עמודות חסרות ותאים ריקים בשדות רשות שומרים על הערך הקיים. בעריכת גיליון יש לשמור מזהים ואמצעי זיהוי כטקסט.",
+  csv_clear_hint:
+    "CLEAR בשדה pin מסיר קוד; [] בשדה cards מסיר את כל הכרטיסים; {} בשדה stations מסיר את כל השיוכים. CLEAR בשני שדות התוקף מבטל תפוגה; אחרת יש להזין את שני התאריכים עם אזור זמן. הייצוא משמיט קודים ומספרי כרטיסים ואינו גיבוי שלהם.",
+  csv_station_hint:
+    "stations הוא אובייקט JSON הממפה מזהה מהרשימה (או שם תחנה ייחודי) ל־true/false. שיוכים קיימים מוחלפים רק כשהתא מלא.",
+  csv_example: "דוגמה לשיוך:",
+  csv_card_example:
+    "cards הוא מערך JSON של מספרים מלאים כמחרוזות. הוא מחליף את הרשימה ושומר תוויות ומצב הפעלה של כרטיסים קיימים תואמים. דוגמה:",
+  csv_line: "שורה",
+  csv_no_stations: "ללא שיוך לאינטרקומים",
+  csv_revocation: "השינוי מבטל גישה באינטרקום אחד או יותר.",
+  csv_preview: "תצוגה מקדימה",
+  csv_apply: "אישור וסנכרון האצווה",
+  csv_confirm:
+    "לשמור שינויים ב־{count} משתמשים ולסנכרן את התחנות המושפעות? החלפת אמצעי זיהוי ושיוכים עשויה לבטל גישה. תחנות מנותקות יסתנכרנו עם חזרתן.",
+  csv_saved: "האצווה נשמרה ונשלחה לסנכרון.",
+  bulk_create: "יצירה",
+  bulk_update: "עדכון",
+  bulk_unchanged: "ללא שינוי",
+  csv_field_employee_no: "מזהה עובד",
+  csv_field_display_name: "שם",
+  csv_field_active: "מצב הפעלה",
+  csv_field_user_type: "סוג משתמש",
+  csv_field_valid_from: "תחילת תוקף",
+  csv_field_valid_until: "סיום תוקף",
+  csv_field_pin: "קוד PIN",
+  csv_field_cards: "כרטיסים",
+  csv_field_assignments: "שיוך לאינטרקומים",
+  csv_too_large: "הקובץ גדול מ־256 KiB. יש לפצל לקבצים קטנים יותר.",
+  csv_too_many_rows: "הקובץ כולל יותר מ־500 שורות. יש לפצל את האצווה.",
+  csv_invalid_encoding: "יש להשתמש בקובץ CSV תקין בקידוד UTF-8.",
+  csv_invalid_headers: "כותרות CSV חסרות, כפולות או אינן נתמכות. יש להשתמש בתבנית.",
+  csv_invalid_columns: "מספר העמודות באחת השורות אינו תקין.",
+  csv_empty: "הקובץ אינו מכיל שורות משתמשים.",
+  csv_invalid_format: "לא ניתן לקרוא את ה־CSV. יש לבדוק מרכאות ומפרידי עמודות.",
+  csv_invalid_json: "בשדה כרטיסים או תחנות יש JSON לא תקין או מפתחות כפולים.",
+  csv_invalid_mode: "מצב ייבוא CSV אינו נתמך.",
+  csv_duplicate_employee: "מזהה עובד מופיע יותר מפעם אחת בקובץ.",
+  csv_station_ambiguous: "תחנה מופיעה פעמיים או ששמה אינו ייחודי. יש להשתמש במזהה שלה.",
+  csv_validation_failed:
+    "האצווה אינה עוברת את הבדיקות. יש להציג שוב תצוגה מקדימה; לא נשמר ייבוא חלקי.",
+  activity_report: "דוח פעילות",
+  report_generated: "מועד הפקה",
+  report_records: "רשומות",
+  report_auth: "אירועי זיהוי",
+  report_other: "רשומות אירועים אחרות",
+  report_daily: "פירוט יומי",
+  report_utc: "החלוקה לימים היא לפי UTC.",
+  report_date: "תאריך",
+  report_generate: "הפקת דוח",
+  report_export: "ייצוא אירועים מסוננים CSV",
+  report_filter_hint:
+    "הדוח והייצוא משתמשים בסינון האחרון שהוחל ובכל הרשומות השמורות התואמות, כולל עמודים שטרם נטענו. אחרי שינוי שדות יש ללחוץ סינון.",
+  report_scope:
+    "הספירה מתארת אירועים שמורים, ולא מבקרים ייחודיים. רשומות פתיחה מופרדות מאירועי זיהוי. מגבלת השמירה, פערי שחזור ודיווח המכשיר עשויים לגרום למידע חסר. מספרי כרטיסים נשארים מוסתרים בייצוא.",
+
   review_present: "קיים באינטרקום",
   review_refresh: "קריאת ההשוואה מחדש",
   review_hint:

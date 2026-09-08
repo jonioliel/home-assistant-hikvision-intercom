@@ -170,3 +170,20 @@ The review records its own revision and time. If another session edits the perso
 snapshot remains visible but approval is disabled. **Read comparison again** obtains a fresh snapshot.
 A stale-device or revision-conflict response also requires a fresh read. API-only clients must submit
 the returned revision; it is checked before station reads and atomically again before saving.
+
+
+## CSV batches and activity reports — 0.11.0-alpha.1
+
+Users adds **Import CSV**, a blank template and **Export users CSV**. Preview the complete file,
+choose create-only or explicit update mode, inspect removals, and confirm before atomic central
+storage. Offline station work remains pending; a saved batch is not proof of physical acceptance.
+Exports exclude credentials. [Full schema and examples](CSV_AND_REPORTS.md).
+
+In Events, apply filters before generating a report or exporting CSV. The report spans all
+matching retained pages and separates authentication from other records. It shows generation
+time, station/method/day counts (UTC days), retention and recovery/storage status. These are
+event counts rather than visits. Downloads contain retained names/IDs and masked card suffixes.
+
+[Hebrew CSV preview](screenshots/csv-he-mobile.png) ·
+[Hebrew activity report](screenshots/report-he-mobile.png) ·
+[Deferred physical checks](DEFERRED_VALIDATION.md).

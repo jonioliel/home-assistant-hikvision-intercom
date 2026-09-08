@@ -270,3 +270,22 @@ ConfigFlow coverage remains 100%; Ruff, mypy, TypeScript, formatting and reprodu
 HA job `102184823735` confirms 125 passing tests; frontend job `102184823802` confirms 44.
 The release workflow `34263065754` reruns gates on this fixed code commit before publishing.
 Feature commit `438f5b9` and follow-up `bd03631` remain independently reviewable in Git history.
+
+
+## CSV batches and activity reports — 0.11.0-alpha.1
+
+Local protocol/access validation: **394 passed**, Ruff lint/format and strict mypy on 27 modules
+passed. The browser suite passed **51 tests**; the Hebrew mobile snapshot test was rerun after
+updating the release version. TypeScript and the production frontend build pass.
+
+New cases cover whole-batch credential/identifier collisions, explicit clearing versus omitted
+fields, stable no-op export roundtrip, stale central/station reviews, offline retirement,
+failed storage, cancellation during worker preparation and 500 users across nine simulated
+stations with one queued request per station. Reporting covers all filtered retained pages,
+UTC days and separate authentication/unlocking counts. The UI verifies private previews,
+explicit confirmation, stale-review behavior, file downloads and discarded late exports.
+
+New actual Home Assistant tests exercise the five admin-only commands, persisted CSV batches,
+private debug logs, safe malformed/oversized input errors, failed storage and multi-page event
+report/export. Their GitHub CI results are recorded after execution below. Device I/O is mocked;
+no physical credential, relay or call test was performed in this release's development.

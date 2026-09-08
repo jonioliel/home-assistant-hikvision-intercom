@@ -4,6 +4,39 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.11.0-alpha.1] - 2026-09-08
+
+### Added
+- CSV bulk import/export in Users: a UTF-8 template, create-only or explicit update mode,
+  secret-free row previews, changed-field and revocation indicators, and administrator confirmation.
+  Up to 500 rows / 256 KiB are validated together, including employee/PIN/card collisions,
+  station eligibility, observed capability limits and pending credential-removal reservations.
+- Atomic central batch storage: no partially imported rows on validation or storage failure.
+  A review token binds the file, mode, central revisions/ownership and captured station rules.
+  Stale reviews require a fresh preview. Saved work uses existing independent station queues,
+  fresh device validation, conflict protection and durable offline revocation; fleet writes are
+  not an atomic transaction. Exports omit PINs and full card numbers.
+- Activity reports and filtered CSV export across all matching retained records, rather than
+  only the visible page. Totals, station/day breakdowns, authentication methods and recovery
+  counts distinguish authentication from unlocking records. Daily groups use UTC; retention,
+  missing-history and storage status remain visible. These are event counts, not unique visits.
+- English/Hebrew responsive controls and spreadsheet formula neutralization. Late report
+  responses cannot download a file after filters, permissions or panel lifecycle change.
+- A deferred validation ledger links manufacturer contracts, observed firmware behavior and
+  exact future commissioning steps without marking physical acceptance as passed.
+
+### Performance and validation
+- Bulk planning/preparation and CSV/report encoding run in workers. Large batches coalesce
+  synchronization requests once per affected station. Cancelling preparation cannot publish
+  partial state or overwrite a later edit; in-progress durable saves retain existing protection.
+- Coverage includes 500 users across nine simulated stations, failed storage, concurrent edits,
+  cancelled preparation, private previews/logs, real HA administrator enforcement, complete
+  filtered reports, download lifecycle and Hebrew mobile layouts.
+- No new ISAPI endpoint, storage migration or live physical/credential operation in development.
+  PIN change/removal, card lifecycle, timed validity, ringing/video and nine-station acceptance
+  remain deferred. CSV and basic reporting advance optional Phase 6; the mandatory tally remains
+  28 of 38 applicable Definition of Done items closed (73.7%), ten open (26.3%).
+
 ## [0.10.0-alpha.1] - 2026-09-08
 
 ### Added

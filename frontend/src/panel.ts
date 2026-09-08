@@ -12,8 +12,10 @@ import type {
   Inventory,
   Review,
   ReviewState,
+  CsvPreview,
   Assignment,
 } from "./types";
+import { downloadText } from "./download";
 import "./camera";
 import "./events";
 
@@ -59,6 +61,9 @@ export class IntercomManagerPanel extends LitElement {
     _error: { state: true },
     _importRows: { state: true },
     _review: { state: true },
+    _csvPreview: { state: true },
+    _csvName: { state: true },
+    _csvMode: { state: true },
   };
   hass?: Hass;
   narrow = false;
@@ -74,6 +79,10 @@ export class IntercomManagerPanel extends LitElement {
   private _importRows: Inventory[] = [];
   private _importStation = "";
   private _review?: Review;
+  private _csvPreview?: CsvPreview;
+  private _csvContent = "";
+  private _csvName = "";
+  private _csvMode = "create";
   private _reviewUser = "";
   private _reviewStation = "";
   private _cameraStation?: Station;
@@ -107,6 +116,7 @@ export class IntercomManagerPanel extends LitElement {
         input.value = "";
       });
     this._draft = undefined;
+    this.clearCsv();
     this._dialog = "";
     this._data = undefined;
     this._releases = new Map();
@@ -136,6 +146,7 @@ export class IntercomManagerPanel extends LitElement {
         this._unsubscribe = undefined;
         this._connecting = false;
         this._draft = undefined;
+        this.clearCsv();
         this._data = undefined;
         this._releases = new Map();
         this._dialog = "";
@@ -220,6 +231,7 @@ export class IntercomManagerPanel extends LitElement {
   private close() {
     if (this._busy) return;
     this._draft = undefined;
+    this.clearCsv();
     this._review = undefined;
     this._importRows = [];
     this._cameraStation = undefined;
@@ -399,6 +411,178 @@ export class IntercomManagerPanel extends LitElement {
       () => this.api("users/delete", { user_id: user.id, revision: user.revision }),
       "deleted",
     );
+  }
+  private clearCsv() {
+    this._csvContent = "";
+    this._csvPreview = undefined;
+    this._csvName = "";
+    this._csvMode = "create";
+  }
+  private openCsv() {
+    this.clearCsv();
+    this._error = "";
+    this._dialog = "csv";
+  }
+  private async readCsv(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    this._csvContent = "";
+    this._csvPreview = undefined;
+    this._csvName = "";
+    this._error = "";
+    if (!file) return;
+    const epoch = this._epoch;
+    await this.run(async () => {
+      if (file.size > 262144) throw { code: "csv_too_large" };
+      let content: string;
+      try {
+        content = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+      } catch {
+        throw { code: "csv_invalid_encoding" };
+      }
+      if (
+        epoch === this._epoch &&
+        this.isConnected &&
+        this.hass?.user?.is_admin &&
+        this._dialog === "csv"
+      ) {
+        this._csvContent = content;
+        this._csvName = file.name;
+      }
+    }, "");
+  }
+  private async previewCsv() {
+    const epoch = this._epoch;
+    this._csvPreview = undefined;
+    await this.run(async () => {
+      const result = await this.api<CsvPreview>("users/csv_preview", {
+        csv: this._csvContent,
+        mode: this._csvMode,
+      });
+      if (
+        epoch === this._epoch &&
+        this.isConnected &&
+        this.hass?.user?.is_admin &&
+        this._dialog === "csv"
+      )
+        this._csvPreview = result;
+    }, "");
+  }
+  private async applyCsv() {
+    const preview = this._csvPreview;
+    if (
+      !preview?.review_token ||
+      preview.errors.length ||
+      !confirm(
+        this.t("csv_confirm").replace(
+          "{count}",
+          String(preview.counts.create + preview.counts.update),
+        ),
+      )
+    )
+      return;
+    const success = await this.run(async () => {
+      try {
+        await this.api("users/csv_apply", {
+          csv: this._csvContent,
+          mode: this._csvMode,
+          review_token: preview.review_token,
+        });
+      } catch (error) {
+        this._csvPreview = undefined;
+        throw error;
+      }
+    }, "csv_saved");
+    if (success) this.close();
+  }
+  private async exportCsv() {
+    const epoch = this._epoch;
+    await this.run(async () => {
+      const result = await this.api<{ csv: string }>("users/csv_export");
+      if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+        downloadText(result.csv, "hikvision-users.csv");
+    }, "");
+  }
+  private csvBody() {
+    const preview = this._csvPreview;
+    return html`<p>${this.t("csv_hint")}</p>
+      <div class="form-grid">
+        <label
+          >${this.t("csv_file")}<input
+            type="file"
+            accept=".csv,text/csv"
+            ?disabled=${this._busy}
+            @change=${this.readCsv}
+        /></label>
+        <label
+          >${this.t("csv_mode")}<select
+            .value=${this._csvMode}
+            ?disabled=${this._busy}
+            @change=${(event: Event) => {
+              this._csvMode = value(event);
+              this._csvPreview = undefined;
+            }}
+          >
+            <option value="create">${this.t("csv_create_only")}</option>
+            <option value="upsert">${this.t("csv_update_existing")}</option>
+          </select></label
+        >
+      </div>
+      ${this._csvName ? html`<p class="sub">${this._csvName}</p>` : nothing}
+      <button
+        ?disabled=${this._busy}
+        @click=${() => downloadText("\ufeffemployee_no,display_name,active,valid_from,valid_until,stations,pin,cards\r\n", "hikvision-users-template.csv")}
+      >
+        ${this.t("csv_template")}
+      </button>
+      <details>
+        <summary>${this.t("csv_format")}</summary>
+        <p>${this.t("csv_columns_hint")}</p>
+        <p>${this.t("csv_clear_hint")}</p>
+        <p>${this.t("csv_station_hint")}</p>
+        <ul>
+          ${(this._data?.stations ?? []).map((station) => html`<li>${station.name}: <code>${station.id}</code></li>`)}
+        </ul>
+        <p>${this.t("csv_example")}</p>
+        <code>{"STATION_ID":true}</code>
+        <p>${this.t("csv_card_example")}</p>
+        <code>["000099990001"]</code>
+      </details>
+      ${
+        preview
+          ? html`<p class="notice">
+                ${this.t("plan_create")}: ${preview.counts.create} · ${this.t("plan_update")}:
+                ${preview.counts.update} · ${this.t("bulk_unchanged")}: ${preview.counts.unchanged}
+              </p>
+              ${preview.errors.map((error) => html`<p class="notice error" role="alert">${error.line ? `${this.t("csv_line")} ${error.line}: ` : ""}${this.t(error.code)}</p>`)}
+              ${preview.rows.map(
+                (row) =>
+                  html`<article class="import-row">
+                    <div class="row between">
+                      <strong>${row.display_name}</strong
+                      ><span class="status">${this.t(`bulk_${row.operation}`)}</span>
+                    </div>
+                    <p class="sub">
+                      ${this.t("csv_line")} ${row.line} · ${this.t("employee_id")}:
+                      <bdi>${row.employee_no}</bdi>
+                    </p>
+                    <p>
+                      ${row.changed_fields.map((field) => this.t(`csv_field_${field}`)).join(", ") || this.t("bulk_unchanged")}
+                    </p>
+                    <p class="sub">
+                      ${this.t("pin")}:
+                      ${this.t(row.pin_configured ? "configured" : "not_configured")} ·
+                      ${this.t("cards")}: ${row.card_count}
+                    </p>
+                    <p>
+                      ${row.stations.map((id) => this.stationName(id)).join(", ") || this.t("csv_no_stations")}
+                    </p>
+                    ${row.access_removed ? html`<p class="danger">${this.t("csv_revocation")}</p>` : nothing}
+                  </article>`,
+              )} `
+          : nothing
+      }`;
   }
   private async openImport() {
     this._error = "";
@@ -670,7 +854,11 @@ export class IntercomManagerPanel extends LitElement {
           @input=${(event: Event) => {
             this._query = value(event);
           }}
-        /><button @click=${() => this.openImport()} ?disabled=${this._busy}>
+        /><button @click=${() => this.openCsv()} ?disabled=${this._busy}>
+          ${this.t("csv_import")}</button
+        ><button @click=${() => this.exportCsv()} ?disabled=${this._busy}>
+          ${this.t("csv_export")}</button
+        ><button @click=${() => this.openImport()} ?disabled=${this._busy}>
           ${this.t("import_existing")}</button
         ><button @click=${() => this.run(() => this.api("sync/all"))} ?disabled=${this._busy}>
           ${this.t("sync_all")}</button
@@ -1425,11 +1613,13 @@ export class IntercomManagerPanel extends LitElement {
     const title =
       this._dialog === "editor"
         ? this.t(this._draft?.id ? "edit_user" : "add_user")
-        : this._dialog === "import"
-          ? this.t("import_title")
-          : this._dialog === "camera"
-            ? cameraStation?.name
-            : this.t("review");
+        : this._dialog === "csv"
+          ? this.t("csv_import")
+          : this._dialog === "import"
+            ? this.t("import_title")
+            : this._dialog === "camera"
+              ? cameraStation?.name
+              : this.t("review");
     return html`<dialog
       class=${this._dialog === "camera" ? "camera-dialog" : ""}
       aria-label=${title ?? ""}
@@ -1450,10 +1640,10 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

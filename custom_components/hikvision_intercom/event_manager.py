@@ -134,6 +134,37 @@ class EventManager:
             "stations": {key: value.status() for key, value in self.stations.items()},
         }
 
+    async def async_report(
+        self, filters: dict[str, Any], *, export: bool = False
+    ) -> dict[str, Any]:
+        from .reporting import build_report
+
+        if set(filters) & {"limit", "before"}:
+            from .exceptions import HikvisionValidationError
+
+            raise HikvisionValidationError("Reports do not accept pagination")
+        before = len(self.cache.rows)
+        now = datetime.now(UTC)
+        page = self.cache.query(filters, now, all_records=True)
+        if len(self.cache.rows) != before:
+            self.changed()
+        # Capture HA-owned metadata before running only detached records in the worker.
+        metadata = {
+            "retention_days": page["retention_days"],
+            "capacity": page["capacity"],
+            "storage_failed": self.storage_failed,
+            "stations": {key: value.status() for key, value in self.stations.items()},
+        }
+        names = {
+            key: entry.title
+            for key in {row["station_id"] for row in page["records"]}
+            if (entry := self.hass.config_entries.async_get_entry(key)) is not None
+        }
+        result = await self.hass.async_add_executor_job(
+            build_report, page["records"], now, names, export
+        )
+        return {**result, **metadata}
+
     def latest_access(self, station_ids: set[str]) -> dict[str, dict[str, Any]]:
         before = len(self.cache.rows)
         result = self.cache.latest_access(station_ids, datetime.now(UTC))

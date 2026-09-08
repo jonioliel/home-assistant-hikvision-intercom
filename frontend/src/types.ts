@@ -189,3 +189,21 @@ export interface Draft {
   valid_until: string | null;
   timed: boolean;
 }
+
+export interface CsvPreview {
+  review_token: string | null;
+  counts: { create: number; update: number; unchanged: number };
+  errors: { line: number | null; code: string }[];
+  rows: {
+    line: number;
+    employee_no: string;
+    display_name: string;
+    operation: string;
+    changed_fields: string[];
+    active: boolean;
+    pin_configured: boolean;
+    card_count: number;
+    stations: string[];
+    access_removed: boolean;
+  }[];
+}

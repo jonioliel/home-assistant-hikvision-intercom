@@ -585,3 +585,81 @@ async def test_review_transport_is_private_and_stale_resolution_preserves_user(
     assert manager.repository.get(user.id).display_name == "Concurrent edit"
     reader.assert_not_called()
     device_io["write_person"].assert_not_called()
+
+
+async def test_csv_preview_apply_export_use_real_store_and_never_echo_credentials(
+    hass, loaded_entry, hass_ws_client, device_io, caplog
+):
+    import csv
+    import io
+
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.websocket_api.http.connection")
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream)
+    writer.writerow(["employee_no", "display_name", "pin", "cards"])
+    writer.writerow(["9001", "Imported", "735291", '["000055556666"]'])
+    raw = stream.getvalue()
+    client = await hass_ws_client(hass)
+    manager = get_manager(hass)
+    response = await request(client, "users/csv_preview", csv=raw, mode="create")
+    assert response["success"] and response["result"]["counts"]["create"] == 1
+    token = response["result"]["review_token"]
+    assert not manager.repository.users()
+    response = await request(client, "users/csv_apply", csv=raw, mode="create", review_token=token)
+    assert response["success"] and response["result"]["saved"] == 1
+    user = manager.repository.users()[0]
+    assert user.pin.value == "735291" and user.cards[0].card_no.value == "000055556666"
+    exported = await request(client, "users/csv_export")
+    assert exported["success"] and "Imported" in exported["result"]["csv"]
+    for secret in ("735291", "000055556666"):
+        assert secret not in json.dumps(response) + json.dumps(exported) + caplog.text
+    device_io["write_person"].assert_not_called()
+    device_io["unlock"].assert_not_called()
+
+
+async def test_csv_invalid_and_oversize_requests_do_not_echo_file(
+    hass, loaded_entry, hass_ws_client, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.websocket_api.http.connection")
+    client = await hass_ws_client(hass)
+    response = await request(
+        client,
+        "users/csv_preview",
+        csv="employee_no,display_name,pin\n1,Test,PRIVATE_CSV_PIN",
+        mode="create",
+    )
+    assert response["success"] and response["result"]["errors"][0]["code"] == "invalid_pin"
+    assert "PRIVATE_CSV_PIN" not in json.dumps(response) + caplog.text
+    response = await request(client, "users/csv_preview", csv="x" * 262145, mode="create")
+    assert response["error"]["code"] == "csv_too_large"
+    response = await request(
+        client, "users/csv_preview", csv={"secret": "PRIVATE_CSV_SCHEMA"}, mode="create"
+    )
+    assert response["error"]["code"] == "invalid_fields"
+    assert "PRIVATE_CSV_SCHEMA" not in json.dumps(response) + caplog.text
+    assert not get_manager(hass).repository.users()
+
+
+async def test_csv_failed_store_rejects_whole_batch(
+    hass, loaded_entry, hass_ws_client, monkeypatch
+):
+    from unittest.mock import AsyncMock
+
+    from custom_components.hikvision_intercom.access.models import AccessError
+
+    client = await hass_ws_client(hass)
+    raw = "employee_no,display_name\n1001,First\n1002,Second\n"
+    result = await request(client, "users/csv_preview", csv=raw, mode="create")
+    manager = get_manager(hass)
+    monkeypatch.setattr(
+        manager.repository, "_save", AsyncMock(side_effect=AccessError("storage_write_failed"))
+    )
+    result = await request(
+        client,
+        "users/csv_apply",
+        csv=raw,
+        mode="create",
+        review_token=result["result"]["review_token"],
+    )
+    assert result["error"]["code"] == "storage_write_failed"
+    assert not manager.repository.users()
