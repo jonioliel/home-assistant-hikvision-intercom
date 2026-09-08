@@ -93,3 +93,17 @@ change/removal, credential CRUD and rights, successful call transitions and late
 checks. Documented implementations can proceed with capability checks and mock tests;
 unverified hardware behavior must remain explicitly unverified. No physical test is inferred
 from documentation or a green test suite.
+
+## Phase 2 implementation notes
+
+- User and card search pages 472 and 452 name the terminal empty status `NO MATCH`;
+  the client accepts this documented spelling and the earlier `NOMATCH` spelling.
+- The active station's downloaded person editor also uses `CardInfoDelCond.CardNoList`
+  for individual card removal. This agrees with the manufacturer deletion schema;
+  physical card CRUD still awaits supervision.
+- The manufacturer defines validity between 1970-01-01 and 2037-12-31 23:59:59.
+  Date-limited records require an explicit timezone and ordered bounds. Permanent validity
+  is distinct from disabling a person; disable/revoke uses verified absence reconciliation.
+- Phase 2's production access client read the current users/cards successfully without writes:
+  two users, one card, local PIN mode, advertised PIN length 4–8 and five cards per person.
+  Counts and capabilities are evidence; they do not extend the physical acceptance results.

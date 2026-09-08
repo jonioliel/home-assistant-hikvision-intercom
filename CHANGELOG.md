@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### In development — Phase 2
+- Capability-driven user/card access client with bounded complete pagination and explicit write transactions.
+- Private central records, masked administrator views, revision/identity guards and durable ownership journals.
+- User-deletion tombstones and retired-card reservations survive offline stations and restarts.
+- Re-check the configured device identity before relay commands and credential transactions.
+
 ## [0.2.0-alpha.1] - 2026-09-08
 
 ### Added

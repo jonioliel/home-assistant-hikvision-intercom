@@ -6,7 +6,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | --- | --- | --- |
 | 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
 | 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
-| 2 — Access backend | Not started | Verified credential and permission behavior |
+| 2 — Access backend | In development: protocol and durable repository implemented | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
 | 4 — Events | Not started | Verified event behavior |
 | 5 — Hardening | Not started | Nine-device soak and HACS install/upgrade acceptance |
@@ -23,7 +23,8 @@ Phase 0: 130 tests / 90% coverage, Ruff, mypy, HACS and Hassfest passed; commit 
 was published as `v0.1.0-alpha.1` by release workflow 34206758291.
 Phase 1: commit `706ae2f` passed 190 protocol/configuration tests and 41 real HA tests
 (100% ConfigFlow coverage), Ruff, mypy, HACS and Hassfest. Version `0.2.0-alpha.1`
-is prepared for gated publication. Physical HA installation acceptance remains open.
+was published from `edb6a81` by release workflow 34211929200.
+Physical HA installation acceptance remains open.
 See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and remaining acceptance work.
 The owner approved publication of source/history/specification and sanitized evidence.
 
@@ -40,3 +41,10 @@ Two stream reconnections returned HTTP 500 before a later successful retry.
 Manufacturer review and continuation scope: [MANUFACTURER_PROTOCOL.md](MANUFACTURER_PROTOCOL.md).
 The owner requested continued development while away from the equipment; physical checks
 remain deferred, not counted as passed. Numeric PIN event meanings are now documented.
+
+Phase 2 checkpoint: 244 local tests pass. Capability-driven person/card reads and writes,
+private central models, masked projections, atomic persistence, ownership/intent journals,
+revision guards, deletion tombstones and pending-card reservations are implemented.
+Real read-only access-client validation returned two users and one card with no mutations.
+The reconciliation engine, HA Store adapter and runtime wiring are the next work; Phase 2
+is not yet complete. The UI follows in Phase 3.

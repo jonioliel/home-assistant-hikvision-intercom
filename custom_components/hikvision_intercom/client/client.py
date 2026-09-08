@@ -135,6 +135,7 @@ class HikvisionClient:
         settings: ConnectionSettings,
         *,
         enabled_doors: frozenset[int] = frozenset(),
+        expected_identity: str | None = None,
     ) -> None:
         if len(enabled_doors) > 1 or any(
             type(i) is not int or i not in {1, 2} for i in enabled_doors
@@ -142,6 +143,11 @@ class HikvisionClient:
             raise HikvisionValidationError(
                 "Exactly one active relay or camera-only mode is supported"
             )
+        if expected_identity is not None and (
+            not isinstance(expected_identity, str) or not 1 <= len(expected_identity) <= 256
+        ):
+            raise HikvisionValidationError("Invalid expected station identity")
+        self._expected_identity = expected_identity
         self._session = session
         self.settings = settings
         self.enabled_doors = enabled_doors
@@ -152,14 +158,20 @@ class HikvisionClient:
         self._snapshot_lock = asyncio.Lock()
 
     async def _request(
-        self, method: str, path: str, *, content: bytes | None = None, image: bool = False
+        self,
+        method: str,
+        path: str,
+        *,
+        content: bytes | None = None,
+        image: bool = False,
+        content_type: str = "application/xml",
     ) -> bytes:
         """Private fixed-path primitive, bounded including queue and digest exchange."""
         try:
             async with asyncio.timeout(10), self._io_lock:
                 headers = {"Accept-Encoding": "identity"}
                 if content is not None:
-                    headers["Content-Type"] = "application/xml"
+                    headers["Content-Type"] = content_type
                 async with self._session.stream(
                     method,
                     self.settings.base_url + path,
@@ -305,6 +317,13 @@ class HikvisionClient:
             self._snapshot = (time.monotonic(), data)
             return data
 
+    async def async_confirm_identity(self) -> None:
+        """A running entry must not write to a different device after address reassignment."""
+        if self._expected_identity is not None:
+            identity, *_ = await self.async_device_info()
+            if identity != self._expected_identity:
+                raise HikvisionValidationError("Station identity changed before operation")
+
     async def async_unlock(self, door_id: int) -> None:
         """Send one momentary release only to the explicitly selected API output."""
         if type(door_id) is not int or door_id not in self.enabled_doors:
@@ -313,6 +332,7 @@ class HikvisionClient:
             if time.monotonic() - self._last_unlock < 1:
                 raise HikvisionBusyError("A door command was just attempted")
             self._last_unlock = time.monotonic()
+            await self.async_confirm_identity()
             body = (
                 b'<RemoteControlDoor version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
                 b"<cmd>open</cmd></RemoteControlDoor>"

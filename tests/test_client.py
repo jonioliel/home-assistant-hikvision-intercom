@@ -300,3 +300,19 @@ def test_invalid_poll_options(value):
 
     with pytest.raises(HikvisionValidationError):
         PollOptions.from_mapping({"idle_interval": value})
+
+
+async def test_address_reassigned_after_setup_cannot_release_other_station():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=INFO)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as session:
+        client = HikvisionClient(
+            session, SETTINGS, enabled_doors=frozenset({1}), expected_identity="OTHER-SERIAL"
+        )
+        with pytest.raises(HikvisionValidationError):
+            await client.async_unlock(1)
+    assert len(requests) == 1 and requests[0].method == "GET"

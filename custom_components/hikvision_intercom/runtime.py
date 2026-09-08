@@ -114,7 +114,10 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         ) from None
     session = await hass.async_add_executor_job(create_session, settings)
     client = HikvisionClient(
-        session, settings, enabled_doors=frozenset(lock.api_id for lock in locks)
+        session,
+        settings,
+        enabled_doors=frozenset(lock.api_id for lock in locks),
+        expected_identity=entry.unique_id,
     )
     coordinator = IntercomCoordinator(hass, entry, client)
     try:
