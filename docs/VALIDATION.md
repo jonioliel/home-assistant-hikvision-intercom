@@ -46,8 +46,8 @@ Python checks (3.12/3.14), HACS and Hassfest for each pushed commit; consult tha
 The final task report includes the pushed commit hash and its CI outcome.
 
 Phase 0 was merged at `608abe7` and published as `v0.1.0-alpha.1` after release workflow
-34206758291 passed. Core integration metadata now targets `0.2.0-alpha.1`; that version
-remains under HA validation and is not yet released. HACS installation and update acceptance
+34206758291 passed. Core integration `0.2.0-alpha.1` passed software validation on `706ae2f`;
+publication runs through the gated release workflow. HACS installation and update acceptance
 on the owner's HA host remain pending.
 The supervised session below supplies some physical evidence. Successful answer transitions,
 PIN change/removal and rights enforcement remain unverified; they cannot be inferred from CI
@@ -87,7 +87,7 @@ classification and busy responses without exposing private error text. Three add
 capability GETs returned HTTP 200. See MANUFACTURER_PROTOCOL.md for source references,
 PIN-attempt-limit interpretation and the owner-authorized continuation to Phase 1.
 
-## Phase 1 core validation in progress
+## Phase 1 core validation
 
 - 190 local protocol/configuration tests pass on Python 3.12.14.
 - Ruff lint/format and strict protocol mypy checks pass (13 protocol/tool files).
@@ -95,8 +95,16 @@ PIN-attempt-limit interpretation and the owner-authorized continuation to Phase 
   identity/model/firmware, advertised relay IDs, documented call enums, JPEG snapshot and
   enabled RTSP channel configuration. Zero physical commands were sent.
 - Real HA 2026.9.1 tests run separately on Linux/Python 3.14 with stream/camera dependencies.
-  Their final outcomes will be recorded before merging/releasing Phase 1.
-- HACS and Hassfest pass on `bd05cc8`. Earlier failures exposed test-environment packaging
+  **41 tests passed on `706ae2f`**, including **100% ConfigFlow line coverage**.
+  Setup/entities, admin service permissions, lock pulse, offline/recovery, reauth/reconfigure,
+  shutdown/unload cleanup, HTTPS options and identity/mapping guards were exercised.
+- HACS and Hassfest pass on `706ae2f`. Earlier failures exposed test-environment packaging
   and missing optional camera dependencies; they were corrected rather than disabling checks.
 - The standard camera keeps its credential-bearing RTSP source backend-only. Diagnostics
   use a small allowlist and never serialize config entry data or raw station records.
+
+Exact Phase 1 CI: [Python and HA](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34211383510),
+[HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34211383521),
+[Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34211383563).
+Local protocol typing intentionally does not claim to type-check unavailable HA modules;
+those adapters are exercised against the real pinned HA runtime in CI.

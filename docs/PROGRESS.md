@@ -5,7 +5,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | Phase | Status | Gate |
 | --- | --- | --- |
 | 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
-| 1 — Core integration | Implemented; HA CI validation in progress | Documented contracts and observed firmware baseline |
+| 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
 | 2 — Access backend | Not started | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
 | 4 — Events | Not started | Verified event behavior |
@@ -21,7 +21,9 @@ persistent offline sync/tombstones; secret redaction and administrator-only acce
 
 Phase 0: 130 tests / 90% coverage, Ruff, mypy, HACS and Hassfest passed; commit `608abe7`
 was published as `v0.1.0-alpha.1` by release workflow 34206758291.
-Phase 1: 190 protocol/configuration tests pass locally; real HA validation is running in CI.
+Phase 1: commit `706ae2f` passed 190 protocol/configuration tests and 41 real HA tests
+(100% ConfigFlow coverage), Ruff, mypy, HACS and Hassfest. Version `0.2.0-alpha.1`
+is prepared for gated publication. Physical HA installation acceptance remains open.
 See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and remaining acceptance work.
 The owner approved publication of source/history/specification and sanitized evidence.
 
