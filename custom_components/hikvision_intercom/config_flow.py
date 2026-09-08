@@ -141,6 +141,7 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_locks(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         assert self._profile is not None
+        errors: dict[str, str] = {}
         choices = ["camera_only"]
         if self._profile.api_door_ids:
             choices.append("map_active_relay")
@@ -153,14 +154,20 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             choice = user_input["mode"]
             if choice == "camera_only":
-                self._data["locks"] = []
-                return self._finish()
+                manager = self.hass.data.get(DOMAIN, {}).get("access")
+                entry_id = self.context.get("entry_id")
+                if manager is not None and entry_id and manager.has_access(entry_id):
+                    errors["base"] = "access_removal_pending"
+                else:
+                    self._data["locks"] = []
+                    return self._finish()
             if choice == "keep_confirmed_mapping" and choice in choices:
                 return self._finish()
             if choice == "map_active_relay" and choice in choices:
                 return await self.async_step_mapping()
         return self.async_show_form(
             step_id="locks",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Required("mode"): selector.SelectSelector(
@@ -212,8 +219,7 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._test_acknowledged = False
                 return await self.async_step_mapping()
             if user_input["result"] == "camera_only":
-                self._data["locks"] = []
-                return self._finish()
+                return await self.async_step_locks({"mode": "camera_only"})
             if (
                 user_input["result"] == "released_and_returned"
                 and self._test_acknowledged

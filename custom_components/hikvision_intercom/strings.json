@@ -75,7 +75,8 @@
       "test_required": "Select the release test checkbox when you are beside the lock.",
       "invalid_mapping": "Select an advertised output.",
       "unlock_failed": "Release was not confirmed. Check the door before choosing to retry.",
-      "confirmation_required": "Confirm the physical result before managing this lock."
+      "confirmation_required": "Confirm the physical result before managing this lock.",
+      "access_removal_pending": "Remove user assignments and wait for confirmed device removal before disabling this lock."
     },
     "abort": {
       "already_configured": "This intercom is already configured.",
@@ -138,6 +139,40 @@
         "lock": {
           "name": "Physical lock",
           "description": "Only the configured active lock (1) can be operated."
+        }
+      }
+    },
+    "sync_user": {
+      "name": "Synchronize user",
+      "description": "Queue reconciliation for every station assigned to this user.",
+      "fields": {
+        "user_id": {
+          "name": "User ID",
+          "description": "Central user UUID or station configuration entry ID."
+        }
+      }
+    },
+    "sync_station": {
+      "name": "Synchronize station",
+      "description": "Queue reconciliation for this station.",
+      "fields": {
+        "station_id": {
+          "name": "Station",
+          "description": "Central user UUID or station configuration entry ID."
+        }
+      }
+    },
+    "sync_all": {
+      "name": "Synchronize all stations",
+      "description": "Queue independent reconciliation for all stations."
+    },
+    "rescan_station": {
+      "name": "Rescan station",
+      "description": "Refresh inventory and reconcile explicitly managed records.",
+      "fields": {
+        "station_id": {
+          "name": "Station",
+          "description": "Central user UUID or station configuration entry ID."
         }
       }
     }
@@ -203,6 +238,9 @@
     },
     "forced_lock_unsupported": {
       "message": "This relay returns automatically; forced locking is not supported"
+    },
+    "access_action_failed": {
+      "message": "Access action could not be completed: {reason}"
     }
   }
 }

@@ -90,8 +90,19 @@ class AccessRepository:
             result = change(candidate)
             self._validate_collisions(candidate)
             if candidate != self._state:
-                await self._save(deepcopy(candidate))
+                saving = asyncio.ensure_future(self._save(deepcopy(candidate)))
+                cancelled = False
+                while not saving.done():
+                    try:
+                        await asyncio.shield(saving)
+                    except asyncio.CancelledError:
+                        # Repeated shutdown cancellation must not release this lock while
+                        # an executor is still persisting the previous revision.
+                        cancelled = True
+                saving.result()
                 self._state = candidate
+                if cancelled:
+                    raise asyncio.CancelledError
             return deepcopy(result)
 
     @staticmethod
@@ -139,6 +150,27 @@ class AccessRepository:
     def public(self) -> dict[str, Any]:
         return {
             "users": [user.public() for user in self.users()],
+            "revocations": [
+                {
+                    "station_id": station,
+                    "user_id": user_id,
+                    "sync_state": binding.get("sync_state", "pending"),
+                    "last_error": binding.get("last_error"),
+                }
+                for station, bindings in self._state["bindings"].items()
+                for user_id, binding in bindings.items()
+                if user_id in self._state["users"]
+                and station not in self._state["users"][user_id]["assignments"]
+            ],
+            "card_removals": [
+                {
+                    "id": key,
+                    "user_id": item["user_id"],
+                    "targets": item["targets"],
+                    "confirmed": item["confirmed"],
+                }
+                for key, item in self._state["retired_cards"].items()
+            ],
             "tombstones": [
                 {key: value for key, value in item.items() if key != "record"}
                 for item in self._state["tombstones"].values()
@@ -223,6 +255,10 @@ class AccessRepository:
                     "targets": sorted(targets),
                     "confirmed": [],
                     "created_at": utc_now(),
+                    "stations": {
+                        target: {"sync_state": "delete_pending", "last_error": None}
+                        for target in targets
+                    },
                     "record": record,
                 }
             del state["users"][user_id]
@@ -262,10 +298,12 @@ class AccessRepository:
             if binding is None:
                 raise AccessError("ownership_missing")
             binding["fingerprint"], binding["intent"] = fingerprint, None
+            binding["sync_state"], binding["last_error"] = "pending", None
             if user_id in state["users"]:
                 user = state["users"][user_id]
                 assignment = user["assignments"].get(station)
                 if assignment and applied_revision == user["revision"]:
+                    binding["sync_state"] = "synced"
                     assignment.update(
                         applied_revision=applied_revision,
                         sync_state="synced",
@@ -297,6 +335,15 @@ class AccessRepository:
             user = state["users"].get(user_id)
             if user and (assignment := user["assignments"].get(station)):
                 assignment["sync_state"], assignment["last_error"] = status, error
+            binding = state["bindings"].get(station, {}).get(user_id)
+            if binding is not None:
+                binding["sync_state"], binding["last_error"] = status, error
+            tombstone = state["tombstones"].get(user_id)
+            if tombstone is not None and station in tombstone["targets"]:
+                tombstone.setdefault("stations", {})[station] = {
+                    "sync_state": status,
+                    "last_error": error,
+                }
 
         await self._commit(mark)
 
@@ -308,6 +355,10 @@ class AccessRepository:
             self._confirm_retired(state, station, user_id, set())
             tombstone = state["tombstones"].get(user_id)
             if tombstone:
+                tombstone.setdefault("stations", {})[station] = {
+                    "sync_state": "synced",
+                    "last_error": None,
+                }
                 tombstone["confirmed"] = sorted(set(tombstone["confirmed"]) | {station})
                 if set(tombstone["targets"]) <= set(tombstone["confirmed"]):
                     del state["tombstones"][user_id]
@@ -368,8 +419,11 @@ class AccessRepository:
         fingerprint: str,
         existing_user_id: str | None = None,
         expected_revision: int | None = None,
+        delete: bool = False,
     ) -> ManagedUser:
         """Adoption, desired assignment and ownership become durable in one commit."""
+        if delete and existing_user_id is not None:
+            raise AccessError("invalid_operation")
 
         def adopt(state: dict[str, Any]) -> ManagedUser:
             previous = None
@@ -401,6 +455,16 @@ class AccessRepository:
                 "intent": None,
                 "adopted": True,
             }
+            if delete:
+                state["tombstones"][user.id] = {
+                    "user_id": user.id,
+                    "employee_no": user.employee_no,
+                    "targets": [station],
+                    "confirmed": [],
+                    "created_at": utc_now(),
+                    "stations": {station: {"sync_state": "delete_pending", "last_error": None}},
+                    "record": state["users"].pop(user.id),
+                }
             return user
 
         return await self._commit(adopt)
@@ -414,6 +478,7 @@ class AccessRepository:
         expected_fingerprint: str | None,
         desired_fingerprint: str,
         operation: str,
+        before_fingerprint: str | None = None,
     ) -> None:
         """Journal a bounded operation before sending it; never lose a concurrent edit."""
         if (
@@ -431,6 +496,8 @@ class AccessRepository:
             if user is not None and user["revision"] != revision:
                 raise AccessError("revision_conflict")
             record = user if user is not None else tombstone["record"]
+            if user is None and (operation != "delete" or record["revision"] != revision):
+                raise AccessError("revision_conflict")
             bindings = state["bindings"].setdefault(station, {})
             binding = bindings.get(user_id)
             if binding is None:
@@ -448,8 +515,60 @@ class AccessRepository:
                 "operation": operation,
                 "revision": revision,
                 "desired_fingerprint": desired_fingerprint,
+                "before_fingerprint": before_fingerprint,
             }
             if user is not None:
                 user["identity_locked"] = True
 
         await self._commit(intent)
+
+    async def async_resolve(
+        self,
+        station: str,
+        user_id: str,
+        *,
+        fingerprint: str,
+        expected_revision: int,
+        device_data: dict[str, Any] | None = None,
+    ) -> ManagedUser:
+        """Explicit administrator resolution, atomically rebasing ownership and desired state."""
+
+        def resolve(state: dict[str, Any]) -> ManagedUser:
+            raw = state["users"].get(user_id)
+            binding = state["bindings"].get(station, {}).get(user_id)
+            if raw is None or binding is None:
+                raise AccessError("ownership_missing")
+            previous = ManagedUser.from_private(raw)
+            if type(expected_revision) is not int or previous.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            user = build_user(
+                device_data or {},
+                employee_no=previous.employee_no,
+                now=utc_now(),
+                previous=previous,
+            )
+            if user.employee_no != previous.employee_no:
+                raise AccessError("identity_migration_required")
+            # Accepting the device is a central edit; keep removed-card reservations until
+            # every formerly assigned station confirms removal, just as for ordinary CRUD.
+            removed = {card.card_no.value for card in previous.cards} - {
+                card.card_no.value for card in user.cards
+            }
+            targets = set(previous.assignments) | {
+                key for key, records in state["bindings"].items() if user_id in records
+            }
+            for number in removed:
+                if targets:
+                    state["retired_cards"][str(uuid4())] = {
+                        "user_id": user_id,
+                        "card_no": number,
+                        "targets": sorted(targets),
+                        "confirmed": [],
+                    }
+            state["users"][user_id] = user.private()
+            binding.update(
+                fingerprint=fingerprint, intent=None, sync_state="pending", last_error=None
+            )
+            return user
+
+        return await self._commit(resolve)

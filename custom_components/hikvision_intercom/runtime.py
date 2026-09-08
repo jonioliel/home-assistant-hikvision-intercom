@@ -24,6 +24,9 @@ from homeassistant.helpers.service import (
     async_register_admin_service,
 )
 
+from .access.manager import AccessManager
+from .access_runtime import get_manager
+from .client.access import AccessClient
 from .client.client import ConnectionSettings, HikvisionClient, StationProfile, create_session
 from .configuration import ManagedLock, PollOptions, managed_locks
 from .const import DOMAIN, PLATFORMS
@@ -45,6 +48,8 @@ class IntercomRuntime:
     profile: StationProfile
     locks: tuple[ManagedLock, ...]
     pulse_seconds: float
+    access_manager: AccessManager
+    station_id: str
     unlocking: bool = False
     released: bool = False
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
@@ -89,6 +94,7 @@ class IntercomRuntime:
         self.coordinator.async_update_listeners()
 
     async def async_close(self) -> None:
+        await self.access_manager.async_detach(self.station_id)
         if self._cancel_pulse:
             self._cancel_pulse()
             self._cancel_pulse = None
@@ -120,6 +126,8 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         expected_identity=entry.unique_id,
     )
     coordinator = IntercomCoordinator(hass, entry, client)
+    manager = get_manager(hass)
+    manager.register(entry.entry_id, entry.title, bool(locks))
     try:
         profile = await client.async_profile()
         if profile.unique_id != entry.unique_id:
@@ -135,6 +143,8 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
             profile,
             locks,
             options.pulse,
+            manager,
+            entry.entry_id,
         )
         registry = er.async_get(hass)
         if not locks:
@@ -142,7 +152,9 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
             if old:
                 registry.async_remove(old)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        manager.attach(entry.entry_id, AccessClient(client))
     except BaseException as err:
+        await manager.async_detach(entry.entry_id)
         await coordinator.async_shutdown()
         await session.aclose()
         if isinstance(err, HikvisionAuthError):

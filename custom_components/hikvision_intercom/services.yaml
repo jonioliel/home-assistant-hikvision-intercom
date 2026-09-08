@@ -11,3 +11,25 @@ unlock_door:
         select:
           options:
             - "1"
+
+sync_user:
+  fields:
+    user_id:
+      required: true
+      selector:
+        text:
+sync_station:
+  fields:
+    station_id:
+      required: true
+      selector:
+        config_entry:
+          integration: hikvision_intercom
+sync_all:
+rescan_station:
+  fields:
+    station_id:
+      required: true
+      selector:
+        config_entry:
+          integration: hikvision_intercom

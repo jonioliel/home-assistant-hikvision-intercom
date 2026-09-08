@@ -1,11 +1,14 @@
 """Tests use real HA 2026.9; only device I/O is mocked."""
 
+import json
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.hikvision_intercom.client.access import AccessCapabilities, StationInventory
 from custom_components.hikvision_intercom.client.client import CallState, StationProfile
 from custom_components.hikvision_intercom.const import DOMAIN
 
@@ -37,9 +40,37 @@ def custom_integrations(enable_custom_integrations):
     yield
 
 
+@pytest.fixture(autouse=True)
+def isolated_access_storage(hass, tmp_path):
+    hass.config.config_dir = str(tmp_path)
+
+
 @pytest.fixture
 def device_io():
+    fixtures = Path(__file__).parents[1] / "fixtures/ds_kv6124_e1_fw_3_9_0"
+    caps = AccessCapabilities.from_payloads(
+        json.loads((fixtures / "user_capabilities.json").read_text())["payload"],
+        json.loads((fixtures / "card_capabilities.json").read_text())["payload"],
+        {"pwMgrMode": "local"},
+    )
+
+    async def access_caps(driver):
+        driver.capabilities = caps
+        return caps
+
     with (
+        patch(
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_capabilities",
+            access_caps,
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_inventory",
+            AsyncMock(return_value=StationInventory()),
+        ) as inventory,
+        patch(
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_write_person",
+            AsyncMock(),
+        ) as write_person,
         patch(
             "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
             AsyncMock(return_value=PROFILE),
@@ -63,7 +94,13 @@ def device_io():
             AsyncMock(return_value=b"\xff\xd8image\xff\xd9"),
         ),
     ):
-        yield {"profile": profile, "call": call, "unlock": unlock}
+        yield {
+            "profile": profile,
+            "call": call,
+            "unlock": unlock,
+            "inventory": inventory,
+            "write_person": write_person,
+        }
 
 
 @pytest.fixture
