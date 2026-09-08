@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.8.0-alpha.1",
+  version: "0.9.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,

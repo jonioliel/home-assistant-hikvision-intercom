@@ -38,10 +38,12 @@
         "title": "Manage the active lock",
         "description": "This installation uses one active physical relay per intercom. Choose camera only, test its mapping, or retain an earlier confirmed mapping.",
         "data": {
-          "mode": "Lock management"
+          "mode": "Lock management",
+          "lock_name": "Lock name"
         },
         "data_description": {
-          "mode": "Camera-only mode creates no lock and does not permit release commands."
+          "mode": "Camera-only mode creates no lock and does not permit release commands.",
+          "lock_name": "Name shown in Home Assistant and Intercom Manager, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
         }
       },
       "mapping": {

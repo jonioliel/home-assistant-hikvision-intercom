@@ -1,8 +1,9 @@
 # Hardening, upgrades and recovery
 
-This integration is still a prerelease. Mandatory software phases 0–5 are implemented;
-physical commissioning and installation acceptance remain open. Phase 6 is optional future work.
-Version 0.6.0-alpha.1 combines Phases 2–5 for HACS installation and owner testing.
+This integration is still a prerelease. The main components of phases 0–5 are implemented;
+physical commissioning, firmware-dependent fixes and full fleet acceptance remain open.
+The owner has confirmed HACS installation and updates. Phase 6 is optional future work.
+Version 0.9.0-alpha.1 completes the save controls, lock naming and validity-list gaps from the audit.
 Publication is gated by all required checks on the exact main commit.
 
 ## Backups and migrations

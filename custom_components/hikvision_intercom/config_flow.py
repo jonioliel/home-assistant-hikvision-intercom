@@ -84,6 +84,7 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._profile: StationProfile | None = None
         self._api_id: int | None = None
         self._test_acknowledged = False
+        self._lock_name: str | None = None
 
     @staticmethod
     @callback
@@ -153,6 +154,8 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if previous and previous[0].api_id in self._profile.api_door_ids:
             choices.append("keep_confirmed_mapping")
         if user_input is not None:
+            if "lock_name" in user_input:
+                self._lock_name = user_input["lock_name"].strip()
             choice = user_input["mode"]
             if choice == "camera_only":
                 manager = self.hass.data.get(DOMAIN, {}).get("access")
@@ -173,7 +176,15 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required("mode"): selector.SelectSelector(
                         selector.SelectSelectorConfig(options=choices, translation_key="lock_mode")
-                    )
+                    ),
+                    vol.Optional(
+                        "lock_name",
+                        default=self._lock_name
+                        if self._lock_name is not None
+                        else (previous[0].name or "")
+                        if previous
+                        else "",
+                    ): vol.All(cv.string, vol.Length(max=64)),
                 }
             ),
         )
@@ -248,6 +259,13 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @callback
     def _finish(self) -> FlowResult:
+        if self._data.get("locks") and self._lock_name is not None:
+            lock = dict(self._data["locks"][0])
+            if self._lock_name:
+                lock["name"] = self._lock_name
+            else:
+                lock.pop("name", None)
+            self._data["locks"] = [lock]
         managed_locks(self._data)
         if self.source == config_entries.SOURCE_RECONFIGURE:
             return self.async_update_reload_and_abort(

@@ -115,7 +115,12 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
         except HikvisionValidationError:
             locks = ()
         station["integrated_locks"] = [
-            {"physical_index": lock.physical_index, "api_id": lock.api_id} for lock in locks
+            {
+                "physical_index": lock.physical_index,
+                "api_id": lock.api_id,
+                **({"name": lock.name} if lock.name else {}),
+            }
+            for lock in locks
         ]
         station["event_status"] = runtime.events.status() if runtime and runtime.events else None
         station.update(
@@ -156,7 +161,7 @@ async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> A
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
     if command == "users/create":
-        return await manager.async_create(_patch(msg["data"]))
+        return await manager.async_create(_patch(msg["data"]), sync_now=msg.get("sync_now", True))
     if command in {"users/update", "users/set_active", "cards/add", "cards/remove"}:
         patch = msg.get("data", {})
         if command == "users/set_active":
@@ -175,7 +180,12 @@ async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> A
                     raise AccessError("card_not_found")
                 cards = [card for card in cards if card["id"] != msg["card_id"]]
             patch = {"cards": cards}
-        return await manager.async_update(msg["user_id"], _patch(patch), revision=msg["revision"])
+        return await manager.async_update(
+            msg["user_id"],
+            _patch(patch),
+            revision=msg["revision"],
+            sync_now=msg.get("sync_now", True),
+        )
     if command == "users/delete":
         await manager.async_delete(msg["user_id"], revision=msg["revision"])
     elif command == "stations/list":
@@ -258,6 +268,11 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             vol.Required("id"): int,
             vol.Required("type"): str,
             **{vol.Required(key): kind for key, kind in fields.items()},
+            **(
+                {vol.Optional("sync_now", default=True): bool}
+                if command in {"users/create", "users/update"}
+                else {}
+            ),
             **(
                 {vol.Optional("user_id"): str, vol.Optional("revision"): int}
                 if command == "users/adopt"

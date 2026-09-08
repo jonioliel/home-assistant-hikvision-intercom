@@ -205,3 +205,16 @@ New real HA tests exercise both service and WebSocket rescan entry points, pendi
 isolation, exception privacy, capability projection, camera-only reload and unloaded station
 mapping. Those checks, reproducible frontend output, HACS and Hassfest gate publication.
 No physical station command or new ISAPI behavior is introduced by this update.
+
+
+## Admin completion — 0.9.0-alpha.1
+
+Local protocol/access checks: 354 passed. New regressions exercise Save without an immediate
+worker, preservation of the scheduled callback, persistence and reconcile after restart, failed
+storage without writes, and backwards-compatible optional lock names. Browser coverage includes
+save/create/update/error handling, named-lock surfaces and unchanged targets, future/current/expired
+periods across UTC offsets, refresh while offline, and Hebrew mobile actions/validity.
+Real HA configuration, entity identity/name, admin projection and strict API-mode validation tests
+are included in CI. Release publication remains gated on the complete checks for its main commit.
+No physical credential/relay operation was performed for this release; unresolved commissioning
+results from earlier sections are unchanged.

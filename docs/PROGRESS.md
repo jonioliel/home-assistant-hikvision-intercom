@@ -2,15 +2,21 @@
 
 Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
-| Phase | Status | Gate |
+| Phase | Status | Remaining gate |
 | --- | --- | --- |
-| 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
-| 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
-| 2 — Access backend | Software complete; included in 0.6.0-alpha.1 | Verified credential and permission behavior |
-| 3 — Admin panel | Software complete; included in 0.6.0-alpha.1 | CI passed; installation acceptance open |
-| 4 — Events | Software complete; included in 0.6.0-alpha.1 | Verified event behavior |
-| 5 — Hardening | Software complete; all CI passed; hardware/installation acceptance open | Nine-device soak and HACS install/upgrade acceptance |
+| 0 — Reconnaissance | Protocol baseline and active relay mapping verified | Ring sequence and changed-PIN behavior |
+| 1 — Core integration | Main components implemented; HACS installation/update owner-confirmed | Ringing and full installed camera/call acceptance |
+| 2 — Access backend | CRUD/import/sync/recovery implemented; permanent user sync verified | PIN/card lifecycle and timed-validity enforcement/fixes |
+| 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
+| 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
+| 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
+
+The September 8 audit estimated roughly 90% software implementation and 80% overall completion,
+including physical acceptance, before the 0.9 additions. These are scope estimates, not measured
+hours or percentages derived from test counts. Historical "software complete" entries below
+record major-component milestones; they do not certify every specification detail or physical gate.
+The owner's single-active-relay scope supersedes the generic second-relay requirements.
 
 No release until required CI passes on the exact main commit.
 A Phase 0 tooling prerelease must say HA setup/entities arrive in Phase 1.
@@ -110,3 +116,11 @@ Station inspection and assignment completion (0.8.0-alpha.1) corrects the rescan
 mix-up and fills Intercom capability/mapping/event-health presentation plus deliberate fleet
 assignment selection. Read-only inspection and ordinary background synchronization have separate
 semantics. No new ISAPI mutation, storage migration or physical action was introduced.
+
+
+0.9.0-alpha.1 closes the three identified UI/software gaps: independent immediate-sync choice,
+configured active-lock names across HA/panel, and configured validity summaries in the user list.
+Save continues to participate in automatic reconciliation; it does not add a permanent hold state.
+No device credentials, relay commands or firmware-validity behavior were changed for these features.
+Local protocol/access regressions pass (354 tests); HA transport/entity/configuration regressions
+and browser acceptance are included in the release's CI gate. Physical gates above remain open.

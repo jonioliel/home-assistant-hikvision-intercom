@@ -14,6 +14,7 @@ class ManagedLock:
 
     physical_index: int
     api_id: int
+    name: str | None = None
 
 
 def managed_locks(data: Mapping[str, Any]) -> tuple[ManagedLock, ...]:
@@ -32,7 +33,10 @@ def managed_locks(data: Mapping[str, Any]) -> tuple[ManagedLock, ...]:
         or item.get("confirmed") is not True
     ):
         raise HikvisionValidationError("Relay mapping requires physical confirmation")
-    return (ManagedLock(1, item["api_id"]),)
+    name = item.get("name")
+    if name is not None and (not isinstance(name, str) or not 1 <= len(name.strip()) <= 64):
+        raise HikvisionValidationError("Invalid lock name")
+    return (ManagedLock(1, item["api_id"], name.strip() if name else None),)
 
 
 @dataclass(frozen=True, slots=True)

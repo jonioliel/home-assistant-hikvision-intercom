@@ -311,22 +311,26 @@ class AccessManager:
                 desired_person(user, next(iter(station.driver.client.enabled_doors)), caps)
                 desired_cards(user, caps)
 
-    async def async_create(self, data: dict[str, Any]) -> dict[str, Any]:
+    async def async_create(self, data: dict[str, Any], *, sync_now: bool = True) -> dict[str, Any]:
         self._validate(build_user(data, employee_no="100000000", now=utc_now()))
         user = await self.repository.async_create(data)
-        self.request_user(user.id)
+        # Saving changes does not suspend periodic or already-running reconciliation.
+        if sync_now:
+            self.request_user(user.id)
         self._changed()
         return user.public()
 
     async def async_update(
-        self, user_id: str, data: dict[str, Any], *, revision: int
+        self, user_id: str, data: dict[str, Any], *, revision: int, sync_now: bool = True
     ) -> dict[str, Any]:
         previous = self.repository.get(user_id)
         self._validate(
             build_user(data, employee_no=previous.employee_no, now=utc_now(), previous=previous)
         )
         user = await self.repository.async_update(user_id, data, expected_revision=revision)
-        self.request_user(user.id)
+        # Saving changes does not suspend periodic or already-running reconciliation.
+        if sync_now:
+            self.request_user(user.id)
         self._changed()
         return user.public()
 

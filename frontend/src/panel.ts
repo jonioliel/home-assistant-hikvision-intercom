@@ -67,7 +67,10 @@ export class IntercomManagerPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._timer = setInterval(() => {
-      if (!document.hidden && this.hass?.user?.is_admin) void this.refresh();
+      if (!document.hidden && this.hass?.user?.is_admin) {
+        this.requestUpdate();
+        void this.refresh();
+      }
     }, 30000);
   }
   disconnectedCallback() {
@@ -206,6 +209,37 @@ export class IntercomManagerPanel extends LitElement {
       ) ?? (values.length ? "synced" : "inactive")
     );
   }
+  private lockName(station: Station) {
+    return station.integrated_locks.find((lock) => lock.physical_index === 1)?.name;
+  }
+  private unlockLabel(station: Station) {
+    const name = this.lockName(station);
+    return name ? this.t("open_named_lock").replace("{name}", name) : this.t("open_door");
+  }
+  private validitySummary(user: Person) {
+    const start = user.valid_from ? Date.parse(user.valid_from) : null;
+    const end = user.valid_until ? Date.parse(user.valid_until) : null;
+    const now = Date.now();
+    const state =
+      start === null && end === null
+        ? "permanent"
+        : start === null ||
+            end === null ||
+            !Number.isFinite(start) ||
+            !Number.isFinite(end) ||
+            start >= end
+          ? "validity_unknown"
+          : now < start
+            ? "validity_future"
+            : now >= end
+              ? "validity_expired"
+              : "validity_current";
+    return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
+      <span>${this.t(state)}</span>
+      ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
+      ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
+    </div>`;
+  }
   private pendingCount() {
     return this._data?.stations.reduce((sum, station) => sum + station.pending_user_count, 0) ?? 0;
   }
@@ -275,8 +309,9 @@ export class IntercomManagerPanel extends LitElement {
           false,
     );
   }
-  private async save(event: Event) {
+  private async save(event: SubmitEvent) {
     event.preventDefault();
+    const sync_now = (event.submitter as HTMLButtonElement | null)?.value === "sync";
     const draft = this._draft;
     if (!draft || this._busy) return;
     if (draft.pin && draft.pin !== draft.confirm_pin) {
@@ -310,9 +345,14 @@ export class IntercomManagerPanel extends LitElement {
     const success = await this.run(
       () =>
         draft.id
-          ? this.api("users/update", { user_id: draft.id, revision: draft.revision, data })
-          : this.api("users/create", { data }),
-      "saved",
+          ? this.api("users/update", {
+              user_id: draft.id,
+              revision: draft.revision,
+              data,
+              sync_now,
+            })
+          : this.api("users/create", { data, sync_now }),
+      sync_now ? "saved_sync" : "saved",
     );
     if (success) this.close();
   }
@@ -493,7 +533,7 @@ export class IntercomManagerPanel extends LitElement {
                       ${this.t("pending_users")}: ${station.pending_user_count}
                     </p>
                     ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen)}</bdi></p>` : nothing}
-                    ${station.lock_enabled ? html`<div class="row actions"><button class="primary" @click=${() => this.unlock(station)} ?disabled=${!station.online || this._busy}>${this.t("open_door")}</button></div>` : html`<p class="sub">${this.t("camera_only")}</p>`}
+                    ${station.lock_enabled ? html`<div class="row actions"><button class="primary" @click=${() => this.unlock(station)} ?disabled=${!station.online || this._busy}>${this.unlockLabel(station)}</button></div>` : html`<p class="sub">${this.t("camera_only")}</p>`}
                   </article>`,
               )}
             </div>`
@@ -534,7 +574,7 @@ export class IntercomManagerPanel extends LitElement {
                 <table>
                   <thead>
                     <tr>
-                      ${["name", "employee_id", "pin", "cards", "assignments", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
+                      ${["name", "employee_id", "pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
                     </tr>
                   </thead>
                   <tbody>
@@ -550,6 +590,7 @@ export class IntercomManagerPanel extends LitElement {
                           <td>
                             ${Object.values(user.assignments).filter((item) => item.enabled).length}
                           </td>
+                          <td>${this.validitySummary(user)}</td>
                           <td>
                             ${this.badge(this.personStatus(user))}
                             <div class="sub">${this.t(user.active ? "active" : "inactive")}</div>
@@ -579,6 +620,7 @@ export class IntercomManagerPanel extends LitElement {
                         ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
                         ${this.t("cards")}: ${user.cards.length}
                       </p>
+                      ${this.validitySummary(user)}
                       <div class="row actions">${this.userActions(user)}</div>
                     </article>`,
                 )}
@@ -607,7 +649,8 @@ export class IntercomManagerPanel extends LitElement {
           ? station.integrated_locks.map(
               (lock) => html`
                 <p class="sub lock-mapping">
-                  ${this.t("physical_lock")} ${lock.physical_index} → <bdi>API ${lock.api_id}</bdi>
+                  ${lock.name ? html`<strong>${lock.name}</strong> · ` : nothing}${this.t("physical_lock")}
+                  ${lock.physical_index} → <bdi>API ${lock.api_id}</bdi>
                 </p>
               `,
             )
@@ -696,7 +739,7 @@ export class IntercomManagerPanel extends LitElement {
                 >
                   ${this.t("sync_now")}
                 </button>
-                ${station.lock_enabled ? html`<button @click=${() => this.unlock(station)} ?disabled=${this._busy || !station.online}>${this.t("open_door")}</button>` : nothing}
+                ${station.lock_enabled ? html`<button @click=${() => this.unlock(station)} ?disabled=${this._busy || !station.online}>${this.unlockLabel(station)}</button>` : nothing}
                 <a href=${settingsPath}>${this.t("configure")}</a>
               </div>
             </article>`,
@@ -795,7 +838,8 @@ export class IntercomManagerPanel extends LitElement {
   private editorBody() {
     const draft = this._draft!;
     const blocked = this.pinBlocked();
-    return html`<form id="user-form" @submit=${(event: Event) => this.save(event)}>
+    return html`<form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
+      <p class="field-note">${this.t("save_hint")}</p>
       <fieldset>
         <legend>${this.t("users")}</legend>
         <div class="fields">
@@ -1020,7 +1064,9 @@ export class IntercomManagerPanel extends LitElement {
                   }}
                 /><strong>${station.name}</strong
                 >${this.badge(station.online ? "online" : "offline")}</label
-              ><small>${this.t(station.lock_enabled ? "station_access" : "camera_only")}</small>
+              ><small
+                >${this.t(station.lock_enabled ? "station_access" : "camera_only")}${station.lock_enabled && this.lockName(station) ? html` · ${this.lockName(station)}` : nothing}</small
+              >
               ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
             </div>`,
         )}
@@ -1191,7 +1237,7 @@ export class IntercomManagerPanel extends LitElement {
         ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? this.camera(cameraStation, true) : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button class="primary" type="submit" form="user-form" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? html`<button class="primary" ?disabled=${this._busy || !cameraStation.online} @click=${() => this.unlock(cameraStation!)}>${this.t("open_door")}</button>` : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? html`<button class="primary" ?disabled=${this._busy || !cameraStation.online} @click=${() => this.unlock(cameraStation!)}>${this.unlockLabel(cameraStation)}</button>` : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

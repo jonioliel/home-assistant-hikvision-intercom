@@ -105,5 +105,29 @@ entry settings, including while unloaded. Only explicitly configured locks recei
 
 The user editor offers explicit selection of all stations with a configured lock, including
 offline stations. Camera-only stations remain disabled. Clearing selection changes the draft;
-saving queues revocation on removed stations. Cancelling leaves central records and device queues
+saving persists revocation on removed stations for reconciliation. Cancelling leaves central records and device queues
 unchanged. Existing per-station sync status and the selected count remain visible during editing.
+
+
+## Save, lock names and validity — 0.9.0-alpha.1
+
+The editor has **Save** and **Save & sync**. Both validate and persist central desired state
+before returning. Save does not request an additional worker; automatic reconciliation, an
+already-running worker or reconnect/restart may still apply the saved changes. It is not a
+pause or unpublished draft. Save & sync additionally requests work immediately; offline targets
+remain pending. Keyboard submission defaults to Save. Existing API clients that omit `sync_now`
+retain immediate scheduling. Delete, Disable and explicit synchronization keep their behavior.
+
+To name an existing active lock, open the integration's **Reconfigure** flow, retain the detected
+station, choose **Keep confirmed mapping** and enter **Lock name**. Keeping the mapping sends no
+release command. Empty the field to restore the default name. New setup offers the same field,
+but still requires deliberate mapping and witnessed release confirmation. The name appears on
+the HA entity and all panel release/assignment surfaces; it never changes the selected API output
+or entity unique ID. A separate user override in the HA entity registry remains owned by HA.
+
+The Users list displays the configured access period and its start/end dates in the browser's
+local timezone. Time summaries and Active/Inactive status are independent of station sync status.
+They describe central intent, not observed keypad/card acceptance or proof of firmware enforcement.
+At the configured end instant the summary becomes Expired. Invalid/incomplete dates are labelled
+unverified, never inferred as permanent. The existing 30-second visible-panel refresh advances
+these summaries even if fetching a newer overview fails.

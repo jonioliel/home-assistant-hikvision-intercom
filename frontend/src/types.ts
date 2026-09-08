@@ -53,7 +53,7 @@ export interface Station {
   scanning: boolean;
   scan_error: string | null;
   observations: Record<string, boolean>;
-  integrated_locks: { physical_index: number; api_id: number }[];
+  integrated_locks: { physical_index: number; api_id: number; name?: string }[];
   event_status: {
     stream: string;
     history: string;

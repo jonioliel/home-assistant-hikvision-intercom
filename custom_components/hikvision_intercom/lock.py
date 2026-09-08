@@ -26,6 +26,8 @@ class IntercomLock(IntercomEntity, LockEntity):
 
     def __init__(self, entry: IntercomConfigEntry) -> None:
         super().__init__(entry, "door_1")
+        if name := self.runtime.locks[0].name:
+            self._attr_name = name
 
     @property
     def is_locked(self) -> bool:

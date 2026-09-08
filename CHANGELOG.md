@@ -4,6 +4,28 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.9.0-alpha.1] - 2026-09-08
+
+### Added
+- Separate **Save** and **Save & sync** in the user editor. Both durably store changes first;
+  Save leaves scheduling to automatic/already-running reconciliation, while Save & sync also
+  requests immediate background work. Save does not pause synchronization or create a private draft.
+- Optional active-lock names during setup/reconfiguration, displayed on the HA lock entity,
+  Overview, camera dialog, Intercom details and user assignments. Retaining a confirmed mapping
+  allows renaming without a release test, and the existing HA entity ID is preserved.
+- Configured validity summaries in desktop/mobile user lists: no expiry, not started, within
+  period, expired or unverified. Dates use the browser's local timezone, and summaries refresh
+  as time passes even if a later overview request fails. Sync status remains separate.
+
+### Compatibility and validation
+- Legacy API clients retain immediate scheduling by default. The new `sync_now` field accepts
+  only a boolean on user create/update commands; administrative authorization and redaction remain.
+- Existing unnamed lock configurations remain valid. Emptying the name during reconfiguration
+  restores the default label. No access storage/config schema migration or new ISAPI endpoint.
+- Regression coverage includes durable deferred scheduling/restart, storage failure, legacy API
+  behavior, lock renaming without release/entity recreation, timezones and Hebrew mobile layouts.
+- Physical PIN/card lifecycle, timed enforcement, ringing and nine-station soak remain open.
+
 ## [0.8.0-alpha.1] - 2026-09-08
 
 ### Fixed

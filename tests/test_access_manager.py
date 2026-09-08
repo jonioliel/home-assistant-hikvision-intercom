@@ -536,3 +536,66 @@ async def test_rescan_failure_is_private_and_does_not_destroy_previous_observati
     assert station["scan_error"] == "storage_or_internal_error"
     assert station["scanned_at"] == previous and not station["scanning"]
     assert "PRIVATE-PIN-918273" not in caplog.text + str(manager.public())
+
+
+async def test_save_without_immediate_sync_preserves_periodic_timer_and_durable_changes(fleet):
+    manager, device, _ = fleet
+    timer = manager.stations["a"].timer
+    user = await manager.async_create(
+        {"display_name": "Later", "assignments": {"a": {"allowed_locks": [1]}}},
+        sync_now=False,
+    )
+    await drain(manager)
+    assert device.writes == []
+    assert manager.stations["a"].timer is timer and not timer.cancelled()
+    assert manager.repository.get(user["id"]).assignments["a"].sync_state == "pending"
+    assert manager.public()["stations"][0]["pending_user_count"] == 1
+    saved = manager.repository._save.call_args.args[0]
+    assert saved["users"][user["id"]]["display_name"] == "Later"
+    # The existing periodic callback reconciles saved desired state normally.
+    timer._callback(*timer._args)
+    await drain(manager)
+    assert device.users[user["employee_no"]]["name"] == "Later"
+    writes = len(device.writes)
+    updated = await manager.async_update(
+        user["id"], {"display_name": "Renamed later"}, revision=user["revision"], sync_now=False
+    )
+    await drain(manager)
+    assert len(device.writes) == writes
+    assert updated["revision"] == user["revision"] + 1
+    manager.request_user(user["id"])
+    await drain(manager)
+    assert device.users[user["employee_no"]]["name"] == "Renamed later"
+
+
+async def test_save_without_immediate_sync_survives_restart(fleet):
+    manager, device, driver = fleet
+    user = await manager.async_create(
+        {"display_name": "Restart", "assignments": {"a": {"allowed_locks": [1]}}},
+        sync_now=False,
+    )
+    saved = deepcopy(manager.repository._save.call_args.args[0])
+    await manager.async_close()
+    assert device.writes == []
+    repository = AccessRepository(AsyncMock())
+    await repository.async_load(saved)
+    restarted = AccessManager(repository)
+    restarted.register("a", "Front", True)
+    try:
+        restarted.attach("a", driver)
+        await drain(restarted)
+        assert device.users[user["employee_no"]]["name"] == "Restart"
+    finally:
+        await restarted.async_close()
+
+
+async def test_failed_save_never_requests_device_sync(fleet):
+    manager, device, _ = fleet
+    manager.repository._save.side_effect = OSError("disk full")
+    with pytest.raises(OSError):
+        await manager.async_create(
+            {"display_name": "Unsaved", "assignments": {"a": {"allowed_locks": [1]}}},
+            sync_now=True,
+        )
+    assert manager.stations["a"].task is None
+    assert manager.repository.users() == [] and device.writes == []

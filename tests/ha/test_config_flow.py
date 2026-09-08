@@ -324,3 +324,49 @@ async def test_https_settings_preserved(hass, device_io, verify_ssl):
     assert result["data"]["verify_ssl"] is verify_ssl
     assert result["data"]["scheme"] == "https" and result["data"]["port"] == 443
     await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize("name", ["Main door", ""])
+async def test_reconfigure_can_rename_or_clear_lock_without_release(hass, device_io, name):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Front",
+        unique_id=PROFILE.unique_id,
+        data={**DATA, "locks": [{**DATA["locks"][0], "name": "Previous door"}]},
+    )
+    entry.add_to_hass(hass)
+    with patch.object(hass.config_entries, "async_reload", AsyncMock(return_value=True)):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {k: v for k, v in DATA.items() if k not in {"locks", "password"}}
+        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"mode": "keep_confirmed_mapping", "lock_name": name}
+        )
+        assert result["reason"] == "reconfigure_successful"
+        await hass.async_block_till_done()
+    expected = {**DATA["locks"][0], **({"name": name} if name else {})}
+    assert entry.data["locks"] == [expected]
+    device_io["unlock"].assert_not_called()
+
+
+async def test_new_named_lock_still_requires_physical_confirmation(hass, device_io):
+    result = await start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "map_active_relay", "lock_name": "  Entry door  "}
+    )
+    device_io["unlock"].assert_not_called()
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"api_id": 1, "test_unlock": True}
+    )
+    assert not hass.config_entries.async_entries(DOMAIN)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"result": "released_and_returned"}
+    )
+    assert result["data"]["locks"] == [{**DATA["locks"][0], "name": "Entry door"}]
+    device_io["unlock"].assert_awaited_once_with(1)
+    await hass.async_block_till_done()

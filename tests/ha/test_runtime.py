@@ -233,3 +233,23 @@ async def test_home_assistant_stop_closes_session(hass, loaded_entry):
     assert runtime.session.is_closed
     with pytest.raises(ServiceValidationError):
         await runtime.async_unlock(1)
+
+
+async def test_lock_rename_updates_name_without_changing_entity_id_or_unlocking(
+    hass, loaded_entry, device_io
+):
+    lock_id = entity_id(hass, "lock", "door_1")
+    registry = er.async_get(hass)
+    original = registry.async_get(lock_id)
+    hass.config_entries.async_update_entry(
+        loaded_entry,
+        data={**loaded_entry.data, "locks": [{**DATA["locks"][0], "name": "Garden door"}]},
+    )
+    await hass.async_block_till_done()
+    assert entity_id(hass, "lock", "door_1") == lock_id
+    assert registry.async_get(lock_id).unique_id == original.unique_id
+    assert registry.async_get(lock_id).original_name == "Garden door"
+    assert "Garden door" in hass.states.get(lock_id).attributes["friendly_name"]
+    diagnostics = await async_get_config_entry_diagnostics(hass, loaded_entry)
+    assert "Garden door" not in str(diagnostics)
+    device_io["unlock"].assert_not_called()

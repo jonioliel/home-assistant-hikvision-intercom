@@ -49,6 +49,7 @@ test("create user sends a PIN once and clears it from the editor", async ({ page
   );
   expect(calls).toHaveLength(1);
   expect(calls[0].data.pin).toBe("847291");
+  expect(calls[0].sync_now).toBe(true);
   await page
     .getByRole("row")
     .filter({ hasText: "New resident" })
@@ -470,4 +471,190 @@ test("Hebrew mobile inspection shows scan errors and preserves readable layout",
   await page.screenshot({ path: "test-results/station-inspection-he-mobile.png", fullPage: true });
   await page.locator(".scan-error").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: "test-results/station-inspection-he-card.png" });
+});
+
+test("save persists create and edit with no immediate sync request", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Automatic and already-running sync continue/)).toBeVisible();
+  await dialog.getByLabel("Name", { exact: true }).fill("Save later");
+  await dialog.getByLabel("Main gate", { exact: false }).check();
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  let calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("users/create")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(calls[0].sync_now).toBe(false);
+  await expect(page.getByText("Saved. Automatic synchronization remains enabled.")).toBeVisible();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Save later" })
+    .getByRole("button", { name: "Edit", exact: true })
+    .click();
+  await dialog.getByLabel("Name", { exact: true }).fill("Edited later");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("users/update")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(calls[0].sync_now).toBe(false);
+  expect(calls[0].data.display_name).toBe("Edited later");
+});
+
+test("save validates required fields and failed storage leaves editor open", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  expect(
+    await page.evaluate(() => window.calls.some((item) => item.type.endsWith("users/create"))),
+  ).toBe(false);
+  await dialog.getByLabel("Name", { exact: true }).fill("Keep my draft");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      if (message.type.endsWith("users/create")) throw { code: "storage_or_internal_error" };
+      return original.call(this, message);
+    };
+  });
+  await dialog.getByRole("button", { name: "Save & sync", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("Keep my draft");
+  expect(
+    await page.evaluate(() =>
+      window.demoData.users.some((user) => user.display_name === "Keep my draft"),
+    ),
+  ).toBe(false);
+});
+
+test("configured validity distinguishes future current expired and permanent in local time", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-09-10T10:00:00Z"));
+  await page.goto("/");
+  await page.evaluate(() => {
+    Object.assign(window.demoData.users[0], {
+      valid_from: "2026-09-10T13:01:00+03:00",
+      valid_until: "2026-09-10T14:00:00+03:00",
+    });
+    Object.assign(window.demoData.users[1], {
+      valid_from: "2026-09-10T12:00:00+03:00",
+      valid_until: "2026-09-10T14:00:00+03:00",
+    });
+    Object.assign(window.demoData.users[2], {
+      valid_from: "2026-09-09T09:00:00Z",
+      valid_until: "2026-09-10T13:00:00+03:00",
+    });
+    Object.assign(window.demoData.users[4], {
+      valid_from: "bad-date",
+      valid_until: "2026-09-10T14:00:00+03:00",
+    });
+    return document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  const row = (name) => page.getByRole("row").filter({ hasText: name });
+  await expect(row("Or Levy").locator(".validity-summary")).toContainText("Not started");
+  await expect(row("Dana Cohen").locator(".validity-summary")).toContainText("Within period");
+  await expect(row("Yuval Barak").locator(".validity-summary")).toContainText("Expired");
+  await expect(row("Noa Israeli").locator(".validity-summary")).toContainText("No expiry");
+  await expect(row("Noa Israeli")).toContainText("Inactive");
+  await expect(row("Maintenance").locator(".validity-summary")).toContainText("Unverified period");
+  await expect(row("Maintenance")).not.toContainText("Invalid Date");
+  const localStart = await page.evaluate(() =>
+    new Date("2026-09-10T13:01:00+03:00").toLocaleString("en"),
+  );
+  await expect(row("Or Levy").locator(".validity-summary")).toContainText(localStart);
+  expect(
+    await page.evaluate(() =>
+      window.calls.some((item) => /users\/(create|update)|unlock/.test(item.type)),
+    ),
+  ).toBe(false);
+});
+
+test("validity advances on scheduled refresh even if the overview request fails", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-09-10T10:00:00Z") });
+  await page.goto("/");
+  await page.evaluate(async () => {
+    Object.assign(window.demoData.users[0], {
+      valid_from: "2026-09-10T09:00:00Z",
+      valid_until: "2026-09-10T10:00:20Z",
+    });
+    await document.querySelector("hikvision-intercom-panel").refresh();
+    const original = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      if (message.type.endsWith("overview")) throw { code: "connection_failed" };
+      return original.call(this, message);
+    };
+  });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  const row = page.getByRole("row").filter({ hasText: "Or Levy" });
+  await expect(row.locator(".validity-summary")).toContainText("Within period");
+  await page.clock.fastForward(31000);
+  await expect(row.locator(".validity-summary")).toContainText("Expired");
+});
+
+test("named lock appears in overview camera station and assignments with the same target", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.demoData.stations[0].integrated_locks[0].name = "Garden door";
+    return document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await expect(page.getByRole("button", { name: "Open Garden door", exact: true })).toBeVisible();
+  await page
+    .locator("article.station")
+    .first()
+    .getByRole("button", { name: "View camera" })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Open Garden door" }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await expect(page.getByText("Garden door", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Open Garden door", exact: true }).click();
+  const writes = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
+  );
+  expect(writes).toHaveLength(1);
+  expect(writes[0]).toMatchObject({ station_id: "station-0", lock: 1 });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  await expect(page.getByRole("dialog").locator(".assignment").first()).toContainText(
+    "Garden door",
+  );
+});
+
+test("Hebrew mobile validity and both save actions fit without overflow", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-09-10T10:00:00Z"));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.evaluate(() => {
+    Object.assign(window.demoData.users[0], {
+      valid_from: "2026-09-09T10:00:00Z",
+      valid_until: "2026-09-10T09:00:00Z",
+    });
+    return document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.getByRole("button", { name: "משתמשים", exact: true }).click();
+  await expect(page.locator(".mobile-users .validity-summary").first()).toContainText("פג תוקף");
+  await page.screenshot({ path: "test-results/validity-he-mobile.png", fullPage: true });
+  await page.getByRole("button", { name: "הוספת משתמש", exact: false }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "שמירה", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "שמירה וסנכרון", exact: true })).toBeVisible();
+  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/save-options-he-mobile.png", fullPage: true });
 });

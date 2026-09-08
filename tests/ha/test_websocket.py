@@ -326,3 +326,67 @@ async def test_unloaded_station_keeps_configured_lock_mapping_without_online_con
     assert station["capabilities"] is None
     assert not station["observations"]["user_info"]
     assert station["integrated_locks"] == [{"physical_index": 1, "api_id": 1}]
+
+
+async def test_save_mode_is_validated_and_only_immediate_mode_requests_work(
+    hass, loaded_entry, hass_ws_client
+):
+    from unittest.mock import patch
+
+    manager = get_manager(hass)
+    client = await hass_ws_client(hass)
+    with patch.object(manager, "request_user") as queued:
+        created = await request(
+            client, "users/create", data={"display_name": "Saved"}, sync_now=False
+        )
+        assert created["success"]
+        queued.assert_not_called()
+        user = created["result"]
+        updated = await request(
+            client,
+            "users/update",
+            user_id=user["id"],
+            revision=user["revision"],
+            data={"display_name": "Saved again"},
+            sync_now=False,
+        )
+        assert updated["success"]
+        queued.assert_not_called()
+        immediate = await request(
+            client,
+            "users/update",
+            user_id=user["id"],
+            revision=updated["result"]["revision"],
+            data={"display_name": "Sync now"},
+            sync_now=True,
+        )
+        assert immediate["success"]
+        queued.assert_called_once_with(user["id"])
+        queued.reset_mock()
+        legacy = await request(client, "users/create", data={"display_name": "Existing client"})
+        assert legacy["success"]
+        queued.assert_called_once_with(legacy["result"]["id"])
+        invalid = await request(
+            client, "users/create", data={"display_name": "Invalid"}, sync_now="false"
+        )
+        assert invalid["error"]["code"] == "invalid_fields"
+        assert len(manager.repository.users()) == 2
+
+
+async def test_configured_lock_name_is_in_admin_projection_only_for_selected_lock(
+    hass, loaded_entry, hass_ws_client
+):
+    client = await hass_ws_client(hass)
+    mapping = {**loaded_entry.data["locks"][0], "name": "Garden door"}
+    hass.config_entries.async_update_entry(
+        loaded_entry, data={**loaded_entry.data, "locks": [mapping]}
+    )
+    await hass.async_block_till_done()
+    response = await request(client, "overview")
+    assert response["result"]["stations"][0]["integrated_locks"] == [
+        {"physical_index": 1, "api_id": 1, "name": "Garden door"}
+    ]
+    hass.config_entries.async_update_entry(loaded_entry, data={**loaded_entry.data, "locks": []})
+    await hass.async_block_till_done()
+    response = await request(client, "overview")
+    assert response["result"]["stations"][0]["integrated_locks"] == []

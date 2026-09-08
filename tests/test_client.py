@@ -316,3 +316,20 @@ async def test_address_reassigned_after_setup_cannot_release_other_station():
         with pytest.raises(HikvisionValidationError):
             await client.async_unlock(1)
     assert len(requests) == 1 and requests[0].method == "GET"
+
+
+@pytest.mark.parametrize("name", [42, True, "", "   ", "x" * 65, {}])
+def test_invalid_configured_lock_name_is_rejected(name):
+    with pytest.raises(HikvisionValidationError):
+        managed_locks(
+            {"locks": [{"physical_index": 1, "api_id": 1, "confirmed": True, "name": name}]}
+        )
+
+
+def test_optional_lock_name_keeps_legacy_mapping_and_identity():
+    mapping = {"physical_index": 1, "api_id": 2, "confirmed": True}
+    old = managed_locks({"locks": [mapping]})[0]
+    named = managed_locks({"locks": [{**mapping, "name": "  Front door  "}]})[0]
+    assert old.name is None
+    assert named.name == "Front door"
+    assert (named.physical_index, named.api_id) == (old.physical_index, old.api_id)
