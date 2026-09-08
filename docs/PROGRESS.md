@@ -155,3 +155,11 @@ and stale-approval gaps without adding unverified device behavior. The ten remai
 items are deliberately left open; tests cannot certify the previously failed physical PIN change.
 Local verification: 367 protocol/access tests, Ruff and mypy (25 modules). The real HA transport
 and responsive browser regressions are part of the exact-commit release gate.
+
+
+Detailed-review code `bd036318b09b8e14c95b020838e9117aef888eac` passed every branch check:
+367 protocol/access + 125 actual Home Assistant + 44 browser tests (536 total), HACS,
+Hassfest, Ruff, mypy, TypeScript and reproducible bundle. ConfigFlow coverage is 100%.
+Python checks34262840733; HACS34262840762; Hassfest34262840704.
+It advances the main implementation to 0.10.0-alpha.1; the requirement-based tally remains
+28 closed / 10 open / 2 owner-excluded. Physical acceptance has not been inferred from CI.

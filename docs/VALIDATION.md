@@ -259,3 +259,14 @@ Review does not queue writes or mutate storage; regression tests compare reposit
 track device mutation calls. It reuses existing canonical/desired-state builders and documented
 read endpoints. Logical previews do not establish physical access or reserve capacity. No actual
 hardware operation was performed for this change. See COMPLETION_HE.md for every acceptance item.
+
+
+Final review code `bd036318b09b8e14c95b020838e9117aef888eac` passes **536 tests**:
+367 protocol/access (both Python 3.12 and 3.14), 125 actual HA and 44 browser tests.
+ConfigFlow coverage remains 100%; Ruff, mypy, TypeScript, formatting and reproducible bundle pass.
+[Python checks](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34262840733),
+[HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34262840762),
+[Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34262840704).
+HA job `102184823735` confirms 125 passing tests; frontend job `102184823802` confirms 44.
+The release workflow `34263065754` reruns gates on this fixed code commit before publishing.
+Feature commit `438f5b9` and follow-up `bd03631` remain independently reviewable in Git history.
