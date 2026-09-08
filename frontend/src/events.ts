@@ -1,3 +1,4 @@
+import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
@@ -29,6 +30,7 @@ interface Counts {
   recovered: number;
 }
 interface ActivityReport {
+  day_timezone?: string;
   generated_at: string;
   oldest: string | null;
   newest: string | null;
@@ -81,6 +83,7 @@ export class IntercomEvents extends LitElement {
   static properties = {
     hass: { attribute: false },
     stations: { attribute: false },
+    defaultZone: { attribute: false },
     _data: { state: true },
     _busy: { state: true },
     _error: { state: true },
@@ -89,6 +92,8 @@ export class IntercomEvents extends LitElement {
   };
   hass?: Hass;
   stations: Station[] = [];
+  defaultZone: DisplayZone = UTC_ZONE;
+  private _filterStation = "";
   private _data?: AuditPage;
   private _busy = false;
   private _error = "";
@@ -141,17 +146,25 @@ export class IntercomEvents extends LitElement {
   private apply(event: Event) {
     event.preventDefault();
     const form = new FormData(event.target as HTMLFormElement);
-    this._filters = {};
-    this.clearReport();
-    for (const [key, raw] of form.entries()) {
-      if (!raw) continue;
-      this._filters[key] =
-        key === "door"
-          ? Number(raw)
-          : key === "start" || key === "end"
-            ? new Date(String(raw)).toISOString()
-            : raw;
+    const filters: Record<string, unknown> = {};
+    const selected = this.stations.find((s) => s.id === form.get("station_id"));
+    const zone = selected ? (selected.clock?.zone ?? UTC_ZONE) : this.defaultZone;
+    try {
+      for (const [key, raw] of form.entries()) {
+        if (!raw) continue;
+        filters[key] =
+          key === "door"
+            ? Number(raw)
+            : key === "start" || key === "end"
+              ? fromLocalInput(String(raw), zone)
+              : raw;
+      }
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+      return;
     }
+    this._filters = filters;
+    this.clearReport();
     void this.load();
   }
   private clearReport() {
@@ -186,7 +199,7 @@ export class IntercomEvents extends LitElement {
       <h3>${this.t("activity_report")}</h3>
       <p class="sub">
         ${this.t("report_generated")}:
-        ${new Date(report.generated_at).toLocaleString(this.hass?.language)}
+        ${formatTime(report.generated_at, this.hass?.language, this.defaultZone)}
       </p>
       <p>
         ${this.t("report_records")}: <strong>${report.totals.records}</strong> ·
@@ -241,7 +254,9 @@ export class IntercomEvents extends LitElement {
       </p>
       <details>
         <summary>${this.t("report_daily")}</summary>
-        <p class="sub">${this.t("report_utc")}</p>
+        <p class="sub">
+          ${this.t(report.day_timezone === "station" ? "report_station_time" : "report_utc")}
+        </p>
         <div class="table-scroll">
           <table>
             <thead>
@@ -275,7 +290,14 @@ export class IntercomEvents extends LitElement {
       <p class="muted">${this.t("audit_retention")}</p>
       <form @submit=${this.apply} class="form-grid">
         <label
-          >${this.t("station")}<select name="station_id" aria-label=${this.t("station")}>
+          >${this.t("station")}<select
+            name="station_id"
+            aria-label=${this.t("station")}
+            @change=${(e: Event) => {
+              this._filterStation = (e.target as HTMLSelectElement).value;
+              this.requestUpdate();
+            }}
+          >
             <option value="">${this.t("all")}</option>
             ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
           </select></label
@@ -313,6 +335,12 @@ export class IntercomEvents extends LitElement {
           ${this.t("report_export")}
         </button>
       </div>
+      <p class="sub">
+        ${this.t("clock_filter_basis")}:
+        <bdi
+          >${this._filterStation ? (this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? UTC_ZONE).name : this.defaultZone.name}</bdi
+        >
+      </p>
       <p class="sub">${this.t("report_filter_hint")}</p>
       ${this.reportView()}
       ${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
@@ -335,7 +363,7 @@ export class IntercomEvents extends LitElement {
                 >
                 ·
                 <time datetime=${row.timestamp}
-                  >${new Date(row.timestamp).toLocaleString(this.hass?.language)}</time
+                  >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</time
                 >
               </div>
               <h3>${this.t(row.event_type)}</h3>

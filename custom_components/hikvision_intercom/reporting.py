@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
+from .clock import UTC_ZONE, localize
 from .events import timestamp
 
 
-def event_report(rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
+def event_report(
+    rows: list[dict[str, Any]], now: datetime, zones: dict[str, dict[str, Any]] | None = None
+) -> dict[str, Any]:
     by_station: dict[str, Counter[str]] = {}
     by_day: dict[str, Counter[str]] = {}
     totals: Counter[str] = Counter()
@@ -21,7 +24,8 @@ def event_report(rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
             continue
         times.append(when)
         station = by_station.setdefault(row["station_id"], Counter())
-        day = by_day.setdefault(when.astimezone(UTC).date().isoformat(), Counter())
+        zone = (zones or {}).get(row["station_id"], UTC_ZONE)
+        day = by_day.setdefault(localize(when, zone).date().isoformat(), Counter())
         # Opening records can accompany credential-authentication events. Keep them
         # separate; counting every record as a visit would double-count one operation.
         kind = (
@@ -44,7 +48,7 @@ def event_report(rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
 
     return {
         "generated_at": now.isoformat(),
-        "day_timezone": "UTC",
+        "day_timezone": "station" if zones is not None else "UTC",
         "oldest": min(times).isoformat() if times else None,
         "newest": max(times).isoformat() if times else None,
         "totals": counts(totals),
@@ -57,10 +61,14 @@ def event_report(rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
 
 
 def build_report(
-    rows: list[dict[str, Any]], now: datetime, names: dict[str, str], export: bool
+    rows: list[dict[str, Any]],
+    now: datetime,
+    names: dict[str, str],
+    export: bool,
+    zones: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Aggregate and optionally encode detached records outside the HA event loop."""
-    result = event_report(rows, now)
+    result = event_report(rows, now, zones)
     if export:
         from .access.csv_transfer import csv_text
 
@@ -76,6 +84,8 @@ def build_report(
             "masked_card",
             "recovered",
             "time_source",
+            "display_timestamp",
+            "display_timezone",
         )
         result["csv"] = csv_text(
             headers,
@@ -92,6 +102,11 @@ def build_report(
                     row["card"],
                     str(row["recovered"]).lower(),
                     row["time_source"],
+                    localize(
+                        datetime.fromisoformat(row["timestamp"]),
+                        (zones or {}).get(row["station_id"], UTC_ZONE),
+                    ).isoformat(),
+                    (zones or {}).get(row["station_id"], UTC_ZONE)["name"],
                 )
                 for row in rows
             ),

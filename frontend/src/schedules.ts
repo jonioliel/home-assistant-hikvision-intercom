@@ -1,3 +1,4 @@
+import { formatTime, UTC_ZONE } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
@@ -586,7 +587,7 @@ export class IntercomSchedules extends LitElement {
             ? html`<p>
                   <strong>${this.stations.find((s) => s.id === this._checkStation)?.name}</strong> ·
                   <bdi
-                    >${new Date(this._readiness.checked_at).toLocaleString(this.hass.language)}</bdi
+                    >${formatTime(this._readiness.checked_at, this.hass.language, this.stations.find((s) => s.id === this._checkStation)?.clock?.zone ?? UTC_ZONE)}</bdi
                   >
                 </p>
                 ${this._readiness.checks.map(

@@ -210,3 +210,10 @@ cases (693 total), strict typing31 modules, HACS and Hassfest. The code was fast
 main under the existing publication authorization; release workflow34278274318 reruns all gates
 on that exact SHA. Mandatory acceptance stays28/38; two optional schedule features are in
 progress as local drafts, while device application still needs demonstrated contracts/ownership.
+
+## 0.14 — station time compatibility
+
+Default station/DST display, manual IANA override, explicit input zones, local report days and
+read-only clock diagnostics are implemented. Two live GET-only samples confirmed the device
+clock contract, including one with the production client. See [TIME_ZONES.md](TIME_ZONES.md).
+This cross-phase correction does not close physical acceptance: 28/38 (73.7%) remains unchanged.

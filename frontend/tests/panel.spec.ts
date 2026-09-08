@@ -567,7 +567,7 @@ test("configured validity distinguishes future current expired and permanent in 
   await expect(row("Maintenance").locator(".validity-summary")).toContainText("Unverified period");
   await expect(row("Maintenance")).not.toContainText("Invalid Date");
   const localStart = await page.evaluate(() =>
-    new Date("2026-09-10T13:01:00+03:00").toLocaleString("en"),
+    new Date("2026-09-10T13:01:00+03:00").toLocaleString("en", { timeZone: "UTC" }),
   );
   await expect(row("Or Levy").locator(".validity-summary")).toContainText(localStart);
   expect(

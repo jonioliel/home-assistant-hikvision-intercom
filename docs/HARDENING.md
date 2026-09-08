@@ -88,3 +88,10 @@ single-station concurrent check had no errors; neither test is a nine-device har
 
 HA references: [Repairs](https://developers.home-assistant.io/docs/core/platform/repairs/),
 [config entries](https://developers.home-assistant.io/docs/config_entries_index/).
+
+## Optional clock reads
+
+StationClock reads identity/time on a separate I/O lane, coalesces concurrent refreshes and
+bounds each refresh to 20 seconds. Its 15-minute timer and pending request are cancelled on
+unload. A failed read retains explicitly stale verified rules or falls back to UTC; it cannot
+change device time/NTP or suppress other-station releases. See [TIME_ZONES.md](TIME_ZONES.md).

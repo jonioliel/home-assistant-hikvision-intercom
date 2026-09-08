@@ -377,3 +377,21 @@ inference error was fixed before publication; Linux strict typing passes on this
 HA job102235526270 completed153 tests; frontend102235526162 completed65 tests.
 The code is on main and the [gated release run](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34278274318)
 checks the same code before publishing v0.13.0-alpha.1. This documentation update changes no runtime code.
+
+## 0.14.0-alpha.1 — device time zones and manual display override
+
+Local browser suite: **72 passed**, including seven clock cases with America/Los_Angeles as
+browser zone and the observed station rules. TypeScript, production build and formatting pass.
+The Hebrew mobile clock screenshot was inspected. DST gaps/folds reject newly entered times;
+existing exact instants and seconds survive a display-zone change. All pre-existing release
+independence and station-inspection cases pass.
+
+Local Python suite: **501 protocol/access tests**, including26 new clock cases. After the
+version bump, the release-metadata test initially ran before the new changelog was written;
+all eight tooling tests pass after documentation is complete. Ruff passes. Actual HA and strict mypy remain
+required Linux CI gates, as the local Windows policy blocks a mypy dependency DLL.
+
+Two live GET-only probes confirmed the clock contract. The production ClockClient verified
+station identity, parsed the April/October device rules and returned localTime+03:00 in NTP
+mode with rounded skew0 seconds. The committed fixture contains only clock data. No clock,
+NTP, credential, schedule or relay settings were changed. See [TIME_ZONES.md](TIME_ZONES.md).

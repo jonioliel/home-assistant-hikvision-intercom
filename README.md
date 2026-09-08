@@ -168,3 +168,6 @@ Independent community project, not an official Hikvision product.
 
 Native `event` entities and the administrator Events view are included in `0.6.1-alpha.1`.
 See [event behavior and recovery](docs/EVENTS.md).
+
+Device time zones and DST are followed by default from `0.14.0-alpha.1`; manual display zones
+are available in each station’s HA Options. See [time-zone setup and behavior](docs/TIME_ZONES.md).

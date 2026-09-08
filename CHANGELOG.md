@@ -4,6 +4,38 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.14.0-alpha.1] - 2026-09-09
+
+### Fixed
+- Station timestamps now follow the station's configured time zone and daylight-saving rules
+  by default, independently of the browser's zone. UTC and offset-aware source timestamps
+  are converted once; stored events and synchronization instants remain UTC.
+- Validity editing and event date filters use an explicitly labelled zone. Nonexistent and
+  ambiguous newly entered DST times are rejected. Unchanged validity retains its exact instant
+  and seconds; changing the display zone preserves the instant.
+- Daily activity summaries use each record's station-local calendar day. Event CSV retains
+  its original timestamp and adds display_timestamp and display_timezone columns.
+
+### Added
+- Per-station Home Assistant Options: follow the device (default) or select a manual IANA
+  display zone such as Asia/Jerusalem. The integration reads /ISAPI/System/time on load and
+  every 15 minutes; the Intercoms screen shows the clock source, sample, offset, read time,
+  approximate skew and an independent Read station clock action.
+- Verified cached rules survive a later read failure with a stale warning. Before any valid
+  device read, display falls back explicitly to UTC; a manual zone works without that read.
+- English/Hebrew documentation: [time zones, DST and input behavior](docs/TIME_ZONES.md).
+
+### Validation and limits
+- Live identity-checked GET using the production clock client confirmed UTC+03:00, NTP mode,
+  base UTC+02:00 plus a one-hour seasonal increment and the configured April/October rules.
+  Measured rounded skew was zero seconds. No device clock, NTP, credential or relay write occurred.
+- Automated coverage includes DST transitions, offsets already present in API responses,
+  manual IANA override, a browser in a different zone, report day boundaries, actual HA options,
+  authorization, refresh/unload lifecycle and Hebrew mobile display.
+- Current device rules describe the present configuration, not its historical changes. Other
+  formats fail explicitly. Physical DST-transition acceptance and timed-credential enforcement
+  remain deferred; validity_timezone_mismatch protection is unchanged.
+
 ## [0.13.0-alpha.1] - 2026-09-08
 
 ### Added

@@ -1,3 +1,4 @@
+import type { DisplayZone } from "./time";
 export interface Card {
   id?: string;
   masked_number?: string;
@@ -40,7 +41,19 @@ export interface LastAccess {
   recovered: boolean;
   door: number | null;
 }
+export interface StationClock {
+  source: "device" | "manual" | "fallback";
+  zone: DisplayZone;
+  device_zone: DisplayZone | null;
+  device_time: string | null;
+  checked_at: string | null;
+  status: string;
+  error: string | null;
+  skew_seconds: number | null;
+  time_mode: string | null;
+}
 export interface Station {
+  clock?: StationClock | null;
   id: string;
   sync_reference?: string;
   name: string;
@@ -93,6 +106,7 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  default_zone?: DisplayZone;
   version: string;
   users: Person[];
   stations: Station[];

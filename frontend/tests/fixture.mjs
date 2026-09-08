@@ -26,10 +26,22 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.13.0-alpha.1",
+  default_zone: { kind: "iana", name: "UTC" },
+  version: "0.14.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
+    clock: {
+      source: "device",
+      zone: { kind: "iana", name: "UTC" },
+      device_zone: { kind: "iana", name: "UTC" },
+      device_time: "2026-09-08T12:00:00Z",
+      checked_at: "2026-09-08T12:00:00Z",
+      status: "ready",
+      error: null,
+      skew_seconds: 0,
+      time_mode: "NTP",
+    },
     name,
     lock_enabled: i !== 8,
     loaded: true,
@@ -172,6 +184,8 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "stations/clock_refresh")
+      return data.stations.find((s) => s.id === message.station_id).clock;
     if (command === "schedules/list") return structuredClone(schedules);
     if (command === "schedules/create" || command === "schedules/update") {
       const current = schedules.find((s) => s.id === message.schedule_id);

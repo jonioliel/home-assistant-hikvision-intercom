@@ -73,6 +73,18 @@ def device_io():
             AsyncMock(),
         ) as write_person,
         patch(
+            "custom_components.hikvision_intercom.client.clock.ClockClient.async_read",
+            AsyncMock(
+                return_value={
+                    "zone": {"kind": "iana", "name": "UTC"},
+                    "device_time": "2026-09-09T00:00:00+00:00",
+                    "checked_at": "2026-09-09T00:00:00+00:00",
+                    "skew_seconds": 0,
+                    "time_mode": "NTP",
+                }
+            ),
+        ),
+        patch(
             "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
             AsyncMock(return_value=PROFILE),
         ) as profile,

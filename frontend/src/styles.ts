@@ -9,6 +9,7 @@ export const styles = css`
     margin: 4px 0 0;
   }
 
+  .clock-details,
   .capability-details {
     border-block-start: 1px solid var(--divider-color, #dce5e6);
     margin-block: 16px;

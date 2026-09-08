@@ -1,4 +1,29 @@
 const en = {
+  clock_title: "Station clock and display",
+  clock_source_device: "Following station rules",
+  clock_source_manual: "Manual display time zone",
+  clock_source_fallback: "Device zone unavailable — displaying UTC",
+  clock_device_time: "Device clock at last read",
+  clock_checked: "Clock checked at",
+  clock_skew: "Device clock minus HA clock (seconds)",
+  clock_settings_hint:
+    "Change the display source in this integration’s station Options. Default: device rules, including configured DST. Manual: an IANA zone such as Asia/Jerusalem. Device clock and NTP settings are not changed. Rules refresh every 15 minutes.",
+  clock_refresh: "Read station clock",
+  clock_read_failed:
+    "The device clock or DST rule could not be verified. Automatic display falls back to UTC until a valid read; a manual zone remains usable.",
+  clock_stale:
+    "The latest clock read failed. Display still uses the last verified rules; refresh or choose a manual zone if the device configuration changed.",
+  clock_ha_zone: "Home Assistant zone",
+  clock_validity_basis: "Time zone for validity input",
+  clock_filter_basis: "Filter dates use this zone (all stations use the HA zone)",
+  clock_ambiguous:
+    "This local time occurs twice when DST ends. Choose an unambiguous time or enter it using UTC as the time basis.",
+  clock_nonexistent:
+    "This local time does not exist when DST starts. Choose a time before or after the clock change.",
+  clock_invalid_local: "Enter a valid local date and time.",
+  report_station_time:
+    "Each record is grouped by calendar date in its station’s configured display zone. Removed or unreadable stations without verified rules use UTC.",
+
   schedule_revision_conflict:
     "This schedule changed while you were editing. Reload drafts and review the latest version before saving.",
   schedule_storage_unavailable:
@@ -410,7 +435,8 @@ const en = {
   period: "Start and end",
   valid_from: "Start",
   valid_until: "End",
-  validity_hint: "Times use this browser’s local timezone and are saved as UTC.",
+  validity_hint:
+    "Times use the selected time zone and are saved as UTC. Changing the display zone does not change the saved instant.",
   employee_locked: "This identity has been used on a station and cannot be changed here.",
   open_door: "Open active lock",
   camera: "Camera",
@@ -510,6 +536,31 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  clock_title: "שעון התחנה והתצוגה",
+  clock_source_device: "לפי כללי התחנה",
+  clock_source_manual: "אזור זמן ידני לתצוגה",
+  clock_source_fallback: "אזור הזמן של התחנה אינו זמין — מוצג UTC",
+  clock_device_time: "שעון המכשיר בקריאה האחרונה",
+  clock_checked: "מועד בדיקת השעון",
+  clock_skew: "הפרש שעון המכשיר משעון HA (שניות)",
+  clock_settings_hint:
+    "את מקור התצוגה משנים באפשרויות התחנה בהגדרות האינטגרציה. ברירת המחדל: כללי המכשיר, כולל שעון קיץ. בבחירה ידנית הזינו אזור IANA כגון Asia/Jerusalem. שעון המכשיר והגדרות NTP אינם משתנים. הכללים מתעדכנים כל 15 דקות.",
+  clock_refresh: "קריאת שעון התחנה",
+  clock_read_failed:
+    "שעון המכשיר או כלל שעון הקיץ לא אומתו. התצוגה האוטומטית משתמשת ב־UTC עד לקריאה תקינה; אזור זמן ידני נשאר פעיל.",
+  clock_stale:
+    "קריאת השעון האחרונה נכשלה. התצוגה משתמשת בכללים האחרונים שאומתו; רעננו או בחרו אזור ידני אם הגדרות המכשיר השתנו.",
+  clock_ha_zone: "אזור הזמן של Home Assistant",
+  clock_validity_basis: "אזור זמן להזנת תוקף",
+  clock_filter_basis: "תאריכי הסינון לפי אזור זה (בכל התחנות לפי HA)",
+  clock_ambiguous:
+    "השעה המקומית מופיעה פעמיים בסיום שעון הקיץ. בחרו שעה חד־משמעית או הזינו אותה כש־UTC נבחר כבסיס הזמן.",
+  clock_nonexistent:
+    "השעה המקומית אינה קיימת בתחילת שעון הקיץ. בחרו שעה לפני שינוי השעון או אחריו.",
+  clock_invalid_local: "הזינו תאריך ושעה מקומיים תקינים.",
+  report_station_time:
+    "כל רשומה משויכת לתאריך המקומי באזור התצוגה של התחנה שלה. תחנות שהוסרו או שאין עבורן כללים מאומתים משתמשות ב־UTC.",
+
   schedule_revision_conflict:
     "תוכנית השעות השתנתה בזמן העריכה. טענו את הטיוטות מחדש ובדקו את הגרסה העדכנית לפני שמירה.",
   schedule_storage_unavailable:
@@ -909,7 +960,8 @@ const he: Record<keyof typeof en, string> = {
   period: "מועד התחלה וסיום",
   valid_from: "התחלה",
   valid_until: "סיום",
-  validity_hint: "השעות לפי אזור הזמן של הדפדפן ונשמרות ב־UTC.",
+  validity_hint:
+    "השעות לפי אזור הזמן הנבחר ונשמרות ב־UTC. שינוי אזור התצוגה אינו משנה את רגע הזמן השמור.",
   employee_locked: "מזהה זה כבר שימש בתחנה ולא ניתן לשנותו כאן.",
   open_door: "פתיחת המנעול הפעיל",
   camera: "מצלמה",

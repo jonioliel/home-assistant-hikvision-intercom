@@ -13,6 +13,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .client.client import ConnectionSettings, HikvisionClient, StationProfile, create_session
+from .clock import named_zone
 from .configuration import managed_locks
 from .const import DEFAULT_ACTIVE_INTERVAL, DEFAULT_IDLE_INTERVAL, DEFAULT_PULSE_SECONDS, DOMAIN
 from .exceptions import (
@@ -311,13 +312,35 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class HikvisionOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-        options = self.config_entry.options
+            try:
+                if user_input.get("display_time_zone", "device") == "manual":
+                    await self.hass.async_add_executor_job(
+                        named_zone, user_input.get("manual_time_zone")
+                    )
+            except HikvisionValidationError:
+                errors["manual_time_zone"] = "invalid_time_zone"
+            else:
+                return self.async_create_entry(
+                    title="", data={**self.config_entry.options, **user_input}
+                )
+        options = {**self.config_entry.options, **(user_input or {})}
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Required(
+                        "display_time_zone", default=options.get("display_time_zone", "device")
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=["device", "manual"], translation_key="display_time_zone"
+                        )
+                    ),
+                    vol.Optional(
+                        "manual_time_zone",
+                        default=options.get("manual_time_zone", self.hass.config.time_zone),
+                    ): cv.string,
                     vol.Required(
                         "idle_interval", default=options.get("idle_interval", DEFAULT_IDLE_INTERVAL)
                     ): vol.All(vol.Coerce(float), vol.Range(min=1.5, max=30)),
@@ -330,4 +353,5 @@ class HikvisionOptionsFlow(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(float), vol.Range(min=1, max=30)),
                 }
             ),
+            errors=errors,
         )

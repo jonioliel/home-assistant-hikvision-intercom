@@ -28,6 +28,8 @@ from .access.manager import AccessManager
 from .access_runtime import get_manager
 from .client.access import AccessClient
 from .client.client import ConnectionSettings, HikvisionClient, StationProfile, create_session
+from .clock import named_zone
+from .clock_runtime import StationClock
 from .configuration import ManagedLock, PollOptions, managed_locks
 from .const import DOMAIN, PLATFORMS
 from .coordinator import IntercomCoordinator
@@ -53,6 +55,7 @@ class IntercomRuntime:
     access_manager: AccessManager
     station_id: str
     events: StationEvents | None = None
+    clock: StationClock | None = None
     unlocking: bool = False
     released: bool = False
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
@@ -97,6 +100,8 @@ class IntercomRuntime:
         self.coordinator.async_update_listeners()
 
     async def async_close(self) -> None:
+        if self.clock:
+            await self.clock.async_close()
         if self.events:
             await self.events.async_close()
         await self.access_manager.async_detach(self.station_id)
@@ -119,6 +124,14 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         settings = ConnectionSettings.from_mapping(entry.data)
         locks = managed_locks(entry.data)
         options = PollOptions.from_mapping(entry.options)
+        mode = entry.options.get("display_time_zone", "device")
+        if mode not in {"device", "manual"}:
+            raise HikvisionValidationError("Invalid display time zone source")
+        manual = (
+            await hass.async_add_executor_job(named_zone, entry.options.get("manual_time_zone"))
+            if mode == "manual"
+            else None
+        )
     except (HikvisionValidationError, KeyError):
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="invalid_configuration"
@@ -215,6 +228,8 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         await entry.runtime_data.async_close()
 
     entry.async_on_unload(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop))
+    entry.runtime_data.clock = StationClock(hass, client, manual)
+    entry.runtime_data.clock.start()
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     return True
 

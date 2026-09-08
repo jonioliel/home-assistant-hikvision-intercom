@@ -66,6 +66,7 @@ COMMANDS = {
     "users/set_active": {"user_id": str, "revision": int, "active": bool},
     "cards/add": {"user_id": str, "revision": int, "data": dict},
     "cards/remove": {"user_id": str, "revision": int, "card_id": str},
+    "stations/clock_refresh": {"station_id": str},
     "stations/list": {},
     "stations/get": {"station_id": str},
     "stations/test_unlock": {"station_id": str, "lock": int},
@@ -121,6 +122,7 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
                 entity = registry.async_get_entity_id(platform, DOMAIN, f"{entry.unique_id}_{key}")
                 if entity:
                     station["entities"][key] = entity
+        station["clock"] = runtime.clock.public() if runtime and runtime.clock else None
         station["observations"] = {
             "call_status": bool(runtime and runtime.coordinator.last_seen),
             "snapshot": bool(runtime and runtime.profile.snapshot),
@@ -160,6 +162,7 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
             firmware=runtime.profile.firmware if runtime else None,
             host=entry.data.get("host") if entry else None,
         )
+    data["default_zone"] = {"kind": "iana", "name": hass.config.time_zone}
     data["version"] = VERSION
     return data
 
@@ -218,6 +221,13 @@ async def _dispatch(
             await library.async_delete(msg["schedule_id"], msg["revision"])
             return {"deleted": True}
         return preview(msg["data"], msg["date"], msg["time"])
+    if command == "stations/clock_refresh":
+        entry = hass.config_entries.async_get_entry(msg["station_id"])
+        runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
+        if runtime is None or runtime.clock is None or runtime.session.is_closed:
+            raise AccessError("station_offline")
+        await runtime.clock.async_refresh()
+        return runtime.clock.public()
     if command == "sync/diagnostics":
         return {"integration_version": VERSION, **manager.sync_diagnostics()}
     if command in {"events/report", "events/export"}:

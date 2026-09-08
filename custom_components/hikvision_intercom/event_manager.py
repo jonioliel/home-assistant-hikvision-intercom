@@ -160,8 +160,13 @@ class EventManager:
             for key in {row["station_id"] for row in page["records"]}
             if (entry := self.hass.config_entries.async_get_entry(key)) is not None
         }
+        zones = {
+            key: station.runtime.clock.public()["zone"]
+            for key, station in self.stations.items()
+            if station.runtime.clock
+        }
         result = await self.hass.async_add_executor_job(
-            build_report, page["records"], now, names, export
+            build_report, page["records"], now, names, export, zones
         )
         return {**result, **metadata}
 

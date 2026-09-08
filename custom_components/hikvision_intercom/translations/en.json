@@ -91,13 +91,18 @@
     "step": {
       "init": {
         "title": "Intercom options",
-        "description": "The display pulse changes only the lock state shown in Home Assistant. The intercom controls the actual relay duration.",
+        "description": "By default, display uses the station time zone and daylight saving rules. A manual override changes integration display only; it does not set the device clock or NTP.",
         "data": {
           "idle_interval": "Idle polling interval (seconds)",
           "active_interval": "Active call polling interval (seconds)",
-          "pulse_seconds": "Display release duration (seconds)"
+          "pulse_seconds": "Display release duration (seconds)",
+          "display_time_zone": "Display time zone source",
+          "manual_time_zone": "Manual time zone (IANA)"
         }
       }
+    },
+    "error": {
+      "invalid_time_zone": "Enter a valid IANA time zone, for example Asia/Jerusalem."
     }
   },
   "entity": {
@@ -207,6 +212,12 @@
         "released_and_returned": "The intended lock released and returned",
         "choose_again": "Choose an output and test again",
         "camera_only": "Continue with camera only"
+      }
+    },
+    "display_time_zone": {
+      "options": {
+        "device": "Follow station (default)",
+        "manual": "Manual time zone"
       }
     }
   },

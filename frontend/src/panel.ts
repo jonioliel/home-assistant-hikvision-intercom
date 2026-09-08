@@ -1,3 +1,4 @@
+import { formatTime, localInput, fromLocalInput, UTC_ZONE } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { styles } from "./styles";
@@ -23,12 +24,6 @@ import "./events";
 const settingsPath = "/config/integrations/integration/hikvision_intercom";
 const value = (event: Event) => (event.target as HTMLInputElement).value;
 const checked = (event: Event) => (event.target as HTMLInputElement).checked;
-const localTime = (iso: string | null) => {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-};
 
 interface ReleaseState {
   pending: boolean;
@@ -83,6 +78,10 @@ export class IntercomManagerPanel extends LitElement {
   narrow = false;
   private _data?: Overview;
   private _tab = "overview";
+  private _validityStation = "";
+  private _validityFrom = "";
+  private _validityUntil = "";
+  private _clockReads = new Set<string>();
   private _query = "";
   private _dialog = "";
   private _busy = false;
@@ -298,6 +297,9 @@ export class IntercomManagerPanel extends LitElement {
               ? "validity_expired"
               : "validity_current";
     return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
+      <span class="sub"
+        >${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span
+      >
       <span>${this.t(state)}</span>
       ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
       ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
@@ -306,8 +308,85 @@ export class IntercomManagerPanel extends LitElement {
   private pendingCount() {
     return this._data?.stations.reduce((sum, station) => sum + station.pending_user_count, 0) ?? 0;
   }
-  private dateText(value: string | null) {
-    return value ? new Date(value).toLocaleString(this.hass?.language) : this.t("not_observed");
+  private zone(station?: Station) {
+    return station?.clock?.zone ?? (station ? UTC_ZONE : (this._data?.default_zone ?? UTC_ZONE));
+  }
+  private dateText(value: string | null, station?: Station) {
+    return value
+      ? formatTime(value, this.hass?.language, this.zone(station))
+      : this.t("not_observed");
+  }
+  private validityZone() {
+    if (this._validityStation === "__utc__") return UTC_ZONE;
+    return this.zone(this._data?.stations.find((s) => s.id === this._validityStation));
+  }
+  private readValidity() {
+    const zone = this.validityZone();
+    // Preserve an existing instant (including seconds and a DST fold) when its
+    // visible field has not changed. Newly entered wall times must be unique.
+    const resolve = (raw: string, previous: string | null) =>
+      previous && localInput(previous, zone) === raw ? previous : fromLocalInput(raw, zone);
+    const first = resolve(this._validityFrom, this._draft?.valid_from ?? null);
+    const last = resolve(this._validityUntil, this._draft?.valid_until ?? null);
+    if (this._draft) {
+      this._draft.valid_from = first;
+      this._draft.valid_until = last;
+    }
+  }
+  private changeValidityZone(id: string) {
+    try {
+      this.readValidity();
+      this._validityStation = id;
+      this._validityFrom = localInput(this._draft?.valid_from ?? null, this.validityZone());
+      this._validityUntil = localInput(this._draft?.valid_until ?? null, this.validityZone());
+      this._error = "";
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+    }
+    this.requestUpdate();
+  }
+  private async refreshClock(station: Station) {
+    if (this._clockReads.has(station.id)) return;
+    this._clockReads.add(station.id);
+    this.requestUpdate();
+    const epoch = this._epoch;
+    try {
+      await this.api("stations/clock_refresh", { station_id: station.id });
+      if (epoch === this._epoch) await this.refresh();
+    } catch (e) {
+      if (epoch === this._epoch) this._error = this.errorText(e);
+    } finally {
+      this._clockReads.delete(station.id);
+      this.requestUpdate();
+    }
+  }
+  private clockView(station: Station) {
+    const clock = station.clock;
+    return html`<section class="clock-details">
+      <h4>${this.t("clock_title")}</h4>
+      <p>
+        ${this.t("clock_source_" + (clock?.source ?? "fallback"))} ·
+        <bdi>${clock?.zone.name ?? "UTC"}</bdi>
+      </p>
+      <p>
+        ${this.t("clock_device_time")}:
+        <bdi
+          >${clock?.device_time ? formatTime(clock.device_time, this.hass?.language, clock.device_zone ?? UTC_ZONE) : this.t("not_observed")}</bdi
+        >
+      </p>
+      <p>
+        ${this.t("clock_checked")}: <bdi>${this.dateText(clock?.checked_at ?? null, station)}</bdi>
+      </p>
+      ${clock?.skew_seconds !== null && clock?.skew_seconds !== undefined ? html`<p>${this.t("clock_skew")}: <bdi>${clock.skew_seconds} s</bdi> · ${clock.time_mode}</p>` : nothing}
+      ${clock?.error || !clock ? html`<p class="danger">${this.t(clock?.status === "stale" ? "clock_stale" : "clock_read_failed")}</p>` : nothing}
+      <p class="field-note">${this.t("clock_settings_hint")}</p>
+      <button
+        ?disabled=${this._clockReads.has(station.id) || !station.loaded}
+        @click=${() => this.refreshClock(station)}
+      >
+        ${this.t(this._clockReads.has(station.id) ? "loading" : "clock_refresh")}
+      </button>
+    </section>`;
   }
   private lastAccess(station: Station) {
     const event = station.last_access;
@@ -318,7 +397,7 @@ export class IntercomManagerPanel extends LitElement {
           ? html` <div>${event.person_name ?? event.employee_no ?? this.t("unknown_person")}</div>
               <div class="sub">${this.t(event.event_type)} · ${this.t(event.authentication)}</div>
               <div class="sub">
-                <bdi>${this.dateText(event.timestamp)}</bdi>
+                <bdi>${this.dateText(event.timestamp, station)}</bdi>
                 ${event.time_source === "received" ? html` · ${this.t("receipt_time")}` : nothing}
                 ${event.recovered ? html` · ${this.t("historical_record")}` : nothing}
               </div>`
@@ -344,6 +423,14 @@ export class IntercomManagerPanel extends LitElement {
           valid_until: null,
           timed: false,
         };
+    this._validityStation =
+      Object.keys(this._draft.assignments).find((id) =>
+        this._data?.stations.some((s) => s.id === id),
+      ) ??
+      this._data?.stations.find((s) => s.lock_enabled)?.id ??
+      "";
+    this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
     this._error = "";
     this._dialog = "editor";
   }
@@ -377,6 +464,12 @@ export class IntercomManagerPanel extends LitElement {
     const sync_now = (event.submitter as HTMLButtonElement | null)?.value === "sync";
     const draft = this._draft;
     if (!draft || this._busy) return;
+    try {
+      if (draft.timed) this.readValidity();
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+      return;
+    }
     if (draft.pin && draft.pin !== draft.confirm_pin) {
       this._error = this.t("pin_mismatch");
       return;
@@ -921,7 +1014,8 @@ export class IntercomManagerPanel extends LitElement {
       role="status"
     >
       <span class="sub"
-        >${this.t("last_release_request")} · <bdi>${this.dateText(state.requestedAt)}</bdi></span
+        >${this.t("last_release_request")} ·
+        <bdi>${this.dateText(state.requestedAt, station)}</bdi></span
       >
       <p>${this.t(state.code)}</p>
     </div>`;
@@ -1046,7 +1140,7 @@ export class IntercomManagerPanel extends LitElement {
                     <p class="sub pending-users">
                       ${this.t("pending_users")}: ${station.pending_user_count}
                     </p>
-                    ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen)}</bdi></p>` : nothing}
+                    ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen, station)}</bdi></p>` : nothing}
                     ${
                       station.lock_enabled
                         ? html`<div class="row actions">${this.releaseButton(station, true)}</div>
@@ -1185,7 +1279,7 @@ export class IntercomManagerPanel extends LitElement {
         <dt>${this.t("history_recovery")}</dt>
         <dd>${this.t(`event_${station.event_status?.history ?? "unknown"}`)}</dd>
         <dt>${this.t("history_until")}</dt>
-        <dd><bdi>${this.dateText(station.event_status?.recovered_until ?? null)}</bdi></dd>
+        <dd><bdi>${this.dateText(station.event_status?.recovered_until ?? null, station)}</bdi></dd>
       </dl>
     </section>`;
   }
@@ -1207,7 +1301,7 @@ export class IntercomManagerPanel extends LitElement {
                   ["model", station.model],
                   ["firmware", station.firmware],
                   ["address", station.host],
-                  ["last_seen", this.dateText(station.last_seen)],
+                  ["last_seen", this.dateText(station.last_seen, station)],
                   [
                     "last_poll",
                     station.last_poll_ms === null
@@ -1216,12 +1310,10 @@ export class IntercomManagerPanel extends LitElement {
                   ],
                   ["managed_users", station.managed_user_count ?? this.t("not_observed")],
                   ["pending_users", station.pending_user_count],
-                  ["last_reconciliation", this.dateText(station.reconciled_at)],
+                  ["last_reconciliation", this.dateText(station.reconciled_at, station)],
                   [
                     "last_scan",
-                    station.scanned_at
-                      ? new Date(station.scanned_at).toLocaleString(this.hass?.language)
-                      : "—",
+                    station.scanned_at ? this.dateText(station.scanned_at, station) : "—",
                   ],
                   [
                     "users",
@@ -1244,7 +1336,7 @@ export class IntercomManagerPanel extends LitElement {
                       <dd><bdi>${text}</bdi></dd>`,
                 )}
               </dl>
-              ${this.capabilityDetails(station)}
+              ${this.clockView(station)} ${this.capabilityDetails(station)}
               <p class="field-note">${this.t("inspection_hint")}</p>
               ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}
               ${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}
@@ -1409,19 +1501,40 @@ export class IntercomManagerPanel extends LitElement {
           />${this.t("period")}</label
         >${
           draft.timed
-            ? html`<div class="fields" style="margin-top:14px">
+            ? html`<label
+                  >${this.t("clock_validity_basis")}<select
+                    aria-label=${this.t("clock_validity_basis")}
+                    @change=${(e: Event) => {
+                      this.changeValidityZone(value(e));
+                      (e.target as HTMLSelectElement).value = this._validityStation;
+                    }}
+                  >
+                    <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
+                      UTC
+                    </option>
+                    <option value="" ?selected=${this._validityStation === ""}>
+                      ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
+                    </option>
+                    ${this._data?.stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
+                  </select></label
+                >
+                <div class="fields" style="margin-top:14px">
                   <label
                     >${this.t("valid_from")}<input
                       required
                       type="datetime-local"
-                      .value=${localTime(draft.valid_from)}
-                      @input=${(event: Event) => this.patchDraft("valid_from", value(event) ? new Date(value(event)).toISOString() : null)} /></label
+                      .value=${this._validityFrom}
+                      @input=${(event: Event) => {
+                        this._validityFrom = value(event);
+                      }} /></label
                   ><label
                     >${this.t("valid_until")}<input
                       required
                       type="datetime-local"
-                      .value=${localTime(draft.valid_until)}
-                      @input=${(event: Event) => this.patchDraft("valid_until", value(event) ? new Date(value(event)).toISOString() : null)}
+                      .value=${this._validityUntil}
+                      @input=${(event: Event) => {
+                        this._validityUntil = value(event);
+                      }}
                   /></label>
                 </div>
                 <p class="field-note">${this.t("validity_hint")}</p>`
@@ -1707,8 +1820,23 @@ export class IntercomManagerPanel extends LitElement {
       const valid = state.validity;
       if (!valid.timed) return this.t("permanent");
       return html`<span
-          >${valid.time_type === "UTC" ? this.dateText(valid.from) : valid.from} →
-          ${valid.time_type === "UTC" ? this.dateText(valid.until) : valid.until}</span
+          >${
+            valid.time_type === "UTC"
+              ? this.dateText(
+                  valid.from,
+                  this._data?.stations.find((s) => s.id === this._reviewStation),
+                )
+              : valid.from
+          }
+          →
+          ${
+            valid.time_type === "UTC"
+              ? this.dateText(
+                  valid.until,
+                  this._data?.stations.find((s) => s.id === this._reviewStation),
+                )
+              : valid.until
+          }</span
         ><span class="sub">
           · ${valid.time_type === "UTC" ? this.t("review_utc") : this.t("review_local")}</span
         >`;
@@ -1767,10 +1895,25 @@ export class IntercomManagerPanel extends LitElement {
       </div>
       <p class="field-note">${this.t("review_hint")}</p>
       <p class="sub">
-        ${this.t("review_timestamp")}: ${this.dateText(review.reviewed_at)} · ${this.t("desired")}:
-        ${review.revision ?? "—"} · ${this.t("applied")}: ${assignment?.applied_revision ?? "—"}
+        ${this.t("review_timestamp")}:
+        ${this.dateText(
+          review.reviewed_at,
+          this._data?.stations.find((s) => s.id === this._reviewStation),
+        )}
+        · ${this.t("desired")}: ${review.revision ?? "—"} · ${this.t("applied")}:
+        ${assignment?.applied_revision ?? "—"}
       </p>
-      ${assignment?.last_sync_at ? html`<p class="sub">${this.t("last_reconciliation")}: ${this.dateText(assignment.last_sync_at)}</p>` : nothing}
+      ${
+        assignment?.last_sync_at
+          ? html`<p class="sub">
+              ${this.t("last_reconciliation")}:
+              ${this.dateText(
+                assignment.last_sync_at,
+                this._data?.stations.find((s) => s.id === this._reviewStation),
+              )}
+            </p>`
+          : nothing
+      }
       ${assignment ? html`<p>${this.badge(assignment.sync_state ?? "pending")}${assignment.last_error ? html` <span class="danger">${this.t(assignment.last_error)}</span>` : nothing}</p>` : nothing}
       ${this.reviewStale() && !this._error ? html`<p class="notice error" role="alert">${this.t("review_revision_changed")}</p>` : nothing}
       ${!review.active ? html`<p class="notice">${this.t("review_inactive")}</p>` : nothing}
@@ -1954,6 +2097,7 @@ export class IntercomManagerPanel extends LitElement {
                       : html`<hikvision-intercom-events
                           .hass=${this.hass}
                           .stations=${this._data.stations}
+                          .defaultZone=${this._data.default_zone ?? UTC_ZONE}
                         ></hikvision-intercom-events>`
         }
       </main>
