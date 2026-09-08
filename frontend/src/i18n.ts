@@ -1,4 +1,8 @@
 const en = {
+  schedule_revision_conflict:
+    "This schedule changed while you were editing. Reload drafts and review the latest version before saving.",
+  schedule_storage_unavailable:
+    "Schedule storage could not be loaded. Check the schedule Repair in Home Assistant; existing user access remains independent.",
   schedules: "Access schedules",
   schedule_intro:
     "Prepare named weekly schedules and holiday exceptions. These drafts are stored in Home Assistant only; they are not assigned to users or enforced by stations.",
@@ -506,6 +510,10 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  schedule_revision_conflict:
+    "תוכנית השעות השתנתה בזמן העריכה. טענו את הטיוטות מחדש ובדקו את הגרסה העדכנית לפני שמירה.",
+  schedule_storage_unavailable:
+    "אחסון תוכניות השעות לא נטען. בדקו את התיקון הנדרש ב־Home Assistant; הרשאות המשתמשים הקיימות נשארות עצמאיות.",
   schedules: "תוכניות שעות",
   schedule_intro:
     "הכנת תוכניות שבועיות וחריגי חגים. הטיוטות נשמרות ב־Home Assistant בלבד; הן אינן משויכות למשתמשים ואינן נאכפות בתחנות.",

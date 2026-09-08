@@ -70,7 +70,7 @@ def normalize(data: Any) -> dict[str, Any]:
     holidays = data["holidays"]
     if not isinstance(holidays, list) or len(holidays) > MAX_HOLIDAYS:
         raise AccessError("schedule_holiday_limit")
-    result = []
+    result: list[dict[str, Any]] = []
     for holiday in holidays:
         if not isinstance(holiday, dict) or set(holiday) != {"name", "start", "end", "periods"}:
             raise AccessError("invalid_fields")

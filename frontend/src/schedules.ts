@@ -217,7 +217,7 @@ export class IntercomSchedules extends LitElement {
         this._preview = undefined;
       }
     } catch (e) {
-      if (this.current(epoch)) this._error = this.t((e as { code?: string }).code ?? "failed");
+      if (this.current(epoch)) this._error = this.errorText(e);
     } finally {
       if (this.current(epoch)) this._busy = false;
     }
@@ -267,11 +267,40 @@ export class IntercomSchedules extends LitElement {
       if (this.current(epoch)) this._busy = false;
     }
   }
+  private errorText(e: unknown) {
+    const code = (e as { code?: string })?.code;
+    return this.t(
+      code === "revision_conflict"
+        ? "schedule_revision_conflict"
+        : code === "invalid_storage"
+          ? "schedule_storage_unavailable"
+          : (code ?? "failed"),
+    );
+  }
   private mutationError(e: unknown) {
     const code = (e as { code?: string })?.code;
-    this._error = this.t(code ?? "schedule_save_unknown");
-    // Lost acknowledgement or generic server failure may follow a durable commit.
-    if (!code || ["action_failed", "unknown_error", "timeout"].includes(code)) {
+    const rejected = new Set([
+      "revision_conflict",
+      "schedule_not_found",
+      "schedule_limit",
+      "invalid_fields",
+      "invalid_text",
+      "invalid_id",
+      "invalid_storage",
+      "storage_stopping",
+      "storage_write_failed",
+      "schedule_invalid_time",
+      "schedule_period_limit",
+      "schedule_overlap",
+      "schedule_invalid_date",
+      "schedule_invalid_week",
+      "schedule_holiday_limit",
+      "schedule_holiday_overlap",
+      "unauthorized",
+      "rate_limited",
+    ]);
+    this._error = this.errorText(e);
+    if (!code || !rejected.has(code)) {
       this._uncertain = true;
       this._error = this.t("schedule_save_unknown");
     }
@@ -317,7 +346,7 @@ export class IntercomSchedules extends LitElement {
       });
       if (this.current(epoch)) this._preview = result;
     } catch (e) {
-      if (this.current(epoch)) this._error = this.t((e as { code?: string }).code ?? "failed");
+      if (this.current(epoch)) this._error = this.errorText(e);
     } finally {
       if (this.current(epoch)) this._busy = false;
     }
@@ -336,7 +365,7 @@ export class IntercomSchedules extends LitElement {
         this._readiness = report;
       }
     } catch (e) {
-      if (this.current(epoch)) this._error = this.t((e as { code?: string }).code ?? "failed");
+      if (this.current(epoch)) this._error = this.errorText(e);
     } finally {
       if (this.current(epoch)) this._reading = false;
     }

@@ -60,7 +60,7 @@ test("unknown save result requires explicit reload and does not duplicate drafts
     const original = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = async (message) => {
       const result = await original(message);
-      if (message.type.endsWith("schedules/create")) throw new Error("lost ack");
+      if (message.type.endsWith("schedules/create")) throw { code: "connection_lost" };
       return result;
     };
   });
@@ -88,7 +88,9 @@ test("revision conflict preserves edited draft and unsaved navigation can be can
   await expect(page.getByLabel("Schedule name", { exact: true })).toHaveValue("Unsaved office");
   await page.evaluate(() => window.demoSchedules[0].revision++);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText(
+    "This schedule changed while you were editing.",
+  );
   await expect(page.getByLabel("Schedule name", { exact: true })).toHaveValue("Unsaved office");
 });
 
