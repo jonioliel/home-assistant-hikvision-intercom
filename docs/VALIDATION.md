@@ -236,3 +236,11 @@ external HA unlocking state, discarded late results, reconnect subscriptions and
 HA transport tests use two distinct mock station runtimes and verify second-station completion
 while the first remains blocked, rejection of a same-target duplicate, and a later first-station
 failure without changing the second result. No live station or physical lock was used.
+
+
+Independent-door code `93538ecc24bd4e23791ac8ba3c3191be516b407f` passed all branch CI:
+354 protocol/access tests on Python 3.12/3.14, 123 actual HA tests, 38 browser tests,
+Ruff, mypy, TypeScript and reproducible bundle checks. ConfigFlow coverage remains 100%.
+Python checks34259688049; HACS34259688072; Hassfest34259688067. HA job102174232294
+confirms independent runtime completion, same-target guarding and safe failure translation.
+These tests mock device I/O and do not close the outstanding physical commissioning gates.
