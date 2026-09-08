@@ -11,7 +11,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client.client import CallState, HikvisionClient
-from .const import DEFAULT_ACTIVE_INTERVAL, DEFAULT_IDLE_INTERVAL
+from .configuration import PollOptions
 from .exceptions import HikvisionAuthError, HikvisionError
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,8 +22,9 @@ class IntercomCoordinator(DataUpdateCoordinator[CallState]):
         self, hass: HomeAssistant, entry: ConfigEntry[Any], client: HikvisionClient
     ) -> None:
         self.client = client
-        self.idle_interval = float(entry.options.get("idle_interval", DEFAULT_IDLE_INTERVAL))
-        self.active_interval = float(entry.options.get("active_interval", DEFAULT_ACTIVE_INTERVAL))
+        options = PollOptions.from_mapping(entry.options)
+        self.idle_interval = options.idle
+        self.active_interval = options.active
         self.failures = 0
         self.jitter = hashlib.sha256(entry.entry_id.encode()).digest()[0] / 2550
         super().__init__(

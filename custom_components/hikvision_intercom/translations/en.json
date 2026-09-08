@@ -95,6 +95,9 @@
           "pulse_seconds": "Display release duration (seconds)"
         }
       }
+    },
+    "error": {
+      "invalid_options": "Polling and display durations must be finite values within the allowed ranges."
     }
   },
   "entity": {

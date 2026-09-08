@@ -44,6 +44,8 @@ class ConnectionSettings:
     rtsp_port: int = 554
 
     def __post_init__(self) -> None:
+        if not isinstance(self.host, str):
+            raise HikvisionValidationError("Invalid host")
         object.__setattr__(self, "host", validate_host(self.host))
         if self.scheme not in {"http", "https"} or type(self.verify_ssl) is not bool:
             raise HikvisionValidationError("Invalid connection security settings")

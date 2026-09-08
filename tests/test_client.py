@@ -292,3 +292,11 @@ async def test_cancellation_releases_request_lock():
         with pytest.raises(asyncio.CancelledError):
             await task
         assert not client._io_lock.locked()
+
+
+@pytest.mark.parametrize("value", [True, False, float("nan"), float("inf"), -1, 0, 1000, "2"])
+def test_invalid_poll_options(value):
+    from custom_components.hikvision_intercom.configuration import PollOptions
+
+    with pytest.raises(HikvisionValidationError):
+        PollOptions.from_mapping({"idle_interval": value})

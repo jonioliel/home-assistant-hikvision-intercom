@@ -31,5 +31,5 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-      - run: python -m pip install -e ".[dev]" pytest-homeassistant-custom-component==0.13.364
+      - run: python -m pip install pytest-homeassistant-custom-component==0.13.364 defusedxml==0.7.1
       - run: python -m pytest tests/ha --cov=custom_components.hikvision_intercom --cov-report=term-missing

@@ -7,7 +7,7 @@ from datetime import datetime
 import httpx
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryError,
@@ -24,8 +24,8 @@ from homeassistant.helpers.service import (
 )
 
 from .client.client import ConnectionSettings, HikvisionClient, StationProfile, create_session
-from .configuration import ManagedLock, managed_locks
-from .const import DEFAULT_PULSE_SECONDS, DOMAIN, PLATFORMS
+from .configuration import ManagedLock, PollOptions, managed_locks
+from .const import DOMAIN, PLATFORMS
 from .coordinator import IntercomCoordinator
 from .exceptions import (
     HikvisionAuthError,
@@ -73,6 +73,7 @@ class IntercomRuntime:
             self.unlocking = False
             self.coordinator.async_update_listeners()
 
+    @callback
     def _finish_pulse(self, _now: datetime) -> None:
         self.released = False
         self._cancel_pulse = None
@@ -97,6 +98,7 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
     try:
         settings = ConnectionSettings.from_mapping(entry.data)
         locks = managed_locks(entry.data)
+        options = PollOptions.from_mapping(entry.options)
     except (HikvisionValidationError, KeyError):
         raise ConfigEntryError(
             "Invalid saved intercom configuration; reconfigure the station"
@@ -124,7 +126,7 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
             coordinator,
             profile,
             locks,
-            float(entry.options.get("pulse_seconds", DEFAULT_PULSE_SECONDS)),
+            options.pulse,
         )
         registry = er.async_get(hass)
         if not locks:
@@ -163,6 +165,7 @@ async def async_unload_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) 
     return True
 
 
+@callback
 def async_register_services(hass: HomeAssistant) -> None:
     if hass.services.has_service(DOMAIN, "unlock_door"):
         return
@@ -193,7 +196,14 @@ def async_register_services(hass: HomeAssistant) -> None:
         vol.Schema(
             {
                 **cv.ENTITY_SERVICE_FIELDS,
-                vol.Required("lock", default=1): vol.All(vol.Coerce(int), vol.In([1])),
+                vol.Required("lock", default=1): _physical_lock,
             }
         ),
     )
+
+
+def _physical_lock(value: object) -> int:
+    """Accept the UI's string selection or exact integer; never coerce booleans/floats."""
+    if (type(value) is int and value == 1) or (type(value) is str and value == "1"):
+        return 1
+    raise vol.Invalid("Only physical lock 1 is managed")

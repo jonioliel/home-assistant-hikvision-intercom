@@ -1,7 +1,8 @@
 unlock_door:
   target:
-    device:
+    entity:
       integration: hikvision_intercom
+      domain: lock
   fields:
     lock:
       required: true
