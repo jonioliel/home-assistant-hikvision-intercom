@@ -2,7 +2,7 @@
 
 Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
-[Current Hebrew scope and phase audit — 0.14](STATUS_0_14_HE.md): mandatory v1 acceptance
+[Hebrew scope and phase audit — 0.14 baseline](STATUS_0_14_HE.md): mandatory v1 acceptance
 28/38 (73.7%); Phase 5 deliverables8/9 (88.9%); Phase 6 software features3/9 (33.3%).
 These use distinct denominators and are not effort estimates or interchangeable completion rates.
 
@@ -14,7 +14,7 @@ These use distinct denominators and are not effort estimates or interchangeable 
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
+| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 and read-only assessment in 0.15 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -224,3 +224,18 @@ This cross-phase correction does not close physical acceptance: 28/38 (73.7%) re
 
 Clock implementation `8c09e8a` passed732 tests (501 protocol/access,159 actual HA,72 browser),
 strict typing33 modules, HACS and Hassfest. See VALIDATION.md for exact jobs and release gate.
+
+
+## 0.15 — schedule inventory and draft compatibility
+
+Phase 6 schedule work now includes firmware-verified Search reads and comparison of the selected
+local draft against advertised period, precision, weekday and resource limits. Live counts are
+255 templates, 255 weekly plans, 64 holiday groups and a partial 300/1024 holiday plans.
+An enabled holiday group and references from disabled templates demonstrate why disabled records
+cannot be treated as free. No resource allocation, schedule writing or user association is enabled.
+[Usage, protocol evidence and limits](SCHEDULE_INVENTORY.md).
+
+The two schedule features remain partial. Phase 6 still has 3/9 implemented features, 2 partial
+and 4 unimplemented; Phase 5 remains 8/9 deliverables. Mandatory acceptance stays 28/38 (73.7%).
+No physical gate has been closed by this read-only development. The 0.14 report is retained as a
+historical scope audit; the evidence above updates its schedule-reading limitation.

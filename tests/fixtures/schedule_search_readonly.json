@@ -1,0 +1,199 @@
+{
+  "provenance": "Read-only firmware search response projections. Names, window contents and private identifiers are omitted; response counts are unchanged.",
+  "search_capability": {
+    "searchID": {
+      "@min": 1,
+      "@max": 32
+    },
+    "searchResultPosition": {
+      "@min": 1,
+      "@max": 256
+    },
+    "maxResults": {
+      "@min": 1,
+      "@max": 100
+    },
+    "enable": {
+      "@opt": [
+        true,
+        false
+      ]
+    }
+  },
+  "samples": {
+    "template": {
+      "responseStatus": "MORE",
+      "totalMatches": 255,
+      "numOfMatches": 20,
+      "matchResults": [
+        {
+          "planTemplateID": 1,
+          "enable": false,
+          "weekPlanNo": 1,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 2,
+          "enable": false,
+          "weekPlanNo": 2,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 3,
+          "enable": false,
+          "weekPlanNo": 3,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 4,
+          "enable": false,
+          "weekPlanNo": 4,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 5,
+          "enable": false,
+          "weekPlanNo": 5,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 6,
+          "enable": false,
+          "weekPlanNo": 6,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 7,
+          "enable": false,
+          "weekPlanNo": 7,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 8,
+          "enable": false,
+          "weekPlanNo": 8,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 9,
+          "enable": false,
+          "weekPlanNo": 9,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 10,
+          "enable": false,
+          "weekPlanNo": 10,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 11,
+          "enable": false,
+          "weekPlanNo": 11,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 12,
+          "enable": false,
+          "weekPlanNo": 12,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 13,
+          "enable": false,
+          "weekPlanNo": 13,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 14,
+          "enable": false,
+          "weekPlanNo": 14,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 15,
+          "enable": false,
+          "weekPlanNo": 15,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 16,
+          "enable": false,
+          "weekPlanNo": 16,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 17,
+          "enable": false,
+          "weekPlanNo": 17,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 18,
+          "enable": false,
+          "weekPlanNo": 18,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 19,
+          "enable": false,
+          "weekPlanNo": 19,
+          "holidayGroupNo": ""
+        },
+        {
+          "planTemplateID": 20,
+          "enable": false,
+          "weekPlanNo": 20,
+          "holidayGroupNo": ""
+        }
+      ]
+    },
+    "weekly": {
+      "responseStatus": "MORE",
+      "totalMatches": 255,
+      "numOfMatches": 2,
+      "matchResults": [
+        {
+          "weekPlanID": 1,
+          "enable": false
+        },
+        {
+          "weekPlanID": 2,
+          "enable": false
+        }
+      ]
+    },
+    "holiday_group": {
+      "responseStatus": "MORE",
+      "totalMatches": 64,
+      "numOfMatches": 2,
+      "matchResults": [
+        {
+          "holidayGroupID": 1,
+          "enable": true,
+          "holidayPlanNo": ""
+        },
+        {
+          "holidayGroupID": 2,
+          "enable": false,
+          "holidayPlanNo": ""
+        }
+      ]
+    },
+    "holiday": {
+      "responseStatus": "MORE",
+      "totalMatches": 1024,
+      "numOfMatches": 2,
+      "matchResults": [
+        {
+          "holidayPlanID": 1,
+          "enable": false
+        },
+        {
+          "holidayPlanID": 2,
+          "enable": false
+        }
+      ]
+    }
+  }
+}

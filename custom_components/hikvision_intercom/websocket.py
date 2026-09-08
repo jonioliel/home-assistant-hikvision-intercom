@@ -16,8 +16,11 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .access.models import AccessError
+from .access.schedule_assessment import assess
 from .access.schedules import ScheduleLibrary, preview
+from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
+from .client.schedule_inventory import inspect_inventory
 from .client.schedules import inspect_schedules
 from .configuration import managed_locks
 from .const import DOMAIN, VERSION
@@ -46,6 +49,7 @@ COMMANDS = {
     "schedules/delete": {"schedule_id": str, "revision": int},
     "schedules/preview": {"data": dict, "date": str, "time": str},
     "schedules/readiness": {"station_id": str},
+    "schedules/assess": {"station_id": str, "data": dict},
     "cards/reader_capabilities": {"station_id": str},
     "cards/capture_start": {"station_id": str, "user_id": str, "revision": int, "reader_id": int},
     "cards/capture_status": {"session_id": str},
@@ -188,7 +192,8 @@ async def _dispatch(
             return {"cancelled": True}
         return await enrollment.confirm(msg["session_id"], actor, msg["label"])
     if command.startswith("schedules/"):
-        if command == "schedules/readiness":
+        if command in {"schedules/readiness", "schedules/assess"}:
+            draft = normalize_schedule(msg["data"]) if command == "schedules/assess" else None
             station = manager._station(msg["station_id"])
             driver = manager._driver(station)
             busy = hass.data[DOMAIN].setdefault("schedule_reads", set())
@@ -196,11 +201,17 @@ async def _dispatch(
                 raise AccessError("schedule_read_busy")
             busy.add(station.id)
             try:
-                async with asyncio.timeout(40):
+                async with asyncio.timeout(70 if draft is not None else 40):
                     async with manager._read_slots:
-                        result = await inspect_schedules(driver.client)
+                        result = (
+                            await inspect_inventory(driver.client)
+                            if draft is not None
+                            else await inspect_schedules(driver.client)
+                        )
                 if station.driver is not driver or manager._closed:
                     raise AccessError("station_unloaded")
+                if draft is not None:
+                    result["assessment"] = assess(draft, result)
                 return result
             except TimeoutError:
                 raise AccessError("connection_failed") from None

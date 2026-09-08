@@ -118,3 +118,105 @@ async def test_missing_schedule_store_blocks_drafts_but_not_overview(
     result = await request(client, "schedules/list")
     assert result["error"]["code"] == "invalid_storage"
     assert (await request(client, "overview"))["success"]
+
+
+def inventory_summary():
+    return {
+        "checked_at": "2026-09-09T00:00:00+00:00",
+        "complete": False,
+        "can_apply": False,
+        "ownership_checked": False,
+        "users_checked": False,
+        "checks": [
+            {"kind": k, "capabilities": None, "state": "failed"}
+            for k in ("template", "weekly", "holiday_group", "holiday")
+        ],
+    }
+
+
+async def test_assessment_reads_fresh_inventory_and_does_not_save_or_write(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    data = draft()
+    data["name"] = "PRIVATE_DRAFT_NAME"
+    before = hass.data[DOMAIN]["schedules"].list()
+    with patch(
+        "custom_components.hikvision_intercom.websocket.inspect_inventory",
+        AsyncMock(return_value=inventory_summary()),
+    ) as inspect:
+        result = await request(
+            client, "schedules/assess", station_id=loaded_entry.entry_id, data=data
+        )
+    assert result["success"] and inspect.await_count == 1
+    assert (
+        result["result"]["assessment"]["state"] == "unknown" and not result["result"]["can_apply"]
+    )
+    assert "PRIVATE_DRAFT_NAME" not in json.dumps(result)
+    assert hass.data[DOMAIN]["schedules"].list() == before
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
+async def test_invalid_draft_is_rejected_before_inventory_read(hass, loaded_entry, hass_ws_client):
+    client = await hass_ws_client(hass)
+    data = draft()
+    data["weekly"]["Monday"][0]["start"] = "bad"
+    with patch(
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", AsyncMock()
+    ) as inspect:
+        result = await request(
+            client, "schedules/assess", station_id=loaded_entry.entry_id, data=data
+        )
+    assert result["error"]["code"] == "schedule_invalid_time" and not inspect.called
+
+
+async def test_assessment_shares_station_and_fleet_read_limits(hass, loaded_entry, hass_ws_client):
+    client = await hass_ws_client(hass)
+    hass.data[DOMAIN]["schedule_reads"] = {loaded_entry.entry_id}
+    with patch(
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", AsyncMock()
+    ) as inspect:
+        result = await request(
+            client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft()
+        )
+    assert result["error"]["code"] == "schedule_read_busy" and not inspect.called
+    hass.data[DOMAIN]["schedule_reads"] = set()
+
+
+async def test_assessment_does_not_need_writable_draft_storage(hass, loaded_entry, hass_ws_client):
+    client = await hass_ws_client(hass)
+    hass.data[DOMAIN]["schedules"] = None
+    with patch(
+        "custom_components.hikvision_intercom.websocket.inspect_inventory",
+        AsyncMock(return_value=inventory_summary()),
+    ):
+        result = await request(
+            client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft()
+        )
+    assert result["success"] and not hass.data[DOMAIN]["schedule_reads"]
+
+
+async def test_assessment_rejects_late_result_after_station_unload(
+    hass, loaded_entry, hass_ws_client
+):
+    import asyncio
+
+    client = await hass_ws_client(hass)
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def inspect(_):
+        entered.set()
+        await release.wait()
+        return inventory_summary()
+
+    with patch("custom_components.hikvision_intercom.websocket.inspect_inventory", inspect):
+        task = asyncio.create_task(
+            request(client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft())
+        )
+        await entered.wait()
+        await hass.config_entries.async_unload(loaded_entry.entry_id)
+        release.set()
+        result = await task
+    assert result["error"]["code"] == "station_unloaded"
+    assert not hass.data[DOMAIN]["schedule_reads"]

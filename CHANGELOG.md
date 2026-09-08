@@ -4,6 +4,38 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.15.0-alpha.1] - 2026-09-09
+
+### Added
+- Draft compatibility assessment in Access schedules: select a station, check the current
+  draft against its advertised period counts, time precision, weekdays and resource ranges,
+  and download the result. Unknown constraints remain explicit. Edits, station changes,
+  reloads and navigation invalidate old or late assessment results.
+- Read-only schedule inventory through firmware-observed Search endpoints. Searches read
+  validated pages for templates, weeks, holiday groups and holidays using advertised bounds.
+  Reports distinguish completed, partial, unsupported and failed queries and show validated
+  counts and references without station configuration names or raw records.
+- A separate I/O lane preserves ordinary call/release access while checking schedules.
+  Identity checks, a 60-second read deadline, bounded pagination, shared per-station/fleet
+  admission and administrator-only access govern every check. No automatic write or retry.
+
+### Fixed
+- Diagnostics can now read schedule records even when direct per-ID GET requests return
+  device status 3. A failed GET remains a failure; it is not reinterpreted as an empty slot.
+- Activity-report documentation now describes the station-local grouping introduced in 0.14.
+
+### Evidence and limits
+- Live production-client reads returned 255 templates, 255 weekly plans and 64 holiday groups,
+  including one enabled holiday group. 300 of 1024 holiday plans were read before reaching the
+  advertised search-position bound; the result is explicitly partial. These are records read,
+  not available allocation slots. The Search query enable=false can return enabled records.
+- Ownership and user references are not scanned. Disabled records and identifier ranges are
+  never treated as free capacity. Holiday group member limits are not inferred from ID ranges.
+- Applying schedules, allocating device resources and assigning them to users remain unavailable.
+  No schedule configuration, access credential, clock or relay writes occurred in this work.
+- This improves the two partial Phase 6 schedule features; mandatory acceptance remains 28/38
+  (73.7%). Physical PIN/validity/card/ring/video/fleet commissioning remains open.
+
 ## [0.14.0-alpha.1] - 2026-09-09
 
 ### Fixed

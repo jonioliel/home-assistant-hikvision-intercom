@@ -44,6 +44,27 @@ interface Readiness {
     error: string | null;
   }[];
 }
+interface Assessment {
+  checked_at: string;
+  complete: boolean;
+  can_apply: false;
+  checks: {
+    kind: string;
+    state: string;
+    error: string | null;
+    read: number;
+    total: number | null;
+    enabled: number | null;
+    disabled: number | null;
+    referenced: number | null;
+  }[];
+  assessment: {
+    state: string;
+    can_apply: false;
+    limits: { key: string; needed: number; available: number | null; state: string }[];
+    blockers: string[];
+  };
+}
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -145,6 +166,8 @@ export class IntercomSchedules extends LitElement {
     _notice: { state: true },
     _preview: { state: true },
     _readiness: { state: true },
+    _assessment: { state: true },
+    _assessing: { state: true },
     _uncertain: { state: true },
   };
   hass?: Hass;
@@ -159,6 +182,10 @@ export class IntercomSchedules extends LitElement {
   private _dirty = false;
   private _preview?: Preview;
   private _readiness?: Readiness;
+  private _assessment?: Assessment;
+  private _assessing = false;
+  private _assessmentSequence = 0;
+  private _assessmentStation = "";
   private _station = "";
   private _checkStation = "";
   private _date = today();
@@ -179,6 +206,8 @@ export class IntercomSchedules extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this.invalidateAssessment();
+    this._assessing = false;
     this._items = [];
     this._draft = undefined;
     this._readiness = undefined;
@@ -212,6 +241,7 @@ export class IntercomSchedules extends LitElement {
       const items = await this.api<Schedule[]>("list");
       if (this.current(epoch)) {
         this._items = items;
+        this.invalidateAssessment();
         this._draft = undefined;
         this._dirty = false;
         this._uncertain = false;
@@ -225,6 +255,7 @@ export class IntercomSchedules extends LitElement {
   }
   private edit(item?: Schedule) {
     if (this._busy || this._uncertain || !this.discard()) return;
+    this.invalidateAssessment();
     this._draft = item
       ? structuredClone(item)
       : { name: "", weekly: Object.fromEntries(days.map((day) => [day, []])), holidays: [] };
@@ -235,6 +266,7 @@ export class IntercomSchedules extends LitElement {
   }
   private change(action: () => void) {
     action();
+    this.invalidateAssessment();
     this._dirty = true;
     this._preview = undefined;
     this._notice = "";
@@ -258,6 +290,7 @@ export class IntercomSchedules extends LitElement {
       });
       if (this.current(epoch)) {
         this._items = [...this._items.filter((s) => s.id !== item.id), item];
+        this.invalidateAssessment();
         this._draft = structuredClone(item);
         this._dirty = false;
         this._notice = this.t("schedule_saved");
@@ -322,6 +355,7 @@ export class IntercomSchedules extends LitElement {
       await this.api("delete", { schedule_id: d.id, revision: d.revision });
       if (this.current(epoch)) {
         this._items = this._items.filter((s) => s.id !== d.id);
+        this.invalidateAssessment();
         this._draft = undefined;
         this._dirty = false;
         this._preview = undefined;
@@ -353,7 +387,7 @@ export class IntercomSchedules extends LitElement {
     }
   }
   private async readiness() {
-    if (this._reading || !this._station) return;
+    if (this._assessing || this._reading || !this._station) return;
     const epoch = this._epoch,
       station = this._station;
     this._reading = true;
@@ -370,6 +404,96 @@ export class IntercomSchedules extends LitElement {
     } finally {
       if (this.current(epoch)) this._reading = false;
     }
+  }
+  private invalidateAssessment() {
+    this._assessmentSequence++;
+    this._assessment = undefined;
+  }
+  private async assessDraft() {
+    if (
+      this._assessing ||
+      this._reading ||
+      this._busy ||
+      this._uncertain ||
+      !this._draft ||
+      !this._station
+    )
+      return;
+    this.invalidateAssessment();
+    const epoch = this._epoch,
+      sequence = this._assessmentSequence,
+      station = this._station;
+    this._assessing = true;
+    this._error = "";
+    try {
+      const report = await this.api<Assessment>("assess", {
+        station_id: station,
+        data: this.data(),
+      });
+      if (
+        this.current(epoch) &&
+        sequence === this._assessmentSequence &&
+        station === this._station
+      ) {
+        this._assessmentStation = station;
+        this._assessment = report;
+      }
+    } catch (e) {
+      if (this.current(epoch) && sequence === this._assessmentSequence)
+        this._error = this.errorText(e);
+    } finally {
+      if (this.current(epoch)) this._assessing = false;
+    }
+  }
+  private assessmentView() {
+    const report = this._assessment;
+    if (!report) return nothing;
+    const station = this.stations.find((s) => s.id === this._assessmentStation);
+    return html`<section class="assessment" aria-label=${this.t("schedule_assessment")}>
+      <h3>${this.t("schedule_assessment")}</h3>
+      <p>
+        <strong>${station?.name}</strong> ·
+        <bdi
+          >${formatTime(report.checked_at, this.hass?.language, station?.clock?.zone ?? UTC_ZONE)}</bdi
+        >
+      </p>
+      <p class="notice" role="status">
+        ${this.t("schedule_assessment_" + report.assessment.state)}
+      </p>
+      <p class="hint">${this.t("schedule_limits_hint")}</p>
+      ${report.assessment.limits.map(
+        (limit) =>
+          html`<div class="check-row">
+            <strong>${this.t("schedule_limit_" + limit.key)}</strong> ·
+            ${this.t("schedule_limit_state_" + limit.state)}
+            ${!limit.key.endsWith("precision") && limit.key !== "weekdays" ? html`<p>${this.t("schedule_needed")}: ${limit.needed} · ${this.t("schedule_advertised_limit")}: ${limit.available ?? "—"}</p>` : nothing}
+          </div>`,
+      )}
+      <h3>${this.t("schedule_inventory")}</h3>
+      <p class="hint">${this.t("schedule_inventory_hint")}</p>
+      ${report.checks.map(
+        (item) =>
+          html`<div class="check-row inventory-row">
+            <strong>${this.t("schedule_kind_" + item.kind)}</strong> ·
+            ${this.t("schedule_inventory_" + item.state)}
+            <p>
+              ${this.t("schedule_records_read")}: <bdi>${item.read} / ${item.total ?? "—"}</bdi>
+            </p>
+            <p>
+              ${this.t("schedule_enabled_records")}: ${item.enabled ?? "—"} ·
+              ${this.t("schedule_disabled_records")}: ${item.disabled ?? "—"}
+            </p>
+            ${item.referenced !== null ? html`<p>${this.t("schedule_referenced_records")}: ${item.referenced}</p>` : nothing}
+            ${item.error ? html`<p class="danger">${this.t(item.error)}</p>` : nothing}
+          </div>`,
+      )}
+      <p class="hint">${report.assessment.blockers.map((key) => this.t(key)).join(" ")}</p>
+      <button
+        @click=${() => downloadText(JSON.stringify(report, null, 2), "hikvision-schedule-assessment.json", "application/json")}
+      >
+        ${this.t("schedule_export_assessment")}
+      </button>
+    </section>`;
   }
   private periodRows(items: Period[]) {
     return html`${items.map(
@@ -568,6 +692,7 @@ export class IntercomSchedules extends LitElement {
               @change=${(e: Event) => {
                 this._station = (e.target as HTMLSelectElement).value;
                 this._readiness = undefined;
+                this.invalidateAssessment();
                 this.requestUpdate();
               }}
             >
@@ -576,10 +701,16 @@ export class IntercomSchedules extends LitElement {
             </select></label
           >
           <button
-            ?disabled=${this._reading || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+            ?disabled=${this._assessing || this._reading || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
             @click=${() => this.readiness()}
           >
             ${this.t(this._reading ? "loading" : "schedule_check")}
+          </button>
+          <button
+            ?disabled=${this._reading || this._assessing || this._busy || this._uncertain || !d || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+            @click=${() => this.assessDraft()}
+          >
+            ${this.t(this._assessing ? "loading" : "schedule_assess")}
           </button>
         </div>
         ${
@@ -606,6 +737,7 @@ export class IntercomSchedules extends LitElement {
                 </button>`
             : nothing
         }
+        ${this.assessmentView()}
         <p class="hint">${this.t("schedule_apply_blocked")}</p>
       </section>`;
   }

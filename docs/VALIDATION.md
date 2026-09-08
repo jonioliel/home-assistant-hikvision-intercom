@@ -409,3 +409,28 @@ passes in both full CI suites with the completed versioned changelog.
 HA job102247708197 completed159 tests; frontend102247708205 completed72 tests.
 The code is on main; [gated release34281938284](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34281938284)
 validates the same commit before publishing v0.14.0-alpha.1. This evidence update changes no runtime code.
+
+
+## 0.15 — schedule inventory and compatibility assessment, 2026-09-09
+
+Local Windows validation: **533 protocol/access tests** and **77 Chromium browser tests** passed.
+Ruff lint/format, TypeScript, Prettier, frontend build and modified documentation links passed.
+The Hebrew mobile assessment screenshot was visually checked. The Master Spec remains identical
+to the owner-supplied file. The required Linux CI separately checks Python 3.12/3.14, strict mypy,
+actual Home Assistant 2026.9.1, reproducible frontend output, HACS and Hassfest before release.
+Local mypy remains unavailable because Windows application control blocks a dependency DLL;
+no local bypass was used.
+
+New tests exercise verified Search pagination/counts, partial bounds, invalid pages, identity,
+authentication, privacy, disabled-record references, independent request locks and draft limit
+assessment. HA cases cover invalid drafts before I/O, administrator guards, shared admission,
+unavailable draft storage, no writes and late unload. Browser cases cover editing/station changes,
+late responses, export, Hebrew mobile layout and other doors remaining independently available.
+
+The production reader confirmed the commissioned device identity and returned 255/255 templates,
+255/255 weeks, 64/64 holiday groups and 300/1024 holiday plans. The final inventory is partial
+because the advertised search-position maximum is 256. One holiday group is enabled; disabled
+templates reference 255 weekly IDs. No resource is inferred free. The read used 29 capability/search
+calls after identity confirmation, without credential, schedule, clock or relay mutations.
+See [the observed contract and sanitized fixture](SCHEDULE_INVENTORY.md). Physical gates and
+mandatory acceptance (28/38) are unchanged.

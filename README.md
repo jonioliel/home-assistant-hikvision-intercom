@@ -38,9 +38,10 @@ this core release.
 ## Schedule planning
 
 The administrator **Access schedules** tab saves named weekly/holiday drafts locally, previews
-window membership and runs read-only readiness checks against a station. Drafts are not assigned
-to users or enforced at doors: the observed firmware advertises all four schedule interfaces but
-rejects the sampled configuration reads. See [usage and remaining device work](docs/ACCESS_SCHEDULES.md).
+window membership and checks the selected draft against advertised station limits. Version 0.15
+adds a verified read-only Search inventory, with explicit partial results and unknown constraints.
+Drafts are not assigned to users or enforced at doors; disabled records do not mean free slots.
+See [draft editing](docs/ACCESS_SCHEDULES.md) and [compatibility assessment](docs/SCHEDULE_INVENTORY.md).
 
 ## Central access backend
 

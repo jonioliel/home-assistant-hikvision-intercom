@@ -27,7 +27,7 @@ const names = hebrew
     ];
 const data = {
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.14.0-alpha.1",
+  version: "0.15.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -223,6 +223,47 @@ const fake = {
         periods,
         date: message.date,
         time: message.time,
+      };
+    }
+    if (command === "schedules/assess") {
+      return {
+        checked_at: "2026-09-09T00:00:00Z",
+        complete: false,
+        can_apply: false,
+        users_checked: false,
+        ownership_checked: false,
+        checks: ["template", "weekly", "holiday_group", "holiday"].map((kind) => ({
+          kind,
+          state: kind === "holiday" ? "partial" : "complete",
+          error: kind === "holiday" ? "schedule_search_bound" : null,
+          read: kind === "holiday" ? 300 : 255,
+          total: kind === "holiday" ? 1024 : 255,
+          enabled: 0,
+          disabled: kind === "holiday" ? 300 : 255,
+          referenced: kind === "weekly" ? 255 : null,
+        })),
+        assessment: {
+          state: message.data.holidays.length ? "unknown" : "fits",
+          can_apply: false,
+          limits: [
+            { key: "weekly_per_day", needed: 1, available: 8, state: "fits" },
+            ...(message.data.holidays.length
+              ? [
+                  {
+                    key: "holiday_membership",
+                    needed: message.data.holidays.length,
+                    available: null,
+                    state: "unknown",
+                  },
+                ]
+              : []),
+          ],
+          blockers: [
+            "schedule_writes_unverified",
+            "schedule_ownership_unknown",
+            "schedule_inventory_incomplete",
+          ],
+        },
       };
     }
     if (command === "schedules/readiness")
