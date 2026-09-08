@@ -4,7 +4,7 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Version `0.2.0-alpha.1` provides the Phase 1 core integration described below.**
+**Version `0.3.0-alpha.1` provides the core integration and central access backend.**
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 The central Users/Cards/PIN administration panel follows in Phases 2–3.
@@ -29,6 +29,20 @@ The intercom controls the actual relay duration; no physical door contact is inf
 `onCall` means the device reports busy/in-call, and does not prove that somebody answered.
 Unknown call states remain unknown. Two-way audio and answer/reject actions are outside
 this core release.
+
+## Central access backend
+
+- Private HA storage for users, PINs, multiple cards, station assignments and validity periods.
+- Explicit adoption of existing users; matching employee numbers alone never authorize overwrite.
+- Durable revision-aware sync, per-station offline recovery, conflict review and deletion tombstones.
+- Card numbers remain reserved until every affected station confirms removal.
+- Administrator actions: `sync_user`, `sync_station`, `sync_all` and `rescan_station`.
+- State-changing requests are journaled before sending and verified by readback. Unchanged periodic
+  reconciliation does not rewrite the database or credentials.
+
+The UI/API for normal user administration follows in Phase 3. Do not edit `.storage` manually.
+The backend scans existing users on startup without importing them automatically.
+See [backend behavior and limits](docs/ACCESS_BACKEND.md).
 
 ## HACS installation and updates
 

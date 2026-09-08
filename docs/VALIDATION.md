@@ -108,3 +108,17 @@ Exact Phase 1 CI: [Python and HA](https://github.com/jonioliel/home-assistant-hi
 [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34211383563).
 Local protocol typing intentionally does not claim to type-check unavailable HA modules;
 those adapters are exercised against the real pinned HA runtime in CI.
+
+## Phase 2 backend validation
+
+- `c99beb0`: 244 protocol tests and all CI passed.
+- `26f9b34`: 272 protocol tests, 54 real HA 2026.9.1 tests, 100% ConfigFlow line coverage,
+  Ruff, mypy, HACS and Hassfest passed. Exact [Python/HA run](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34216670915).
+- Subsequent local tests: 280 pass. Added minimal person-field updates, before-image recovery,
+  deletion during creation, manual credential-change conflicts, cancellation-safe persistence,
+  deletion review and a nine-station simulator with one offline and at most three writers.
+- HA storage tests use real private atomic files, including corrupt input and simulated disk failure.
+  Existing users remain unmanaged at startup; admin-only actions and unload/reload are tested.
+- New production access-client check was read-only: two users, one card, local PIN mode,
+  capability PIN range and five-card limit. No credentials or relays were changed.
+- Simulator success and readback do not close physical PIN/card lifecycle or nine-station soak gates.

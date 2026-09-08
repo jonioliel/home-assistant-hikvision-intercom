@@ -157,7 +157,8 @@ class AccessManager:
         driver = station.driver
         if driver is None:
             raise AccessError("station_offline")
-        async with self._read_slots, driver.transaction():
+        async with self._read_slots:
+            await driver.client.async_confirm_identity()
             await driver.async_capabilities()
             inventory = await driver.async_inventory()
         station.inventory, station.scanned_at = inventory, utc_now()
@@ -455,3 +456,55 @@ class AccessManager:
         self.request_user(user.id)
         self._changed()
         return user.public()
+
+    async def async_review(self, station_id: str, user_id: str) -> dict[str, Any]:
+        station = self._station(station_id)
+        driver = self._driver(station)
+        state = self.repository.snapshot()
+        raw = state["users"].get(user_id)
+        tombstone = state["tombstones"].get(user_id)
+        if raw is None and tombstone is None:
+            raise AccessError("user_not_found")
+        employee_no = raw["employee_no"] if raw is not None else tombstone["employee_no"]
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(employee_no)
+            normal = canonical(inventory, employee_no, caps)
+            token = self.repository.fingerprint(normal)
+        person = normal["person"]
+        return {
+            "user_id": user_id,
+            "employee_no": employee_no,
+            "station_id": station_id,
+            "review_token": token,
+            "absent": person is None,
+            "display_name": person["name"] if person else None,
+            "pin_configured": bool(person["pin"]) if person and caps.pin_field else None,
+            "cards": [
+                ManagedCard(str(uuid4()), SecretValue(card["cardNo"])).public()
+                for card in normal["cards"]
+            ],
+            "deletion_pending": tombstone is not None,
+        }
+
+    async def async_resolve_deletion(
+        self, station_id: str, user_id: str, *, review_token: str
+    ) -> None:
+        station = self._station(station_id)
+        driver = self._driver(station)
+        tombstone = self.repository.snapshot()["tombstones"].get(user_id)
+        if tombstone is None:
+            raise AccessError("deletion_not_pending")
+        employee_no = tombstone["employee_no"]
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(employee_no)
+            fingerprint = self.repository.fingerprint(canonical(inventory, employee_no, caps))
+            if not review_token or fingerprint != review_token:
+                raise AccessError("review_stale")
+            if inventory.users:
+                self._import_data(station, employee_no, inventory)
+            await self.repository.async_resolve_deletion(
+                station_id, user_id, fingerprint=fingerprint
+            )
+        self.request(station_id)

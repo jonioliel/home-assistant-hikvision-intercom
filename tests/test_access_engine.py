@@ -299,3 +299,68 @@ async def test_persisted_intent_recovers_from_store_failure_after_write(setup):
     await SyncEngine(restored).async_reconcile("a", driver)
     assert len(device.writes) == 1
     assert restored.get(user.id).assignments["a"].sync_state == "synced"
+
+
+async def test_name_edit_only_sends_the_changed_name(setup):
+    repo, device, driver, engine = setup
+    user = await create_user(repo)
+    await engine.async_reconcile("a", driver)
+    device.writes.clear()
+    await repo.async_update(user.id, {"display_name": "New name"}, expected_revision=1)
+    await engine.async_reconcile("a", driver)
+    assert device.writes == [
+        ("UserInfo", "Modify", {"UserInfo": {"employeeNo": "1001", "name": "New name"}})
+    ]
+
+
+async def test_lost_request_before_device_receives_it_is_read_before_retry(setup):
+    from custom_components.hikvision_intercom.exceptions import HikvisionTimeoutError
+
+    repo, device, driver, engine = setup
+    user = await create_user(repo)
+    original = driver.async_write_person
+    driver.async_write_person = AsyncMock(side_effect=HikvisionTimeoutError("lost"))
+    await engine.async_reconcile("a", driver)
+    assert not device.users and repo.snapshot()["bindings"]["a"][user.id]["intent"]
+    driver.async_write_person = original
+    result = await engine.async_reconcile("a", driver)
+    assert result.completed == 1
+    assert sum(item[:2] == ("UserInfo", "Record") for item in device.writes) == 1
+
+
+async def test_delete_during_create_prevents_stale_card_addition(setup):
+    repo, device, driver, engine = setup
+    user = await create_user(repo)
+
+    async def delete():
+        device.on_write = None
+        await repo.async_delete(user.id, expected_revision=1)
+
+    device.on_write = delete
+    result = await engine.async_reconcile("a", driver)
+    assert result.retry
+    assert not device.cards
+    await engine.async_reconcile("a", driver)
+    assert not device.users and not repo.public()["tombstones"]
+    assert all(kind != "CardInfo" for kind, _, _ in device.writes)
+
+
+async def test_manual_addition_of_unsupported_credential_blocks_deletion(setup):
+    repo, device, driver, engine = setup
+    user = await create_user(repo)
+    await engine.async_reconcile("a", driver)
+    device.writes.clear()
+    device.users["1001"]["numOfFace"] = 1
+    await repo.async_delete(user.id, expected_revision=1)
+    result = await engine.async_reconcile("a", driver)
+    assert result.failed == 1 and device.writes == []
+    assert repo.public()["tombstones"][0]["stations"]["a"]["sync_state"] == "conflict"
+
+
+async def test_unchanged_periodic_reconciliation_does_not_rewrite_storage(setup):
+    repo, _device, driver, engine = setup
+    await create_user(repo)
+    await engine.async_reconcile("a", driver)
+    repo._save.reset_mock()
+    await engine.async_reconcile("a", driver)
+    repo._save.assert_not_awaited()

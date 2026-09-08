@@ -363,46 +363,52 @@ class AccessClient:
         if set(person) - allowed:
             raise HikvisionValidationError("Unmanaged person fields cannot be written")
         validate_identifier(person.get("employeeNo"), maximum=cap.employee_max)
-        name = person.get("name")
-        if (
-            not isinstance(name, str)
-            or not 1 <= len(name) <= cap.name_max
-            or person.get("userType") not in cap.user_types
-        ):
-            raise HikvisionValidationError("Person name or type exceeds device capabilities")
-        door_right = person.get("doorRight")
-        if not isinstance(door_right, str) or door_right not in {
-            str(door) for door in self.client.enabled_doors
-        }:
-            raise HikvisionValidationError("Person permissions target an unmanaged relay")
-        # Level A only: station-wide access to the one selected active output.
-        if person.get("RightPlan") != [] or person.get("localUIRight") is not False:
-            raise HikvisionValidationError(
-                "Unverified schedules or local administrator rights are not allowed"
-            )
-        validity = person.get("Valid")
-        if not isinstance(validity, dict) or type(validity.get("enable")) is not bool:
-            raise HikvisionValidationError("A valid access period is required")
-        try:
-            time_type = validity.get("timeType")
-            if time_type not in {"local", "UTC"}:
-                raise ValueError
-            first, last = (
-                datetime.fromisoformat(validity["beginTime"]),
-                datetime.fromisoformat(validity["endTime"]),
-            )
-            if (first.tzinfo is not None) != (time_type == "UTC") or (last.tzinfo is not None) != (
-                time_type == "UTC"
-            ):
-                raise ValueError
-            if time_type == "UTC":
-                first, last = first.astimezone(UTC), last.astimezone(UTC)
-            lower = datetime(1970, 1, 1, tzinfo=UTC if time_type == "UTC" else None)
-            upper = datetime(2037, 12, 31, 23, 59, 59, tzinfo=UTC if time_type == "UTC" else None)
-            if not lower <= first < last <= upper:
-                raise ValueError
-        except (KeyError, TypeError, ValueError):
-            raise HikvisionValidationError("Invalid or unbounded access period") from None
+        if create or "name" in person:
+            name = person.get("name")
+            if not isinstance(name, str) or not 1 <= len(name) <= cap.name_max:
+                raise HikvisionValidationError("Person name exceeds device capabilities")
+        if (create or "userType" in person) and person.get("userType") not in cap.user_types:
+            raise HikvisionValidationError("Person type exceeds device capabilities")
+        if create or "doorRight" in person:
+            door_right = person.get("doorRight")
+            if not isinstance(door_right, str) or door_right not in {
+                str(door) for door in self.client.enabled_doors
+            }:
+                raise HikvisionValidationError("Person permissions target an unmanaged relay")
+        # Modify fields are optional in the manufacturer's contract (p.466).
+        # Never resubmit a PIN, schedule or permission merely because the name changed.
+        if (create or "RightPlan" in person) and person.get("RightPlan") != []:
+            raise HikvisionValidationError("Unverified schedules are not allowed")
+        if (create or "localUIRight" in person) and person.get("localUIRight") is not False:
+            raise HikvisionValidationError("Local administrator rights are not allowed")
+        if create or "Valid" in person:
+            validity = person.get("Valid")
+            if not isinstance(validity, dict) or type(validity.get("enable")) is not bool:
+                raise HikvisionValidationError("A valid access period is required")
+            try:
+                time_type = validity.get("timeType")
+                if time_type not in {"local", "UTC"}:
+                    raise ValueError
+                first, last = (
+                    datetime.fromisoformat(validity["beginTime"]),
+                    datetime.fromisoformat(validity["endTime"]),
+                )
+                if (first.tzinfo is not None) != (time_type == "UTC") or (
+                    last.tzinfo is not None
+                ) != (time_type == "UTC"):
+                    raise ValueError
+                if time_type == "UTC":
+                    first, last = first.astimezone(UTC), last.astimezone(UTC)
+                lower = datetime(1970, 1, 1, tzinfo=UTC if time_type == "UTC" else None)
+                upper = datetime(
+                    2037, 12, 31, 23, 59, 59, tzinfo=UTC if time_type == "UTC" else None
+                )
+                if not lower <= first < last <= upper:
+                    raise ValueError
+            except (KeyError, TypeError, ValueError):
+                raise HikvisionValidationError("Invalid or unbounded access period") from None
+        if not create and len(person) < 2:
+            raise HikvisionValidationError("Person update contains no changes")
         if cap.pin_field and cap.pin_field in person:
             pin = person[cap.pin_field]
             if not isinstance(pin, str) or (

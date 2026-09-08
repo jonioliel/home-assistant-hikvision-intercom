@@ -153,6 +153,17 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
                 registry.async_remove(old)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         manager.attach(entry.entry_id, AccessClient(client))
+        was_online = coordinator.last_update_success
+
+        @callback
+        def recovered() -> None:
+            nonlocal was_online
+            online = coordinator.last_update_success
+            if online and not was_online:
+                manager.request(entry.entry_id)
+            was_online = online
+
+        entry.async_on_unload(coordinator.async_add_listener(recovered))
     except BaseException as err:
         await manager.async_detach(entry.entry_id)
         await coordinator.async_shutdown()

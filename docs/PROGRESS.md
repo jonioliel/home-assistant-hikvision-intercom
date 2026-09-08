@@ -6,7 +6,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | --- | --- | --- |
 | 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
 | 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
-| 2 — Access backend | In development: protocol and durable repository implemented | Verified credential and permission behavior |
+| 2 — Access backend | Software implementation complete; final CI/release pending | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
 | 4 — Events | Not started | Verified event behavior |
 | 5 — Hardening | Not started | Nine-device soak and HACS install/upgrade acceptance |
@@ -42,9 +42,10 @@ Manufacturer review and continuation scope: [MANUFACTURER_PROTOCOL.md](MANUFACTU
 The owner requested continued development while away from the equipment; physical checks
 remain deferred, not counted as passed. Numeric PIN event meanings are now documented.
 
-Phase 2 checkpoint: 244 local tests pass. Capability-driven person/card reads and writes,
-private central models, masked projections, atomic persistence, ownership/intent journals,
-revision guards, deletion tombstones and pending-card reservations are implemented.
-Real read-only access-client validation returned two users and one card with no mutations.
-The reconciliation engine, HA Store adapter and runtime wiring are the next work; Phase 2
-is not yet complete. The UI follows in Phase 3.
+Phase 2 checkpoints: `c99beb0` passed 244 local tests and all CI; `26f9b34` passed
+272 protocol tests and 54 real HA tests with 100% ConfigFlow coverage, HACS and Hassfest.
+The final backend includes changed-field updates, cancellation-safe atomic persistence,
+explicit import/conflict resolution, durable deletion, independent queues and offline recovery.
+Current local verification: 280 tests, Ruff and mypy (20 protocol/access/tool files).
+Real read-only access-client validation returned two users and one card with zero mutations.
+The administrator panel follows in Phase 3. Physical commissioning is still open.

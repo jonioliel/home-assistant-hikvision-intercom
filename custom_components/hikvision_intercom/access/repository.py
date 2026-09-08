@@ -297,6 +297,16 @@ class AccessRepository:
             binding = state["bindings"].get(station, {}).get(user_id)
             if binding is None:
                 raise AccessError("ownership_missing")
+            raw = state["users"].get(user_id)
+            assignment = raw["assignments"].get(station) if raw else None
+            if (
+                binding["fingerprint"] == fingerprint
+                and binding.get("intent") is None
+                and assignment
+                and assignment["sync_state"] == "synced"
+                and applied_revision == raw["revision"] == assignment["applied_revision"]
+            ):
+                return
             binding["fingerprint"], binding["intent"] = fingerprint, None
             binding["sync_state"], binding["last_error"] = "pending", None
             if user_id in state["users"]:
@@ -365,7 +375,14 @@ class AccessRepository:
             elif user_id in state["users"]:
                 user = state["users"][user_id]
                 assignment = user["assignments"].get(station)
-                if assignment and revision == user["revision"]:
+                if (
+                    assignment
+                    and revision == user["revision"]
+                    and not (
+                        assignment["sync_state"] == "synced"
+                        and assignment["applied_revision"] == revision
+                    )
+                ):
                     assignment.update(
                         applied_revision=revision,
                         sync_state="synced",
@@ -572,3 +589,29 @@ class AccessRepository:
             return user
 
         return await self._commit(resolve)
+
+    async def async_resolve_deletion(self, station: str, user_id: str, *, fingerprint: str) -> None:
+        """Administrator explicitly reviewed the current record before continuing deletion."""
+
+        def resolve(state: dict[str, Any]) -> None:
+            tombstone = state["tombstones"].get(user_id)
+            if (
+                tombstone is None
+                or station not in tombstone["targets"]
+                or station in tombstone["confirmed"]
+            ):
+                raise AccessError("deletion_not_pending")
+            state["bindings"].setdefault(station, {})[user_id] = {
+                "employee_no": tombstone["employee_no"],
+                "fingerprint": fingerprint,
+                "intent": None,
+                "adopted": True,
+                "sync_state": "delete_pending",
+                "last_error": None,
+            }
+            tombstone.setdefault("stations", {})[station] = {
+                "sync_state": "delete_pending",
+                "last_error": None,
+            }
+
+        await self._commit(resolve)

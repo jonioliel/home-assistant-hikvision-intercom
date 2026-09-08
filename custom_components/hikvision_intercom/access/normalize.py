@@ -52,6 +52,7 @@ def canonical(
             "RightPlan": raw.get("RightPlan"),
             "localUIRight": raw.get("localUIRight"),
             "pin": pin,
+            "unsupported_credentials": {key: raw.get(key, 0) for key in ("numOfFace", "numOfFP")},
         }
     cards = [
         {"employeeNo": card["employeeNo"], "cardNo": card["cardNo"], "cardType": card["cardType"]}

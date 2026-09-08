@@ -9,6 +9,20 @@ Semantic Versioning is used throughout the project.
 - Private central records, masked administrator views, revision/identity guards and durable ownership journals.
 - User-deletion tombstones and retired-card reservations survive offline stations and restarts.
 - Re-check the configured device identity before relay commands and credential transactions.
+- Reconciliation with saved intent before every mutation, exact readback, lost-response recovery,
+  revision protection and deletion/card-removal confirmation per station.
+- Explicit import/adoption, central/device conflict review, ignored unmanaged people and targeted deletion.
+- Private atomic HA Store, independent background station queues, admin sync actions and offline retries.
+- Reject switching a station to camera-only while managed access still needs removal.
+- Modify only changed supported fields; unchanged PINs are never resubmitted for a name edit.
+
+### Validation and scope
+- Backend software includes simulator coverage for nine stations, three concurrent writers,
+  offline recovery, concurrent edits/deletion and persistence failure. Physical nine-station soak is pending.
+- Existing device users are scanned without automatic adoption or modification.
+- The administrator panel and public CRUD WebSocket interface arrive in Phase 3.
+- Configuration readback is not proof of keypad/card acceptance. Physical PIN modification/removal,
+  card CRUD, call transitions and HACS installation acceptance remain open.
 
 ## [0.2.0-alpha.1] - 2026-09-08
 

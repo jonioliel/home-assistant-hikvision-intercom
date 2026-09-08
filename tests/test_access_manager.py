@@ -230,3 +230,123 @@ async def test_cancellation_waits_for_durable_save_before_next_edit():
     with pytest.raises(asyncio.CancelledError):
         await task
     assert len(repo.users()) == 1 and len(writes) == 1
+
+
+async def test_eight_online_stations_progress_with_one_offline_and_max_three_writers():
+    from contextlib import asynccontextmanager
+
+    import httpx
+    from test_access_engine import CAP, Device
+
+    from custom_components.hikvision_intercom.client.access import AccessClient
+    from custom_components.hikvision_intercom.client.client import (
+        ConnectionSettings,
+        HikvisionClient,
+    )
+
+    repo = AccessRepository(AsyncMock())
+    await repo.async_load(None)
+    manager = AccessManager(repo)
+    sessions, devices = [], []
+    active = maximum = 0
+    three = asyncio.Event()
+
+    def instrument(driver):
+        original = driver.transaction
+
+        @asynccontextmanager
+        async def transaction():
+            nonlocal active, maximum
+            async with original():
+                active += 1
+                maximum = max(active, maximum)
+                if active == 3:
+                    three.set()
+                try:
+                    await three.wait()
+                    yield
+                finally:
+                    active -= 1
+
+        driver.transaction = transaction
+
+    try:
+        for number in range(9):
+            device = Device()
+            device.offline = number == 0
+            session = httpx.AsyncClient(transport=httpx.MockTransport(device.handle))
+            sessions.append(session)
+            devices.append(device)
+            driver = AccessClient(
+                HikvisionClient(
+                    session,
+                    ConnectionSettings("192.0.2.10", "demo", "secret"),
+                    enabled_doors=frozenset({1}),
+                )
+            )
+            driver.capabilities = CAP
+            driver.async_capabilities = AsyncMock(return_value=CAP)
+            instrument(driver)
+            manager.register(str(number), "Station", True)
+            manager.attach(str(number), driver)
+        user = await manager.async_create(
+            {
+                "display_name": "Resident",
+                "assignments": {str(number): {"allowed_locks": [1]} for number in range(9)},
+            }
+        )
+        async with asyncio.timeout(5):
+            await drain(manager)
+        assert maximum == 3
+        assert manager.repository.get(user["id"]).assignments["0"].sync_state == "offline"
+        assert all(len(device.users) == 1 for device in devices[1:])
+    finally:
+        await manager.async_close()
+        await asyncio.gather(*(session.aclose() for session in sessions))
+
+
+async def test_deletion_conflict_requires_review_before_continuing(fleet):
+    manager, device, _driver = fleet
+    user = await manager.async_create(
+        {
+            "employee_no": "1001",
+            "display_name": "Resident",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    device.users["1001"]["name"] = "Manual change"
+    await manager.async_delete(user["id"], revision=1)
+    await drain(manager)
+    assert (
+        device.users
+        and manager.public()["tombstones"][0]["stations"]["a"]["sync_state"] == "conflict"
+    )
+    review = await manager.async_review("a", user["id"])
+    assert review["deletion_pending"] and review["display_name"] == "Manual change"
+    await manager.async_resolve_deletion("a", user["id"], review_token=review["review_token"])
+    await drain(manager)
+    assert not device.users and not manager.public()["tombstones"]
+
+
+async def test_deleted_device_record_can_be_explicitly_recreated(fleet):
+    manager, device, _driver = fleet
+    user = await manager.async_create(
+        {
+            "employee_no": "1001",
+            "display_name": "Resident",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    del device.users["1001"]
+    manager.request("a")
+    await drain(manager)
+    assert manager.repository.get(user["id"]).assignments["a"].sync_state == "conflict"
+    review = await manager.async_review("a", user["id"])
+    assert review["absent"]
+    await manager.async_resolve(
+        "a", user["id"], review_token=review["review_token"], revision=1, direction="central"
+    )
+    await drain(manager)
+    assert device.users["1001"]["name"] == "Resident"

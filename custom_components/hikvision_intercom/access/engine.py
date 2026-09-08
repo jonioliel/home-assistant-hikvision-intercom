@@ -63,15 +63,24 @@ class SyncEngine:
 
     async def async_reconcile(self, station: str, driver: AccessClient) -> ReconcileResult:
         result = ReconcileResult()
-        async with self._slots, driver.transaction():
+        async with self._slots:
             if driver.capabilities is None:
                 await driver.async_capabilities()
             inventory = await driver.async_inventory()
             for user_id in self.jobs(station):
                 try:
-                    await self.repository.async_mark(station, user_id, "syncing")
-                    self._changed()
-                    await self._person(station, user_id, driver, inventory)
+                    async with driver.transaction():
+                        state = self.repository.snapshot()
+                        raw = state["users"].get(user_id)
+                        assignment = raw["assignments"].get(station) if raw else None
+                        if not (
+                            assignment
+                            and assignment["sync_state"] == "synced"
+                            and assignment["applied_revision"] == raw["revision"]
+                        ):
+                            await self.repository.async_mark(station, user_id, "syncing")
+                            self._changed()
+                        await self._person(station, user_id, driver, inventory)
                 except AccessError as err:
                     if err.code == "revision_conflict":
                         result.retry = True
@@ -222,6 +231,16 @@ class SyncEngine:
             create = not bool(current.users)
             expected.users[user.employee_no] = {**current.users.get(user.employee_no, {}), **person}
             payload = deepcopy(person)
+            if not create:
+                actual_person = actual_normal["person"]
+                desired_fields = desired_normal["person"]
+                payload = {
+                    key: value
+                    for key, value in payload.items()
+                    if key == "employeeNo"
+                    or actual_person.get("pin" if key == caps.pin_field else key)
+                    != desired_fields.get("pin" if key == caps.pin_field else key)
+                }
             if create and caps.pin_field and payload.get(caps.pin_field) == "":
                 payload.pop(caps.pin_field)
             current = await self._step(
