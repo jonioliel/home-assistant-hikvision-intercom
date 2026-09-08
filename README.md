@@ -4,10 +4,11 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Version `0.6.1-alpha.1` implements the mandatory software phases 0–5.**
+**Current releases include the core, access management, admin panel, events and recovery work from phases 0–5.**
 It includes user/card/PIN administration, cameras, one active lock per station, events,
 audit history, recovery and Repairs. HACS installation is owner-confirmed; physical commissioning remains open.
-The `0.6.1-alpha.1` update fixes permanent-user synchronization and adds private-safe sync reports.
+Recent updates fix permanent-user synchronization, add private-safe sync reports, show fleet/access health,
+and provide read-only station inspection plus deliberate bulk station assignments.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
@@ -51,9 +52,11 @@ See [backend behavior and limits](docs/ACCESS_BACKEND.md).
 
 ## Administrator panel
 
-**Overview** shows camera previews, call status and only configured lock controls. Open a camera
-for HA-proxied live video. **Users** provides write-only PIN editing, masked cards, station
-assignments and validity periods. **Intercoms** displays capabilities and inventory counts.
+**Overview** shows camera previews, call status, last access, offline contact time, pending users
+and only configured lock controls. Open a camera for HA-proxied live video. **Users** provides write-only PIN editing, masked cards, station
+assignments (including explicit select-all/clear controls) and validity periods. **Intercoms** displays
+observed capabilities, configured lock mapping, inventory and live-event/history connection health.
+Its access rescan reads capabilities and inventory; **Sync now** requests pending reconciliation.
 **Sync** shows per-user/per-station revisions, conflicts and pending removals. **Events** provides
 bounded audit history with filters and distinguishes recovered records from live events.
 
@@ -66,7 +69,8 @@ editor. Standard HA camera/lock entities remain available alongside the dedicate
 ## HACS installation and updates
 
 Requires Home Assistant 2026.9.1 or newer and an existing HACS installation.
-Select `0.6.1-alpha.1` for the complete administrator panel and access/event features:
+Select the latest tagged prerelease from the release link above for the current administrator panel
+and access/event features:
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
