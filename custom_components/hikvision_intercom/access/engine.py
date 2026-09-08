@@ -51,7 +51,7 @@ class SyncEngine:
         users |= set(state["bindings"].get(station, {}))
         users |= {
             item["user_id"]
-            for item in state["retired_cards"].values()
+            for item in [*state["retired_cards"].values(), *state["retired_pins"].values()]
             if station in item["targets"] and station not in item["confirmed"]
         }
         tombstones = {
@@ -300,6 +300,9 @@ class SyncEngine:
             applied_revision=user.revision,
         )
         await self.repository.async_confirm_card_removals(station, user.id, set(current.cards))
+        actual_pin = canonical(current, user.employee_no, caps)["person"]["pin"]
+        if isinstance(actual_pin, str):
+            await self.repository.async_confirm_pin_removals(station, user.id, actual_pin)
 
     async def _step(
         self,

@@ -14,6 +14,7 @@ from .access.models import AccessError
 from .access.repository import AccessRepository
 from .configuration import managed_locks
 from .const import DOMAIN
+from .issues import issue
 from .storage import AccessStore
 
 SIGNAL_ACCESS_CHANGED = f"{DOMAIN}_access_changed"
@@ -28,7 +29,12 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         return
     store = AccessStore(hass)
     repository = AccessRepository(store.async_save)
-    await repository.async_load(await store.async_load())
+    try:
+        await repository.async_load(await store.async_load())
+    except AccessError:
+        issue(hass, "users_storage_corrupt", active=True)
+        raise
+    issue(hass, "users_storage_corrupt", active=False)
 
     @callback
     def changed() -> None:

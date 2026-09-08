@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util.file import write_utf8_file_atomic
 
 from .access.models import AccessError
+from .issues import issue
 
 
 class AccessStore(Store[dict[str, Any]]):
@@ -23,13 +24,21 @@ class AccessStore(Store[dict[str, Any]]):
         super().__init__(hass, 1, key, private=True, atomic_writes=True)
 
     async def async_load(self) -> dict[str, Any] | None:
-        return await self.hass.async_add_executor_job(self._load_strict)
+        try:
+            result = await self.hass.async_add_executor_job(self._load_strict)
+        except AccessError:
+            issue(self.hass, f"{self.key.rsplit('.', 1)[-1]}_storage_corrupt", active=True)
+            raise
+        return result
 
     def _load_strict(self) -> dict[str, Any] | None:
         path = Path(self.path)
         try:
             with path.open(encoding="utf-8") as source:
-                envelope = json.load(source)
+                encoded = source.read(33_554_433)
+                if len(encoded.encode("utf-8")) > 33_554_432:
+                    raise AccessError("invalid_storage")
+                envelope = json.loads(encoded)
             if (
                 not isinstance(envelope, dict)
                 or envelope.get("key") != self.key
@@ -43,13 +52,18 @@ class AccessStore(Store[dict[str, Any]]):
             if any(path.parent.glob(path.name + ".corrupt.*")):
                 raise AccessError("invalid_storage") from None
             return None
-        except (OSError, ValueError, TypeError):
+        except (OSError, ValueError, TypeError, RecursionError):
             raise AccessError("invalid_storage") from None
 
     async def async_save(self, data: dict[str, Any]) -> None:
         if self.hass.state in {CoreState.stopping, CoreState.final_write, CoreState.stopped}:
             raise AccessError("storage_stopping")
-        await self.hass.async_add_executor_job(self._save_strict, data)
+        try:
+            await self.hass.async_add_executor_job(self._save_strict, data)
+        except AccessError:
+            issue(self.hass, f"{self.key.rsplit('.', 1)[-1]}_storage_write", active=True)
+            raise
+        issue(self.hass, f"{self.key.rsplit('.', 1)[-1]}_storage_write", active=False)
 
     def _save_strict(self, data: dict[str, Any]) -> None:
         try:

@@ -22,6 +22,7 @@ from ..exceptions import (
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )
+from ..hardening import RequestMetrics
 from .parser import check_response_status, find_values, parse_payload
 from .probe import validate_host
 from .transport import LimitedTransport
@@ -147,6 +148,7 @@ class HikvisionClient:
             not isinstance(expected_identity, str) or not 1 <= len(expected_identity) <= 256
         ):
             raise HikvisionValidationError("Invalid expected station identity")
+        self.metrics = RequestMetrics()
         self._expected_identity = expected_identity
         self._session = session
         self.settings = settings
@@ -167,6 +169,8 @@ class HikvisionClient:
         content_type: str = "application/xml",
     ) -> bytes:
         """Private fixed-path primitive, bounded including queue and digest exchange."""
+        started = time.monotonic()
+        failed = True
         try:
             async with asyncio.timeout(10), self._io_lock:
                 headers = {"Accept-Encoding": "identity"}
@@ -196,6 +200,7 @@ class HikvisionClient:
                         check_response_status(parse_payload(bytes(body)).data)
                     if response.status_code != 200:
                         raise HikvisionDeviceError("Device request failed")
+                    failed = False
                     return bytes(body)
         except (TimeoutError, httpx.TimeoutException):
             raise HikvisionTimeoutError("Device request timed out; no automatic retry") from None
@@ -203,6 +208,9 @@ class HikvisionClient:
             raise HikvisionConnectionError(
                 "Device communication failed; no automatic retry"
             ) from None
+
+        finally:
+            self.metrics.record(time.monotonic() - started, failed)
 
     async def _get(self, path: str) -> dict[str, Any]:
         return parse_payload(await self._request("GET", path)).data

@@ -18,6 +18,7 @@ from .client.events import EventClient, HistoryWindowFull, create_event_session
 from .const import DOMAIN
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
+from .issues import issue
 from .storage import AccessStore
 
 if TYPE_CHECKING:
@@ -365,7 +366,12 @@ async def async_setup_events(hass: HomeAssistant) -> None:
     if "events" in hass.data.setdefault(DOMAIN, {}):
         return
     manager = EventManager(hass)
-    await manager.async_load()
+    try:
+        await manager.async_load()
+    except (ValueError, KeyError, HikvisionError):
+        issue(hass, "events_storage_corrupt", active=True)
+        raise
+    issue(hass, "events_storage_corrupt", active=False)
     hass.data[DOMAIN]["events"] = manager
 
     async def stop(_event: Any) -> None:

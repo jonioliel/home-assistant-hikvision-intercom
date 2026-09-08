@@ -19,6 +19,7 @@ from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
 from .const import DOMAIN, VERSION
 from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
+from .hardening import AdminLimiter
 from .log_filter import install_filter
 
 _LOGGER = logging.getLogger(__name__)
@@ -253,7 +254,12 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
                     raise AccessError("invalid_fields")
             if len(json.dumps(msg, ensure_ascii=False).encode()) > 65_536:
                 raise AccessError("request_too_large")
-            result = await _dispatch(hass, command, msg)
+            limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
+            admitted = limiter.acquire(connection.user.id, hass.loop.time())
+            try:
+                result = await _dispatch(hass, command, msg)
+            finally:
+                limiter.release(admitted)
         except vol.Invalid:
             connection.send_error(msg["id"], "invalid_fields", "Invalid command fields")
         except AccessError as err:

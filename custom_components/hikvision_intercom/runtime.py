@@ -38,6 +38,7 @@ from .exceptions import (
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )
+from .issues import issue
 
 
 @dataclass(slots=True)
@@ -135,9 +136,32 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
     try:
         profile = await client.async_profile()
         if profile.unique_id != entry.unique_id:
+            issue(hass, "identity", active=True, entry_id=entry.entry_id)
             raise ConfigEntryError(translation_domain=DOMAIN, translation_key="identity_changed")
         if any(lock.api_id not in profile.api_door_ids for lock in locks):
+            issue(hass, "relay_mapping", active=True, entry_id=entry.entry_id)
             raise ConfigEntryError(translation_domain=DOMAIN, translation_key="mapping_changed")
+        issue(hass, "identity", active=False, entry_id=entry.entry_id)
+        issue(hass, "relay_mapping", active=False, entry_id=entry.entry_id)
+        baseline = entry.data.get("capability_baseline")
+        observed = {
+            "snapshot": profile.snapshot,
+            "stream": profile.stream,
+            "call_states": list(profile.call_states),
+        }
+        if baseline is None:
+            hass.config_entries.async_update_entry(
+                entry, data={**entry.data, "capability_baseline": observed}
+            )
+        regression = isinstance(baseline, dict) and (
+            any(baseline.get(key) is True and not observed[key] for key in ("snapshot", "stream"))
+            or any(
+                value not in profile.call_states
+                for value in baseline.get("call_states", [])
+                if value in {"idle", "ring", "onCall"}
+            )
+        )
+        issue(hass, "capability_regression", active=regression, entry_id=entry.entry_id)
         await coordinator.async_config_entry_first_refresh()
         entry.runtime_data = IntercomRuntime(
             hass,

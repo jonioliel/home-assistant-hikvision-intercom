@@ -27,13 +27,14 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 1,
+            "schema": 2,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
             "bindings": {},
             "tombstones": {},
             "ignored": {},
             "retired_cards": {},
+            "retired_pins": {},
         }
 
     async def async_load(self, data: dict[str, Any] | None) -> None:
@@ -41,12 +42,23 @@ class AccessRepository:
             if data is None:
                 await self._save(deepcopy(self._state))
                 return
+            migrated = False
+            if data.get("schema") == 1 and set(data) == set(self._state) - {"retired_pins"}:
+                data = {**deepcopy(data), "schema": 2, "retired_pins": {}}
+                migrated = True
             try:
-                if data.get("schema") != 1 or set(data) != set(self._state):
+                if data.get("schema") != 2 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
-                for key in ("users", "bindings", "tombstones", "ignored", "retired_cards"):
+                for key in (
+                    "users",
+                    "bindings",
+                    "tombstones",
+                    "ignored",
+                    "retired_cards",
+                    "retired_pins",
+                ):
                     if not isinstance(data[key], dict):
                         raise AccessError("invalid_storage")
                 normalized = deepcopy(data)
@@ -79,10 +91,72 @@ class AccessRepository:
                         or not isinstance(tombstone.get("employee_no"), str)
                     ):
                         raise AccessError("invalid_storage")
+                self._validate_journal(normalized)
                 self._validate_collisions(normalized)
             except (KeyError, TypeError, ValueError, AttributeError):
                 raise AccessError("invalid_storage") from None
+            if migrated:
+                await self._save(deepcopy(normalized))
             self._state = normalized
+
+    @staticmethod
+    def _validate_journal(state: dict[str, Any]) -> None:
+        from .models import SYNC_STATES, text_field, uuid_text
+
+        def stations(value: Any) -> set[str]:
+            if not isinstance(value, list) or len(value) != len(set(value)):
+                raise AccessError("invalid_storage")
+            return {text_field(item, 128) for item in value}
+
+        records = {key: ManagedUser.from_private(raw) for key, raw in state["users"].items()}
+        for key, item in state["tombstones"].items():
+            user = ManagedUser.from_private(item["record"])
+            if (
+                key != user.id
+                or item.get("user_id") != key
+                or item["employee_no"] != user.employee_no
+            ):
+                raise AccessError("invalid_storage")
+            if not stations(item["confirmed"]) <= stations(item["targets"]):
+                raise AccessError("invalid_storage")
+            records[key] = user
+        for station, bindings in state["bindings"].items():
+            text_field(station, 128)
+            for user_id, binding in bindings.items():
+                user = records[user_id]
+                if (
+                    binding["employee_no"] != user.employee_no
+                    or type(binding.get("adopted")) is not bool
+                ):
+                    raise AccessError("invalid_storage")
+                if binding.get("fingerprint") is not None:
+                    text_field(binding["fingerprint"], 128)
+                if binding.get("sync_state", "pending") not in SYNC_STATES:
+                    raise AccessError("invalid_storage")
+                intent = binding.get("intent")
+                if intent is not None:
+                    if (
+                        not isinstance(intent, dict)
+                        or intent.get("operation") not in {"create", "update", "delete"}
+                        or type(intent.get("revision")) is not int
+                        or not 1 <= intent["revision"] <= user.revision
+                    ):
+                        raise AccessError("invalid_storage")
+                    text_field(intent["desired_fingerprint"], 128)
+                    if intent.get("before_fingerprint") is not None:
+                        text_field(intent["before_fingerprint"], 128)
+        for kind in ("retired_cards", "retired_pins"):
+            for key, item in state[kind].items():
+                uuid_text(key)
+                if item["user_id"] not in records or not stations(item["confirmed"]) <= stations(
+                    item["targets"]
+                ):
+                    raise AccessError("invalid_storage")
+                secret = item["pin" if kind == "retired_pins" else "card_no"]
+                text_field(secret, 32)
+        for station, employees in state["ignored"].items():
+            text_field(station, 128)
+            stations(employees)
 
     async def _commit(self, change: Callable[[dict[str, Any]], T]) -> T:
         async with self._lock:
@@ -109,7 +183,7 @@ class AccessRepository:
     def _validate_collisions(state: dict[str, Any]) -> None:
         employees: set[str] = set()
         cards: dict[str, str] = {}
-        pins: set[str] = set()
+        pins: dict[str, str] = {}
         records = list(state["users"].values()) + [
             item["record"] for item in state["tombstones"].values()
         ]
@@ -122,12 +196,17 @@ class AccessRepository:
             if pin is not None:
                 if pin in pins:
                     raise AccessError("pin_conflict")
-                pins.add(pin)
+                pins[pin] = record["id"]
             for card in record["cards"]:
                 number = card["card_no"]
                 if number in cards:
                     raise AccessError("card_conflict")
                 cards[number] = record["id"]
+        for retired in state["retired_pins"].values():
+            pin, owner = retired["pin"], retired["user_id"]
+            if pin in pins and pins[pin] != owner:
+                raise AccessError("pin_removal_pending")
+            pins[pin] = owner
         for retired in state["retired_cards"].values():
             number, owner = retired["card_no"], retired["user_id"]
             if number in cards and cards[number] != owner:
@@ -217,6 +296,7 @@ class AccessRepository:
             targets = set(old.assignments) | {
                 station for station, bindings in state["bindings"].items() if user_id in bindings
             }
+            self._retire_pin(state, old, user, targets)
             for card in removed:
                 if targets:
                     state["retired_cards"][str(uuid4())] = {
@@ -249,6 +329,12 @@ class AccessRepository:
                 for card in state["retired_cards"].values()
                 if card["user_id"] == user_id
                 for station in card["targets"]
+            }
+            targets |= {
+                station
+                for item in state["retired_pins"].values()
+                if item["user_id"] == user_id
+                for station in item["targets"]
             }
             if targets:
                 state["tombstones"][user_id] = {
@@ -365,6 +451,7 @@ class AccessRepository:
         def absent(state: dict[str, Any]) -> None:
             state["bindings"].get(station, {}).pop(user_id, None)
             self._confirm_retired(state, station, user_id, set())
+            self._confirm_retired_pins(state, station, user_id, "")
             tombstone = state["tombstones"].get(user_id)
             if tombstone:
                 tombstone.setdefault("stations", {})[station] = {
@@ -422,6 +509,45 @@ class AccessRepository:
             retired["confirmed"] = sorted(set(retired["confirmed"]) | {station})
             if set(retired["targets"]) <= set(retired["confirmed"]):
                 del state["retired_cards"][key]
+
+    @staticmethod
+    def _retire_pin(
+        state: dict[str, Any], previous: ManagedUser, desired: ManagedUser, targets: set[str]
+    ) -> None:
+        old = previous.pin.value if previous.pin else None
+        new = desired.pin.value if desired.pin else None
+        if old and old != new and targets:
+            state["retired_pins"][str(uuid4())] = {
+                "user_id": previous.id,
+                "pin": old,
+                "targets": sorted(targets),
+                "confirmed": [],
+            }
+        for key, item in list(state["retired_pins"].items()):
+            if item["user_id"] == previous.id and item["pin"] == new:
+                del state["retired_pins"][key]
+
+    @staticmethod
+    def _confirm_retired_pins(
+        state: dict[str, Any], station: str, user_id: str, present_pin: str
+    ) -> None:
+        for key, item in list(state["retired_pins"].items()):
+            if (
+                item["user_id"] != user_id
+                or station not in item["targets"]
+                or item["pin"] == present_pin
+            ):
+                continue
+            item["confirmed"] = sorted(set(item["confirmed"]) | {station})
+            if set(item["targets"]) <= set(item["confirmed"]):
+                del state["retired_pins"][key]
+
+    async def async_confirm_pin_removals(
+        self, station: str, user_id: str, present_pin: str
+    ) -> None:
+        await self._commit(
+            lambda state: self._confirm_retired_pins(state, station, user_id, present_pin)
+        )
 
     async def async_confirm_card_removals(
         self, station: str, user_id: str, present_cards: set[str]
@@ -576,6 +702,7 @@ class AccessRepository:
             targets = set(previous.assignments) | {
                 key for key, records in state["bindings"].items() if user_id in records
             }
+            self._retire_pin(state, previous, user, targets)
             for number in removed:
                 if targets:
                     state["retired_cards"][str(uuid4())] = {

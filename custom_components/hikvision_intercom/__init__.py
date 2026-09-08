@@ -24,10 +24,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register integration actions once, independent of individual station lifetimes."""
     from .access_runtime import async_setup_access
     from .event_manager import async_setup_events
+    from .issues import async_setup_repairs
     from .panel import async_setup_panel
     from .runtime import async_register_services
     from .websocket import async_register_websocket
 
+    async_setup_repairs(hass)
     await async_setup_access(hass)
     await async_setup_events(hass)
     async_register_websocket(hass)
@@ -48,3 +50,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: IntercomConfigEntry) ->
     from .runtime import async_unload_runtime
 
     return await async_unload_runtime(hass, entry)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: IntercomConfigEntry) -> bool:
+    """Validate old data before upgrading config-entry metadata."""
+    from .migrations import async_migrate_entry as migrate
+
+    return await migrate(hass, entry)

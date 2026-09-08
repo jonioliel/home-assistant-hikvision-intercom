@@ -257,5 +257,51 @@
     "access_action_failed": {
       "message": "Access action could not be completed: {reason}"
     }
+  },
+  "issues": {
+    "access_auth": {
+      "title": "Access management authentication failed for {station}",
+      "description": "Reconfigure the integration credentials in Settings > Devices & services. Existing device credentials were not changed."
+    },
+    "sync_conflict": {
+      "title": "Synchronization needs review for {station}",
+      "description": "Open Intercom Manager > Sync and review the conflict. Choose the central or device version explicitly."
+    },
+    "access_capacity": {
+      "title": "Access capacity reached on {station}",
+      "description": "Review the station user/card limits and pending assignments in Intercom Manager. No existing users are removed automatically."
+    },
+    "identity": {
+      "title": "Station identity changed: {station}",
+      "description": "The address now identifies a different station. Verify the address and configure the replacement separately. Writes are blocked."
+    },
+    "relay_mapping": {
+      "title": "Relay mapping unavailable: {station}",
+      "description": "Reconfigure and physically confirm the active relay. No other relay is enabled automatically."
+    },
+    "capability_regression": {
+      "title": "Previously observed capability missing: {station}",
+      "description": "Check station connectivity and firmware, then reload. A previously working camera or call capability is no longer advertised."
+    },
+    "migration": {
+      "title": "Configuration upgrade needs review: {station}",
+      "description": "The saved configuration is invalid or from a newer version. Restore a compatible backup or reinstall the matching integration version. Permissions were not changed."
+    },
+    "users_storage_corrupt": {
+      "title": "Users storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "users_storage_write": {
+      "title": "Users storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "events_storage_corrupt": {
+      "title": "Events storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "events_storage_write": {
+      "title": "Events storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    }
   }
 }
