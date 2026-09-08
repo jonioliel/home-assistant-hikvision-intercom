@@ -1,0 +1,6 @@
+# Actual HA runtime and its stream/camera requirements (core tag 2026.9.1).
+pytest-homeassistant-custom-component==0.13.364
+defusedxml==0.7.1
+PyTurboJPEG==1.8.3
+av==17.0.1
+numpy==2.3.2
