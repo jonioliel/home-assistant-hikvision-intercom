@@ -5,7 +5,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | Phase | Status | Gate |
 | --- | --- | --- |
 | 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
-| 1 — Core integration | Authorized next | Documented contracts and observed firmware baseline |
+| 1 — Core integration | Implemented; HA CI validation in progress | Documented contracts and observed firmware baseline |
 | 2 — Access backend | Not started | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
 | 4 — Events | Not started | Verified event behavior |

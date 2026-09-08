@@ -1,0 +1,12 @@
+unlock_door:
+  target:
+    device:
+      integration: hikvision_intercom
+  fields:
+    lock:
+      required: true
+      default: 1
+      selector:
+        select:
+          options:
+            - "1"

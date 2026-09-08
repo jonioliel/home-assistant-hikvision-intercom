@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "home-assistant-hikvision-intercom"
-version = "0.1.0-alpha.1"
+version = "0.2.0-alpha.1"
 description = "Evidence-driven Hikvision intercom integration and safe protocol probe"
 requires-python = ">=3.12"
 dependencies = ["httpx==0.28.1", "defusedxml==0.7.1"]
@@ -31,8 +31,10 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+follow_imports = "silent"
 explicit_package_bases = true
-files = ["custom_components/hikvision_intercom", "tools"]
+# Protocol typing runs without HA; actual HA adapters are exercised on Linux in CI.
+files = ["custom_components/hikvision_intercom/client", "custom_components/hikvision_intercom/configuration.py", "custom_components/hikvision_intercom/models.py", "custom_components/hikvision_intercom/exceptions.py", "tools"]
 
 [[tool.mypy.overrides]]
 module = ["homeassistant.*"]

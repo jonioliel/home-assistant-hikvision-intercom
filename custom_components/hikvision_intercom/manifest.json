@@ -4,7 +4,7 @@
   "codeowners": [
     "@jonioliel"
   ],
-  "config_flow": false,
+  "config_flow": true,
   "documentation": "https://github.com/jonioliel/home-assistant-hikvision-intercom",
   "integration_type": "device",
   "iot_class": "local_polling",
@@ -13,5 +13,8 @@
     "defusedxml==0.7.1",
     "httpx==0.28.1"
   ],
-  "version": "0.1.0-alpha.1"
+  "version": "0.2.0-alpha.1",
+  "dependencies": [
+    "stream"
+  ]
 }

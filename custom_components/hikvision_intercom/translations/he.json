@@ -1,0 +1,161 @@
+{
+  "title": "אינטרקום Hikvision",
+  "config": {
+    "step": {
+      "user": {
+        "title": "חיבור אינטרקום",
+        "description": "חיבור DS-KV6124-E1 ברשת המקומית.",
+        "data": {
+          "name": "שם האינטרקום",
+          "host": "כתובת IP או שם מארח",
+          "username": "שם משתמש",
+          "password": "סיסמה",
+          "scheme": "HTTP / HTTPS",
+          "port": "פורט ISAPI",
+          "verify_ssl": "אימות תעודת HTTPS",
+          "rtsp_port": "פורט RTSP"
+        }
+      },
+      "reconfigure": {
+        "title": "הגדרה מחדש",
+        "description": "השאר את הסיסמה ריקה כדי לשמור על הסיסמה הקיימת. בהמשך אפשר לשמור את מיפוי המנעול המאושר או לבדוק מחדש.",
+        "data": {
+          "name": "שם האינטרקום",
+          "host": "כתובת IP או שם מארח",
+          "username": "שם משתמש",
+          "password": "סיסמה",
+          "scheme": "HTTP / HTTPS",
+          "port": "פורט ISAPI",
+          "verify_ssl": "אימות תעודת HTTPS",
+          "rtsp_port": "פורט RTSP"
+        }
+      },
+      "confirm_device": {
+        "title": "אישור האינטרקום שזוהה",
+        "description": "דגם: {model}\nקושחה: {firmware}\nמספר סידורי: {serial}"
+      },
+      "locks": {
+        "title": "ניהול המנעול הפעיל",
+        "description": "בהתקנה זו יש ממסר פיזי פעיל אחד בכל אינטרקום. בחר מצלמה בלבד, בדיקת מיפוי או שמירה על מיפוי שאושר בעבר.",
+        "data": {
+          "mode": "ניהול המנעול"
+        },
+        "data_description": {
+          "mode": "מצב מצלמה בלבד אינו יוצר מנעול ואינו מאפשר פקודות פתיחה."
+        }
+      },
+      "mapping": {
+        "title": "בדיקת המנעול הפעיל",
+        "description": "עמוד ליד המנעול. שליחה עם התיבה מסומנת תשלח פקודת פתיחה אחת ליציאה שנבחרה. במסך הבא יש לאשר את התוצאה הפיזית.",
+        "data": {
+          "api_id": "מספר היציאה במכשיר",
+          "test_unlock": "אני מוכן לבדיקת הפתיחה כעת"
+        }
+      },
+      "confirm_mapping": {
+        "title": "אישור פעולת המנעול",
+        "description": "המכשיר קיבל את הפקודה. אשר שהמנעול הרצוי השתחרר וחזר למצב הרגיל.",
+        "data": {
+          "result": "תוצאת הבדיקה הפיזית"
+        }
+      },
+      "reauth_confirm": {
+        "title": "עדכון פרטי התחברות",
+        "data": {
+          "username": "שם משתמש",
+          "password": "סיסמה"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "ההזדהות נכשלה. בדוק שם משתמש וסיסמה.",
+      "unsupported_device": "דגם זה או נקודת הקצה הבסיסית טרם אומתו עבור האינטגרציה.",
+      "invalid_response": "המכשיר החזיר מידע לא תקין או שפרטי החיבור אינם תקינים.",
+      "cannot_connect": "לא ניתן להתחבר לאינטרקום.",
+      "test_required": "סמן את תיבת הבדיקה כאשר אתה ליד המנעול.",
+      "invalid_mapping": "בחר יציאה שהמכשיר מצהיר עליה.",
+      "unlock_failed": "הפתיחה לא אושרה. בדוק את הדלת לפני ניסיון נוסף.",
+      "confirmation_required": "אשר את התוצאה הפיזית לפני ניהול המנעול."
+    },
+    "abort": {
+      "already_configured": "האינטרקום כבר מוגדר.",
+      "unique_id_mismatch": "זהו אינטרקום אחר. ההגדרה הקיימת נשמרה.",
+      "reauth_successful": "פרטי ההתחברות עודכנו.",
+      "reconfigure_successful": "הגדרת האינטרקום עודכנה."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "אפשרויות אינטרקום",
+        "description": "משך התצוגה משנה רק את מצב המנעול המוצג ב־Home Assistant. האינטרקום שולט במשך הפעולה של הממסר.",
+        "data": {
+          "idle_interval": "מרווח בדיקה בהמתנה (שניות)",
+          "active_interval": "מרווח בדיקה בשיחה פעילה (שניות)",
+          "pulse_seconds": "משך תצוגת פתיחה (שניות)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {
+        "name": "מקוון"
+      },
+      "ringing": {
+        "name": "מצלצל"
+      }
+    },
+    "sensor": {
+      "call_status": {
+        "name": "מצב שיחה",
+        "state": {
+          "idle": "בהמתנה",
+          "ringing": "מצלצל",
+          "in_call": "תפוס / בשיחה",
+          "ending": "מסתיימת",
+          "unknown": "לא ידוע",
+          "unavailable": "לא זמין"
+        }
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "מצלמה"
+      }
+    },
+    "lock": {
+      "door_1": {
+        "name": "מנעול פעיל"
+      }
+    }
+  },
+  "services": {
+    "unlock_door": {
+      "name": "פתיחת דלת",
+      "description": "פתיחה רגעית של המנעול הפעיל שנבחר. האינטרקום שולט במשך הפעולה. נדרשת הרשאת מנהל.",
+      "fields": {
+        "lock": {
+          "name": "מנעול פיזי",
+          "description": "ניתן להפעיל רק את המנעול הפעיל שהוגדר (1)."
+        }
+      }
+    }
+  },
+  "selector": {
+    "lock_mode": {
+      "options": {
+        "camera_only": "מצלמה בלבד",
+        "map_active_relay": "בדיקת מיפוי הממסר הפעיל",
+        "keep_confirmed_mapping": "שמירת המיפוי המאושר"
+      }
+    },
+    "mapping_result": {
+      "options": {
+        "released_and_returned": "המנעול הרצוי השתחרר וחזר למצב הרגיל",
+        "choose_again": "בחירת יציאה ובדיקה נוספת",
+        "camera_only": "המשך עם מצלמה בלבד"
+      }
+    }
+  }
+}

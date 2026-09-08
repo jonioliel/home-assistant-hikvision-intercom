@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Added
+- Phase 1 core integration under validation: setup, reauth/reconfigure, confirmed single-relay mapping,
+  shared polling, camera, online/ringing/call status, momentary lock and an admin release action.
+- English/Hebrew setup and entity translations, connection-safe diagnostics and lifecycle tests.
+- Dedicated Home Assistant 2026.9.1 / Python 3.14 CI tests in addition to protocol tests.
+
 ## [0.1.0-alpha.1] - 2026-09-08
 
 ### Added

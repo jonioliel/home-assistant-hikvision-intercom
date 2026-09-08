@@ -1,0 +1,161 @@
+{
+  "title": "Hikvision Intercom",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect an intercom",
+        "description": "Connect to a DS-KV6124-E1 on your local network.",
+        "data": {
+          "name": "Station name",
+          "host": "Host or IP address",
+          "username": "Username",
+          "password": "Password",
+          "scheme": "HTTP / HTTPS",
+          "port": "ISAPI port",
+          "verify_ssl": "Verify HTTPS certificate",
+          "rtsp_port": "RTSP port"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure intercom",
+        "description": "Leave the password empty to keep the existing password. Relay mapping can be retained or tested again in the following steps.",
+        "data": {
+          "name": "Station name",
+          "host": "Host or IP address",
+          "username": "Username",
+          "password": "Password",
+          "scheme": "HTTP / HTTPS",
+          "port": "ISAPI port",
+          "verify_ssl": "Verify HTTPS certificate",
+          "rtsp_port": "RTSP port"
+        }
+      },
+      "confirm_device": {
+        "title": "Confirm the detected intercom",
+        "description": "Model: {model}\nFirmware: {firmware}\nSerial: {serial}"
+      },
+      "locks": {
+        "title": "Manage the active lock",
+        "description": "This installation uses one active physical relay per intercom. Choose camera only, test its mapping, or retain an earlier confirmed mapping.",
+        "data": {
+          "mode": "Lock management"
+        },
+        "data_description": {
+          "mode": "Camera-only mode creates no lock and does not permit release commands."
+        }
+      },
+      "mapping": {
+        "title": "Test the active lock",
+        "description": "Stand beside the lock. Submitting with the checkbox selected sends ONE release command to the selected output. Confirm the physical result on the next screen.",
+        "data": {
+          "api_id": "Device output number",
+          "test_unlock": "I am ready to test the release now"
+        }
+      },
+      "confirm_mapping": {
+        "title": "Confirm the lock operation",
+        "description": "The device accepted the command. Confirm that the intended lock released and returned to its normal state.",
+        "data": {
+          "result": "Physical test result"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update authentication",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed. Check the account and password.",
+      "unsupported_device": "This model or core endpoint has not been verified for this integration.",
+      "invalid_response": "The station returned invalid data or the connection settings are invalid.",
+      "cannot_connect": "Could not connect to the intercom.",
+      "test_required": "Select the release test checkbox when you are beside the lock.",
+      "invalid_mapping": "Select an advertised output.",
+      "unlock_failed": "Release was not confirmed. Check the door before choosing to retry.",
+      "confirmation_required": "Confirm the physical result before managing this lock."
+    },
+    "abort": {
+      "already_configured": "This intercom is already configured.",
+      "unique_id_mismatch": "This is a different intercom. The existing configuration was preserved.",
+      "reauth_successful": "Authentication updated.",
+      "reconfigure_successful": "Intercom configuration updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Intercom options",
+        "description": "The display pulse changes only the lock state shown in Home Assistant. The intercom controls the actual relay duration.",
+        "data": {
+          "idle_interval": "Idle polling interval (seconds)",
+          "active_interval": "Active call polling interval (seconds)",
+          "pulse_seconds": "Display release duration (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      },
+      "ringing": {
+        "name": "Ringing"
+      }
+    },
+    "sensor": {
+      "call_status": {
+        "name": "Call status",
+        "state": {
+          "idle": "Idle",
+          "ringing": "Ringing",
+          "in_call": "Busy / in call",
+          "ending": "Ending",
+          "unknown": "Unknown",
+          "unavailable": "Unavailable"
+        }
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Camera"
+      }
+    },
+    "lock": {
+      "door_1": {
+        "name": "Active lock"
+      }
+    }
+  },
+  "services": {
+    "unlock_door": {
+      "name": "Release door",
+      "description": "Momentarily release the selected active lock. The intercom controls the return duration. Requires an administrator.",
+      "fields": {
+        "lock": {
+          "name": "Physical lock",
+          "description": "Only the configured active lock (1) can be operated."
+        }
+      }
+    }
+  },
+  "selector": {
+    "lock_mode": {
+      "options": {
+        "camera_only": "Camera only",
+        "map_active_relay": "Test the active relay mapping",
+        "keep_confirmed_mapping": "Keep the confirmed mapping"
+      }
+    },
+    "mapping_result": {
+      "options": {
+        "released_and_returned": "The intended lock released and returned",
+        "choose_again": "Choose an output and test again",
+        "camera_only": "Continue with camera only"
+      }
+    }
+  }
+}
