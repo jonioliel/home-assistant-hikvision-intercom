@@ -282,3 +282,92 @@ test("Hebrew sync error stays visible when the station is offline", async ({ pag
   await expect(page.getByText("הציוד דחה את תאריכי התוקף.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "הורד דוח אבחון סנכרון" })).toBeEnabled();
 });
+
+test("overview and devices show actual health and historical access context", async ({ page }) => {
+  await page.goto("/");
+  const gate = page
+    .locator("article.station")
+    .filter({ has: page.getByRole("heading", { name: "Main gate", exact: true }) });
+  await expect(gate.locator(".last-access")).toContainText("Dana");
+  await expect(gate.locator(".last-access")).toContainText("Authentication accepted");
+  await expect(gate.locator(".last-access")).toContainText("Historical record");
+  const offline = page
+    .locator("article.station")
+    .filter({ has: page.getByRole("heading", { name: "Service gate", exact: true }) });
+  await expect(offline.locator(".last-seen")).toContainText("Last successful contact");
+  await expect(offline.locator(".pending-users")).toContainText("2");
+  await expect(offline.getByRole("button", { name: "Open active lock" })).toBeDisabled();
+  await expect(
+    page.locator(".metric").filter({ hasText: "Pending sync" }).locator("strong"),
+  ).toHaveText("3");
+  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await expect(gate).toContainText("18.4 ms");
+  await expect(offline).toContainText("Not observed since loading");
+});
+
+test("user search uses only the four visible card digits", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  const search = page.getByRole("searchbox");
+  await search.fill("4821");
+  await expect(page.locator(".desktop-users tbody tr")).toHaveCount(1);
+  await expect(page.locator(".desktop-users tbody tr")).toContainText("Or Levy");
+  await search.fill("482");
+  await expect(page.getByText("No matching people.", { exact: true })).toBeVisible();
+  await search.fill("Dana");
+  await expect(page.locator(".desktop-users tbody tr")).toHaveCount(1);
+  await expect(page.locator(".desktop-users tbody tr")).toContainText("Dana Cohen");
+  await search.fill("1002");
+  await expect(page.locator(".desktop-users tbody tr")).toContainText("Yuval Barak");
+});
+
+test("pending previous PIN removal is visible and clears after confirmation", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.demoData.pin_removals = [
+      {
+        id: "retired",
+        user_id: "person-0",
+        targets: ["station-0", "station-5"],
+        confirmed: ["station-0"],
+      },
+    ];
+    window.demoNotify();
+  });
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  const row = page.getByText("Previous PIN removal pending", { exact: false });
+  await expect(row).toContainText("Or Levy");
+  await expect(row).toContainText("Service gate");
+  await expect(row).not.toContainText("Main gate");
+  await page.evaluate(() => {
+    window.demoData.pin_removals = [];
+    window.demoNotify();
+  });
+  await expect(row).toHaveCount(0);
+});
+
+test("Hebrew mobile overview preserves unknown access and fits long person names", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he&dark=1");
+  await page.evaluate(() => {
+    Object.assign(window.demoData.stations[0].last_access, {
+      person_name: '<img src=x onerror="window.attacked=true">',
+      event_type: "unlock_record",
+      result: "unknown",
+      time_source: "received",
+    });
+    window.demoNotify();
+  });
+  const access = page.locator(".last-access").first();
+  await expect(access).toContainText("דיווח פתיחה מהמכשיר");
+  await expect(access).toContainText("זמן קבלה");
+  expect(await page.evaluate(() => window.attacked)).toBeUndefined();
+  expect(
+    await page
+      .locator("hikvision-intercom-panel")
+      .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "test-results/fleet-health-he-mobile.png", fullPage: true });
+});

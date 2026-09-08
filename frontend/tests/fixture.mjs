@@ -38,6 +38,25 @@ const data = {
     sync_state: i === 5 ? "offline" : i === 2 ? "conflict" : "synced",
     last_error: i === 5 ? "connection_failed" : null,
     scanned_at: new Date().toISOString(),
+    reconciled_at: i === 5 ? null : new Date().toISOString(),
+    managed_user_count: 6,
+    pending_user_count: i === 5 ? 2 : i === 2 ? 1 : 0,
+    last_seen: "2026-09-08T12:30:00Z",
+    last_poll_ms: 18.4,
+    last_access:
+      i === 0
+        ? {
+            timestamp: "2026-09-08T12:15:00Z",
+            time_source: "device",
+            person_name: "Dana",
+            employee_no: "42",
+            authentication: "card",
+            result: "granted",
+            event_type: "access_granted",
+            recovered: true,
+            door: 1,
+          }
+        : null,
     user_count: 18 + i,
     card_count: 23 + i,
     unmanaged_count: i === 0 ? 1 : 0,
@@ -59,6 +78,7 @@ const data = {
   tombstones: [],
   revocations: [],
   card_removals: [],
+  pin_removals: [],
 };
 const people = hebrew
   ? ["אור לוי", "דנה כהן", "יובל ברק", "נועה ישראלי", "צוות אחזקה", "אורח זמני"]

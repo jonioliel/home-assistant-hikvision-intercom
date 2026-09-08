@@ -86,6 +86,7 @@ def _patch(data: dict[str, Any]) -> dict[str, Any]:
 def overview(hass: HomeAssistant) -> dict[str, Any]:
     data = get_manager(hass).public()
     registry = er.async_get(hass)
+    latest_access = get_events(hass).latest_access({station["id"] for station in data["stations"]})
     for station in data["stations"]:
         entry = hass.config_entries.async_get_entry(station["id"])
         runtime = getattr(entry, "runtime_data", None) if entry else None
@@ -109,6 +110,11 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
             call_state=runtime.coordinator.data.normalized
             if runtime and not runtime.session.is_closed and runtime.coordinator.last_update_success
             else "unavailable",
+            last_seen=runtime.coordinator.last_seen.isoformat()
+            if runtime and runtime.coordinator.last_seen
+            else None,
+            last_poll_ms=runtime.coordinator.last_poll_ms if runtime else None,
+            last_access=latest_access.get(station["id"]),
             model=runtime.profile.model if runtime else None,
             firmware=runtime.profile.firmware if runtime else None,
             host=entry.data.get("host") if entry else None,

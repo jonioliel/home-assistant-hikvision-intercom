@@ -99,3 +99,9 @@ validity dates on the real station. Version 0.6.1-alpha.1 fixes permanent-user c
 safe stage diagnostics plus actionable Sync errors. Real create/name-update/targeted-delete
 passed without credentials or relay actions; original records remained unchanged. Timed
 validity timezone interpretation remains explicitly unverified and blocks timed readback.
+
+Fleet status completion (0.7.0-alpha.1) fills the required Overview/Intercom health details:
+retained last access, successful status contact/request duration, pending unique users and
+last successful reconciliation. PIN-removal queues are visible and masked-card suffix search
+is available. No new ISAPI behavior or physical operation is introduced. The owner reports the
+installed integration working well; outstanding physical gates remain tracked in HARDENING.md.

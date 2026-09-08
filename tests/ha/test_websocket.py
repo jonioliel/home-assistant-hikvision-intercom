@@ -158,3 +158,78 @@ async def test_sync_diagnostics_export_is_admin_only_and_contains_no_record_data
     ):
         assert secret not in text
     assert response["result"]["recent"][-1]["step"] == "create_person"
+
+
+async def test_overview_retains_actual_contact_time_through_failed_polls(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    from unittest.mock import patch
+
+    from custom_components.hikvision_intercom.client.client import CallState
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+
+    coordinator = loaded_entry.runtime_data.coordinator
+    device_io["call"].return_value = CallState("unknown", "new_state")
+    with patch(
+        "custom_components.hikvision_intercom.coordinator.monotonic", side_effect=[10, 10.025]
+    ):
+        await coordinator.async_refresh()
+    seen = coordinator.last_seen.isoformat()
+    assert coordinator.last_poll_ms == 25.0
+    device_io["call"].side_effect = HikvisionConnectionError("PRIVATE HOST")
+    await coordinator.async_refresh()
+    client = await hass_ws_client(hass)
+    result = await request(client, "overview")
+    station = result["result"]["stations"][0]
+    assert not station["online"] and station["call_state"] == "unavailable"
+    assert station["last_seen"] == seen and station["last_poll_ms"] == 25.0
+    assert station["pending_user_count"] == 0
+    assert station["last_access"] is None
+    assert "PRIVATE HOST" not in json.dumps(result)
+    device_io["call"].side_effect = None
+    await coordinator.async_refresh()
+    result = await request(client, "stations/get", station_id=loaded_entry.entry_id)
+    assert result["result"]["online"]
+    assert result["result"]["last_seen"] >= seen
+
+
+async def test_overview_exposes_only_safe_latest_access_without_triggering_recovered_events(
+    hass, loaded_entry, hass_ws_client
+):
+    from datetime import UTC, datetime
+    from unittest.mock import patch
+
+    from custom_components.hikvision_intercom.event_manager import get_events
+    from custom_components.hikvision_intercom.events import normalize_event
+
+    now = datetime.now(UTC)
+    event = normalize_event(
+        {
+            "major": 5,
+            "minor": 214,
+            "time": now.isoformat(),
+            "name": "Guest",
+            "cardNo": "000011112222",
+            "localPassword": "918273",
+            "unlockType": "card",
+        },
+        loaded_entry.entry_id,
+        b"x" * 32,
+        received=now,
+        selected_api=1,
+        historical=True,
+    )
+    with patch("custom_components.hikvision_intercom.event_manager.async_dispatcher_send") as send:
+        get_events(hass).accept(event)
+        client = await hass_ws_client(hass)
+        result = await request(client, "overview")
+        # Accepting/querying a historical record never emits the live event signal.
+        from custom_components.hikvision_intercom.event_manager import SIGNAL_EVENT
+
+        assert not any(call.args[1] == SIGNAL_EVENT for call in send.call_args_list)
+    access = result["result"]["stations"][0]["last_access"]
+    assert access["result"] == "unknown" and access["event_type"] == "unlock_record"
+    assert access["person_name"] == "Guest" and access["recovered"]
+    for secret in ("000011112222", "918273", "localPassword"):
+        assert secret not in json.dumps(result)
+    assert "card" not in access

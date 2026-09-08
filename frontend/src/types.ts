@@ -28,6 +28,17 @@ export interface Person {
   valid_from: string | null;
   valid_until: string | null;
 }
+export interface LastAccess {
+  timestamp: string;
+  time_source: "device" | "received";
+  person_name: string | null;
+  employee_no: string | null;
+  authentication: string;
+  result: string;
+  event_type: string;
+  recovered: boolean;
+  door: number | null;
+}
 export interface Station {
   id: string;
   sync_reference?: string;
@@ -39,6 +50,12 @@ export interface Station {
   sync_state: string;
   last_error: string | null;
   scanned_at: string | null;
+  reconciled_at: string | null;
+  managed_user_count: number | null;
+  pending_user_count: number;
+  last_seen: string | null;
+  last_poll_ms: number | null;
+  last_access: LastAccess | null;
   user_count: number | null;
   card_count: number | null;
   unmanaged_count: number | null;
@@ -76,6 +93,7 @@ export interface Overview {
     last_error: string | null;
   }[];
   card_removals: { id: string; user_id: string; targets: string[]; confirmed: string[] }[];
+  pin_removals: { id: string; user_id: string; targets: string[]; confirmed: string[] }[];
 }
 export interface Inventory {
   employee_no: string;

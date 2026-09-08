@@ -134,6 +134,13 @@ class EventManager:
             "stations": {key: value.status() for key, value in self.stations.items()},
         }
 
+    def latest_access(self, station_ids: set[str]) -> dict[str, dict[str, Any]]:
+        before = len(self.cache.rows)
+        result = self.cache.latest_access(station_ids, datetime.now(UTC))
+        if len(self.cache.rows) != before:
+            self.changed()
+        return result
+
     def attach(self, runtime: IntercomRuntime) -> StationEvents:
         station = StationEvents(self, runtime)
         self.stations[runtime.station_id] = station

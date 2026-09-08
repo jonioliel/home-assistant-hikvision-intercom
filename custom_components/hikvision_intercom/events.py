@@ -235,6 +235,39 @@ class EventCache:
     def dump(self) -> dict[str, Any]:
         return {"schema": 1, "records": copy.deepcopy(list(self.rows.values()))}
 
+    def latest_access(self, station_ids: set[str], now: datetime) -> dict[str, dict[str, Any]]:
+        """Select by event time, not replay arrival; do not infer access from door motion."""
+        self.prune(now)
+        latest: dict[str, tuple[datetime, dict[str, Any]]] = {}
+        for row in self.rows.values():
+            station_id = row["station_id"]
+            when = timestamp(row["timestamp"])
+            if (
+                station_id not in station_ids
+                or row["event_type"]
+                not in {"access_granted", "access_denied", "attempt_limit", "unlock_record"}
+                or when is None
+                or when > now + timedelta(seconds=5)
+            ):
+                continue
+            if station_id not in latest or when > latest[station_id][0]:
+                latest[station_id] = (when, row)
+        fields = (
+            "timestamp",
+            "time_source",
+            "person_name",
+            "employee_no",
+            "authentication",
+            "result",
+            "event_type",
+            "recovered",
+            "door",
+        )
+        return {
+            station_id: {field: row[field] for field in fields}
+            for station_id, (_, row) in latest.items()
+        }
+
     def query(self, filters: dict[str, Any], now: datetime) -> dict[str, Any]:
         allowed = {
             "station_id",
@@ -279,7 +312,9 @@ class EventCache:
         self.prune(now)
         matches = []
         for row in sorted(
-            self.rows.values(), key=lambda item: (item["timestamp"], item["id"]), reverse=True
+            self.rows.values(),
+            key=lambda item: (timestamp(item["timestamp"]) or now, item["id"]),
+            reverse=True,
         ):
             when = timestamp(row["timestamp"])
             if when is None or start and when < start or end and when > end:

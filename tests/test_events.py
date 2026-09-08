@@ -304,3 +304,43 @@ def test_observed_nested_multipart_headers_and_extra_blank_lines():
     for offset in range(0, len(wire), 17):
         docs.extend(parser.feed(wire[offset : offset + 17]))
     assert len(docs) == 2 and docs[1] == payload()
+
+
+def test_latest_access_uses_actual_time_not_replay_order_or_door_motion():
+    cache = EventCache()
+    accepted = normalized(payload(name="Resident", cardNo="000012345678", localPassword="918273"))
+    accepted["timestamp"] = "2026-09-08T14:58:00+03:00"  # 11:58 UTC
+    cache.add(accepted, NOW)
+    denied = normalized(payload(150, serialNo=13, name="Guest"))
+    denied["timestamp"] = "2026-09-08T11:59:00+00:00"
+    cache.add(denied, NOW)
+    old = normalized({"major": 5, "minor": 1, "time": "2026-09-08T11:30:00Z"}, historical=True)
+    cache.add(old, NOW)  # A recovered record arrives after the newer denial.
+    cache.add(normalized(payload(22, serialNo=14)), NOW)
+    cache.add(normalized(payload(60000, serialNo=15)), NOW)
+    future = normalized(payload(1, serialNo=16))
+    future["timestamp"] = (NOW + timedelta(days=1)).isoformat()
+    cache.add(future, NOW)
+    summary = cache.latest_access({"station", "empty"}, NOW)
+    assert summary["station"]["person_name"] == "Guest"
+    assert summary["station"]["result"] == "denied"
+    assert "empty" not in summary
+    for field in ("card", "id", "major", "minor", "localPassword"):
+        assert field not in summary["station"]
+    page = cache.query({"end": NOW.isoformat(), "result": "granted"}, NOW)
+    assert [item["id"] for item in page["records"]] == [accepted["id"], old["id"]]
+    restored = EventCache()
+    restored.load(cache.dump(), NOW)
+    assert restored.latest_access({"station"}, NOW) == summary
+    assert not restored.latest_access({"station"}, NOW + timedelta(days=31))
+
+
+def test_latest_unknown_unlock_record_remains_unknown_and_marks_receipt_time():
+    cache = EventCache()
+    event = payload(214, unlockType="password")
+    event["dateTime"] = "no device clock"
+    cache.add(normalized(event), NOW)
+    summary = cache.latest_access({"station"}, NOW)["station"]
+    assert summary["event_type"] == "unlock_record" and summary["result"] == "unknown"
+    assert summary["authentication"] == "pin" and summary["recovered"] is True
+    assert summary["time_source"] == "received"

@@ -4,6 +4,35 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.7.0-alpha.1] - 2026-09-08
+
+### Added
+- Overview station cards show the last retained access event with person, authentication,
+  event time and historical/receipt-time context. Door movement is not interpreted as a
+  successful credential use; unknown unlocking outcomes remain unknown.
+- Offline cards show the last successful status contact and the number of users awaiting
+  reconciliation. Intercom details include the last successful status-request duration,
+  observed managed-user count and last fully successful reconciliation.
+- Previous PIN removals awaiting confirmation are visible in the Sync screen, alongside
+  card removals, assignment revocations and deleted users. No PIN value is exposed.
+- Search central users by the four visible trailing card digits, name or employee ID.
+
+### Fixed
+- Count pending work once per user/station, including removals and saved write intents,
+  instead of counting one person repeatedly or omitting credential removals.
+- Sort event history by actual time across timezone offsets. Replayed older events,
+  unrelated door events and future clock outliers cannot replace a newer access summary.
+
+### Compatibility and validation
+- No storage/config schema change, new device requests or new ISAPI write behavior.
+- Last-contact/request/reconciliation observations are retained through disconnects in the
+  current runtime; they are unknown after a fresh load until actually observed. Event history
+  and pending removals retain their existing persistence and retention behavior.
+- Regression coverage includes offline recovery, restart, overlapping removals, event replay,
+  privacy, admin-only HA responses and English/Hebrew desktop/mobile screens.
+- Physical PIN/card lifecycle, time-limited validity and sustained nine-station acceptance
+  remain open. Historical access summaries do not trigger live automations.
+
 ## [0.6.1-alpha.1] - 2026-09-08
 
 ### Fixed

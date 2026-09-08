@@ -251,6 +251,15 @@ class AccessRepository:
                     }
                     for key, item in self._state["retired_cards"].items()
                 ],
+                "pin_removals": [
+                    {
+                        "id": key,
+                        "user_id": item["user_id"],
+                        "targets": item["targets"],
+                        "confirmed": item["confirmed"],
+                    }
+                    for key, item in self._state["retired_pins"].items()
+                ],
                 "tombstones": [
                     {key: value for key, value in item.items() if key != "record"}
                     for item in self._state["tombstones"].values()

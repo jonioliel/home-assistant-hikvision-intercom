@@ -207,19 +207,27 @@ export class IntercomManagerPanel extends LitElement {
     );
   }
   private pendingCount() {
-    return (
-      (this._data?.users.reduce(
-        (sum, user) =>
-          sum +
-          Object.values(user.assignments).filter((item) => item.sync_state !== "synced").length,
-        0,
-      ) ?? 0) +
-      (this._data?.tombstones.reduce(
-        (sum, item) => sum + item.targets.filter((id) => !item.confirmed.includes(id)).length,
-        0,
-      ) ?? 0) +
-      (this._data?.revocations.length ?? 0)
-    );
+    return this._data?.stations.reduce((sum, station) => sum + station.pending_user_count, 0) ?? 0;
+  }
+  private dateText(value: string | null) {
+    return value ? new Date(value).toLocaleString(this.hass?.language) : this.t("not_observed");
+  }
+  private lastAccess(station: Station) {
+    const event = station.last_access;
+    return html`<div class="last-access">
+      <span class="sub">${this.t("last_access")}</span>
+      ${
+        event
+          ? html` <div>${event.person_name ?? event.employee_no ?? this.t("unknown_person")}</div>
+              <div class="sub">${this.t(event.event_type)} · ${this.t(event.authentication)}</div>
+              <div class="sub">
+                <bdi>${this.dateText(event.timestamp)}</bdi>
+                ${event.time_source === "received" ? html` · ${this.t("receipt_time")}` : nothing}
+                ${event.recovered ? html` · ${this.t("historical_record")}` : nothing}
+              </div>`
+          : html`<div class="sub">${this.t("no_access_recorded")}</div>`
+      }
+    </div>`;
   }
   private edit(user?: Person) {
     const number = new Uint32Array(1);
@@ -466,6 +474,11 @@ export class IntercomManagerPanel extends LitElement {
                       <span class="sub">${this.t(station.call_state)}</span
                       >${this.badge(station.sync_state)}
                     </div>
+                    ${this.lastAccess(station)}
+                    <p class="sub pending-users">
+                      ${this.t("pending_users")}: ${station.pending_user_count}
+                    </p>
+                    ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen)}</bdi></p>` : nothing}
                     ${station.lock_enabled ? html`<div class="row actions"><button class="primary" @click=${() => this.unlock(station)} ?disabled=${!station.online || this._busy}>${this.t("open_door")}</button></div>` : html`<p class="sub">${this.t("camera_only")}</p>`}
                   </article>`,
               )}
@@ -473,10 +486,12 @@ export class IntercomManagerPanel extends LitElement {
       }`;
   }
   private usersView() {
-    const users = (this._data?.users ?? []).filter((user) =>
-      `${user.display_name} ${user.employee_no}`
-        .toLocaleLowerCase()
-        .includes(this._query.toLocaleLowerCase()),
+    const query = this._query.trim().toLocaleLowerCase();
+    const users = (this._data?.users ?? []).filter(
+      (user) =>
+        `${user.display_name} ${user.employee_no}`.toLocaleLowerCase().includes(query) ||
+        (/^[0-9]{4}$/.test(query) &&
+          user.cards.some((card) => card.masked_number?.slice(-4) === query)),
     );
     return html`<div class="toolbar">
         <input
@@ -574,6 +589,16 @@ export class IntercomManagerPanel extends LitElement {
                   ["model", station.model],
                   ["firmware", station.firmware],
                   ["address", station.host],
+                  ["last_seen", this.dateText(station.last_seen)],
+                  [
+                    "last_poll",
+                    station.last_poll_ms === null
+                      ? this.t("not_observed")
+                      : `${station.last_poll_ms} ms`,
+                  ],
+                  ["managed_users", station.managed_user_count ?? this.t("not_observed")],
+                  ["pending_users", station.pending_user_count],
+                  ["last_reconciliation", this.dateText(station.reconciled_at)],
                   [
                     "last_scan",
                     station.scanned_at
@@ -687,16 +712,19 @@ export class IntercomManagerPanel extends LitElement {
       }
       <h2 class="section-title">${this.t("pending_removals")}</h2>
       <div class="box">
-        ${!data.tombstones.length && !data.revocations.length && !data.card_removals.length ? html`<p class="sub">${this.t("no_pending_removals")}</p>` : nothing}${data.tombstones.map(
+        ${!data.tombstones.length && !data.revocations.length && !data.card_removals.length && !data.pin_removals.length ? html`<p class="sub">${this.t("no_pending_removals")}</p>` : nothing}${data.tombstones.map(
           (item) =>
             html`<div class="removal">
               <strong>${this.t("employee_id")}: <bdi>${item.employee_no}</bdi></strong
               >${item.targets.filter((id) => !item.confirmed.includes(id)).map((id) => html`<div class="row actions"><span>${this.stationName(id)}</span>${this.badge(item.stations?.[id]?.sync_state ?? "delete_pending")}<button @click=${() => this.inspect(item.user_id, id)} ?disabled=${this._busy}>${this.t("inspect")}</button><button @click=${() => this.run(() => this.api("sync/station", { station_id: id }))} ?disabled=${this._busy}>${this.t("sync_now")}</button></div>`)}
             </div>`,
-        )}${data.revocations.map((item) => html`<div class="removal row"><span>${data.users.find((user) => user.id === item.user_id)?.display_name} · ${this.stationName(item.station_id)}</span>${this.badge(item.sync_state)}<button @click=${() => this.inspect(item.user_id, item.station_id)} ?disabled=${this._busy}>${this.t("inspect")}</button></div>`)}${data.card_removals.map(
+        )}${data.revocations.map((item) => html`<div class="removal row"><span>${data.users.find((user) => user.id === item.user_id)?.display_name} · ${this.stationName(item.station_id)}</span>${this.badge(item.sync_state)}<button @click=${() => this.inspect(item.user_id, item.station_id)} ?disabled=${this._busy}>${this.t("inspect")}</button></div>`)}${[
+          ...data.card_removals.map((item) => ({ ...item, kind: "cards" })),
+          ...data.pin_removals.map((item) => ({ ...item, kind: "retired_pin" })),
+        ].map(
           (item) =>
             html`<p class="sub">
-              ${this.t("cards")} ·
+              ${this.t(item.kind)} ·
               ${data.users.find((user) => user.id === item.user_id)?.display_name ?? "—"} ·
               ${item.targets
                 .filter((id) => !item.confirmed.includes(id))

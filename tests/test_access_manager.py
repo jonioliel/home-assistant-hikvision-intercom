@@ -350,3 +350,76 @@ async def test_deleted_device_record_can_be_explicitly_recreated(fleet):
     )
     await drain(manager)
     assert device.users["1001"]["name"] == "Resident"
+
+
+async def test_fleet_health_counts_pending_people_once_and_survives_restart(fleet):
+    manager, device, _ = fleet
+    created = await manager.async_create(
+        {
+            "display_name": "Resident",
+            "pin": "918273",
+            "cards": [{"card_no": "000011112222"}],
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    station = manager.public()["stations"][0]
+    assert station["managed_user_count"] == 1 and station["pending_user_count"] == 0
+    reconciled = station["reconciled_at"]
+    assert reconciled
+    device.offline = True
+    updated = await manager.async_update(created["id"], {"pin": "827364", "cards": []}, revision=1)
+    await drain(manager)
+    public = manager.public()
+    assert public["stations"][0]["pending_user_count"] == 1
+    assert public["stations"][0]["reconciled_at"] == reconciled
+    assert len(public["card_removals"]) == len(public["pin_removals"]) == 1
+    for secret in ("918273", "827364", "000011112222"):
+        assert secret not in str(public)
+
+    async def save(_data):
+        pass
+
+    restarted = AccessRepository(save)
+    await restarted.async_load(manager.repository.snapshot())
+    restored = AccessManager(restarted)
+    restored.register("a", "Front", True)
+    assert restored.public()["stations"][0]["pending_user_count"] == 1
+    assert restored.public()["stations"][0]["reconciled_at"] is None
+    assert len(restored.public()["pin_removals"]) == 1
+    await restored.async_close()
+
+    await manager.async_delete(created["id"], revision=updated["revision"])
+    await drain(manager)
+    assert manager.public()["stations"][0]["pending_user_count"] == 1
+    assert manager.public()["tombstones"]
+    device.offline = False
+    manager.request("a")
+    await drain(manager)
+    station = manager.public()["stations"][0]
+    assert station["pending_user_count"] == station["managed_user_count"] == 0
+    assert not manager.public()["pin_removals"]
+    assert not manager.public()["card_removals"]
+
+
+async def test_health_includes_assignment_revocation_without_a_matrix_cell(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {
+            "display_name": "Resident",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    device.offline = True
+    await manager.async_update(user["id"], {"assignments": {}}, revision=1)
+    await drain(manager)
+    public = manager.public()
+    assert public["users"][0]["assignments"] == {}
+    assert public["stations"][0]["pending_user_count"] == 1
+    assert len(public["revocations"]) == 1
+    device.offline = False
+    manager.request("a")
+    await drain(manager)
+    assert manager.public()["stations"][0]["pending_user_count"] == 0
+    assert not device.users and not manager.public()["revocations"]

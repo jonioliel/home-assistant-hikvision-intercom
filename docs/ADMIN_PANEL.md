@@ -60,3 +60,26 @@ for offline stations. Its station/person references match the anonymous referenc
 **Download sync diagnostics** report. Retry the affected sync before exporting to capture fresh
 stages. The report is administrator-only and bounded to the last 200 in-memory stages; it
 contains no names, employee numbers, addresses, PINs, cards or raw station responses.
+
+## Fleet health and last access — 0.7.0-alpha.1
+
+Overview uses the existing bounded event cache; it makes no extra device requests. Last access
+means the newest retained authentication or unlocking record by actual event time. Bell and door
+motion records are excluded. Recovered records remain labelled; unknown unlocking results are
+not displayed as successful authentication. Receipt time is labelled when the device time was
+unusable, and timestamps more than five seconds in the future do not occupy the summary.
+The empty message means no eligible record in retained history, not that nobody used the door.
+
+Last successful contact is the last successful call-status poll in this runtime. Its request
+length includes the HTTP/Digest exchange and parsing, not just network ping. Both observations
+survive failed polls but reset on a fresh integration load. The last successful reconciliation
+advances only after the entire cycle, including the final inventory read, succeeds. A manual
+inventory read alone does not advance it. These fields refresh through the existing panel refresh.
+
+Managed-user count is the overlap of explicit ownership and the last observed station inventory;
+unknown inventory is displayed as unknown. Pending count is unique users awaiting reconciliation
+per station, including offline/error verification, revision mismatch, saved intents, tombstones,
+revocations and previous PIN/card removals. The same person counts once per affected station.
+A successful scan with zero pending work shows zero, not the size of the periodic scan workload.
+The Sync removal list now includes previous PINs by person/target only, never by PIN value.
+User search matches exactly four visible trailing card digits, alongside name and employee ID.

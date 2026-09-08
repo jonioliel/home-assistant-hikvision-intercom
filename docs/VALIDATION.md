@@ -179,3 +179,16 @@ supervised retry and cleanup. The new synchronization test accounts were fully r
 Local validation of the sync correction: 335 Python tests, 16 browser tests, Ruff, mypy
 (24 modules), TypeScript and the bundled frontend build passed. GitHub CI additionally runs
 the real Home Assistant suite, HACS and Hassfest; publication is gated on those checks.
+
+## Fleet status and access summaries — 0.7.0-alpha.1
+
+Local validation passed: 339 protocol/access/event tests, 20 browser tests, Ruff, mypy
+(24 modules), TypeScript, frontend build and release metadata. New regressions cover
+pending user/station deduplication with PIN/card/deletion overlap, offline revocation and
+recovery, saved-state restart, chronological timezone ordering, late replay, clock outliers,
+unknown access outcomes and privacy. Browser coverage includes masked-card suffix search,
+removal acknowledgement refresh, offline details and Hebrew mobile layout.
+
+The release workflow also gates publication on the real HA suite, HACS and Hassfest.
+HA regressions exercise successful status timing, failure/recovery and the admin overview's
+safe access projection. No live station writes or relay operations are needed for this update.

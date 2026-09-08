@@ -44,6 +44,7 @@ class Station:
     status: str = "offline"
     error: str | None = None
     scanned_at: str | None = None
+    reconciled_at: str | None = None
     task: asyncio.Task[None] | None = None
     timer: asyncio.TimerHandle | None = None
     pending: bool = False
@@ -208,6 +209,8 @@ class AccessManager:
                             await self._scan(station)
                     else:
                         station.status = "synced"
+                    if station.status == "synced":
+                        station.reconciled_at = utc_now()
                     station.failures = station.failures + 1 if retry else 0
                 except (HikvisionConnectionError, HikvisionTimeoutError) as err:
                     self.diagnostics.finish(station.id, None, error=err)
@@ -289,6 +292,33 @@ class AccessManager:
                 self.request(key)
         self._changed()
 
+    @staticmethod
+    def _pending_users(state: dict[str, Any], station_id: str) -> set[str]:
+        """Count user/station reconciliation work once, including credential revocations."""
+        pending = {
+            user_id
+            for user_id, user in state["users"].items()
+            if (assignment := user["assignments"].get(station_id))
+            and (
+                assignment["sync_state"] != "synced"
+                or assignment["applied_revision"] != assignment["desired_revision"]
+            )
+        }
+        pending.update(
+            user_id
+            for user_id, binding in state["bindings"].get(station_id, {}).items()
+            if binding.get("intent") is not None
+            or binding.get("sync_state") != "synced"
+            or station_id not in state["users"].get(user_id, {}).get("assignments", {})
+        )
+        for collection in ("tombstones", "retired_cards", "retired_pins"):
+            pending.update(
+                item["user_id"]
+                for item in state[collection].values()
+                if station_id in item["targets"] and station_id not in item["confirmed"]
+            )
+        return pending
+
     def public(self) -> dict[str, Any]:
         state = self.repository.snapshot()
         stations = []
@@ -307,6 +337,9 @@ class AccessManager:
                     "sync_state": station.status,
                     "last_error": station.error,
                     "scanned_at": station.scanned_at,
+                    "reconciled_at": station.reconciled_at,
+                    "managed_user_count": len(set(inventory.users) & owned) if inventory else None,
+                    "pending_user_count": len(self._pending_users(state, station.id)),
                     "user_count": len(inventory.users) if inventory else None,
                     "card_count": len(inventory.cards) if inventory else None,
                     "unmanaged_count": len(set(inventory.users) - owned - ignored)

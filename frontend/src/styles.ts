@@ -1,5 +1,12 @@
 import { css } from "lit";
 export const styles = css`
+  .last-access {
+    margin-block-start: 14px;
+    padding-block-start: 12px;
+    border-top: 1px solid var(--divider-color, #dce5e6);
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
   .audit-list {
     display: grid;
     gap: 12px;
