@@ -395,3 +395,17 @@ Two live GET-only probes confirmed the clock contract. The production ClockClien
 station identity, parsed the April/October device rules and returned localTime+03:00 in NTP
 mode with rounded skew0 seconds. The committed fixture contains only clock data. No clock,
 NTP, credential, schedule or relay settings were changed. See [TIME_ZONES.md](TIME_ZONES.md).
+
+Clock implementation `8c09e8a26ccfaf9ee756dc91846b8c1be73b9b14` passed every branch gate:
+**501 protocol/access + 159 actual Home Assistant + 72 browser tests (732 total)**.
+Python3.12/3.14, Ruff, strict mypy33 modules, TypeScript, formatting, reproducible bundle,
+HACS and Hassfest passed. ConfigFlow retains100% line coverage. The release-metadata test
+passes in both full CI suites with the completed versioned changelog.
+
+- [Python/HA/frontend](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34281690085)
+- [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34281690114)
+- [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34281689989)
+
+HA job102247708197 completed159 tests; frontend102247708205 completed72 tests.
+The code is on main; [gated release34281938284](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34281938284)
+validates the same commit before publishing v0.14.0-alpha.1. This evidence update changes no runtime code.

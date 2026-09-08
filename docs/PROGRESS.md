@@ -217,3 +217,6 @@ Default station/DST display, manual IANA override, explicit input zones, local r
 read-only clock diagnostics are implemented. Two live GET-only samples confirmed the device
 clock contract, including one with the production client. See [TIME_ZONES.md](TIME_ZONES.md).
 This cross-phase correction does not close physical acceptance: 28/38 (73.7%) remains unchanged.
+
+Clock implementation `8c09e8a` passed732 tests (501 protocol/access,159 actual HA,72 browser),
+strict typing33 modules, HACS and Hassfest. See VALIDATION.md for exact jobs and release gate.
