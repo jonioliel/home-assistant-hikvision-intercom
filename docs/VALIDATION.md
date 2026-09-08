@@ -362,3 +362,18 @@ Home Assistant tests are delegated to the required Linux GitHub checks before pu
 Two live GET-only passes verified advertised schedules and reproduced status3 on all four ID1
 reads. The second pass used the production readiness client with expected station identity.
 No device writes occurred. Physical schedule enforcement is unavailable, not validated.
+
+
+Schedule implementation `ca2d9a239e7406a5cc6012b2786e6eb2dd51016e` passed every branch gate:
+**475 protocol/access + 153 actual Home Assistant + 65 browser tests (693 total)**.
+Python3.12/3.14, Ruff, mypy31 modules, TypeScript, formatting, reproducible bundle, HACS
+and Hassfest passed. ConfigFlow remains100% line coverage. The initial holiday-list type
+inference error was fixed before publication; Linux strict typing passes on this final code.
+
+- [Python/HA/frontend](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34277952570)
+- [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34277952529)
+- [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34277952587)
+
+HA job102235526270 completed153 tests; frontend102235526162 completed65 tests.
+The code is on main and the [gated release run](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34278274318)
+checks the same code before publishing v0.13.0-alpha.1. This documentation update changes no runtime code.

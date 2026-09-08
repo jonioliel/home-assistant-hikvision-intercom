@@ -203,3 +203,10 @@ main publication runs the exact-commit release gate. Physical HW-ENROLL remains 
 window preview and read-only per-station readiness report. Four live capability GETs succeeded
 but all four configuration samples returned device status 3. Allocation, writes and user linkage
 remain unavailable; schedule enforcement is not counted as complete. See ACCESS_SCHEDULES.md.
+
+
+Schedule code `ca2d9a2` passed all branch checks:475 protocol/access,153 real HA and65 browser
+cases (693 total), strict typing31 modules, HACS and Hassfest. The code was fast-forwarded to
+main under the existing publication authorization; release workflow34278274318 reruns all gates
+on that exact SHA. Mandatory acceptance stays28/38; two optional schedule features are in
+progress as local drafts, while device application still needs demonstrated contracts/ownership.
