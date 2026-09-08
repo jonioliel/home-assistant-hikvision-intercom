@@ -658,3 +658,285 @@ test("Hebrew mobile validity and both save actions fit without overflow", async 
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: "test-results/save-options-he-mobile.png", fullPage: true });
 });
+
+async function holdReleaseResponses(page) {
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    const waiting = new Map();
+    window.demoHass.callWS = function (message) {
+      if (!message.type.endsWith("stations/test_unlock")) return original.call(this, message);
+      window.calls.push(structuredClone(message));
+      return new Promise((resolve, reject) => waiting.set(message.station_id, { resolve, reject }));
+    };
+    window.finishRelease = (id, code) => {
+      const pending = waiting.get(id);
+      waiting.delete(id);
+      if (code) pending.reject({ code });
+      else pending.resolve({ accepted: true });
+    };
+  });
+}
+
+test("a pending release leaves other doors independently clickable", async ({ page }) => {
+  await page.goto("/");
+  await holdReleaseResponses(page);
+  const cards = page.locator("article.station");
+  const first = cards.nth(0).getByRole("button", { name: "Open active lock", exact: true });
+  const second = cards.nth(1).getByRole("button", { name: "Open active lock", exact: true });
+  await first.click();
+  await expect(first).toBeDisabled();
+  await expect(second).toBeEnabled();
+  await expect(
+    cards.nth(5).getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeDisabled();
+  expect(
+    await page.evaluate(() =>
+      window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
+    ),
+  ).toEqual([
+    { type: "hikvision_intercom/stations/test_unlock", station_id: "station-0", lock: 1 },
+  ]);
+  await second.click();
+  await expect(second).toBeDisabled();
+  await expect(
+    cards.nth(2).getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() => window.finishRelease("station-1"));
+  await expect(second).toBeEnabled();
+  await expect(first).toBeDisabled();
+  await expect(cards.nth(1).locator(".release-feedback")).toContainText("Release acknowledged");
+  await expect(cards.nth(0).locator(".release-feedback")).toContainText("Sending release");
+  await page.evaluate(() => window.finishRelease("station-0"));
+  await expect(first).toBeEnabled();
+  expect(
+    await page.evaluate(() =>
+      window.calls
+        .filter((item) => item.type.endsWith("stations/test_unlock"))
+        .map((item) => item.station_id),
+    ),
+  ).toEqual(["station-0", "station-1"]);
+});
+
+test("same-door pending state follows the camera dialog and Intercoms view", async ({ page }) => {
+  await page.goto("/");
+  await holdReleaseResponses(page);
+  const firstCard = page.locator("article.station").first();
+  await firstCard.getByRole("button", { name: "Open active lock", exact: true }).click();
+  await firstCard.getByRole("button", { name: "View camera" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeDisabled();
+  await expect(dialog.locator(".release-feedback")).toContainText("Sending release");
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  const cards = page.locator("article.station");
+  await expect(
+    cards.first().getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    cards.nth(1).getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() =>
+    document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[0]),
+  );
+  expect(
+    await page.evaluate(() =>
+      window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
+    ),
+  ).toHaveLength(1);
+  await page.evaluate(() => window.finishRelease("station-0"));
+  await expect(
+    cards.first().getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+});
+
+test("release failures stay with their station and are never automatically retried", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await holdReleaseResponses(page);
+  const cards = page.locator("article.station");
+  await cards.nth(0).getByRole("button", { name: "Open active lock", exact: true }).click();
+  await cards.nth(1).getByRole("button", { name: "Open active lock", exact: true }).click();
+  await page.evaluate(() => {
+    window.finishRelease("station-0", "PRIVATE_UNKNOWN_RELEASE_ERROR");
+    window.finishRelease("station-1");
+  });
+  await expect(cards.nth(0).locator(".release-feedback")).toContainText(
+    "Release was not confirmed",
+  );
+  await expect(cards.nth(1).locator(".release-feedback")).toContainText("Release acknowledged");
+  await expect(cards.nth(2).locator(".release-feedback")).toHaveCount(0);
+  await expect(page.locator("hikvision-intercom-panel")).not.toContainText(
+    "PRIVATE_UNKNOWN_RELEASE_ERROR",
+  );
+  await page.evaluate(() => document.querySelector("hikvision-intercom-panel").refresh());
+  expect(
+    await page.evaluate(() =>
+      window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
+    ),
+  ).toHaveLength(2);
+  await cards.nth(0).getByRole("button", { name: "Open active lock", exact: true }).click();
+  await expect(cards.nth(0).locator(".release-feedback")).toContainText("Sending release");
+  await page.evaluate(() => window.finishRelease("station-0"));
+  await expect(cards.nth(0).locator(".release-feedback")).toContainText("Release acknowledged");
+});
+
+test("slow overview refresh does not keep acknowledged doors disabled", async ({ page }) => {
+  await page.goto("/");
+  await holdReleaseResponses(page);
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    window.demoHass.callWS = function (message) {
+      if (!message.type.endsWith("overview")) return original.call(this, message);
+      return new Promise((resolve) => {
+        window.finishOverview = () => {
+          window.demoHass.callWS = original;
+          resolve(structuredClone(window.demoData));
+        };
+      });
+    };
+  });
+  const first = page
+    .locator("article.station")
+    .first()
+    .getByRole("button", { name: "Open active lock", exact: true });
+  await first.click();
+  await page.evaluate(() => window.finishRelease("station-0"));
+  await expect(first).toBeEnabled();
+  await expect(
+    page
+      .locator("article.station")
+      .nth(1)
+      .getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+  expect(await page.evaluate(() => typeof window.finishOverview)).toBe("function");
+  await page.evaluate(() => window.finishOverview());
+});
+
+test("HA unlocking state blocks only its own station even without a local request", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.hass = {
+      ...window.demoHass,
+      states: {
+        ...window.demoHass.states,
+        "lock.station_0": { state: "unlocking", attributes: {} },
+      },
+    };
+  });
+  const cards = page.locator("article.station");
+  await expect(
+    cards.first().getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    cards.nth(1).getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() =>
+    document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[0]),
+  );
+  expect(
+    await page.evaluate(() =>
+      window.calls.some((item) => item.type.endsWith("stations/test_unlock")),
+    ),
+  ).toBe(false);
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.hass = {
+      ...panel.hass,
+      states: { ...panel.hass.states, "lock.station_0": { state: "locked", attributes: {} } },
+    };
+  });
+  await expect(
+    cards.first().getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+});
+
+test("late release completion cannot restore state after the panel disconnects", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await holdReleaseResponses(page);
+  await page
+    .locator("article.station")
+    .first()
+    .getByRole("button", { name: "Open active lock", exact: true })
+    .click();
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.remove();
+    document.body.append(panel);
+    window.finishRelease("station-0");
+  });
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await expect(page.locator(".release-feedback")).toHaveCount(0);
+  await expect(
+    page
+      .locator("article.station")
+      .first()
+      .getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeEnabled();
+});
+
+test("Hebrew mobile keeps other release buttons active and shows station feedback", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await holdReleaseResponses(page);
+  const cards = page.locator("article.station");
+  await cards.first().getByRole("button", { name: "פתיחת המנעול הפעיל", exact: true }).click();
+  await expect(
+    cards.nth(1).getByRole("button", { name: "פתיחת המנעול הפעיל", exact: true }),
+  ).toBeEnabled();
+  await expect(cards.first().locator(".release-feedback")).toContainText("שולח פתיחה");
+  await page.evaluate(() => window.finishRelease("station-0", "release_unconfirmed"));
+  await expect(cards.first().locator(".release-feedback")).toContainText("לא התקבל אישור לפתיחה");
+  expect(
+    await page
+      .locator("hikvision-intercom-panel")
+      .evaluate((element) => element.shadowRoot.querySelector("main").scrollWidth <= 390),
+  ).toBe(true);
+  await cards.first().locator(".release-feedback").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/independent-release-he-mobile.png" });
+});
+
+test("reconnect refreshes after an old overview response and restores its subscription", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    let once = true;
+    window.demoHass.callWS = function (message) {
+      if (!message.type.endsWith("overview") || !once) return original.call(this, message);
+      once = false;
+      return new Promise(
+        (resolve) =>
+          (window.finishOldOverview = () =>
+            resolve({ ...structuredClone(window.demoData), stations: [] })),
+      );
+    };
+    const panel = document.querySelector("hikvision-intercom-panel");
+    void panel.refresh();
+    panel.remove();
+    document.body.append(panel);
+  });
+  // Let the new subscription queue a refresh behind the old, still-pending response.
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("hikvision-intercom-panel")._refreshAgain),
+    )
+    .toBe(true);
+  await page.evaluate(() => window.finishOldOverview());
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await page.evaluate(() => {
+    window.demoData.stations[0].name = "Updated after reconnect";
+    window.demoNotify();
+  });
+  await expect(page.getByRole("heading", { name: "Updated after reconnect" })).toBeVisible();
+});

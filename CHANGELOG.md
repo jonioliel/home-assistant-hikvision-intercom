@@ -4,6 +4,28 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.9.1-alpha.1] - 2026-09-08
+
+### Fixed
+- Opening one door no longer disables the other stations' release buttons. Pending state is
+  tracked per station across Overview, Intercoms and the camera dialog. The same station rejects
+  repeated clicks while its request is in flight; other online configured doors remain usable.
+- A slow overview refresh no longer prolongs a completed release request's busy state. Existing
+  HA `unlocking` state is respected for its own station, including commands from other clients.
+- Release progress, acknowledgement and safe errors appear beside the targeted station with
+  the last request time. Missing acknowledgement is explicitly unconfirmed, never automatically
+  retried or represented as proof of physical door state. Unknown exception details stay private.
+- Panel reattachment reconnects immediately. Late release/overview responses from an earlier
+  panel lifecycle cannot restore stale state or suppress a newer queued overview refresh.
+
+### Validation and compatibility
+- Regression tests hold responses pending, complete two station requests out of order, reject
+  same-door duplicates, isolate failure feedback and verify reconnect and Hebrew mobile behavior.
+- Real HA transport regressions cover concurrent independent station runtimes and known/unknown
+  release errors. The existing per-station backend guards and fleet admission limits remain.
+- No new ISAPI behavior, credential writes, storage migration or physical relay test in this change.
+  Hardware PIN/card, ringing, timed validity and nine-station acceptance gates remain open.
+
 ## [0.9.0-alpha.1] - 2026-09-08
 
 ### Added

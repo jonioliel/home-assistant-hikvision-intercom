@@ -131,3 +131,22 @@ They describe central intent, not observed keypad/card acceptance or proof of fi
 At the configured end instant the summary becomes Expired. Invalid/incomplete dates are labelled
 unverified, never inferred as permanent. The existing 30-second visible-panel refresh advances
 these summaries even if fetching a newer overview fails.
+
+
+## Independent door controls — 0.9.1-alpha.1
+
+Opening a door disables only that station's release controls while its request is pending.
+Overview, Intercoms and the camera dialog share the same per-station state. Another online
+configured door can be opened independently; the integration sends one command only to the
+selected station/output. A known HA `unlocking` state also blocks only that station. Normal
+backend duplicate protection, admission limits and offline/unselected-lock rejection remain.
+
+Each targeted station displays its last release request time and outcome. These are in-memory
+panel observations, not physical door/contact state. A missing acknowledgement is unconfirmed;
+check the actual door before an explicit retry. The panel never automatically resends a release.
+Other stations do not inherit the pending/success/error display. An overview refresh runs after
+completion without holding the release button busy until the entire refresh finishes.
+
+Closing/reopening the camera dialog retains same-station protection. Leaving/rejoining the panel
+clears local outcomes and reconnects its subscription; late responses from the old lifecycle are
+ignored. Removed stations' local outcomes are pruned. Normal event history remains separate.

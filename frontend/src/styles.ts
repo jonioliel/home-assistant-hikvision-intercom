@@ -1,5 +1,14 @@
 import { css } from "lit";
 export const styles = css`
+  .release-feedback {
+    margin-block-start: 12px;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+  .release-feedback p {
+    margin: 4px 0 0;
+  }
+
   .capability-details {
     border-block-start: 1px solid var(--divider-color, #dce5e6);
     margin-block: 16px;

@@ -11,6 +11,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
@@ -207,7 +208,24 @@ async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> A
             raise AccessError("station_offline")
         if not runtime.coordinator.last_update_success:
             raise AccessError("station_offline")
-        await runtime.async_unlock(msg["lock"])
+        try:
+            await runtime.async_unlock(msg["lock"])
+        except HomeAssistantError as err:
+            # Preserve known release outcomes without exposing device/exception text.
+            key = err.translation_key
+            code = (
+                key
+                if err.translation_domain == DOMAIN
+                and key
+                in {
+                    "release_in_progress",
+                    "release_unconfirmed",
+                    "connection_closed",
+                    "lock_not_managed",
+                }
+                else "action_failed"
+            )
+            raise AccessError(code) from None
     elif command == "stations/inventory":
         return await manager.async_inventory(msg["station_id"])
     elif command in {"users/adopt", "users/delete_unmanaged"}:

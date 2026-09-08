@@ -225,3 +225,14 @@ Admin-completion code `4efe4e0ebfe568dff1487542bcb2ced58ef30756` passed all bran
 30 browser tests, Ruff, mypy, TypeScript and reproducible frontend build. ConfigFlow retains
 100% coverage. Python checks: 34254503208; HACS: 34254503166; Hassfest: 34254503200.
 The owner is currently unavailable for supervised physical checks; those gates remain deferred.
+
+
+## Independent door controls — 0.9.1-alpha.1
+
+The new held-response browser regression failed on 0.9.0 because door 2 was disabled while door 1
+was pending. Coverage now exercises independently clickable targets, out-of-order completion,
+same-door guards across views, isolated failures/no automatic retry, slow overview refresh,
+external HA unlocking state, discarded late results, reconnect subscriptions and Hebrew mobile.
+HA transport tests use two distinct mock station runtimes and verify second-station completion
+while the first remains blocked, rejection of a same-target duplicate, and a later first-station
+failure without changing the second result. No live station or physical lock was used.

@@ -131,3 +131,10 @@ Admin-completion code `4efe4e0ebfe568dff1487542bcb2ced58ef30756` passed all bran
 30 browser tests, Ruff, mypy, TypeScript and reproducible frontend build. ConfigFlow retains
 100% coverage. Python checks: 34254503208; HACS: 34254503166; Hassfest: 34254503200.
 The owner is currently unavailable for supervised physical checks; those gates remain deferred.
+
+
+0.9.1-alpha.1 addresses owner acceptance feedback: one pending release previously set the panel's
+global busy flag and disabled every door. The browser regression reproduced this on 0.9.0.
+Release state is now per station, with local progress/outcome and unchanged target validation.
+A related panel reattachment/queued-refresh issue uncovered during lifecycle testing is corrected.
+The owner confirmed updating to 0.9.0; no physical commissioning result is inferred from that.

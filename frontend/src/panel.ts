@@ -26,6 +26,23 @@ const localTime = (iso: string | null) => {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
+interface ReleaseState {
+  pending: boolean;
+  code: string;
+  requestedAt: string;
+}
+const releaseErrors = new Set([
+  "release_in_progress",
+  "release_unconfirmed",
+  "connection_closed",
+  "lock_not_managed",
+  "station_offline",
+  "device_unavailable",
+  "rate_limited",
+  "unauthorized",
+  "invalid_fields",
+]);
+
 export class IntercomManagerPanel extends LitElement {
   static styles = styles;
   static properties = {
@@ -36,6 +53,7 @@ export class IntercomManagerPanel extends LitElement {
     _query: { state: true },
     _dialog: { state: true },
     _busy: { state: true },
+    _releases: { state: true },
     _notice: { state: true },
     _error: { state: true },
     _importRows: { state: true },
@@ -48,6 +66,7 @@ export class IntercomManagerPanel extends LitElement {
   private _query = "";
   private _dialog = "";
   private _busy = false;
+  private _releases = new Map<string, ReleaseState>();
   private _notice = "";
   private _error = "";
   private _draft?: Draft;
@@ -72,6 +91,7 @@ export class IntercomManagerPanel extends LitElement {
         void this.refresh();
       }
     }, 30000);
+    if (this.hass?.user?.is_admin) void this.connect();
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -88,6 +108,7 @@ export class IntercomManagerPanel extends LitElement {
     this._draft = undefined;
     this._dialog = "";
     this._data = undefined;
+    this._releases = new Map();
   }
   protected updated(changed: PropertyValues) {
     if (changed.has("hass")) {
@@ -112,8 +133,10 @@ export class IntercomManagerPanel extends LitElement {
         this._epoch++;
         this._unsubscribe?.();
         this._unsubscribe = undefined;
+        this._connecting = false;
         this._draft = undefined;
         this._data = undefined;
+        this._releases = new Map();
         this._dialog = "";
       }
     }
@@ -138,9 +161,10 @@ export class IntercomManagerPanel extends LitElement {
       this._unsubscribe = unsub;
       await this.refresh();
     } catch {
-      this._error = this.t("failed");
+      if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+        this._error = this.t("failed");
     } finally {
-      this._connecting = false;
+      if (epoch === this._epoch) this._connecting = false;
     }
   }
   private api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
@@ -152,16 +176,22 @@ export class IntercomManagerPanel extends LitElement {
       return;
     }
     this._refreshing = true;
-    const epoch = this._epoch;
     try {
       do {
         this._refreshAgain = false;
-        const data = await this.api<Overview>("overview");
-        if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
-          this._data = data;
-      } while (this._refreshAgain);
-    } catch {
-      this._error = this.t("failed");
+        const epoch = this._epoch;
+        try {
+          const data = await this.api<Overview>("overview");
+          if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin) {
+            this._data = data;
+            const configured = new Set(data.stations.map((station) => station.id));
+            this._releases = new Map([...this._releases].filter(([id]) => configured.has(id)));
+          }
+        } catch {
+          if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+            this._error = this.t("failed");
+        }
+      } while (this._refreshAgain && this.isConnected && this.hass?.user?.is_admin);
     } finally {
       this._refreshing = false;
     }
@@ -443,11 +473,71 @@ export class IntercomManagerPanel extends LitElement {
     );
     if (success) this.close();
   }
-  private async unlock(station: Station) {
-    await this.run(
-      () => this.api("stations/test_unlock", { station_id: station.id, lock: 1 }),
-      "release_sent",
+  private releasing(station: Station) {
+    return (
+      !!this._releases.get(station.id)?.pending ||
+      this.hass?.states[station.entities.lock]?.state === "unlocking"
     );
+  }
+  private releaseButton(station: Station, primary = false) {
+    return html`<button
+      class=${primary ? "primary" : ""}
+      aria-label=${this.unlockLabel(station)}
+      aria-busy=${this.releasing(station) ? "true" : "false"}
+      ?disabled=${!station.online || !station.lock_enabled || this.releasing(station)}
+      @click=${() => this.unlock(station)}
+    >
+      ${this.releasing(station) ? this.t("releasing") : this.unlockLabel(station)}
+    </button>`;
+  }
+  private releaseFeedback(station: Station) {
+    const state = this._releases.get(station.id);
+    if (!state || !station.lock_enabled) return nothing;
+    return html`<div
+      class="release-feedback ${!state.pending && state.code !== "release_sent" ? "danger" : ""}"
+      role="status"
+    >
+      <span class="sub"
+        >${this.t("last_release_request")} · <bdi>${this.dateText(state.requestedAt)}</bdi></span
+      >
+      <p>${this.t(state.code)}</p>
+    </div>`;
+  }
+  private async unlock(station: Station) {
+    const current = this._data?.stations.find((item) => item.id === station.id);
+    if (
+      !this.hass?.user?.is_admin ||
+      !this.isConnected ||
+      !current?.online ||
+      !current.lock_enabled ||
+      this.releasing(current)
+    )
+      return;
+    const epoch = this._epoch;
+    const state: ReleaseState = {
+      pending: true,
+      code: "releasing",
+      requestedAt: new Date().toISOString(),
+    };
+    // Record synchronously, before awaiting I/O, to reject double clicks across views.
+    this._releases = new Map(this._releases).set(current.id, state);
+    let code = "release_sent";
+    try {
+      await this.api("stations/test_unlock", { station_id: current.id, lock: 1 });
+    } catch (error) {
+      const candidate = (error as { code?: string })?.code;
+      code = candidate && releaseErrors.has(candidate) ? candidate : "release_unconfirmed";
+    }
+    if (
+      epoch === this._epoch &&
+      this.isConnected &&
+      this.hass?.user?.is_admin &&
+      this._releases.get(current.id) === state
+    ) {
+      this._releases = new Map(this._releases).set(current.id, { ...state, pending: false, code });
+      // A slow overview refresh must not extend the release button's pending state.
+      void this.refresh();
+    }
   }
   private camera(station: Station, live = false) {
     return html`<hikvision-intercom-camera
@@ -533,7 +623,12 @@ export class IntercomManagerPanel extends LitElement {
                       ${this.t("pending_users")}: ${station.pending_user_count}
                     </p>
                     ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen)}</bdi></p>` : nothing}
-                    ${station.lock_enabled ? html`<div class="row actions"><button class="primary" @click=${() => this.unlock(station)} ?disabled=${!station.online || this._busy}>${this.unlockLabel(station)}</button></div>` : html`<p class="sub">${this.t("camera_only")}</p>`}
+                    ${
+                      station.lock_enabled
+                        ? html`<div class="row actions">${this.releaseButton(station, true)}</div>
+                            ${this.releaseFeedback(station)}`
+                        : html`<p class="sub">${this.t("camera_only")}</p>`
+                    }
                   </article>`,
               )}
             </div>`
@@ -739,9 +834,10 @@ export class IntercomManagerPanel extends LitElement {
                 >
                   ${this.t("sync_now")}
                 </button>
-                ${station.lock_enabled ? html`<button @click=${() => this.unlock(station)} ?disabled=${this._busy || !station.online}>${this.unlockLabel(station)}</button>` : nothing}
+                ${station.lock_enabled ? this.releaseButton(station) : nothing}
                 <a href=${settingsPath}>${this.t("configure")}</a>
               </div>
+              ${this.releaseFeedback(station)}
             </article>`,
         )}
       </div>`;
@@ -1234,10 +1330,10 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? this.camera(cameraStation, true) : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? html`<button class="primary" ?disabled=${this._busy || !cameraStation.online} @click=${() => this.unlock(cameraStation!)}>${this.unlockLabel(cameraStation)}</button>` : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

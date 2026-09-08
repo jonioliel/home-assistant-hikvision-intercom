@@ -390,3 +390,126 @@ async def test_configured_lock_name_is_in_admin_projection_only_for_selected_loc
     await hass.async_block_till_done()
     response = await request(client, "overview")
     assert response["result"]["stations"][0]["integrated_locks"] == []
+
+
+async def test_release_failure_has_safe_specific_outcome_without_retry(
+    hass, loaded_entry, hass_ws_client, device_io, caplog
+):
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+
+    device_io["unlock"].side_effect = HikvisionConnectionError("PRIVATE_DEVICE_RELEASE_DETAIL")
+    client = await hass_ws_client(hass)
+    result = await request(client, "stations/test_unlock", station_id=loaded_entry.entry_id, lock=1)
+    assert result["error"]["code"] == "release_unconfirmed"
+    assert "PRIVATE_DEVICE_RELEASE_DETAIL" not in json.dumps(result) + caplog.text
+    device_io["unlock"].assert_awaited_once_with(1)
+    assert not loaded_entry.runtime_data.released
+    assert not loaded_entry.runtime_data.unlocking
+
+
+async def test_parallel_release_targets_are_independent_and_same_target_is_guarded(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    import asyncio
+    from dataclasses import replace
+    from unittest.mock import AsyncMock, patch
+
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+
+    from .conftest import DATA, PROFILE
+
+    second_profile = replace(PROFILE, unique_id="SECOND-DEMO", serial="SECOND-DEMO")
+    device_io["profile"].return_value = second_profile
+    second = MockConfigEntry(
+        domain=DOMAIN,
+        title="Second",
+        unique_id=second_profile.unique_id,
+        data={**DATA, "name": "Second", "host": "192.0.2.11"},
+    )
+    second.add_to_hass(hass)
+    with patch(
+        "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+        AsyncMock(
+            return_value=(
+                second_profile.unique_id,
+                second_profile.model,
+                second_profile.firmware,
+                second_profile.serial,
+            )
+        ),
+    ):
+        assert await hass.config_entries.async_setup(second.entry_id)
+        await hass.async_block_till_done()
+    started, finish = asyncio.Event(), asyncio.Event()
+
+    async def delayed_release(_lock):
+        started.set()
+        await finish.wait()
+        raise HikvisionConnectionError("private first station")
+
+    first_ws = await hass_ws_client(hass)
+    other_ws = await hass_ws_client(hass)
+    try:
+        with (
+            patch.object(
+                loaded_entry.runtime_data.client, "async_unlock", side_effect=delayed_release
+            ) as first_call,
+            patch.object(second.runtime_data.client, "async_unlock", AsyncMock()) as second_call,
+        ):
+            await first_ws.send_json_auto_id(
+                {
+                    "type": f"{DOMAIN}/stations/test_unlock",
+                    "station_id": loaded_entry.entry_id,
+                    "lock": 1,
+                }
+            )
+            await asyncio.wait_for(started.wait(), 5)
+            duplicate = await request(
+                other_ws, "stations/test_unlock", station_id=loaded_entry.entry_id, lock=1
+            )
+            assert duplicate["error"]["code"] == "release_in_progress"
+            result = await request(
+                other_ws, "stations/test_unlock", station_id=second.entry_id, lock=1
+            )
+            assert result["success"]
+            assert loaded_entry.runtime_data.unlocking and second.runtime_data.released
+            assert not second.runtime_data.unlocking
+            first_call.assert_awaited_once_with(1)
+            second_call.assert_awaited_once_with(1)
+            finish.set()
+            result = await first_ws.receive_json()
+            assert result["error"]["code"] == "release_unconfirmed"
+            assert not loaded_entry.runtime_data.released
+            assert second.runtime_data.released
+    finally:
+        finish.set()
+        await hass.async_block_till_done()
+        await hass.config_entries.async_unload(second.entry_id)
+        await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize(
+    "domain,key", [(DOMAIN, "PRIVATE_UNKNOWN_KEY"), ("other", "release_unconfirmed")]
+)
+async def test_unknown_ha_release_errors_do_not_expose_exception_details(
+    hass, loaded_entry, hass_ws_client, domain, key
+):
+    from unittest.mock import patch
+
+    from homeassistant.exceptions import HomeAssistantError
+
+    client = await hass_ws_client(hass)
+    with patch.object(
+        type(loaded_entry.runtime_data),
+        "async_unlock",
+        side_effect=HomeAssistantError(
+            "PRIVATE_ERROR_MESSAGE", translation_domain=domain, translation_key=key
+        ),
+    ):
+        result = await request(
+            client, "stations/test_unlock", station_id=loaded_entry.entry_id, lock=1
+        )
+    assert result["error"]["code"] == "action_failed"
+    assert "PRIVATE" not in json.dumps(result)
