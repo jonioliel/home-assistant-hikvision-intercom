@@ -4,10 +4,10 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Version `0.6.0-alpha.1` implements the mandatory software phases 0–5.**
+**Version `0.6.1-alpha.1` implements the mandatory software phases 0–5.**
 It includes user/card/PIN administration, cameras, one active lock per station, events,
-audit history, recovery and Repairs. Physical commissioning and installation acceptance remain open.
-The `0.6.0-alpha.1` prerelease brings Phases 2–5 together for installation and owner testing.
+audit history, recovery and Repairs. HACS installation is owner-confirmed; physical commissioning remains open.
+The `0.6.1-alpha.1` update fixes permanent-user synchronization and adds private-safe sync reports.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
@@ -66,7 +66,7 @@ editor. Standard HA camera/lock entities remain available alongside the dedicate
 ## HACS installation and updates
 
 Requires Home Assistant 2026.9.1 or newer and an existing HACS installation.
-Select `0.6.0-alpha.1` for the complete administrator panel and access/event features:
+Select `0.6.1-alpha.1` for the complete administrator panel and access/event features:
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
@@ -86,6 +86,21 @@ Credentials stay in HA configuration and backend transport; the browser receives
 proxy/stream endpoints. Keep HA configuration and backups access-controlled.
 Reconfigure permits retaining a previously confirmed mapping and leaving the password empty
 to preserve it. Options adjust poll intervals and the displayed release duration.
+
+## Troubleshooting synchronization
+
+Open **Sync** to see the translated reason below each failed assignment. After retrying with
+**Sync all**, use **Download sync diagnostics** and share that JSON report for support.
+Station/user references shown in the matrix match the pseudonyms in the report. The report
+excludes names, addresses, employee IDs, PINs, card numbers and raw ISAPI payloads.
+Home Assistant entry diagnostics include the same station-specific trace. Debug logging for
+`custom_components.hikvision_intercom.access.diagnostics` adds individual stages; failed stages
+also produce a warning, with repeated identical failures throttled for five minutes.
+
+A permanent user uses `Valid.enable=false`; the auxiliary dates do not impose an expiry.
+Time-limited users whose station readback contradicts the requested timezone remain in error
+until the firmware's time interpretation is verified. This is distinct from a PIN/card's
+physical acceptance.
 
 ## Evidence and remaining commissioning
 
@@ -133,5 +148,5 @@ version, Git tag and CHANGELOG use matching semantic versions. Pre-1.0 releases 
 
 Independent community project, not an official Hikvision product.
 
-Native `event` entities and the administrator Events view are included in `0.6.0-alpha.1`.
+Native `event` entities and the administrator Events view are included in `0.6.1-alpha.1`.
 See [event behavior and recovery](docs/EVENTS.md).

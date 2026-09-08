@@ -127,3 +127,34 @@ async def test_subscription_is_data_free_and_cleans_up(hass, loaded_entry, hass_
     assert event["event"] == {"kind": "refresh"}
     await client.send_json_auto_id({"type": "unsubscribe_events", "subscription": subscription})
     assert (await client.receive_json())["success"]
+
+
+async def test_sync_diagnostics_export_is_admin_only_and_contains_no_record_data(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+):
+    manager = get_manager(hass)
+    user = await manager.async_create(
+        {"display_name": "PRIVATE PERSON", "pin": "847291", "cards": [{"card_no": "000077779999"}]}
+    )
+    manager.diagnostics.stage(loaded_entry.entry_id, user["id"], "create_person")
+    from custom_components.hikvision_intercom.exceptions import HikvisionDeviceError
+
+    manager.diagnostics.finish(
+        loaded_entry.entry_id, user["id"], error=HikvisionDeviceError("SECRET BODY 847291")
+    )
+    client = await hass_ws_client(hass)
+    response = await request(client, "sync/diagnostics")
+    assert response["success"]
+    text = json.dumps(response["result"])
+    for secret in (
+        "847291",
+        "000077779999",
+        "PRIVATE PERSON",
+        "SECRET BODY",
+        loaded_entry.entry_id,
+        loaded_entry.data["host"],
+    ):
+        assert secret not in text
+    assert response["result"]["recent"][-1]["step"] == "create_person"

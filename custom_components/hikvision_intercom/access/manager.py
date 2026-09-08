@@ -17,8 +17,17 @@ from ..exceptions import (
     HikvisionTimeoutError,
     HikvisionUnsupportedError,
 )
+from .diagnostics import SAFE_ERRORS, SyncDiagnostics, error_code
 from .engine import SyncEngine
-from .models import AccessError, ManagedCard, ManagedUser, SecretValue, build_user, utc_now
+from .models import (
+    SYNC_STATES,
+    AccessError,
+    ManagedCard,
+    ManagedUser,
+    SecretValue,
+    build_user,
+    utc_now,
+)
 from .normalize import canonical, desired_cards, desired_person
 from .repository import AccessRepository
 
@@ -53,7 +62,8 @@ class AccessManager:
     ) -> None:
         self.repository = repository
         self._changed = changed or (lambda: None)
-        self.engine = SyncEngine(repository, changed=self._changed)
+        self.diagnostics = SyncDiagnostics(repository.fingerprint)
+        self.engine = SyncEngine(repository, changed=self._changed, diagnostics=self.diagnostics)
         self.stations: dict[str, Station] = {}
         self._read_slots = asyncio.Semaphore(3)
         self._task_factory = task_factory or (
@@ -111,6 +121,7 @@ class AccessManager:
         if self._closed:
             raise AccessError("manager_closed")
         station.pending = True
+        self.diagnostics.queued(station.id)
         if station.timer:
             station.timer.cancel()
             station.timer = None
@@ -158,9 +169,13 @@ class AccessManager:
         if driver is None:
             raise AccessError("station_offline")
         async with self._read_slots:
+            self.diagnostics.stage(station.id, None, "identity")
             await driver.client.async_confirm_identity()
+            self.diagnostics.stage(station.id, None, "capabilities")
             await driver.async_capabilities()
+            self.diagnostics.stage(station.id, None, "inventory")
             inventory = await driver.async_inventory()
+            self.diagnostics.finish(station.id, None)
         station.inventory, station.scanned_at = inventory, utc_now()
 
     async def _worker(self, station: Station) -> None:
@@ -179,6 +194,7 @@ class AccessManager:
                             station.id, self._driver(station)
                         )
                         retry = result.retry
+                        station.error = result.last_error
                         station.status = (
                             "offline"
                             if result.offline
@@ -193,23 +209,33 @@ class AccessManager:
                     else:
                         station.status = "synced"
                     station.failures = station.failures + 1 if retry else 0
-                except (HikvisionConnectionError, HikvisionTimeoutError):
+                except (HikvisionConnectionError, HikvisionTimeoutError) as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     retry = True
                     station.failures += 1
                     await self._mark_station(station, "offline", "connection_failed")
-                except HikvisionBusyError:
+                except HikvisionBusyError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     retry = True
                     station.failures += 1
                     await self._mark_station(station, "pending", "device_busy")
-                except HikvisionAuthError:
+                except HikvisionAuthError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     await self._mark_station(station, "error", "authentication_failed")
-                except HikvisionUnsupportedError:
+                except HikvisionUnsupportedError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     await self._mark_station(station, "error", "operation_unsupported")
                 except AccessError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     await self._mark_station(station, "error", err.code)
-                except HikvisionError:
-                    await self._mark_station(station, "error", "device_rejected")
-                except (OSError, ValueError, TypeError):
+                except HikvisionError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    await self._mark_station(station, "error", error_code(err))
+                except asyncio.CancelledError:
+                    self.diagnostics.finish(station.id, None, outcome="cancelled")
+                    raise
+                except Exception as err:
+                    self.diagnostics.finish(station.id, None, error=err)
                     # A storage failure must halt writes. Never log secret-bearing exceptions.
                     station.status, station.error = "error", "storage_or_internal_error"
                     break
@@ -274,6 +300,7 @@ class AccessManager:
             stations.append(
                 {
                     "id": station.id,
+                    "sync_reference": self.diagnostics.reference(station.id),
                     "name": station.name,
                     "lock_enabled": station.lock_enabled,
                     "loaded": station.driver is not None,
@@ -302,7 +329,30 @@ class AccessManager:
                     else None,
                 }
             )
-        return {**self.repository.public(), "stations": stations}
+        public = self.repository.public()
+        for user in public["users"]:
+            user["sync_reference"] = self.diagnostics.reference(user["id"])
+        return {**public, "stations": stations}
+
+    def sync_diagnostics(self) -> dict[str, Any]:
+        """A support export excludes host/title/person/employee/credential identifiers."""
+        stations = []
+        for station in self.stations.values():
+            stations.append(
+                {
+                    "station_ref": self.diagnostics.reference(station.id),
+                    "state": station.status if station.status in SYNC_STATES else "unknown",
+                    "last_error": station.error
+                    if station.error is None or station.error in SAFE_ERRORS
+                    else "other",
+                    "loaded": station.driver is not None,
+                    "managed_lock": station.lock_enabled,
+                    "worker_active": station.task is not None,
+                    "pending_request": station.pending,
+                    "reconciliation_targets": len(self.engine.jobs(station.id)),
+                }
+            )
+        return {"stations": stations, **self.diagnostics.public()}
 
     async def async_inventory(self, station_id: str) -> list[dict[str, Any]]:
         station = self._station(station_id)

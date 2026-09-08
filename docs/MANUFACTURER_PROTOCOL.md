@@ -107,3 +107,22 @@ from documentation or a green test suite.
 - Phase 2's production access client read the current users/cards successfully without writes:
   two users, one card, local PIN mode, advertised PIN length 4–8 and five cards per person.
   Counts and capabilities are evidence; they do not extend the physical acceptance results.
+
+## Real sync failure and fix (0.6.1-alpha.1)
+
+The owner installed 0.6.0-alpha.1 through HACS and reported outbound synchronization errors.
+A credential-free production-manager test reproduced `statusCode=6`, `badJsonContent`,
+error code 1610612759, with the exact field indication `beginTime and endTime`.
+The generic 1970/2037 bounds failed in both UTC and local form, despite `Valid.enable=false`.
+The interior 2000/2030 UTC interval was accepted and read back. Disabled validity means permanent
+access per the manufacturer contract; these auxiliary dates do not introduce an expiry.
+No narrower undocumented general range is inferred from these samples.
+
+After the fix, production-manager create and name-only update both reached `synced`.
+The isolated test record had no PIN/cards, was deleted with the targeted API, and absence was
+verified. Existing users/cards were unchanged. Sanitized evidence is in the station B fixture.
+
+A separate timed UTC sample was accepted but returned offset-bearing times with `timeType=local`.
+This contradiction does not prove how physical expiry is enforced. Timed readback fails with
+`validity_timezone_mismatch`; no timezone conversion or success is inferred. A supervised
+validity-boundary test is required before claiming reliable timed access on this firmware.

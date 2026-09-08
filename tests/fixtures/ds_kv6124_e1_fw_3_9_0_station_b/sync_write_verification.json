@@ -1,0 +1,73 @@
+{
+  "credential_writes": 0,
+  "physical_commands": 0,
+  "steps": [
+    {
+      "step": "create",
+      "status": "synced",
+      "error": null
+    },
+    {
+      "step": "update",
+      "status": "synced",
+      "error": null
+    }
+  ],
+  "test_user_absent": true,
+  "existing_records_unchanged": true,
+  "person_writes_attempted": 3,
+  "cleanup_required": false,
+  "firmware": "V3.9.0 build 260115",
+  "prior_rejection": {
+    "statusCode": 6,
+    "subStatusCode": "badJsonContent",
+    "errorCode": 1610612759,
+    "fields": [
+      "beginTime",
+      "endTime"
+    ]
+  },
+  "validity_cases": [
+    {
+      "variant": "permanent_local_bounds",
+      "error_type": "HikvisionDeviceError",
+      "response": {
+        "statusCode": 6,
+        "subStatusCode": "badJsonContent",
+        "errorCode": 1610612759,
+        "errorMsg": "beginTime and endTime"
+      },
+      "record_present": false
+    },
+    {
+      "variant": "permanent_utc_interior",
+      "write_acknowledged": true,
+      "response": {
+        "statusCode": 1,
+        "subStatusCode": "ok"
+      },
+      "record_present": true,
+      "validity_readback": {
+        "enable": false,
+        "beginTime": "2000-01-01T00:00:00+00:00",
+        "endTime": "2030-01-01T00:00:00+00:00",
+        "timeType": "local"
+      }
+    },
+    {
+      "variant": "limited_utc",
+      "write_acknowledged": true,
+      "response": {
+        "statusCode": 1,
+        "subStatusCode": "ok"
+      },
+      "record_present": true,
+      "validity_readback": {
+        "enable": true,
+        "beginTime": "2026-09-09T09:00:00+00:00",
+        "endTime": "2026-09-10T09:00:00+00:00",
+        "timeType": "local"
+      }
+    }
+  ]
+}

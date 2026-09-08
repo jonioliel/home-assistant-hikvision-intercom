@@ -4,6 +4,36 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.6.1-alpha.1] - 2026-09-08
+
+### Fixed
+- Fix station-side rejection of new permanent users: this firmware rejects the generic
+  1970/2037 validity endpoints even with validity disabled. Use the interior 2000/2030
+  interval accepted by the station; `enable=false` continues to mean permanent access.
+- Keep the actual user-sync failure visible in station summaries and show translated
+  explanations directly in the Sync matrix, including while the station is offline.
+- Report contradictory timezone readback for time-limited users explicitly, without
+  guessing which timezone the firmware enforces or marking those records synchronized.
+
+### Added
+- Administrator-only **Download sync diagnostics** in the Sync screen. The bounded report
+  includes request stage, pseudonymous station/user references, error category and recognized
+  ISAPI status/field identifiers. It excludes names, employee IDs, addresses, credentials and
+  request/response bodies. The last 200 stages are held in memory until restart.
+- Debug logs for sync stages and throttled warnings for failures; cancelled work and unexpected
+  worker failures are observable without logging exception text or payloads.
+- Regression tests for rejected-date recovery with a saved write intent, firmware readback,
+  cancellation, report privacy/bounds and administrator/browser access.
+
+### Validation and acceptance
+- Production manager created and updated a credential-free test user on the real station.
+  Targeted deletion was verified, and all pre-existing users/cards were unchanged.
+- HACS installation of the previous release was confirmed by the owner. This update still
+  requires installation and a retry of the owner's pending user synchronization.
+- Timed validity semantics, PIN/card physical lifecycle and remaining fleet commissioning
+  are still acceptance gates. No PIN/card was created or lock activated by this fix test.
+- No storage schema change; pending ownership intents and user assignments are preserved.
+
 ## [0.6.0-alpha.1] - 2026-09-08
 
 ### Combined release — Phases 2–5

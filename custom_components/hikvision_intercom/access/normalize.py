@@ -27,6 +27,8 @@ def canonical(
                     datetime.fromisoformat(validity["beginTime"]),
                     datetime.fromisoformat(validity["endTime"]),
                 )
+                if time_type == "local" and (first.tzinfo or last.tzinfo):
+                    raise AccessError("validity_timezone_mismatch")
                 if time_type == "UTC" and first.tzinfo and last.tzinfo:
                     first, last = first.astimezone(UTC), last.astimezone(UTC)
                 elif time_type != "local" or first.tzinfo or last.tzinfo:
@@ -70,8 +72,10 @@ def desired_person(user: ManagedUser, api_id: int, caps: AccessCapabilities) -> 
     if user.valid_from is None:
         validity = {
             "enable": False,
-            "beginTime": "1970-01-01T00:00:00+00:00",
-            "endTime": "2037-12-31T23:59:59+00:00",
+            # This firmware rejects the generic 1970/2037 endpoints even when enable=False.
+            # The interior interval was accepted/read back on V3.9.0; enable=False is permanent.
+            "beginTime": "2000-01-01T00:00:00+00:00",
+            "endTime": "2030-01-01T00:00:00+00:00",
             "timeType": "UTC",
         }
     else:

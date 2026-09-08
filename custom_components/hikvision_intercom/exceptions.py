@@ -2,7 +2,20 @@
 
 
 class HikvisionError(Exception):
-    """Base protocol failure."""
+    """Base protocol failure; optional protocol identifiers contain no response text."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        sub_status: str | None = None,
+        fields: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.sub_status = sub_status
+        self.fields = fields
 
 
 class HikvisionAuthError(HikvisionError):

@@ -11,15 +11,10 @@ from functools import partial
 from ..client.access import AccessClient, StationInventory
 from ..exceptions import (
     HikvisionAuthError,
-    HikvisionBusyError,
-    HikvisionCapacityError,
-    HikvisionConflictError,
-    HikvisionConnectionError,
     HikvisionDeviceError,
     HikvisionError,
-    HikvisionTimeoutError,
-    HikvisionUnsupportedError,
 )
+from .diagnostics import SyncDiagnostics, error_code
 from .models import AccessError, ManagedUser
 from .normalize import canonical, desired_cards, desired_person, merge_person
 from .repository import AccessRepository
@@ -31,6 +26,7 @@ class ReconcileResult:
     failed: int = 0
     retry: bool = False
     offline: bool = False
+    last_error: str | None = None
 
 
 class SyncEngine:
@@ -40,8 +36,10 @@ class SyncEngine:
         *,
         concurrency: int = 3,
         changed: Callable[[], None] | None = None,
+        diagnostics: SyncDiagnostics | None = None,
     ) -> None:
         self.repository = repository
+        self.diagnostics = diagnostics or SyncDiagnostics(repository.fingerprint)
         self._slots = asyncio.Semaphore(concurrency)
         self._changed = changed or (lambda: None)
 
@@ -65,9 +63,15 @@ class SyncEngine:
         result = ReconcileResult()
         async with self._slots:
             if driver.capabilities is None:
+                self.diagnostics.stage(station, None, "capabilities")
                 await driver.async_capabilities()
+            self.diagnostics.stage(station, None, "inventory")
             inventory = await driver.async_inventory()
+            self.diagnostics.finish(station, None)
             for user_id in self.jobs(station):
+                self.diagnostics.stage(station, user_id, "identity")
+                failure: Exception | None = None
+                outcome = "succeeded"
                 try:
                     async with driver.transaction():
                         state = self.repository.snapshot()
@@ -81,66 +85,46 @@ class SyncEngine:
                             await self.repository.async_mark(station, user_id, "syncing")
                             self._changed()
                         await self._person(station, user_id, driver, inventory)
-                except AccessError as err:
-                    if err.code == "revision_conflict":
+                except (AccessError, HikvisionError) as err:
+                    failure = err
+                    code = error_code(err)
+                    result.last_error = result.last_error or code
+                    if code == "revision_conflict":
                         result.retry = True
                         await self.repository.async_mark(station, user_id, "pending")
                     else:
                         result.failed += 1
-                        await self.repository.async_mark(
-                            station,
-                            user_id,
-                            "conflict"
-                            if err.code
-                            in {
-                                "unmanaged_employee",
-                                "device_changed",
-                                "card_owned_elsewhere",
-                                "pin_owned_elsewhere",
-                                "ambiguous_write",
-                            }
-                            else "error",
-                            err.code,
-                        )
-                except (HikvisionConnectionError, HikvisionTimeoutError):
-                    result.failed += 1
-                    result.retry = result.offline = True
-                    await self.repository.async_mark(
-                        station, user_id, "offline", "connection_failed"
-                    )
-                    break
-                except HikvisionBusyError:
-                    result.failed += 1
-                    result.retry = True
-                    await self.repository.async_mark(station, user_id, "pending", "device_busy")
-                    break
-                except HikvisionConflictError:
-                    result.failed += 1
-                    await self.repository.async_mark(
-                        station, user_id, "conflict", "device_conflict"
-                    )
-                except HikvisionCapacityError:
-                    result.failed += 1
-                    await self.repository.async_mark(
-                        station, user_id, "error", "capacity_exhausted"
-                    )
-                except HikvisionAuthError:
-                    result.failed += 1
-                    await self.repository.async_mark(
-                        station, user_id, "error", "authentication_failed"
-                    )
+                        status = "error"
+                        if code == "connection_failed":
+                            status = "offline"
+                            result.retry = result.offline = True
+                        elif code == "device_busy":
+                            status = "pending"
+                            result.retry = True
+                        elif code in {
+                            "unmanaged_employee",
+                            "device_changed",
+                            "card_owned_elsewhere",
+                            "pin_owned_elsewhere",
+                            "ambiguous_write",
+                            "device_conflict",
+                        }:
+                            status = "conflict"
+                        await self.repository.async_mark(station, user_id, status, code)
+                        if isinstance(err, HikvisionAuthError):
+                            raise
+                        if result.offline or code == "device_busy":
+                            break
+                except asyncio.CancelledError:
+                    outcome = "cancelled"
                     raise
-                except HikvisionUnsupportedError:
-                    result.failed += 1
-                    await self.repository.async_mark(
-                        station, user_id, "error", "operation_unsupported"
-                    )
-                except HikvisionError:
-                    result.failed += 1
-                    await self.repository.async_mark(station, user_id, "error", "device_rejected")
+                except Exception as err:
+                    failure = err
+                    raise
                 else:
                     result.completed += 1
                 finally:
+                    self.diagnostics.finish(station, user_id, error=failure, outcome=outcome)
                     self._changed()
         return result
 
@@ -165,6 +149,7 @@ class SyncEngine:
             raise AccessError("unmanaged_lock")
         binding = state["bindings"].get(station, {}).get(user_id)
         # Refresh this person under the station transaction, including all of their cards.
+        self.diagnostics.stage(station, user_id, "person_read")
         current = await driver.async_person(user.employee_no)
         merge_person(inventory, user.employee_no, current)
         current_fingerprint = self.repository.fingerprint(
@@ -252,6 +237,7 @@ class SyncEngine:
                 expected,
                 "create" if create else "update",
                 lambda: driver.async_write_person(payload, create=create),
+                step="create_person" if create else "update_person",
             )
         # Remove obsolete cards before adding new ones, so replacement works at capacity.
         for number in list(current.cards):
@@ -267,6 +253,7 @@ class SyncEngine:
                     expected,
                     "update",
                     partial(driver.async_delete_card, number),
+                    step="delete_card",
                 )
         for number, card in cards.items():
             existing = current.cards.get(number)
@@ -289,6 +276,7 @@ class SyncEngine:
                     card["cardType"],
                     create=existing is None,
                 ),
+                step="create_card" if existing is None else "update_card",
             )
         if canonical(current, user.employee_no, caps) != desired_normal:
             raise AccessError("readback_mismatch")
@@ -314,6 +302,8 @@ class SyncEngine:
         expected: StationInventory,
         operation: str,
         write: Callable[[], Awaitable[None]],
+        *,
+        step: str,
     ) -> StationInventory:
         caps = driver.capabilities
         assert caps is not None
@@ -322,6 +312,7 @@ class SyncEngine:
         binding = self.repository.snapshot()["bindings"].get(station, {}).get(user.id)
         if binding is not None and before_hash != binding["fingerprint"]:
             raise AccessError("device_changed")
+        self.diagnostics.stage(station, user.id, "journal")
         await self.repository.async_write_intent(
             station,
             user.id,
@@ -331,7 +322,9 @@ class SyncEngine:
             operation=operation,
             before_fingerprint=before_hash,
         )
+        self.diagnostics.stage(station, user.id, step)
         await write()
+        self.diagnostics.stage(station, user.id, "readback")
         for attempt in range(4):
             after = await driver.async_person(user.employee_no)
             observed_hash = self.repository.fingerprint(canonical(after, user.employee_no, caps))
@@ -367,6 +360,7 @@ class SyncEngine:
                 expected,
                 "delete",
                 partial(driver.async_delete_card, number),
+                step="delete_card",
             )
         if current.users:
             current = await self._step(
@@ -378,6 +372,7 @@ class SyncEngine:
                 StationInventory(),
                 "delete",
                 lambda: driver.async_delete_person(user.employee_no),
+                step="delete_person",
             )
         if current.users or current.cards:
             raise AccessError("delete_not_verified")

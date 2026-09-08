@@ -620,10 +620,26 @@ export class IntercomManagerPanel extends LitElement {
         )}
       </div>`;
   }
+  private async downloadSyncDiagnostics() {
+    await this.run(async () => {
+      const report = await this.api<Record<string, unknown>>("sync/diagnostics");
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "hikvision-sync-diagnostics.json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "diagnostics_downloaded");
+  }
   private syncView() {
     const data = this._data!;
     return html`<div class="toolbar">
         <h2>${this.t("sync")}</h2>
+        <button @click=${() => this.downloadSyncDiagnostics()} ?disabled=${this._busy}>
+          ${this.t("download_sync_diagnostics")}
+        </button>
         <button
           class="primary"
           @click=${() => this.run(() => this.api("sync/all"))}
@@ -639,18 +655,27 @@ export class IntercomManagerPanel extends LitElement {
                 <thead>
                   <tr>
                     <th>${this.t("name")}</th>
-                    ${data.stations.map((station) => html`<th>${station.name}</th>`)}
+                    ${data.stations.map(
+                      (station) =>
+                        html`<th>
+                          ${station.name}
+                          ${station.sync_reference ? html`<small class="sub"><bdi>${station.sync_reference}</bdi></small>` : nothing}
+                          ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
+                        </th>`,
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   ${data.users.map(
                     (user) =>
                       html`<tr>
-                        <td>${user.display_name}</td>
+                        <td>
+                          ${user.display_name}${user.sync_reference ? html`<p class="sub"><bdi>${user.sync_reference}</bdi></p>` : nothing}
+                        </td>
                         ${data.stations.map((station) => {
                           const assignment = user.assignments[station.id];
                           return html`<td>
-                            ${assignment ? html`<button @click=${() => this.inspect(user.id, station.id)} ?disabled=${this._busy || !station.online}>${this.badge(assignment.sync_state ?? "pending")}</button>` : html`<span class="sub">—</span>`}
+                            ${assignment ? html`<button @click=${() => this.inspect(user.id, station.id)} ?disabled=${this._busy || !station.online}>${this.badge(assignment.sync_state ?? "pending")}</button>${assignment.last_error ? html`<p class="danger sync-error">${this.t(assignment.last_error)}</p>` : nothing}` : html`<span class="sub">—</span>`}
                           </td>`;
                         })}
                       </tr>`,

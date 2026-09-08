@@ -106,6 +106,7 @@ if (query.has("empty")) {
   data.stations = [];
 }
 const callbacks = new Set();
+window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refresh" }));
 window.calls = [];
 window.demoData = data;
 const fake = {
@@ -132,6 +133,24 @@ const fake = {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "overview") return structuredClone(data);
+    if (command === "sync/diagnostics")
+      return {
+        integration_version: "0.6.1-alpha.1",
+        stations: [
+          { station_ref: "aabbccddeeff", state: "error", last_error: "validity_rejected" },
+        ],
+        retention: "last_200_stages_since_start",
+        recent: [
+          {
+            station_ref: "aabbccddeeff",
+            user_ref: "112233445566",
+            step: "create_person",
+            outcome: "failed",
+            error: "validity_rejected",
+            fields: ["beginTime", "endTime"],
+          },
+        ],
+      };
     if (command === "events/list") {
       const records = [
         {

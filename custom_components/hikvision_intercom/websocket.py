@@ -58,6 +58,7 @@ COMMANDS = {
     "sync/station": {"station_id": str},
     "sync/all": {},
     "sync/status": {},
+    "sync/diagnostics": {},
     "conflicts/list": {},
     "conflicts/review": {"station_id": str, "user_id": str},
     "conflicts/resolve": {
@@ -118,6 +119,8 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
 
 async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> Any:
     manager = get_manager(hass)
+    if command == "sync/diagnostics":
+        return {"integration_version": VERSION, **manager.sync_diagnostics()}
     if command == "events/list":
         try:
             return get_events(hass).query(msg["filters"])

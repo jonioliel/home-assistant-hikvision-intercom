@@ -162,3 +162,20 @@ Exact [Python/HA/frontend run](https://github.com/jonioliel/home-assistant-hikvi
 [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34226155303).
 The release metadata test now also checks the real repository's versioned changelog entry.
 Code-only simulator checks do not close the physical/installation gates in HARDENING.md.
+
+## Post-installation sync regression — 0.6.1-alpha.1
+
+Owner confirmed the 0.6.0-alpha.1 HACS installation. Outbound user synchronization failed.
+The real station reproduced the failure with the production manager, including the error that
+identified begin/end validity fields. Read-only existing/missing-user searches all passed.
+After using accepted permanent-validity bounds, production-manager create and name-only update
+reached `synced`; the credential-free test user was deleted and absent. Existing user/card
+canonical records were unchanged. No relay operation or PIN/card write was performed.
+
+A time-limited UTC sample returned contradictory local/offset metadata, retained as an explicit
+failure rather than interpreted. The separate earlier temporary PIN test still requires its
+supervised retry and cleanup. The new synchronization test accounts were fully removed.
+
+Local validation of the sync correction: 335 Python tests, 16 browser tests, Ruff, mypy
+(24 modules), TypeScript and the bundled frontend build passed. GitHub CI additionally runs
+the real Home Assistant suite, HACS and Hassfest; publication is gated on those checks.

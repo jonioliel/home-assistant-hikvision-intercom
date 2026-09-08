@@ -4,28 +4,11 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from .access.diagnostics import SAFE_ERRORS
 from .access.models import SYNC_STATES
 from .const import DOMAIN, VERSION
 from .hardening import firmware_label
 from .runtime import IntercomConfigEntry
-
-SAFE_ERRORS = {
-    "authentication_failed",
-    "connection_failed",
-    "device_busy",
-    "device_rejected",
-    "operation_unsupported",
-    "person_capacity",
-    "card_capacity",
-    "storage_or_internal_error",
-    "storage_write_failed",
-    "readback_mismatch",
-    "device_changed",
-    "ambiguous_write",
-    "schedule_unverified",
-    "unsupported_credentials",
-    "pin_readback_unavailable",
-}
 
 
 async def async_get_config_entry_diagnostics(
@@ -97,6 +80,7 @@ async def async_get_config_entry_diagnostics(
             if caps
             else None,
         }
+    result["sync_diagnostics"] = manager.diagnostics.public(entry.entry_id)
     events = runtime.events
     if events:
         result["events"] = {

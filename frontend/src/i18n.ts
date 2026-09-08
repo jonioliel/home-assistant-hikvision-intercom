@@ -1,5 +1,25 @@
 const en = {
   title: "Intercom Manager",
+  download_sync_diagnostics: "Download sync diagnostics",
+  diagnostics_downloaded:
+    "Diagnostic report downloaded. It contains no names, addresses, PINs or card numbers.",
+  validity_rejected:
+    "The station rejected the validity dates. Update the integration and retry synchronization.",
+  validity_timezone_mismatch:
+    "The station returned contradictory validity timezones. The access period cannot be verified; a supervised check is required.",
+  unreadable_validity: "The station returned a validity period that could not be verified.",
+  device_rejected:
+    "The station rejected the request. Download sync diagnostics for the failing step.",
+  invalid_response: "The station response could not be validated. Download sync diagnostics.",
+  readback_mismatch:
+    "The saved station record differs from the requested state. Review it before retrying.",
+  ambiguous_write:
+    "The previous write could not be verified. Review the station record before resolving.",
+  storage_or_internal_error:
+    "Synchronization stopped because of a storage or internal error. Download diagnostics.",
+  device_busy: "The station is busy; synchronization will retry automatically.",
+  capacity_exhausted: "The station has reached its user or card capacity.",
+
   overview: "Overview",
   users: "Users",
   devices: "Intercoms",
@@ -201,6 +221,21 @@ const en = {
 };
 const he: Record<keyof typeof en, string> = {
   title: "ניהול אינטרקומים",
+  download_sync_diagnostics: "הורד דוח אבחון סנכרון",
+  diagnostics_downloaded:
+    "דוח האבחון הורד. הדוח אינו כולל שמות, כתובות, קודי PIN או מספרי כרטיסים.",
+  validity_rejected: "הציוד דחה את תאריכי התוקף. עדכן את האינטגרציה ונסה לסנכרן שוב.",
+  validity_timezone_mismatch:
+    "הציוד החזיר אזורי זמן סותרים בתוקף המשתמש. לא ניתן לאמת את התקופה; נדרשת בדיקה מתואמת.",
+  unreadable_validity: "הציוד החזיר תקופת תוקף שלא ניתן לאמת.",
+  device_rejected: "הציוד דחה את הבקשה. הורד דוח אבחון סנכרון לזיהוי השלב שנכשל.",
+  invalid_response: "לא ניתן לאמת את תשובת הציוד. הורד דוח אבחון סנכרון.",
+  readback_mismatch: "הרשומה בציוד שונה מהמצב המבוקש. בדוק אותה לפני ניסיון נוסף.",
+  ambiguous_write: "לא ניתן לאמת את הכתיבה הקודמת. בדוק את הרשומה בציוד לפני פתרון ההתנגשות.",
+  storage_or_internal_error: "הסנכרון נעצר עקב שגיאת אחסון או שגיאה פנימית. הורד דוח אבחון.",
+  device_busy: "הציוד עסוק; הסנכרון ינסה שוב באופן אוטומטי.",
+  capacity_exhausted: "הציוד הגיע למכסת המשתמשים או הכרטיסים.",
+
   overview: "סקירה",
   users: "משתמשים",
   devices: "אינטרקומים",

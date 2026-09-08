@@ -52,3 +52,11 @@ Development: install the locked frontend packages with `pnpm --dir frontend inst
 The bundle and its license notices ship with HACS; users do not need Node.js. CI rejects a bundle
 that differs from a fresh build. Local Chromium tests use a fresh headless Chrome context and a
 loopback-only server with an explicit three-file allowlist.
+
+## Sync support reports
+
+The Sync matrix shows a translated failure reason beneath each failed assignment, including
+for offline stations. Its station/person references match the anonymous references in the
+**Download sync diagnostics** report. Retry the affected sync before exporting to capture fresh
+stages. The report is administrator-only and bounded to the last 200 in-memory stages; it
+contains no names, employee numbers, addresses, PINs, cards or raw station responses.

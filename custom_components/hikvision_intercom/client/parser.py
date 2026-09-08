@@ -14,6 +14,7 @@ from ..exceptions import (
     HikvisionCapacityError,
     HikvisionConflictError,
     HikvisionDeviceError,
+    HikvisionError,
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )
@@ -107,6 +108,40 @@ def find_values(data: Any, key: str) -> list[Any]:
     return values
 
 
+def _status_error(
+    data: dict[str, Any], code: Any, kind: type[HikvisionError], message: str
+) -> HikvisionError:
+    subcodes = {str(s).casefold() for s in find_values(data, "subStatusCode")}
+    # Preserve only recognized protocol identifiers, never device-provided free text.
+    known = subcodes & {
+        "badjsoncontent",
+        "badxmlcontent",
+        "notsupport",
+        "notsupported",
+        "methodnotallowed",
+        "unauthorized",
+        "nopermission",
+        "cardnoalreadyexist",
+        "employeenoalreadyexist",
+        "deviceuseralreadyexist",
+        "userpasswordalreadyexist",
+        "cardfull",
+        "userfull",
+        "devicecardfull",
+        "deviceuserfull",
+        "cardfullperuser",
+    }
+    fields: tuple[str, ...] = ()
+    if "badjsoncontent" in subcodes and "beginTime and endTime" in find_values(data, "errorMsg"):
+        fields = ("beginTime", "endTime")
+    return kind(
+        message,
+        status_code=int(str(code)) if str(code) in {str(i) for i in range(10)} else None,
+        sub_status=sorted(known)[0] if known else None,
+        fields=fields,
+    )
+
+
 def check_response_status(data: dict[str, Any]) -> None:
     """HTTP success cannot override an ISAPI ResponseStatus error.
 
@@ -116,20 +151,25 @@ def check_response_status(data: dict[str, Any]) -> None:
     for code in find_values(data, "statusCode"):
         if str(code) == "1":
             continue
-        if str(code) == "2":
-            raise HikvisionBusyError("Device is busy")
         subcodes = {str(s).casefold() for s in find_values(data, "subStatusCode")}
+
+        if str(code) == "2":
+            raise _status_error(data, code, HikvisionBusyError, "Device is busy")
         if subcodes & {"notsupport", "notsupported", "methodnotallowed"}:
-            raise HikvisionUnsupportedError("Operation explicitly unsupported")
+            raise _status_error(
+                data, code, HikvisionUnsupportedError, "Operation explicitly unsupported"
+            )
         if subcodes & {"unauthorized", "nopermission"}:
-            raise HikvisionAuthError("Device denied authorization")
+            raise _status_error(data, code, HikvisionAuthError, "Device denied authorization")
         if subcodes & {
             "cardnoalreadyexist",
             "employeenoalreadyexist",
             "deviceuseralreadyexist",
             "userpasswordalreadyexist",
         }:
-            raise HikvisionConflictError("Device reported a record conflict")
+            raise _status_error(
+                data, code, HikvisionConflictError, "Device reported a record conflict"
+            )
         if subcodes & {
             "cardfull",
             "userfull",
@@ -137,5 +177,9 @@ def check_response_status(data: dict[str, Any]) -> None:
             "deviceuserfull",
             "cardfullperuser",
         }:
-            raise HikvisionCapacityError("Device reported capacity exhaustion")
-        raise HikvisionDeviceError("Device reported an unsuccessful ResponseStatus")
+            raise _status_error(
+                data, code, HikvisionCapacityError, "Device reported capacity exhaustion"
+            )
+        raise _status_error(
+            data, code, HikvisionDeviceError, "Device reported an unsuccessful ResponseStatus"
+        )

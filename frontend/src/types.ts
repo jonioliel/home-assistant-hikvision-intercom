@@ -16,6 +16,7 @@ export interface Assignment {
 }
 export interface Person {
   id: string;
+  sync_reference?: string;
   employee_no: string;
   display_name: string;
   active: boolean;
@@ -29,6 +30,7 @@ export interface Person {
 }
 export interface Station {
   id: string;
+  sync_reference?: string;
   name: string;
   lock_enabled: boolean;
   loaded: boolean;

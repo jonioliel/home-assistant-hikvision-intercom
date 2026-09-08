@@ -92,3 +92,10 @@ Publication authorization: the owner explicitly approved merging Phases 2–5 in
 and publishing `v0.6.0-alpha.1` for installation and testing on 2026-09-08. This resolves
 the earlier approval gate. The gated release workflow reruns CI on the exact main commit.
 Hardware and real installation acceptance remain open; the owner will install and report.
+
+Post-installation correction: the owner confirmed HACS installation and working integration,
+then reported station-bound user sync failures. A production-manager test reproduced invalid
+validity dates on the real station. Version 0.6.1-alpha.1 fixes permanent-user creation and adds
+safe stage diagnostics plus actionable Sync errors. Real create/name-update/targeted-delete
+passed without credentials or relay actions; original records remained unchanged. Timed
+validity timezone interpretation remains explicitly unverified and blocks timed readback.

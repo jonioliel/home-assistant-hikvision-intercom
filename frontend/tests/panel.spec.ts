@@ -243,3 +243,42 @@ test("Hebrew audit remains within mobile screen", async ({ page }) => {
   expect(await view.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/events-he-mobile.png", fullPage: true });
 });
+
+test("sync error explains the failure and exports only backend diagnostics", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.demoData.users[0].assignments["station-0"].sync_state = "error";
+    window.demoData.users[0].assignments["station-0"].last_error = "validity_rejected";
+    window.demoData.users[0].sync_reference = "112233445566";
+    window.demoNotify();
+  });
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await expect(
+    page.getByText("The station rejected the validity dates.", { exact: false }),
+  ).toBeVisible();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download sync diagnostics" }).click();
+  const download = await pending;
+  expect(download.suggestedFilename()).toBe("hikvision-sync-diagnostics.json");
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream!) chunks.push(chunk);
+  const report = JSON.parse(Buffer.concat(chunks).toString());
+  expect(report.recent[0].step).toBe("create_person");
+  expect(report.recent[0].fields).toEqual(["beginTime", "endTime"]);
+  expect(JSON.stringify(report)).not.toContain("192.0.2.");
+  expect(JSON.stringify(report)).not.toContain("4821");
+});
+
+test("Hebrew sync error stays visible when the station is offline", async ({ page }) => {
+  await page.goto("/?lang=he");
+  await page.evaluate(() => {
+    window.demoData.users[0].assignments["station-0"].sync_state = "error";
+    window.demoData.users[0].assignments["station-0"].last_error = "validity_rejected";
+    window.demoData.stations[0].online = false;
+    window.demoNotify();
+  });
+  await page.getByRole("button", { name: "סנכרון", exact: true }).click();
+  await expect(page.getByText("הציוד דחה את תאריכי התוקף.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "הורד דוח אבחון סנכרון" })).toBeEnabled();
+});
