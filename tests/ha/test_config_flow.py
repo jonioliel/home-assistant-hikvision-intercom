@@ -180,3 +180,145 @@ async def test_successful_reauth_preserves_mapping(hass, device_io):
     assert entry.data["password"] == "replacement-secret"
     assert entry.data["locks"] == DATA["locks"]
     device_io["unlock"].assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("error_name", "key"),
+    [
+        ("HikvisionUnsupportedError", "unsupported_device"),
+        ("HikvisionValidationError", "invalid_response"),
+        ("HikvisionConnectionError", "cannot_connect"),
+    ],
+)
+async def test_connection_error_categories(hass, device_io, error_name, key):
+    from custom_components.hikvision_intercom import exceptions
+
+    device_io["profile"].side_effect = getattr(exceptions, error_name)("private detail")
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+        data={k: v for k, v in DATA.items() if k != "locks"},
+    )
+    assert result["errors"] == {"base": key}
+
+
+async def test_identity_change_between_discovery_and_unlock(hass, device_io):
+    result = await start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "map_active_relay"}
+    )
+    with patch(
+        "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+        AsyncMock(return_value=("different", PROFILE.model, PROFILE.firmware, "different")),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"api_id": 1, "test_unlock": True}
+        )
+    assert result["errors"] == {"base": "unlock_failed"}
+    device_io["unlock"].assert_not_called()
+
+
+async def test_remapping_and_camera_only_after_test(hass, device_io):
+    result = await start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "map_active_relay"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"api_id": 1, "test_unlock": True}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"result": "choose_again"}
+    )
+    assert result["step_id"] == "mapping"
+    device_io["unlock"].assert_awaited_once()
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"api_id": 2, "test_unlock": True}
+    )
+    device_io["unlock"].assert_awaited_with(2)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"result": "camera_only"}
+    )
+    assert result["data"]["locks"] == []
+    await hass.async_block_till_done()
+
+
+async def test_boolean_api_id_cannot_bypass_mapping_guard(hass, device_io):
+    result = await start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "map_active_relay"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"api_id": True, "test_unlock": True}
+    )
+    assert result["errors"] == {"base": "invalid_mapping"}
+    device_io["unlock"].assert_not_called()
+
+
+async def test_lost_mapping_ack_cannot_enable_lock(hass, device_io):
+    from custom_components.hikvision_intercom.config_flow import HikvisionConfigFlow
+
+    flow = HikvisionConfigFlow()
+    flow.hass = hass
+    result = await flow.async_step_confirm_mapping({"result": "released_and_returned"})
+    assert result["errors"] == {"base": "confirmation_required"}
+    device_io["unlock"].assert_not_called()
+
+
+async def test_reconfigure_replaces_invalid_saved_mapping(hass, device_io):
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=PROFILE.unique_id, data={**DATA, "locks": [{"confirmed": False}]}
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {k: v for k, v in DATA.items() if k != "locks"}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["step_id"] == "locks"
+    assert "keep_confirmed_mapping" not in str(result["data_schema"])
+
+
+async def test_reauth_failure_keeps_original(hass, device_io):
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=PROFILE.unique_id, data=DATA)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_REAUTH, "entry_id": entry.entry_id},
+        data=DATA,
+    )
+    device_io["profile"].side_effect = HikvisionAuthError("bad credentials")
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"username": "demo", "password": "bad-secret"}
+    )
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert entry.data["password"] == DATA["password"]
+
+
+async def test_nonfinite_options_not_saved(hass):
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=PROFILE.unique_id, data=DATA)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"idle_interval": float("nan"), "active_interval": 0.75, "pulse_seconds": 5.0},
+    )
+    assert result["errors"] == {"base": "invalid_options"}
+    assert entry.options == {}
+
+
+@pytest.mark.parametrize("verify_ssl", [True, False])
+async def test_https_settings_preserved(hass, device_io, verify_ssl):
+    data = {k: v for k, v in DATA.items() if k != "locks"}
+    data.update(scheme="https", port=443, verify_ssl=verify_ssl)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}, data=data
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "camera_only"}
+    )
+    assert result["data"]["verify_ssl"] is verify_ssl
+    assert result["data"]["scheme"] == "https" and result["data"]["port"] == 443
+    await hass.async_block_till_done()

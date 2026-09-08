@@ -6,8 +6,17 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.typing import ConfigType
 
     from .runtime import IntercomConfigEntry
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register integration actions once, independent of individual station lifetimes."""
+    from .runtime import async_register_services
+
+    async_register_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: IntercomConfigEntry) -> bool:

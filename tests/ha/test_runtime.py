@@ -110,7 +110,9 @@ async def test_unload_cancels_poll_and_pulse_and_closes_session(hass, loaded_ent
     await hass.async_block_till_done()
     assert runtime.session.is_closed
     assert runtime._cancel_pulse is None
-    assert not hass.services.has_service(DOMAIN, "unlock_door")
+    assert hass.services.has_service(DOMAIN, "unlock_door")
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "unlock_door", {"lock": 1}, blocking=True)
 
 
 async def test_camera_only_removes_stale_lock_on_reload(hass, loaded_entry, device_io):

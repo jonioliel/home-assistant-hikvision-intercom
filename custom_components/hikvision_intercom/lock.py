@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import DOMAIN
 from .entity import IntercomEntity
 from .runtime import IntercomConfigEntry
 
@@ -46,5 +47,5 @@ class IntercomLock(IntercomEntity, LockEntity):
 
     async def async_lock(self, **kwargs: Any) -> None:
         raise ServiceValidationError(
-            "This relay returns automatically; forced locking is not supported"
+            translation_domain=DOMAIN, translation_key="forced_lock_unsupported"
         )

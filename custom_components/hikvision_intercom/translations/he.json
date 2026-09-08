@@ -160,5 +160,52 @@
         "camera_only": "המשך עם מצלמה בלבד"
       }
     }
+  },
+  "exceptions": {
+    "connection_closed": {
+      "message": "חיבור האינטרקום סגור."
+    },
+    "lock_not_managed": {
+      "message": "מנעול זה אינו מנוהל באינטגרציה."
+    },
+    "release_in_progress": {
+      "message": "פקודת פתיחה כבר מתבצעת."
+    },
+    "release_unconfirmed": {
+      "message": "האינטרקום לא אישר את הפתיחה; בדוק את הדלת לפני ניסיון נוסף."
+    },
+    "invalid_configuration": {
+      "message": "הגדרת האינטרקום השמורה אינה תקינה; בצע הגדרה מחדש."
+    },
+    "identity_changed": {
+      "message": "הכתובת שייכת לאינטרקום אחר; בצע הגדרה מחדש."
+    },
+    "mapping_changed": {
+      "message": "המכשיר אינו מצהיר עוד על הממסר שאושר; בצע הגדרה מחדש."
+    },
+    "authentication_failed": {
+      "message": "ההזדהות לאינטרקום נכשלה."
+    },
+    "unsupported_device": {
+      "message": "דגם האינטרקום או ממשק הבסיס אינם נתמכים."
+    },
+    "connection_failed": {
+      "message": "לא ניתן להתחבר לאינטרקום או לאמת אותו."
+    },
+    "target_required": {
+      "message": "בחר מכשיר או ישות של אינטרקום."
+    },
+    "invalid_target": {
+      "message": "היעד חייב להשתייך לאינטרקום Hikvision."
+    },
+    "target_unloaded": {
+      "message": "אינטרקום היעד אינו טעון."
+    },
+    "target_lock_not_managed": {
+      "message": "מנעול היעד אינו מנוהל."
+    },
+    "forced_lock_unsupported": {
+      "message": "הממסר חוזר אוטומטית; פקודת נעילה כפויה אינה נתמכת."
+    }
   }
 }

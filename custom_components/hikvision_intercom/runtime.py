@@ -51,21 +51,27 @@ class IntercomRuntime:
 
     async def async_unlock(self, physical_index: int) -> None:
         if self.session.is_closed:
-            raise ServiceValidationError("The intercom connection is closed")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="connection_closed"
+            )
         selected = next(
             (lock for lock in self.locks if lock.physical_index == physical_index), None
         )
         if type(physical_index) is not int or selected is None:
-            raise ServiceValidationError("This lock is not managed")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="lock_not_managed"
+            )
         if self.unlocking:
-            raise ServiceValidationError("A release is already in progress")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="release_in_progress"
+            )
         self.unlocking = True
         self.coordinator.async_update_listeners()
         try:
             await self.client.async_unlock(selected.api_id)
         except HikvisionError:
             raise HomeAssistantError(
-                "The intercom did not confirm release; check the door before retrying"
+                translation_domain=DOMAIN, translation_key="release_unconfirmed"
             ) from None
         else:
             if self._cancel_pulse:
@@ -104,7 +110,7 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         options = PollOptions.from_mapping(entry.options)
     except (HikvisionValidationError, KeyError):
         raise ConfigEntryError(
-            "Invalid saved intercom configuration; reconfigure the station"
+            translation_domain=DOMAIN, translation_key="invalid_configuration"
         ) from None
     session = await hass.async_add_executor_job(create_session, settings)
     client = HikvisionClient(
@@ -114,13 +120,9 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
     try:
         profile = await client.async_profile()
         if profile.unique_id != entry.unique_id:
-            raise ConfigEntryError(
-                "The address belongs to a different intercom; reconfigure this entry"
-            )
+            raise ConfigEntryError(translation_domain=DOMAIN, translation_key="identity_changed")
         if any(lock.api_id not in profile.api_door_ids for lock in locks):
-            raise ConfigEntryError(
-                "The confirmed relay is no longer advertised; reconfigure this entry"
-            )
+            raise ConfigEntryError(translation_domain=DOMAIN, translation_key="mapping_changed")
         await coordinator.async_config_entry_first_refresh()
         entry.runtime_data = IntercomRuntime(
             hass,
@@ -141,11 +143,17 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         await coordinator.async_shutdown()
         await session.aclose()
         if isinstance(err, HikvisionAuthError):
-            raise ConfigEntryAuthFailed("Intercom authentication failed") from None
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="authentication_failed"
+            ) from None
         if isinstance(err, HikvisionUnsupportedError):
-            raise ConfigEntryError("Unsupported intercom model or core endpoint") from None
+            raise ConfigEntryError(
+                translation_domain=DOMAIN, translation_key="unsupported_device"
+            ) from None
         if isinstance(err, HikvisionError):
-            raise ConfigEntryNotReady("Intercom could not be reached or validated") from None
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN, translation_key="connection_failed"
+            ) from None
         raise
 
     async def stop(_event: Event) -> None:
@@ -153,7 +161,6 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
 
     entry.async_on_unload(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop))
     entry.async_on_unload(entry.add_update_listener(_async_reload))
-    async_register_services(hass)
     return True
 
 
@@ -161,15 +168,6 @@ async def async_unload_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) 
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
     await entry.runtime_data.async_close()
-    others = [
-        other
-        for other in hass.config_entries.async_entries(DOMAIN)
-        if other.entry_id != entry.entry_id
-        and hasattr(other, "runtime_data")
-        and not other.runtime_data.session.is_closed
-    ]
-    if not others:
-        hass.services.async_remove(DOMAIN, "unlock_door")
     return True
 
 
@@ -181,17 +179,25 @@ def async_register_services(hass: HomeAssistant) -> None:
     async def unlock(call: ServiceCall) -> None:
         ids = await async_extract_config_entry_ids(call)
         if not ids:
-            raise ServiceValidationError("Select an intercom device or entity")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="target_required"
+            )
         targets: list[IntercomRuntime] = []
         for entry_id in ids:
             entry = hass.config_entries.async_get_entry(entry_id)
             if entry is None or entry.domain != DOMAIN:
-                raise ServiceValidationError("Target must belong to a Hikvision intercom")
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN, translation_key="invalid_target"
+                )
             runtime = getattr(entry, "runtime_data", None)
             if not isinstance(runtime, IntercomRuntime) or runtime.session.is_closed:
-                raise ServiceValidationError("Target intercom is not loaded")
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN, translation_key="target_unloaded"
+                )
             if not runtime.locks or call.data["lock"] != 1:
-                raise ServiceValidationError("Target lock is not managed")
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN, translation_key="target_lock_not_managed"
+                )
             targets.append(runtime)
         for runtime in targets:
             await runtime.async_unlock(1)

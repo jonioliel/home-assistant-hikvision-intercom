@@ -160,5 +160,52 @@
         "camera_only": "Continue with camera only"
       }
     }
+  },
+  "exceptions": {
+    "connection_closed": {
+      "message": "The intercom connection is closed"
+    },
+    "lock_not_managed": {
+      "message": "This lock is not managed"
+    },
+    "release_in_progress": {
+      "message": "A release is already in progress"
+    },
+    "release_unconfirmed": {
+      "message": "The intercom did not confirm release; check the door before retrying"
+    },
+    "invalid_configuration": {
+      "message": "Invalid saved intercom configuration; reconfigure the station"
+    },
+    "identity_changed": {
+      "message": "The address belongs to a different intercom; reconfigure this entry"
+    },
+    "mapping_changed": {
+      "message": "The confirmed relay is no longer advertised; reconfigure this entry"
+    },
+    "authentication_failed": {
+      "message": "Intercom authentication failed"
+    },
+    "unsupported_device": {
+      "message": "Unsupported intercom model or core endpoint"
+    },
+    "connection_failed": {
+      "message": "Intercom could not be reached or validated"
+    },
+    "target_required": {
+      "message": "Select an intercom device or entity"
+    },
+    "invalid_target": {
+      "message": "Target must belong to a Hikvision intercom"
+    },
+    "target_unloaded": {
+      "message": "Target intercom is not loaded"
+    },
+    "target_lock_not_managed": {
+      "message": "Target lock is not managed"
+    },
+    "forced_lock_unsupported": {
+      "message": "This relay returns automatically; forced locking is not supported"
+    }
   }
 }
