@@ -135,3 +135,83 @@ test("empty and dark layouts render without application errors", async ({ page }
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/empty-dark.png", fullPage: true });
 });
+
+test("ringing and offline state changes update without waiting for a refresh", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    window.demoData.stations[1].entities.online = "binary_sensor.live_online";
+    window.demoData.stations[1].entities.call_status = "sensor.live_call";
+    return panel.hass.callWS({ type: "hikvision_intercom/overview" }).then(() => panel.refresh());
+  });
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.hass = {
+      ...window.demoHass,
+      states: {
+        ...window.demoHass.states,
+        "binary_sensor.live_online": { state: "on", attributes: {} },
+        "sensor.live_call": { state: "ringing", attributes: {} },
+      },
+    };
+  });
+  await expect(
+    page
+      .locator("article.station")
+      .filter({ has: page.getByRole("heading", { name: "Lobby entrance" }) }),
+  ).toHaveClass(/ringing/);
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.hass = {
+      ...panel.hass,
+      states: {
+        ...panel.hass.states,
+        "binary_sensor.live_online": { state: "off", attributes: {} },
+      },
+    };
+  });
+  await expect(
+    page
+      .locator("article.station")
+      .filter({ has: page.getByRole("heading", { name: "Lobby entrance" }) })
+      .getByRole("button", { name: "Open active lock" }),
+  ).toBeDisabled();
+});
+
+test("untrusted names render as text", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.demoData.users[0].display_name = '<img src=x onerror="window.attacked=true">';
+    return document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await expect(
+    page.getByText('<img src=x onerror="window.attacked=true">', { exact: true }).first(),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.attacked)).toBeUndefined();
+});
+
+test("live camera rejects a URL outside Home Assistant", async ({ page }) => {
+  const external = [];
+  page.on("request", (request) => {
+    if (request.url().startsWith("http") && !request.url().startsWith("http://127.0.0.1:8765"))
+      external.push(request.url());
+  });
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    window.demoHass.callWS = (message) => {
+      if (message.type === "camera/stream") {
+        window.streamRequested = true;
+        return Promise.resolve({ url: "http://192.0.2.10/stream" });
+      }
+      return original(message);
+    };
+  });
+  await page.getByRole("button", { name: "View camera" }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.streamRequested)).toBe(true);
+  await expect(page.getByRole("dialog").locator("hikvision-intercom-camera video")).toHaveCount(0);
+  expect(external).toEqual([]);
+});

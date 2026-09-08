@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+from importlib.util import find_spec
 from typing import TYPE_CHECKING
+
+from .const import DOMAIN
+
+# Standalone protocol tools intentionally do not require installing HA.
+if find_spec("homeassistant") is not None:
+    from homeassistant.helpers.config_validation import config_entry_only_config_schema
+
+    CONFIG_SCHEMA = config_entry_only_config_schema(DOMAIN)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

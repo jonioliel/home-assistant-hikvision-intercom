@@ -122,3 +122,19 @@ those adapters are exercised against the real pinned HA runtime in CI.
 - New production access-client check was read-only: two users, one card, local PIN mode,
   capability PIN range and five-card limit. No credentials or relays were changed.
 - Simulator success and readback do not close physical PIN/card lifecycle or nine-station soak gates.
+
+## Phase 3 panel validation
+
+- `384c179` passed all GitHub checks: 280 protocol tests, 86 real HA 2026.9.1 tests,
+  100% ConfigFlow coverage, 9 Chromium UI tests, HACS and Hassfest.
+  Exact [Python/HA/frontend run](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34220634464).
+- Final local expansion: 281 protocol tests and 12 Chromium UI tests pass. Added detached
+  tombstone projections, immediate ring/offline UI state, text-safe untrusted names and rejection
+  of live video URLs outside HA. TypeScript, Prettier, Ruff and mypy pass.
+- Real WebSocket tests cover every registered command's administrator authorization, private
+  create/update/read/delete responses, malformed-PIN error/debug redaction, release guards and
+  data-free subscription teardown. A discovered framework schema echo was fixed and retested.
+- The bundled module is rebuilt in CI and compared with the committed HACS artifact; it has no
+  external CDN dependency. English desktop and Hebrew mobile screenshots were visually reviewed.
+- HA device I/O and browser test data are simulated. Actual HA install, media playback and hardware
+  credential acceptance have not been inferred from these tests. Publication awaits owner approval.

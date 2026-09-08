@@ -148,34 +148,36 @@ class AccessRepository:
         return ManagedUser.from_private(raw)
 
     def public(self) -> dict[str, Any]:
-        return {
-            "users": [user.public() for user in self.users()],
-            "revocations": [
-                {
-                    "station_id": station,
-                    "user_id": user_id,
-                    "sync_state": binding.get("sync_state", "pending"),
-                    "last_error": binding.get("last_error"),
-                }
-                for station, bindings in self._state["bindings"].items()
-                for user_id, binding in bindings.items()
-                if user_id in self._state["users"]
-                and station not in self._state["users"][user_id]["assignments"]
-            ],
-            "card_removals": [
-                {
-                    "id": key,
-                    "user_id": item["user_id"],
-                    "targets": item["targets"],
-                    "confirmed": item["confirmed"],
-                }
-                for key, item in self._state["retired_cards"].items()
-            ],
-            "tombstones": [
-                {key: value for key, value in item.items() if key != "record"}
-                for item in self._state["tombstones"].values()
-            ],
-        }
+        return deepcopy(
+            {
+                "users": [user.public() for user in self.users()],
+                "revocations": [
+                    {
+                        "station_id": station,
+                        "user_id": user_id,
+                        "sync_state": binding.get("sync_state", "pending"),
+                        "last_error": binding.get("last_error"),
+                    }
+                    for station, bindings in self._state["bindings"].items()
+                    for user_id, binding in bindings.items()
+                    if user_id in self._state["users"]
+                    and station not in self._state["users"][user_id]["assignments"]
+                ],
+                "card_removals": [
+                    {
+                        "id": key,
+                        "user_id": item["user_id"],
+                        "targets": item["targets"],
+                        "confirmed": item["confirmed"],
+                    }
+                    for key, item in self._state["retired_cards"].items()
+                ],
+                "tombstones": [
+                    {key: value for key, value in item.items() if key != "record"}
+                    for item in self._state["tombstones"].values()
+                ],
+            }
+        )
 
     def fingerprint(self, payload: Mapping[str, Any]) -> str:
         encoded = json.dumps(

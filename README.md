@@ -4,7 +4,8 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Version `0.3.0-alpha.1` provides the core integration and central access backend.**
+**Phase 3 (`0.4.0-alpha.1`) adds the administrator panel to the core and access backend.**
+The Phase 2/3 releases await approval for publication; the published HACS version remains `0.2.0-alpha.1`.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 The central Users/Cards/PIN administration panel follows in Phases 2–3.
@@ -40,9 +41,24 @@ this core release.
 - State-changing requests are journaled before sending and verified by readback. Unchanged periodic
   reconciliation does not rewrite the database or credentials.
 
-The UI/API for normal user administration follows in Phase 3. Do not edit `.storage` manually.
+Use the administrator panel to create or edit users, import existing station records and resolve conflicts.
+Do not edit `.storage` manually.
 The backend scans existing users on startup without importing them automatically.
 See [backend behavior and limits](docs/ACCESS_BACKEND.md).
+
+## Administrator panel
+
+**Overview** shows camera previews, call status and only configured lock controls. Open a camera
+for HA-proxied live video. **Users** provides write-only PIN editing, masked cards, station
+assignments and validity periods. **Intercoms** displays capabilities and inventory counts.
+**Sync** shows per-user/per-station revisions, conflicts and pending removals. The Events tab is
+reserved for Phase 4 capture and audit history.
+
+A device-record review is required before adoption, overwrite or resuming a conflicted deletion.
+An offline target remains pending; the panel does not wait for all stations before closing a saved
+editor. Standard HA camera/lock entities remain available alongside the dedicated panel.
+
+[Administrator guide](docs/ADMIN_PANEL.md) · [Synthetic UI preview](docs/screenshots/overview-en.png).
 
 ## HACS installation and updates
 

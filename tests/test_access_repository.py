@@ -220,3 +220,17 @@ async def test_corrupt_storage_never_defaults_to_empty(repo):
     restored = AccessRepository(AsyncMock())
     with pytest.raises(AccessError):
         await restored.async_load(corrupted)
+
+
+async def test_public_tombstone_projection_is_detached():
+    repo = AccessRepository(AsyncMock())
+    await repo.async_load(None)
+    user = await repo.async_create(
+        {"display_name": "Resident", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await repo.async_delete(user.id, expected_revision=1)
+    public = repo.public()
+    public["tombstones"][0]["confirmed"].append("a")
+    public["tombstones"][0]["stations"]["a"]["sync_state"] = "synced"
+    assert repo.public()["tombstones"][0]["confirmed"] == []
+    assert repo.public()["tombstones"][0]["stations"]["a"]["sync_state"] == "delete_pending"

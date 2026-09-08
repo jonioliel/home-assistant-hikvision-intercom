@@ -44,8 +44,7 @@ revocations finish: its stored target ID is needed to resume pending cleanup.
 `hikvision_intercom.sync_user` takes a central `user_id`; `sync_station` and `rescan_station` take
 `station_id` (a HA config-entry ID). `sync_all` takes no arguments. All four are administrator-only,
 queue work and return without waiting for offline devices. Rescan may reconcile explicitly managed
-records; it never adopts unmanaged records. The CRUD, inventory and review methods are private
-backend interfaces until the Phase 3 WebSocket API and panel are added.
+records; it never adopts unmanaged records. The CRUD, inventory and review methods are exposed by the administrator-only Phase 3 WebSocket API.
 
 ## What readback establishes
 

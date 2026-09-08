@@ -4,6 +4,23 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.4.0-alpha.1] - 2026-09-08
+
+### Added — Phase 3
+- Bundled Lit/TypeScript administrator sidebar: overview, users/editor, devices and sync matrix.
+- English/Hebrew RTL, mobile person cards, dark/light HA themes and keyboard-accessible dialogs.
+- HA camera previews and enlarged HA HLS video; no direct device connection from the browser.
+- Administrator-only WebSocket CRUD, import/adoption, conflict review, sync and release controls.
+- Write-only PIN editing, masked existing cards, deletion confirmations and revision-aware saves.
+- Coalesced data-free subscriptions and immediate ring/offline updates from normal HA entities.
+- WebSocket payload filtering and private schema errors, including debug logging regression tests.
+- Reproducible frontend bundle checks and Chromium UI tests in GitHub Actions.
+
+### Validation and scope
+- The panel uses the Phase 2 backend. Events/audit capture follows in Phase 4.
+- Publication to the default branch/release is awaiting explicit owner approval after an automated approval rejection.
+- Physical acceptance and installation/upgrade on the owner's HA host remain pending.
+
 ### In development — Phase 2
 - Capability-driven user/card access client with bounded complete pagination and explicit write transactions.
 - Private central records, masked administrator views, revision/identity guards and durable ownership journals.
