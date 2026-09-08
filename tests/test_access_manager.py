@@ -705,6 +705,7 @@ async def test_review_missing_record_and_stale_central_revision(fleet):
     device.users.clear()
     review = await manager.async_review("a", user["id"])
     assert review["plan"]["person"] == "create"
+    assert review["plan"]["pin"] == "none"
     assert review["actions"]["central"]["allowed"]
     assert review["actions"]["device"]["reason"] == "device_user_missing"
     await manager.async_update(
@@ -760,6 +761,7 @@ async def test_review_deleted_user_has_only_targeted_delete_action(fleet):
         not review["actions"]["central"]["allowed"] and not review["actions"]["device"]["allowed"]
     )
     assert review["plan"]["person"] == "delete"
+    assert review["plan"]["pin"] == "none"
 
 
 async def test_review_timed_validity_and_card_type_change(fleet):

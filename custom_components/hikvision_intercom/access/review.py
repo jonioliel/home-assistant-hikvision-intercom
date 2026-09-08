@@ -81,7 +81,8 @@ def compare(desired: dict[str, Any], observed: dict[str, Any]) -> dict[str, Any]
     changes = [key for key, (before, after) in fields.items() if before != after]
     old_cards = {card["cardNo"]: card for card in observed["cards"]}
     new_cards = {card["cardNo"]: card for card in desired["cards"]}
-    old_pin, new_pin = last.get("pin") if last else None, first.get("pin") if first else None
+    old_pin = (last.get("pin") or None) if last else None
+    new_pin = (first.get("pin") or None) if first else None
     return {
         "differences": changes,
         "plan": {
