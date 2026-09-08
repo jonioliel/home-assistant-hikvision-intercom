@@ -253,6 +253,20 @@ export class IntercomManagerPanel extends LitElement {
   private patchDraft(key: string, newValue: unknown) {
     if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
   }
+  private selectStations(all: boolean) {
+    if (!this._draft || this._busy) return;
+    if (all) {
+      for (const station of this._data?.stations ?? []) {
+        if (station.lock_enabled)
+          this._draft.assignments[station.id] = {
+            ...this._draft.assignments[station.id],
+            enabled: true,
+            allowed_locks: [1],
+          };
+      }
+    } else this._draft.assignments = {};
+    this.requestUpdate();
+  }
   private pinBlocked() {
     return Object.entries(this._draft?.assignments ?? {}).some(
       ([key, item]) =>
@@ -571,6 +585,44 @@ export class IntercomManagerPanel extends LitElement {
               </div>`
       }`;
   }
+  private capabilityDetails(station: Station) {
+    return html`<section class="capability-details">
+      <h4>${this.t("capabilities_title")}</h4>
+      <p class="field-note">${this.t("capability_hint")}</p>
+      <ul class="capability-list">
+        ${["call_status", "snapshot", "video_channel", "user_info", "card_info", "event_query"].map(
+          (key) =>
+            html`<li>
+              <span>${this.t(`cap_${key}`)}</span>
+              <span class="sub"
+                >${station.observations[key] ? "✓" : "?"}
+                ${this.t(station.observations[key] ? "observed" : "not_verified")}</span
+              >
+            </li>`,
+        )}
+      </ul>
+      <h4>${this.t("integrated_locks")}</h4>
+      ${
+        station.integrated_locks.length
+          ? station.integrated_locks.map(
+              (lock) => html`
+                <p class="sub lock-mapping">
+                  ${this.t("physical_lock")} ${lock.physical_index} → <bdi>API ${lock.api_id}</bdi>
+                </p>
+              `,
+            )
+          : html`<p class="sub">${this.t("camera_only")}</p>`
+      }
+      <dl class="event-health">
+        <dt>${this.t("live_events")}</dt>
+        <dd>${this.t(`event_${station.event_status?.stream ?? "unknown"}`)}</dd>
+        <dt>${this.t("history_recovery")}</dt>
+        <dd>${this.t(`event_${station.event_status?.history ?? "unknown"}`)}</dd>
+        <dt>${this.t("history_until")}</dt>
+        <dd><bdi>${this.dateText(station.event_status?.recovered_until ?? null)}</bdi></dd>
+      </dl>
+    </section>`;
+  }
   private devicesView() {
     return html`<div class="toolbar">
         <h2>${this.t("devices")}</h2>
@@ -626,12 +678,16 @@ export class IntercomManagerPanel extends LitElement {
                       <dd><bdi>${text}</bdi></dd>`,
                 )}
               </dl>
+              ${this.capabilityDetails(station)}
+              <p class="field-note">${this.t("inspection_hint")}</p>
+              ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}
+              ${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}
               <p class="sub">${this.t(station.lock_enabled ? "station_access" : "camera_only")}</p>
               ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
               <div class="row">
                 <button
-                  @click=${() => this.run(() => this.api("stations/rescan", { station_id: station.id }))}
-                  ?disabled=${this._busy}
+                  @click=${() => this.run(() => this.api("stations/rescan", { station_id: station.id }), "scan_complete")}
+                  ?disabled=${this._busy || station.scanning || !station.loaded}
                 >
                   ${this.t("rescan")}</button
                 ><button
@@ -640,6 +696,8 @@ export class IntercomManagerPanel extends LitElement {
                 >
                   ${this.t("sync_now")}
                 </button>
+                ${station.lock_enabled ? html`<button @click=${() => this.unlock(station)} ?disabled=${this._busy || !station.online}>${this.t("open_door")}</button>` : nothing}
+                <a href=${settingsPath}>${this.t("configure")}</a>
               </div>
             </article>`,
         )}
@@ -933,6 +991,19 @@ export class IntercomManagerPanel extends LitElement {
       </fieldset>
       <fieldset>
         <legend>${this.t("assignments")}</legend>
+        <div class="row assignment-tools">
+          <button type="button" @click=${() => this.selectStations(true)} ?disabled=${this._busy}>
+            ${this.t("select_all_stations")}
+          </button>
+          <button type="button" @click=${() => this.selectStations(false)} ?disabled=${this._busy}>
+            ${this.t("clear_stations")}
+          </button>
+          <span class="sub"
+            >${this.t("selected_stations")}:
+            ${Object.values(draft.assignments).filter((item) => item.enabled).length}</span
+          >
+        </div>
+        <p class="field-note">${this.t("selection_hint")}</p>
         ${(this._data?.stations ?? []).map(
           (station) =>
             html`<div class="assignment">
@@ -950,6 +1021,7 @@ export class IntercomManagerPanel extends LitElement {
                 /><strong>${station.name}</strong
                 >${this.badge(station.online ? "online" : "offline")}</label
               ><small>${this.t(station.lock_enabled ? "station_access" : "camera_only")}</small>
+              ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
             </div>`,
         )}
         <p class="field-note">${this.t("unsupported_schedule")}</p>

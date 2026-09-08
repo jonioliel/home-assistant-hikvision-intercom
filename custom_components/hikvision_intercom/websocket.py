@@ -16,6 +16,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .access.models import AccessError
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
+from .configuration import managed_locks
 from .const import DOMAIN, VERSION
 from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
@@ -101,6 +102,22 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
                 entity = registry.async_get_entity_id(platform, DOMAIN, f"{entry.unique_id}_{key}")
                 if entity:
                     station["entities"][key] = entity
+        station["observations"] = {
+            "call_status": bool(runtime and runtime.coordinator.last_seen),
+            "snapshot": bool(runtime and runtime.profile.snapshot),
+            "video_channel": bool(runtime and runtime.profile.stream),
+            "user_info": station["capabilities"] is not None,
+            "card_info": station["capabilities"] is not None,
+            "event_query": bool(runtime and runtime.events and runtime.events.client.page_size),
+        }
+        try:
+            locks = managed_locks(entry.data) if entry else ()
+        except HikvisionValidationError:
+            locks = ()
+        station["integrated_locks"] = [
+            {"physical_index": lock.physical_index, "api_id": lock.api_id} for lock in locks
+        ]
+        station["event_status"] = runtime.events.status() if runtime and runtime.events else None
         station.update(
             online=bool(
                 runtime
@@ -222,7 +239,9 @@ async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> A
         await manager.async_resolve_deletion(
             msg["station_id"], msg["user_id"], review_token=msg["review_token"]
         )
-    elif command in {"stations/rescan", "sync/station"}:
+    elif command == "stations/rescan":
+        await manager.async_rescan(msg["station_id"])
+    elif command == "sync/station":
         manager.request(msg["station_id"])
     elif command == "sync/user":
         manager.request_user(msg["user_id"])

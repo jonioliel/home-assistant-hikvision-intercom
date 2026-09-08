@@ -105,3 +105,8 @@ retained last access, successful status contact/request duration, pending unique
 last successful reconciliation. PIN-removal queues are visible and masked-card suffix search
 is available. No new ISAPI behavior or physical operation is introduced. The owner reports the
 installed integration working well; outstanding physical gates remain tracked in HARDENING.md.
+
+Station inspection and assignment completion (0.8.0-alpha.1) corrects the rescan/sync action
+mix-up and fills Intercom capability/mapping/event-health presentation plus deliberate fleet
+assignment selection. Read-only inspection and ordinary background synchronization have separate
+semantics. No new ISAPI mutation, storage migration or physical action was introduced.

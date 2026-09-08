@@ -83,3 +83,27 @@ revocations and previous PIN/card removals. The same person counts once per affe
 A successful scan with zero pending work shows zero, not the size of the periodic scan workload.
 The Sync removal list now includes previous PINs by person/target only, never by PIN value.
 User search matches exactly four visible trailing card digits, alongside name and employee ID.
+
+## Station inspection and fleet selection — 0.8.0-alpha.1
+
+**Rescan access capabilities** reads the verified UserInfo/CardInfo capabilities, local/global
+PIN mode and full inventory, with identity verification. It does not request reconciliation.
+The same behavior applies to the administrator `rescan_station` action. Ordinary background
+sync continues on its schedule; **Sync now** explicitly queues reconciliation. Inspection
+updates its successful scan time and inventory without marking pending user revisions applied
+or advancing the last successful reconciliation. A failed inspection keeps previous observations
+and displays a safe error category. Simultaneous callers share one read; station unload cancels
+it, and post-write inventory refresh always begins after the writes it reports.
+
+Intercom cards distinguish observed capabilities from unverified capabilities. Core call,
+snapshot and enabled-video observations come from the loaded runtime; access capabilities come
+from the latest successful access scan. Event query evidence comes from the bounded query
+client's accepted capability response. Live stream/history connection state is shown separately.
+These are observations, not a claim that an unverified feature is unsupported or that an enabled
+video channel has passed a full video playback test. Configured lock mapping comes from validated
+entry settings, including while unloaded. Only explicitly configured locks receive release controls.
+
+The user editor offers explicit selection of all stations with a configured lock, including
+offline stations. Camera-only stations remain disabled. Clearing selection changes the draft;
+saving queues revocation on removed stations. Cancelling leaves central records and device queues
+unchanged. Existing per-station sync status and the selected count remain visible during editing.

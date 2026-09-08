@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.4.0-alpha.1",
+  version: "0.8.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -38,6 +38,23 @@ const data = {
     sync_state: i === 5 ? "offline" : i === 2 ? "conflict" : "synced",
     last_error: i === 5 ? "connection_failed" : null,
     scanned_at: new Date().toISOString(),
+    scanning: false,
+    scan_error: null,
+    observations: {
+      call_status: true,
+      snapshot: true,
+      video_channel: true,
+      user_info: true,
+      card_info: true,
+      event_query: i !== 5,
+    },
+    integrated_locks: i === 8 ? [] : [{ physical_index: 1, api_id: 1 }],
+    event_status: {
+      stream: i === 5 ? "disconnected" : "connected",
+      history: i === 5 ? "incomplete" : "recovered",
+      reconnects: 0,
+      recovered_until: "2026-09-08T12:30:00Z",
+    },
     reconciled_at: i === 5 ? null : new Date().toISOString(),
     managed_user_count: 6,
     pending_user_count: i === 5 ? 2 : i === 2 ? 1 : 0,

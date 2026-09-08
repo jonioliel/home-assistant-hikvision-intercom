@@ -4,6 +4,37 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.8.0-alpha.1] - 2026-09-08
+
+### Fixed
+- **Rescan access capabilities** and the `rescan_station` action now read access capabilities
+  and inventory without requesting synchronization or changing desired permissions. Previously,
+  rescan shared the sync action and could initiate pending user/credential writes.
+- Concurrent station scans share one bounded read. Cancelling one caller does not interrupt
+  another; unloading the station cancels the shared scan. A final inventory read after writes
+  cannot reuse a scan that started before those writes.
+- Failed inspection preserves the last successful inventory and reconciliation timestamps,
+  exposes a safe error category and keeps private exceptions out of HA background-task logs.
+
+### Added
+- Intercom cards show observed call/snapshot/video, user/card and event-query capabilities,
+  configured physical/API lock mapping, live event connection and history recovery status.
+  Capabilities that were not observed are labelled unverified, not presumed unsupported.
+- Dedicated inspection progress/error feedback, configured-lock release and Home Assistant
+  configuration controls in each Intercom card. Camera-only stations expose no release button.
+- Deliberate **Select all eligible stations** and **Clear selection** in the user editor,
+  with selected-station count and existing sync status. Offline configured stations can be
+  selected; camera-only stations are excluded. Changes take effect only after Save & sync.
+- English/Hebrew labels and desktop/mobile browser coverage for these workflows.
+
+### Compatibility and validation
+- No storage or configuration schema change. Rescan uses already implemented read endpoints;
+  core camera/call observations retain their setup-time meaning. Existing scheduled sync still
+  operates independently; use Sync now to explicitly request pending reconciliation.
+- Regression coverage includes read-only rescans with pending writes, shared-reader cancellation,
+  unload cleanup, post-write freshness, failure privacy, admin entry points and fleet assignments.
+- Physical credential lifecycle, timed validity and nine-station commissioning remain open.
+
 ## [0.7.0-alpha.1] - 2026-09-08
 
 ### Added

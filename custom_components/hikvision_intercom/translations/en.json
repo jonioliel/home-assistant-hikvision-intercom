@@ -183,7 +183,7 @@
     },
     "rescan_station": {
       "name": "Rescan station",
-      "description": "Refresh inventory and reconcile explicitly managed records.",
+      "description": "Read access-management capabilities and station inventory. This action does not queue synchronization or change access rights.",
       "fields": {
         "station_id": {
           "name": "Station",

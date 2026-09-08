@@ -50,6 +50,16 @@ export interface Station {
   sync_state: string;
   last_error: string | null;
   scanned_at: string | null;
+  scanning: boolean;
+  scan_error: string | null;
+  observations: Record<string, boolean>;
+  integrated_locks: { physical_index: number; api_id: number }[];
+  event_status: {
+    stream: string;
+    history: string;
+    reconnects: number;
+    recovered_until: string | null;
+  } | null;
   reconciled_at: string | null;
   managed_user_count: number | null;
   pending_user_count: number;

@@ -1,5 +1,28 @@
 import { css } from "lit";
 export const styles = css`
+  .capability-details {
+    border-block-start: 1px solid var(--divider-color, #dce5e6);
+    margin-block: 16px;
+    overflow-wrap: anywhere;
+  }
+  .capability-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .capability-list li {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .capability-details h4 {
+    margin-block: 16px 8px;
+  }
+  .assignment-tools {
+    margin-block-end: 12px;
+  }
   .last-access {
     margin-block-start: 14px;
     padding-block-start: 12px;

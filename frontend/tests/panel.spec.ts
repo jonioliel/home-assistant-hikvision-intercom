@@ -371,3 +371,103 @@ test("Hebrew mobile overview preserves unknown access and fits long person names
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/fleet-health-he-mobile.png", fullPage: true });
 });
+
+test("station inspection shows observed capabilities and sends only the rescan action", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  const offline = page
+    .locator("article.station")
+    .filter({ has: page.getByRole("heading", { name: "Service gate", exact: true }) });
+  await expect(
+    offline.locator(".capability-list li").filter({ hasText: "Access event query" }),
+  ).toContainText("Unverified");
+  await expect(offline.locator(".event-health")).toContainText("Disconnected; retrying");
+  await expect(offline.locator(".event-health")).toContainText("Incomplete; retrying");
+  const gate = page
+    .locator("article.station")
+    .filter({ has: page.getByRole("heading", { name: "Main gate", exact: true }) });
+  await expect(gate.locator(".lock-mapping")).toHaveText("Physical lock 1 → API 1");
+  await expect(gate.getByRole("link", { name: "Configure in Home Assistant" })).toHaveAttribute(
+    "href",
+    "/config/integrations/integration/hikvision_intercom",
+  );
+  await gate.getByRole("button", { name: "Rescan access capabilities" }).click();
+  await expect(page.getByText("Station inspection complete.", { exact: true })).toBeVisible();
+  const commands = await page.evaluate(() => window.calls.map((item) => item.type));
+  expect(commands).toContain("hikvision_intercom/stations/rescan");
+  expect(commands.some((item) => item.includes("sync/") || item.includes("test_unlock"))).toBe(
+    false,
+  );
+  const camera = page
+    .locator("article.station")
+    .filter({ has: page.getByRole("heading", { name: "Rear entrance", exact: true }) });
+  await expect(camera.locator(".lock-mapping")).toHaveCount(0);
+  await expect(camera.getByRole("button", { name: "Open active lock" })).toHaveCount(0);
+});
+
+test("bulk station selection is deliberate, includes offline targets and can be cancelled", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".assignment input:checked")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Select all eligible stations" }).click();
+  await expect(dialog.locator(".assignment input:checked")).toHaveCount(8);
+  await expect(dialog.getByLabel("Service gate", { exact: false })).toBeChecked();
+  await expect(dialog.getByLabel("Rear entrance", { exact: false })).toBeDisabled();
+  await expect(dialog.getByLabel("Rear entrance", { exact: false })).not.toBeChecked();
+  await dialog.getByRole("button", { name: "Clear selection" }).click();
+  await expect(dialog.locator(".assignment input:checked")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(
+    await page.evaluate(() =>
+      window.calls.some((item) => /users\/(create|update)/.test(item.type)),
+    ),
+  ).toBe(false);
+});
+
+test("saving bulk assignments sends only the configured physical lock", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Name", { exact: true }).fill("Fleet resident");
+  await dialog.getByRole("button", { name: "Select all eligible stations" }).click();
+  await dialog.getByRole("button", { name: "Save & sync" }).click();
+  await expect(dialog).toHaveCount(0);
+  const calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("users/create")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(Object.keys(calls[0].data.assignments)).toHaveLength(8);
+  expect(calls[0].data.assignments["station-5"].enabled).toBe(true);
+  expect(calls[0].data.assignments["station-8"]).toBeUndefined();
+  for (const assignment of Object.values(calls[0].data.assignments))
+    expect(assignment.allowed_locks).toEqual([1]);
+});
+
+test("Hebrew mobile inspection shows scan errors and preserves readable layout", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he&dark=1");
+  await page.evaluate(() => {
+    window.demoData.stations[0].scan_error = "connection_failed";
+    window.demoNotify();
+  });
+  await page.getByRole("button", { name: "אינטרקומים", exact: true }).click();
+  await expect(page.locator(".scan-error").first()).toContainText("סריקת התחנה נכשלה");
+  await expect(page.locator(".capability-details").first()).toContainText("מיפוי המנעול המוגדר");
+  expect(
+    await page
+      .locator("hikvision-intercom-panel")
+      .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "test-results/station-inspection-he-mobile.png", fullPage: true });
+  await page.locator(".scan-error").first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/station-inspection-he-card.png" });
+});

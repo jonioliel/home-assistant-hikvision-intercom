@@ -31,7 +31,7 @@ from .models import (
 from .normalize import canonical, desired_cards, desired_person
 from .repository import AccessRepository
 
-TaskFactory = Callable[[Coroutine[Any, Any, None], str], asyncio.Task[None]]
+TaskFactory = Callable[[Coroutine[Any, Any, Any], str], asyncio.Task[Any]]
 
 
 @dataclass(slots=True, repr=False)
@@ -45,6 +45,8 @@ class Station:
     error: str | None = None
     scanned_at: str | None = None
     reconciled_at: str | None = None
+    scan_task: asyncio.Task[Exception | None] | None = None
+    scan_error: str | None = None
     task: asyncio.Task[None] | None = None
     timer: asyncio.TimerHandle | None = None
     pending: bool = False
@@ -97,6 +99,10 @@ class AccessManager:
             station.task.cancel()
             await asyncio.gather(station.task, return_exceptions=True)
             station.task = None
+        if station.scan_task:
+            station.scan_task.cancel()
+            await asyncio.gather(station.scan_task, return_exceptions=True)
+            station.scan_task = None
         station.driver, station.inventory, station.pending = None, None, False
         station.status, station.error = "offline", "station_unloaded"
         self._changed()
@@ -165,19 +171,59 @@ class AccessManager:
         for user_id in self.engine.jobs(station.id):
             await self.repository.async_mark(station.id, user_id, status, error)
 
-    async def _scan(self, station: Station) -> None:
-        driver = station.driver
-        if driver is None:
+    async def async_rescan(self, station_id: str) -> None:
+        """Refresh access capabilities/inventory without requesting reconciliation."""
+        station = self._station(station_id)
+        try:
+            await self._scan(station)
+        except Exception as err:
+            raise AccessError(error_code(err)) from None
+
+    async def _scan(self, station: Station, *, fresh: bool = False) -> None:
+        if self._closed:
+            raise AccessError("manager_closed")
+        if station.driver is None:
             raise AccessError("station_offline")
-        async with self._read_slots:
-            self.diagnostics.stage(station.id, None, "identity")
-            await driver.client.async_confirm_identity()
-            self.diagnostics.stage(station.id, None, "capabilities")
-            await driver.async_capabilities()
-            self.diagnostics.stage(station.id, None, "inventory")
-            inventory = await driver.async_inventory()
-            self.diagnostics.finish(station.id, None)
-        station.inventory, station.scanned_at = inventory, utc_now()
+        if fresh and station.scan_task is not None:
+            # A scan begun before a write cannot serve as its final inventory read.
+            await asyncio.shield(station.scan_task)
+        if station.scan_task is None:
+            station.scan_task = self._task_factory(
+                self._scan_once(station), "Hikvision station inspection"
+            )
+        # Disconnecting one admin client must not cancel another caller's shared read.
+        error = await asyncio.shield(station.scan_task)
+        if error is not None:
+            raise error
+
+    async def _scan_once(self, station: Station) -> Exception | None:
+        station.scan_error = None
+        self._changed()
+        try:
+            async with self._read_slots:
+                driver = station.driver
+                if driver is None:
+                    raise AccessError("station_offline")
+                self.diagnostics.stage(station.id, None, "identity")
+                await driver.client.async_confirm_identity()
+                self.diagnostics.stage(station.id, None, "capabilities")
+                await driver.async_capabilities()
+                self.diagnostics.stage(station.id, None, "inventory")
+                inventory = await driver.async_inventory()
+                self.diagnostics.finish(station.id, None)
+            station.inventory, station.scanned_at = inventory, utc_now()
+        except asyncio.CancelledError:
+            self.diagnostics.finish(station.id, None, outcome="cancelled")
+            raise
+        except Exception as err:
+            station.scan_error = error_code(err)
+            self.diagnostics.finish(station.id, None, error=err)
+            # A disconnected last waiter must not leave a secret-bearing task exception.
+            return err
+        finally:
+            station.scan_task = None
+            self._changed()
+        return None
 
     async def _worker(self, station: Station) -> None:
         retry = False
@@ -206,7 +252,7 @@ class AccessManager:
                             else "synced"
                         )
                         if not result.offline:
-                            await self._scan(station)
+                            await self._scan(station, fresh=True)
                     else:
                         station.status = "synced"
                     if station.status == "synced":
@@ -337,6 +383,8 @@ class AccessManager:
                     "sync_state": station.status,
                     "last_error": station.error,
                     "scanned_at": station.scanned_at,
+                    "scanning": station.scan_task is not None,
+                    "scan_error": station.scan_error,
                     "reconciled_at": station.reconciled_at,
                     "managed_user_count": len(set(inventory.users) & owned) if inventory else None,
                     "pending_user_count": len(self._pending_users(state, station.id)),

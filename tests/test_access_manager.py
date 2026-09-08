@@ -423,3 +423,116 @@ async def test_health_includes_assignment_revocation_without_a_matrix_cell(fleet
     await drain(manager)
     assert manager.public()["stations"][0]["pending_user_count"] == 0
     assert not device.users and not manager.public()["revocations"]
+
+
+async def test_rescan_reads_inventory_without_queueing_pending_access_writes(fleet):
+    manager, device, _ = fleet
+    user = await manager.repository.async_create(
+        {
+            "display_name": "Pending person",
+            "pin": "918273",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    reconciled = manager.stations["a"].reconciled_at
+    device.users["1001"] = deepcopy(PERSON)
+    before = manager.repository.snapshot()
+    await manager.async_rescan("a")
+    station = manager.public()["stations"][0]
+    assert station["user_count"] == station["unmanaged_count"] == 1
+    assert station["pending_user_count"] == 1
+    assert station["reconciled_at"] == reconciled
+    assert manager.repository.snapshot() == before
+    assert device.writes == [] and manager.stations["a"].task is None
+    assert not manager.stations["a"].pending
+    manager.request("a")
+    await drain(manager)
+    assert manager.repository.get(user.id).assignments["a"].sync_state == "synced"
+    assert device.writes
+
+
+async def test_simultaneous_rescans_share_reads_and_one_cancelled_waiter_is_isolated(fleet):
+    manager, _device, driver = fleet
+    original = driver.async_inventory
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def read():
+        entered.set()
+        await release.wait()
+        return await original()
+
+    driver.async_inventory = AsyncMock(side_effect=read)
+    first = asyncio.create_task(manager.async_rescan("a"))
+    await entered.wait()
+    second = asyncio.create_task(manager.async_rescan("a"))
+    await asyncio.sleep(0)
+    assert manager.public()["stations"][0]["scanning"]
+    first.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await first
+    assert not manager.stations["a"].scan_task.cancelled()
+    release.set()
+    await second
+    assert driver.async_inventory.await_count == 1
+    assert not manager.public()["stations"][0]["scanning"]
+
+
+async def test_detach_cancels_shared_scan_and_does_not_publish_stale_inventory(fleet):
+    manager, _device, driver = fleet
+    entered = asyncio.Event()
+
+    async def read():
+        entered.set()
+        await asyncio.Event().wait()
+
+    driver.async_inventory = AsyncMock(side_effect=read)
+    request = asyncio.create_task(manager.async_rescan("a"))
+    await entered.wait()
+    task = manager.stations["a"].scan_task
+    await manager.async_detach("a")
+    with pytest.raises(asyncio.CancelledError):
+        await request
+    assert task.cancelled()
+    assert manager.stations["a"].scan_task is None
+    assert manager.stations["a"].inventory is None
+    with pytest.raises(AccessError, match="station_offline"):
+        await manager.async_rescan("a")
+
+
+async def test_post_write_scan_cannot_reuse_an_earlier_inventory_snapshot(fleet):
+    manager, device, driver = fleet
+    original = driver.async_inventory
+    entered, release = asyncio.Event(), asyncio.Event()
+    first = True
+
+    async def read():
+        nonlocal first
+        snapshot = await original()
+        if first:
+            first = False
+            entered.set()
+            await release.wait()
+        return snapshot
+
+    driver.async_inventory = AsyncMock(side_effect=read)
+    old = asyncio.create_task(manager.async_rescan("a"))
+    await entered.wait()
+    device.users["1001"] = deepcopy(PERSON)  # Simulate a write after the first snapshot.
+    fresh = asyncio.create_task(manager._scan(manager.stations["a"], fresh=True))
+    await asyncio.sleep(0)
+    release.set()
+    await asyncio.gather(old, fresh)
+    assert driver.async_inventory.await_count == 2
+    assert "1001" in manager.stations["a"].inventory.users
+
+
+async def test_rescan_failure_is_private_and_does_not_destroy_previous_observation(fleet, caplog):
+    manager, _device, driver = fleet
+    previous = manager.stations["a"].scanned_at
+    driver.async_inventory = AsyncMock(side_effect=RuntimeError("PRIVATE-PIN-918273"))
+    with pytest.raises(AccessError, match="storage_or_internal_error"):
+        await manager.async_rescan("a")
+    station = manager.public()["stations"][0]
+    assert station["scan_error"] == "storage_or_internal_error"
+    assert station["scanned_at"] == previous and not station["scanning"]
+    assert "PRIVATE-PIN-918273" not in caplog.text + str(manager.public())

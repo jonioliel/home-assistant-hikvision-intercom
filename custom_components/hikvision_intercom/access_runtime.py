@@ -65,6 +65,8 @@ def _register_services(hass: HomeAssistant, manager: AccessManager) -> None:
         try:
             if call.service == "sync_all":
                 manager.request_all()
+            elif call.service == "rescan_station":
+                await manager.async_rescan(call.data["station_id"])
             elif call.service == "sync_user":
                 manager.request_user(call.data["user_id"])
             else:

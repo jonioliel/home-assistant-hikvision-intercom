@@ -233,3 +233,96 @@ async def test_overview_exposes_only_safe_latest_access_without_triggering_recov
     for secret in ("000011112222", "918273", "localPassword"):
         assert secret not in json.dumps(result)
     assert "card" not in access
+
+
+@pytest.mark.parametrize("channel", ["websocket", "service"])
+async def test_rescan_entry_points_do_not_initiate_queued_writes(
+    hass, loaded_entry, hass_ws_client, device_io, channel
+):
+    manager = get_manager(hass)
+    await hass.async_block_till_done()
+    await manager.repository.async_create(
+        {
+            "display_name": "Waiting person",
+            "pin": "918273",
+            "assignments": {loaded_entry.entry_id: {"allowed_locks": [1]}},
+        }
+    )
+    before = manager.repository.snapshot()
+    reconciled = manager.stations[loaded_entry.entry_id].reconciled_at
+    if channel == "websocket":
+        client = await hass_ws_client(hass)
+        response = await request(client, "stations/rescan", station_id=loaded_entry.entry_id)
+        assert response["success"]
+    else:
+        await hass.services.async_call(
+            DOMAIN,
+            "rescan_station",
+            {
+                "station_id": loaded_entry.entry_id,
+            },
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert manager.repository.snapshot() == before
+    assert manager.stations[loaded_entry.entry_id].reconciled_at == reconciled
+    assert manager.stations[loaded_entry.entry_id].task is None
+    device_io["write_person"].assert_not_called()
+    device_io["unlock"].assert_not_called()
+    # Access rescan does not silently reload/change the configured core profile.
+    device_io["profile"].assert_awaited_once()
+
+
+async def test_inspection_capabilities_exclude_secrets_and_unselected_relays(
+    hass, loaded_entry, hass_ws_client
+):
+    client = await hass_ws_client(hass)
+    response = await request(client, "stations/get", station_id=loaded_entry.entry_id)
+    station = response["result"]
+    assert station["integrated_locks"] == [{"physical_index": 1, "api_id": 1}]
+    assert station["observations"] == {
+        "call_status": True,
+        "snapshot": True,
+        "video_channel": True,
+        "user_info": True,
+        "card_info": True,
+        "event_query": False,
+    }
+    assert station["event_status"]["stream"] == "connecting"
+    assert not station["scanning"] and station["scan_error"] is None
+    assert "demo-secret" not in json.dumps(response)
+    hass.config_entries.async_update_entry(loaded_entry, data={**loaded_entry.data, "locks": []})
+    await hass.async_block_till_done()
+    response = await request(client, "stations/get", station_id=loaded_entry.entry_id)
+    assert response["result"]["integrated_locks"] == []
+    assert not response["result"]["lock_enabled"]
+
+
+async def test_unexpected_inspection_failure_never_reaches_ha_background_logs(
+    hass, loaded_entry, hass_ws_client, caplog
+):
+    from unittest.mock import AsyncMock, patch
+
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.hikvision_intercom.client.access.AccessClient.async_inventory",
+        AsyncMock(side_effect=RuntimeError("PRIVATE-INSPECTION-CREDENTIAL")),
+    ):
+        response = await request(client, "stations/rescan", station_id=loaded_entry.entry_id)
+        await hass.async_block_till_done()
+    assert response["error"]["code"] == "storage_or_internal_error"
+    assert "PRIVATE-INSPECTION-CREDENTIAL" not in caplog.text + json.dumps(response)
+
+
+async def test_unloaded_station_keeps_configured_lock_mapping_without_online_controls(
+    hass, loaded_entry, hass_ws_client
+):
+    assert await hass.config_entries.async_unload(loaded_entry.entry_id)
+    await hass.async_block_till_done()
+    client = await hass_ws_client(hass)
+    response = await request(client, "stations/get", station_id=loaded_entry.entry_id)
+    station = response["result"]
+    assert not station["online"] and not station["loaded"]
+    assert station["capabilities"] is None
+    assert not station["observations"]["user_info"]
+    assert station["integrated_locks"] == [{"physical_index": 1, "api_id": 1}]

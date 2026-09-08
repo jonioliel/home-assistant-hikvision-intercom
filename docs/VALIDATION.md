@@ -192,3 +192,16 @@ removal acknowledgement refresh, offline details and Hebrew mobile layout.
 The release workflow also gates publication on the real HA suite, HACS and Hassfest.
 HA regressions exercise successful status timing, failure/recovery and the admin overview's
 safe access projection. No live station writes or relay operations are needed for this update.
+
+## Read-only station inspection and fleet assignment — 0.8.0-alpha.1
+
+344 local protocol/access/event tests passed, including pending-write isolation during rescans,
+shared-read cancellation, station unload, post-write inventory freshness and safe failure logs.
+24 browser tests cover inspection controls, capability/connection distinctions, validated lock
+mapping, explicit bulk assignments, cancellation before saving and Hebrew mobile layout.
+Ruff, mypy (24 modules), TypeScript, bundle build and release metadata validation passed.
+
+New real HA tests exercise both service and WebSocket rescan entry points, pending-write
+isolation, exception privacy, capability projection, camera-only reload and unloaded station
+mapping. Those checks, reproducible frontend output, HACS and Hassfest gate publication.
+No physical station command or new ISAPI behavior is introduced by this update.
