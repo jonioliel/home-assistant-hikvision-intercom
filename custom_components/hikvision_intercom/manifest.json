@@ -7,6 +7,7 @@
   "config_flow": true,
   "dependencies": [
     "frontend",
+    "http",
     "stream"
   ],
   "documentation": "https://github.com/jonioliel/home-assistant-hikvision-intercom",

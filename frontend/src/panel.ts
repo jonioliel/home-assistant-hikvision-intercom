@@ -76,6 +76,11 @@ export class IntercomManagerPanel extends LitElement {
     this._unsubscribe?.();
     this._unsubscribe = undefined;
     this._connecting = false;
+    this.renderRoot
+      .querySelectorAll<HTMLInputElement>('input[type="password"]')
+      .forEach((input) => {
+        input.value = "";
+      });
     this._draft = undefined;
     this._dialog = "";
     this._data = undefined;
@@ -100,6 +105,7 @@ export class IntercomManagerPanel extends LitElement {
         }
         void this.connect();
       } else {
+        this._epoch++;
         this._unsubscribe?.();
         this._unsubscribe = undefined;
         this._draft = undefined;
@@ -1025,13 +1031,16 @@ export class IntercomManagerPanel extends LitElement {
   }
   private dialogView() {
     if (!this._dialog) return nothing;
+    const cameraStation = this._data?.stations.find(
+      (station) => station.id === this._cameraStation?.id,
+    );
     const title =
       this._dialog === "editor"
         ? this.t(this._draft?.id ? "edit_user" : "add_user")
         : this._dialog === "import"
           ? this.t("import_title")
           : this._dialog === "camera"
-            ? this._cameraStation?.name
+            ? cameraStation?.name
             : this.t("review");
     return html`<dialog
       class=${this._dialog === "camera" ? "camera-dialog" : ""}
@@ -1053,10 +1062,10 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : this._cameraStation ? this.camera(this._cameraStation, true) : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? this.camera(cameraStation, true) : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button class="primary" type="submit" form="user-form" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && this._cameraStation?.lock_enabled ? html`<button class="primary" ?disabled=${this._busy || !this._cameraStation.online} @click=${() => this.unlock(this._cameraStation!)}>${this.t("open_door")}</button>` : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button class="primary" type="submit" form="user-form" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? html`<button class="primary" ?disabled=${this._busy || !cameraStation.online} @click=${() => this.unlock(cameraStation!)}>${this.t("open_door")}</button>` : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

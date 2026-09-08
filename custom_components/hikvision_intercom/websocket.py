@@ -230,7 +230,9 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
         }
     )
 
-    @websocket_api.websocket_command({"type": f"{DOMAIN}/{command}"})
+    @websocket_api.websocket_command(
+        vol.All(vol.Schema({"type": f"{DOMAIN}/{command}"}, extra=vol.ALLOW_EXTRA))
+    )
     @websocket_api.require_admin
     @websocket_api.async_response
     async def handle(
@@ -269,12 +271,17 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
     return handle
 
 
-@websocket_api.websocket_command({"type": f"{DOMAIN}/subscribe"})
+@websocket_api.websocket_command(
+    vol.All(vol.Schema({"type": f"{DOMAIN}/subscribe"}, extra=vol.ALLOW_EXTRA))
+)
 @websocket_api.require_admin
 @callback
 def subscribe(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
+    if set(msg) - {"id", "type"}:
+        connection.send_error(msg["id"], "invalid_fields", "Invalid command fields")
+        return
     timer: asyncio.TimerHandle | None = None
     closed = False
 
