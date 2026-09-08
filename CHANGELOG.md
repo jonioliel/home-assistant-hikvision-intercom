@@ -4,11 +4,24 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.2.0-alpha.1] - 2026-09-08
+
 ### Added
-- Phase 1 core integration under validation: setup, reauth/reconfigure, confirmed single-relay mapping,
+- Phase 1 core integration: setup, reauth/reconfigure, confirmed single-relay mapping,
   shared polling, camera, online/ringing/call status, momentary lock and an admin release action.
 - English/Hebrew setup and entity translations, connection-safe diagnostics and lifecycle tests.
 - Dedicated Home Assistant 2026.9.1 / Python 3.14 CI tests in addition to protocol tests.
+- Settings validation, explicit physical mapping confirmation, offline backoff, snapshot caching,
+  stable station identity, credential-safe RTSP source and optimistic lock-state display.
+- Admin-only release action, translated errors and English/Hebrew setup/options.
+- HA unload/reload/shutdown cleanup and guards against stale targets or changed station identity.
+
+### Validation and scope
+- Requires Home Assistant 2026.9.1+. All publication checks run against the exact release commit.
+- Production-client read-only check passed on the target firmware without sending a release.
+- One active physical relay per station; camera-only mode is supported.
+- Central user/card/PIN management and the dedicated administrator panel follow in Phases 2–3.
+- Physical PIN change/removal, card CRUD, call sequence and nine-station commissioning remain open.
 
 ## [0.1.0-alpha.1] - 2026-09-08
 

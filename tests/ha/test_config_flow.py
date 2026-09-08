@@ -300,11 +300,13 @@ async def test_nonfinite_options_not_saved(hass):
     entry = MockConfigEntry(domain=DOMAIN, unique_id=PROFILE.unique_id, data=DATA)
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {"idle_interval": float("nan"), "active_interval": 0.75, "pulse_seconds": 5.0},
-    )
-    assert result["errors"] == {"base": "invalid_options"}
+    from homeassistant.data_entry_flow import InvalidData
+
+    with pytest.raises(InvalidData):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"idle_interval": float("nan"), "active_interval": 0.75, "pulse_seconds": 5.0},
+        )
     assert entry.options == {}
 
 

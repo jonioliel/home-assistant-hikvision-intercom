@@ -95,9 +95,6 @@
           "pulse_seconds": "משך תצוגת פתיחה (שניות)"
         }
       }
-    },
-    "error": {
-      "invalid_options": "ערכי התזמון אינם תקינים."
     }
   },
   "entity": {

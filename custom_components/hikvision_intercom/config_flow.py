@@ -13,7 +13,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
 from .client.client import ConnectionSettings, HikvisionClient, StationProfile, create_session
-from .configuration import PollOptions, managed_locks
+from .configuration import managed_locks
 from .const import DEFAULT_ACTIVE_INTERVAL, DEFAULT_IDLE_INTERVAL, DEFAULT_PULSE_SECONDS, DOMAIN
 from .exceptions import (
     HikvisionAuthError,
@@ -286,14 +286,8 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class HikvisionOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                PollOptions.from_mapping(user_input)
-            except HikvisionValidationError:
-                errors["base"] = "invalid_options"
-            else:
-                return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(title="", data=user_input)
         options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
@@ -311,5 +305,4 @@ class HikvisionOptionsFlow(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(float), vol.Range(min=1, max=30)),
                 }
             ),
-            errors=errors,
         )

@@ -4,9 +4,9 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Phase 1 core integration is under validation on the phase/1-core-integration branch.**
-The published `0.1.0-alpha.1` contains protocol reconnaissance tools only.
-Core setup and entities will be published as `0.2.0-alpha.1` after required CI passes.
+**Version `0.2.0-alpha.1` provides the Phase 1 core integration described below.**
+Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
+publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 The central Users/Cards/PIN administration panel follows in Phases 2–3.
 See [progress](docs/PROGRESS.md) and [validation](docs/VALIDATION.md).
 
@@ -33,7 +33,7 @@ this core release.
 ## HACS installation and updates
 
 Requires Home Assistant 2026.9.1 or newer and an existing HACS installation.
-Use a published core release (`0.2.0-alpha.1` or newer) when available:
+Use a published core release (`0.2.0-alpha.1` or newer):
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
