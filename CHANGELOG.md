@@ -4,6 +4,39 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.12.0-alpha.1] - 2026-09-08
+
+### Added
+- Reader-based card enrollment for an existing central user: choose a station/advertised reader,
+  explicitly start collection, inspect a masked result, then confirm before adding a normal card
+  and reconciling existing assignments. Fresh device identity/capability checks gate every start.
+- Manufacturer-documented CaptureCardInfo workflow. The commissioned firmware advertises support
+  and card length 1–32; its detailed capabilities do not advertise reader selection, so the
+  documented default-reader request omits readerID. Collection technology is never confused with
+  the access-control cardType enum. Unsupported or malformed capabilities/results fail closed.
+- Administrator-owned, ephemeral collection sessions: one per station, three across the fleet,
+  30-second collection request and two-minute session lifetime. Full card numbers remain in backend
+  memory until explicit storage; only masked previews reach the browser. Cancel, expiry and unload
+  discard the private result. Existing ownership, uniqueness, capacity and revision guards apply.
+- A separate collection I/O lane avoids holding the normal poll/snapshot/release lock while waiting
+  for a card. Requests are bounded and never automatically retried. Cancelling HA's request does
+  not claim to reset the firmware's reader mode or change its local access rules.
+- English/Hebrew mobile workflow with persistent footer actions, cancellation on close, stale-user
+  approval protection and discarded late responses. An uncertain save response directs the admin
+  to inspect Users/Sync, without claiming that nothing was saved or automatically retrying.
+
+### Validation and commissioning
+- Automated coverage includes actual HA WebSocket authorization/privacy, unsupported capabilities,
+  exact default/selected-reader requests, isolated normal I/O, lifecycle/expiry, duplicate approval,
+  concurrent edits, failed storage and Hebrew mobile behavior.
+- A live read-only check verified identity and both capability endpoints; no CaptureCardInfo
+  collection request, credential mutation or relay command was issued during development.
+  Physical collection and subsequent card acceptance/removal remain to be commissioned.
+- No storage migration or expansion to other device models. PIN modification, timed validity,
+  ringing/video and nine-station acceptance remain open. Optional Phase 6 now includes CSV,
+  basic reporting and a capability-gated enrollment implementation; mandatory acceptance remains
+  28 of 38 applicable items closed (73.7%), ten open (26.3%).
+
 ## [0.11.0-alpha.1] - 2026-09-08
 
 ### Added

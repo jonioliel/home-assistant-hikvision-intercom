@@ -187,3 +187,17 @@ event counts rather than visits. Downloads contain retained names/IDs and masked
 [Hebrew CSV preview](screenshots/csv-he-mobile.png) ·
 [Hebrew activity report](screenshots/report-he-mobile.png) ·
 [Deferred physical checks](DEFERRED_VALIDATION.md).
+
+
+## Reader-based card enrollment — 0.12.0-alpha.1
+
+In Users, **Read card from station** opens collection for an existing person. Choose a station,
+read its capabilities, start once and present one card when prompted. Only a masked result is
+shown. **Add card & sync** requires confirmation and the originally reviewed user revision.
+Closing cancels local collection; a lost connection is bounded by backend expiry. An uncertain
+save result must be checked in Users/Sync before another attempt.
+
+The verified firmware advertises collection support and card length 1–32, without reader selection;
+the default request omits readerID. Physical collection is still awaiting commissioning.
+[Workflow, limits and test procedure](CARD_ENROLLMENT.md) ·
+[Hebrew mobile preview](screenshots/reader-capture-he-mobile.png).

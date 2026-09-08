@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.11.0-alpha.1",
+  version: "0.12.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -142,6 +142,7 @@ if (query.has("empty")) {
   data.users = [];
   data.stations = [];
 }
+const captures = new Map();
 const callbacks = new Set();
 window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refresh" }));
 window.calls = [];
@@ -169,6 +170,44 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "cards/reader_capabilities") return { readers: [0], card_min: 1, card_max: 32 };
+    if (command === "cards/capture_start") {
+      const id = "synthetic-capture-" + captures.size;
+      captures.set(id, {
+        session_id: id,
+        state: "captured",
+        error: null,
+        station_id: message.station_id,
+        user_id: message.user_id,
+        revision: message.revision,
+        card: { masked_number: "•••• 7788", technology: "TypeA_M1", reader_id: null },
+      });
+      return { session_id: id, state: "preparing" };
+    }
+    if (command === "cards/capture_status") {
+      if (!captures.has(message.session_id)) throw { code: "capture_not_found" };
+      return structuredClone(captures.get(message.session_id));
+    }
+    if (command === "cards/capture_cancel") {
+      captures.delete(message.session_id);
+      return { cancelled: true };
+    }
+    if (command === "cards/capture_confirm") {
+      const captured = captures.get(message.session_id);
+      if (!captured) throw { code: "capture_not_found" };
+      const user = data.users.find((user) => user.id === captured.user_id);
+      if (user.revision !== captured.revision) throw { code: "revision_conflict" };
+      user.cards.push({
+        id: "captured-card",
+        masked_number: "•••• 7788",
+        label: message.label,
+        card_type: "normalCard",
+        enabled: true,
+      });
+      user.revision++;
+      captures.delete(message.session_id);
+      return structuredClone(user);
+    }
     if (command === "overview") return structuredClone(data);
     if (command === "sync/diagnostics")
       return {

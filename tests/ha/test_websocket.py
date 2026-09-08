@@ -2,6 +2,7 @@
 
 import json
 import logging
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -663,3 +664,144 @@ async def test_csv_failed_store_rejects_whole_batch(
     )
     assert result["error"]["code"] == "storage_write_failed"
     assert not manager.repository.users()
+
+
+async def test_reader_capture_real_ha_transport_keeps_number_private_until_explicit_save(
+    hass, loaded_entry, hass_ws_client, device_io, caplog
+):
+    from custom_components.hikvision_intercom.client.capture import (
+        CaptureCapabilities,
+        CapturedCard,
+    )
+
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.websocket_api.http.connection")
+    manager = get_manager(hass)
+    user = await manager.async_create({"display_name": "Collector target"}, sync_now=False)
+    client = await hass_ws_client(hass)
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
+            AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
+            AsyncMock(return_value=CapturedCard("000012347788", "TypeA_M1", None)),
+        ),
+    ):
+        cap = await request(client, "cards/reader_capabilities", station_id=loaded_entry.entry_id)
+        assert cap["success"] and cap["result"]["readers"] == [0]
+        result = await request(
+            client,
+            "cards/capture_start",
+            station_id=loaded_entry.entry_id,
+            user_id=user["id"],
+            revision=user["revision"],
+            reader_id=0,
+        )
+        assert result["success"]
+        key = result["result"]["session_id"]
+        await hass.async_block_till_done()
+        state = await request(client, "cards/capture_status", session_id=key)
+        assert state["result"]["state"] == "captured"
+        assert not manager.repository.get(user["id"]).cards
+        saved = await request(client, "cards/capture_confirm", session_id=key, label="Reader card")
+        assert saved["success"]
+        assert manager.repository.get(user["id"]).cards[0].card_no.value == "000012347788"
+        assert "000012347788" not in json.dumps([cap, result, state, saved]) + caplog.text
+        device_io["write_person"].assert_not_called()
+        device_io["unlock"].assert_not_called()
+        assert not manager.enrollment.sessions
+
+
+async def test_reader_capture_stale_revision_and_strict_fields(hass, loaded_entry, hass_ws_client):
+    from custom_components.hikvision_intercom.client.capture import (
+        CaptureCapabilities,
+        CapturedCard,
+    )
+
+    manager = get_manager(hass)
+    user = await manager.async_create({"display_name": "Revision target"}, sync_now=False)
+    client = await hass_ws_client(hass)
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
+            AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
+            AsyncMock(return_value=CapturedCard("000012347788", None, None)),
+        ),
+    ):
+        bad = await request(
+            client,
+            "cards/capture_start",
+            station_id=loaded_entry.entry_id,
+            user_id=user["id"],
+            revision=user["revision"],
+            reader_id=True,
+        )
+        assert bad["error"]["code"] == "invalid_fields" and not manager.enrollment.sessions
+        started = await request(
+            client,
+            "cards/capture_start",
+            station_id=loaded_entry.entry_id,
+            user_id=user["id"],
+            revision=user["revision"],
+            reader_id=0,
+        )
+        await hass.async_block_till_done()
+        await manager.async_update(
+            user["id"], {"display_name": "Edited"}, revision=user["revision"], sync_now=False
+        )
+        result = await request(
+            client, "cards/capture_confirm", session_id=started["result"]["session_id"], label=""
+        )
+        assert result["error"]["code"] == "revision_conflict"
+        assert not manager.repository.get(user["id"]).cards and not manager.enrollment.sessions
+
+
+async def test_reader_capture_cancel_and_unsupported_capabilities_are_safe(
+    hass, loaded_entry, hass_ws_client
+):
+    from custom_components.hikvision_intercom.client.capture import (
+        CaptureCapabilities,
+        CapturedCard,
+    )
+    from custom_components.hikvision_intercom.exceptions import HikvisionUnsupportedError
+
+    manager = get_manager(hass)
+    user = await manager.async_create({"display_name": "Cancelled target"}, sync_now=False)
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
+        AsyncMock(side_effect=HikvisionUnsupportedError("PRIVATE_DEVICE_MESSAGE")),
+    ):
+        result = await request(
+            client, "cards/reader_capabilities", station_id=loaded_entry.entry_id
+        )
+        assert result["error"]["code"] == "capture_unsupported" and "PRIVATE" not in str(result)
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
+            AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
+            AsyncMock(return_value=CapturedCard("000012347788", None, None)),
+        ),
+    ):
+        started = await request(
+            client,
+            "cards/capture_start",
+            station_id=loaded_entry.entry_id,
+            user_id=user["id"],
+            revision=user["revision"],
+            reader_id=0,
+        )
+        await hass.async_block_till_done()
+        key = started["result"]["session_id"]
+        assert (await request(client, "cards/capture_cancel", session_id=key))["success"]
+        assert (await request(client, "cards/capture_status", session_id=key))["error"][
+            "code"
+        ] == "capture_not_found"
+        assert not manager.repository.get(user["id"]).cards

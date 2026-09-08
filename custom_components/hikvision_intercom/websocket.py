@@ -38,6 +38,11 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "cards/reader_capabilities": {"station_id": str},
+    "cards/capture_start": {"station_id": str, "user_id": str, "revision": int, "reader_id": int},
+    "cards/capture_status": {"session_id": str},
+    "cards/capture_cancel": {"session_id": str},
+    "cards/capture_confirm": {"session_id": str, "label": str},
     "overview": {},
     "events/list": {"filters": dict},
     "users/list": {},
@@ -151,8 +156,26 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
     return data
 
 
-async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> Any:
+async def _dispatch(
+    hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
+) -> Any:
     manager = get_manager(hass)
+    if command == "cards/reader_capabilities":
+        return await manager.enrollment.capabilities(msg["station_id"])
+    if command.startswith("cards/capture_"):
+        if not actor:
+            raise AccessError("unauthorized")
+        enrollment = manager.enrollment
+        if command == "cards/capture_start":
+            return enrollment.start(
+                msg["station_id"], msg["user_id"], msg["revision"], msg["reader_id"], actor
+            )
+        if command == "cards/capture_status":
+            return enrollment.status(msg["session_id"], actor)
+        if command == "cards/capture_cancel":
+            await enrollment.cancel(msg["session_id"], actor)
+            return {"cancelled": True}
+        return await enrollment.confirm(msg["session_id"], actor, msg["label"])
     if command == "sync/diagnostics":
         return {"integration_version": VERSION, **manager.sync_diagnostics()}
     if command in {"events/report", "events/export"}:
@@ -339,7 +362,7 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
             admitted = limiter.acquire(connection.user.id, hass.loop.time())
             try:
-                result = await _dispatch(hass, command, msg)
+                result = await _dispatch(hass, command, msg, actor=connection.user.id)
             finally:
                 limiter.release(admitted)
         except vol.Invalid:

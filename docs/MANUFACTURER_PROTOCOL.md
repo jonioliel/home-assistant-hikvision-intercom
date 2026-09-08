@@ -126,3 +126,16 @@ A separate timed UTC sample was accepted but returned offset-bearing times with 
 This contradiction does not prove how physical expiry is enforced. Timed readback fails with
 `validity_timezone_mismatch`; no timezone conversion or success is inferred. A supervised
 validity-boundary test is required before claiming reliable timed access on this firmware.
+
+
+## Reader-based card collection (0.12.0-alpha.1)
+
+Main-document page 87 supplies the explicit support gate and default CaptureCardInfo workflow;
+page 481 supplies its capability and response schemas. A new read-only firmware check confirmed
+isSupportCaptureCardInfo=true and CardInfoCap.cardNo bounds1–32. Reader ID/technology capability
+fields were absent; the documented default route therefore omits readerID rather than assuming1.
+No collection request or physical operation was issued for this check.
+
+The implementation uses the dedicated collection result, not ordinary access events. Collected
+physical technology is not the normalCard access enum. Full identifiers stay server-side until
+explicit user-revision-bound approval. [Contract and commissioning plan](CARD_ENROLLMENT.md).

@@ -167,12 +167,15 @@ class HikvisionClient:
         content: bytes | None = None,
         image: bool = False,
         content_type: str = "application/xml",
+        deadline: int = 10,
     ) -> bytes:
         """Private fixed-path primitive, bounded including queue and digest exchange."""
+        if type(deadline) is not int or not 1 <= deadline <= 30:
+            raise HikvisionValidationError("Invalid request deadline")
         started = time.monotonic()
         failed = True
         try:
-            async with asyncio.timeout(10), self._io_lock:
+            async with asyncio.timeout(deadline), self._io_lock:
                 headers = {"Accept-Encoding": "identity"}
                 if content is not None:
                     headers["Content-Type"] = content_type
@@ -182,7 +185,7 @@ class HikvisionClient:
                     content=content,
                     auth=httpx.DigestAuth(self.settings.username, self.settings.password),
                     headers=headers,
-                    timeout=httpx.Timeout(6, connect=4),
+                    timeout=httpx.Timeout(6 if deadline == 10 else deadline, connect=4),
                     follow_redirects=False,
                 ) as response:
                     body = bytearray()

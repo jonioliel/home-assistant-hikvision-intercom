@@ -1,4 +1,36 @@
 const en = {
+  capture_card: "Read card from station",
+  capture_reader: "Reader",
+  capture_default_reader: "Station default reader",
+  capture_hint:
+    "Choose a station, start collection, then present one card when prompted. Collection alone does not add the card to a user. An already authorized card may still operate the lock under the station's existing rules.",
+  capture_start: "Start card collection",
+  capture_save: "Add card & sync",
+  capture_again: "Collect another card",
+  capture_confirm_prompt:
+    "Add the collected card to {name} and synchronize their existing assignments?",
+  capture_targets: "Existing station assignments",
+  capture_limits:
+    "One collection per station. The request waits up to 30 seconds; the private preview expires after two minutes. Closing stops HA collection; the device's reader timeout is firmware-controlled. Physical collection still needs commissioning.",
+  capture_revision_changed:
+    "This user changed or was deleted. Close this dialog and start a new collection from the current user record.",
+  capture_state_choose: "Ready to start after capabilities are read.",
+  capture_state_preparing: "Checking current station capabilities…",
+  capture_state_waiting: "Present one card to the selected station now.",
+  capture_state_captured: "Card collected. Review and confirm before saving.",
+  capture_state_unconfirmed:
+    "The save result is unconfirmed. Close this dialog and inspect the user and Sync before starting again.",
+  capture_state_error: "Collection was not saved. Start a new collection to retry.",
+  capture_unsupported: "This station does not advertise supported card collection.",
+  capture_reader_invalid: "The selected reader is no longer advertised. Read capabilities again.",
+  capture_not_found:
+    "This collection expired or is unavailable to this administrator. Start again.",
+  capture_not_ready: "No collected card is ready for approval.",
+  capture_station_busy: "This station already has a collection awaiting completion or approval.",
+  capture_limit: "Three collections are already active. Complete or cancel one first.",
+  capture_timeout: "No collection response arrived before the deadline. No card was saved.",
+  capture_failed: "Collection failed or returned unsupported data. No card was saved.",
+  capture_applying: "This card is being saved. Wait for the result before another action.",
   csv_review_stale:
     "Central data or the file changed after preview. Preview the batch again before applying.",
   csv_import: "Import CSV",
@@ -394,6 +426,35 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  capture_card: "קריאת כרטיס מהאינטרקום",
+  capture_reader: "קורא",
+  capture_default_reader: "קורא ברירת המחדל בתחנה",
+  capture_hint:
+    "בחר אינטרקום, התחל קריאה והצמד כרטיס אחד כאשר תופיע ההנחיה. הקריאה לבדה אינה מוסיפה כרטיס למשתמש. כרטיס מורשה קיים עדיין עשוי להפעיל את המנעול לפי הגדרות התחנה.",
+  capture_start: "התחלת קריאת כרטיס",
+  capture_save: "הוספת הכרטיס וסנכרון",
+  capture_again: "קריאת כרטיס נוסף",
+  capture_confirm_prompt: "להוסיף את הכרטיס שנקרא למשתמש {name} ולסנכרן את השיוכים הקיימים שלו?",
+  capture_targets: "שיוכים קיימים לאינטרקומים",
+  capture_limits:
+    "קריאה אחת בכל תחנה. הבקשה ממתינה עד 30 שניות; התצוגה הפרטית פגה לאחר שתי דקות. סגירה מפסיקה את הקריאה ב־HA; זמן ההמתנה בקורא נקבע בקושחה. קריאה פיזית עדיין דורשת אימות.",
+  capture_revision_changed: "המשתמש השתנה או נמחק. סגור את החלון והתחל קריאה חדשה מהרשומה העדכנית.",
+  capture_state_choose: "אפשר להתחיל לאחר בדיקת היכולות.",
+  capture_state_preparing: "נבדקות יכולות האינטרקום העדכניות…",
+  capture_state_waiting: "הצמד כעת כרטיס אחד לאינטרקום שנבחר.",
+  capture_state_captured: "הכרטיס נקרא. יש לבדוק ולאשר לפני שמירה.",
+  capture_state_unconfirmed:
+    "תוצאת השמירה אינה מאומתת. סגור את החלון ובדוק את המשתמש ואת הסנכרון לפני ניסיון נוסף.",
+  capture_state_error: "הקריאה לא נשמרה. לניסיון נוסף יש להתחיל קריאה חדשה.",
+  capture_unsupported: "האינטרקום אינו מפרסם יכולת נתמכת לקריאת כרטיס.",
+  capture_reader_invalid: "הקורא שנבחר אינו מפורסם עוד ביכולות. יש לקרוא אותן מחדש.",
+  capture_not_found: "הקריאה פגה או אינה זמינה למנהל הנוכחי. יש להתחיל מחדש.",
+  capture_not_ready: "אין כרטיס שנקרא וממתין לאישור.",
+  capture_station_busy: "בתחנה זו כבר קיימת קריאה שממתינה לסיום או לאישור.",
+  capture_limit: "שלוש קריאות כבר פעילות. יש לסיים או לבטל אחת מהן.",
+  capture_timeout: "לא התקבלה תשובה לפני תום זמן ההמתנה. לא נשמר כרטיס.",
+  capture_failed: "הקריאה נכשלה או החזירה נתונים שאינם נתמכים. לא נשמר כרטיס.",
+  capture_applying: "הכרטיס נמצא בשמירה. יש להמתין לתוצאה לפני פעולה נוספת.",
   csv_review_stale:
     "הנתונים המרכזיים או הקובץ השתנו מאז התצוגה המקדימה. יש להציג שוב את האצווה לפני אישור.",
   csv_import: "ייבוא CSV",

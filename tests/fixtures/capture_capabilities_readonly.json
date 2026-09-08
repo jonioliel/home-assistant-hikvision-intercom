@@ -1,0 +1,16 @@
+{
+  "purpose": "read-only card collection capability check",
+  "capture_requested": false,
+  "model": "DS-KV6124-E1",
+  "firmware": "V3.9.0 build 260115",
+  "capture_flags": [
+    "true"
+  ],
+  "capture_capabilities": {
+    "cardNo": {
+      "@min": 1,
+      "@max": 32
+    }
+  },
+  "observed_on": "2026-09-08"
+}

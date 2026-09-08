@@ -1280,3 +1280,177 @@ test("Hebrew mobile CSV preview and activity reports fit the screen", async ({ p
   ).toBeTruthy();
   await page.screenshot({ path: "test-results/report-he-mobile.png", fullPage: true });
 });
+
+async function openReaderCapture(page) {
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Read card from station", exact: true }).first().click();
+  return page.getByRole("dialog");
+}
+
+test("reader capture requires explicit approval and never receives a full card number", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const dialog = await openReaderCapture(page);
+  await expect(dialog.getByLabel("Reader", { exact: true })).toHaveValue("0");
+  await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
+  await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type.endsWith("capture_confirm"))),
+  ).toBeFalsy();
+  await dialog.getByLabel("Card label", { exact: true }).fill("Reader card");
+  page.once("dialog", (prompt) => prompt.dismiss());
+  await dialog.getByRole("button", { name: "Add card & sync", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type.endsWith("capture_confirm"))),
+  ).toBeFalsy();
+  page.once("dialog", (prompt) => prompt.accept());
+  await dialog.getByRole("button", { name: "Add card & sync", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const writes = await page.evaluate(() =>
+    window.calls.filter((c) => c.type.endsWith("capture_confirm")),
+  );
+  expect(writes).toHaveLength(1);
+  expect(writes[0]).toMatchObject({ label: "Reader card", session_id: "synthetic-capture-0" });
+  expect(JSON.stringify(writes)).not.toContain("card_no");
+});
+
+test("unsupported reader capability disables collection without starting it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    const call = panel.hass.callWS.bind(panel.hass);
+    panel.hass.callWS = (message) =>
+      message.type.endsWith("reader_capabilities")
+        ? Promise.reject({ code: "capture_unsupported" })
+        : call(message);
+  });
+  const dialog = await openReaderCapture(page);
+  await expect(dialog.getByRole("alert")).toContainText("does not advertise");
+  await expect(
+    dialog.getByRole("button", { name: "Start card collection", exact: true }),
+  ).toBeDisabled();
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type.endsWith("capture_start"))),
+  ).toBeFalsy();
+});
+
+test("closing a reader capture cancels waiting and ignores late status", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    const call = panel.hass.callWS.bind(panel.hass);
+    panel.hass.callWS = (message) =>
+      message.type.endsWith("capture_status")
+        ? new Promise((resolve) => {
+            window.captureResolve = resolve;
+          })
+        : call(message);
+  });
+  const dialog = await openReaderCapture(page);
+  await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => !!window.captureResolve)).toBeTruthy();
+  await dialog.getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.calls.filter((c) => c.type.endsWith("capture_cancel")).length),
+    )
+    .toBe(1);
+  await page.evaluate(() =>
+    window.captureResolve({ state: "captured", card: { masked_number: "•••• 7788" }, error: null }),
+  );
+  await expect(page.getByText("•••• 7788", { exact: true })).toHaveCount(0);
+});
+
+test("late capture start after dialog close is cancelled", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    const call = panel.hass.callWS.bind(panel.hass);
+    panel.hass.callWS = (message) =>
+      message.type.endsWith("capture_start")
+        ? new Promise((resolve) => {
+            window.captureResolve = resolve;
+          })
+        : call(message);
+  });
+  const dialog = await openReaderCapture(page);
+  await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => !!window.captureResolve)).toBeTruthy();
+  await dialog.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.evaluate(() => window.captureResolve({ session_id: "late-session" }));
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.calls.filter(
+            (c) => c.type.endsWith("capture_cancel") && c.session_id === "late-session",
+          ).length,
+      ),
+    )
+    .toBe(1);
+});
+
+test("concurrent user change prevents captured-card approval", async ({ page }) => {
+  await page.goto("/");
+  const dialog = await openReaderCapture(page);
+  await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
+  await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.demoData.users[0].revision++;
+    window.demoNotify();
+  });
+  await expect(dialog.getByRole("alert")).toContainText("changed or was deleted");
+  await expect(dialog.getByRole("button", { name: "Add card & sync", exact: true })).toBeDisabled();
+});
+
+test("Hebrew mobile reader capture displays masked preview and confirmation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "משתמשים", exact: true }).click();
+  await page.getByRole("button", { name: "קריאת כרטיס מהאינטרקום", exact: true }).last().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "התחלת קריאת כרטיס", exact: true }).click();
+  await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "הוספת הכרטיס וסנכרון", exact: true }),
+  ).toBeVisible();
+  expect(
+    await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBeTruthy();
+  await page.screenshot({ path: "test-results/reader-capture-he-mobile.png", fullPage: true });
+});
+
+test("reader approval with an uncertain response never claims nothing was saved or retries", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const dialog = await openReaderCapture(page);
+  await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
+  await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    const call = panel.hass.callWS.bind(panel.hass);
+    panel.hass.callWS = async (message) => {
+      const result = await call(message);
+      if (message.type.endsWith("capture_confirm")) throw { code: "connection_lost" };
+      return result;
+    };
+  });
+  page.once("dialog", (prompt) => prompt.accept());
+  await dialog.getByRole("button", { name: "Add card & sync", exact: true }).click();
+  await expect(dialog.getByText(/save result is unconfirmed/)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Add card & sync", exact: true })).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("capture_confirm")).length,
+    ),
+  ).toBe(1);
+  expect(
+    await page.evaluate(() =>
+      window.demoData.users[0].cards.some((card) => card.id === "captured-card"),
+    ),
+  ).toBeTruthy();
+});

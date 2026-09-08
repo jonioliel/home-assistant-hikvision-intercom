@@ -437,6 +437,21 @@ export const styles = css`
     padding: 0;
     box-shadow: 0 24px 80px #0005;
   }
+  .capture-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .capture-dialog .dialog-body {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+  .capture-dialog .dialog-head,
+  .capture-dialog .dialog-foot {
+    flex-shrink: 0;
+  }
+  .capture-dialog .dialog-foot {
+    flex-wrap: wrap;
+  }
   dialog::backdrop {
     background: #102e3a88;
     backdrop-filter: blur(3px);

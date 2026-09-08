@@ -10,7 +10,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional extensions | CSV bulk import/export and basic activity reporting implemented in 0.11 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
+| 6 — Optional extensions | CSV/reporting in 0.11; capability-gated reader enrollment in 0.12 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -180,3 +180,13 @@ CSV/report code `442d798eb16f5a4b85b0682be416e2454ecdf833` passed all branch CI:
 TypeScript and reproducible bundle. Checks:34268116415; HACS34268116401;
 Hassfest34268116403. The owner-authorized main update and exact-commit release gate
 advance `0.11.0-alpha.1`. No physical acceptance item changed status.
+
+
+0.12.0-alpha.1 implements reader-based card enrollment using manufacturer pages87/481.
+Fresh read-only firmware evidence confirms support and card length1–32, with the default
+reader route (no advertised reader selection). Existing-user selection, masked review,
+explicit approval, expiry/cancellation, administrator ownership and revision/conflict guards
+are implemented. The separate collection lane leaves normal station I/O independent.
+[Operator/protocol guide](CARD_ENROLLMENT.md) and HW-ENROLL preserve the physical test plan.
+No collection request or access/relay mutation was performed during development. Mandatory
+acceptance remains28/38; this optional implementation does not close physical card acceptance.

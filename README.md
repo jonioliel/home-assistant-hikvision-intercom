@@ -54,7 +54,9 @@ See [backend behavior and limits](docs/ACCESS_BACKEND.md).
 
 **Overview** shows camera previews, call status, last access, offline contact time, pending users
 and only configured lock controls. Open a camera for HA-proxied live video. **Users** provides write-only PIN editing, masked cards, station
-assignments (including explicit select-all/clear controls) and validity periods. **Intercoms** displays
+assignments (including explicit select-all/clear controls) and validity periods. Existing users also
+support [reader-based card enrollment](docs/CARD_ENROLLMENT.md), gated by fresh station capabilities,
+with a masked preview and explicit approval before saving. **Intercoms** displays
 observed capabilities, configured lock mapping, inventory and live-event/history connection health.
 Its access rescan reads capabilities and inventory; **Sync now** requests pending reconciliation.
 **Sync** shows per-user/per-station revisions, conflicts and pending removals. Its read-only review

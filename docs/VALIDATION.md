@@ -303,3 +303,31 @@ bundle, HACS and Hassfest all pass. ConfigFlow remains at 100% line coverage.
 HA job 102202548749 completed 134 tests; browser job 102202548790 completed 51 tests.
 These tests use mock station I/O. The exact main code commit is submitted to the gated
 release workflow for `v0.11.0-alpha.1`; the validation documentation commit changes no runtime.
+
+
+## Reader-based card enrollment — 0.12.0-alpha.1
+
+Local protocol/access validation: **425 passed**, including 31 new collection/session cases.
+Ruff formatting/lint and strict mypy on 29 modules pass. New actual Home Assistant transport
+cases cover collection capabilities/start/status/approval/cancellation, strict reader fields,
+revision conflicts and private WebSocket debug logs. All five commands also inherit the
+parameterized administrator-denial regression. Linux CI results are recorded below when complete.
+
+Client tests verify explicit capability gates, default-reader omission, selected-reader checks,
+malformed result rejection and normal station I/O completing while collection is pending.
+Session tests cover private previews, admin ownership, expiry, cancellation/unload, capacity,
+credential conflicts, stale revisions, failed storage and noninterruptible duplicate-safe saves.
+Browser tests cover explicit confirmation, unsupported devices, late start/status cancellation,
+concurrent user edits, uncertain save replies and Hebrew mobile footer controls.
+
+A real read-only check retrieved device identity, AccessControl capabilities and CaptureCardInfo
+capabilities. It confirmed DS-KV6124-E1 V3.9.0 build260115, support=true and card length1–32;
+reader-selection capability was absent. No actual collection, access-record mutation or relay
+command was issued. The sanitized response projection is stored in
+[the fixture](../tests/fixtures/capture_capabilities_readonly.json).
+[HW-ENROLL](CARD_ENROLLMENT.md) remains a deferred supervised test, as do prior physical gates.
+
+Local frontend validation: **58 browser tests passed**, TypeScript and production build passed.
+The Hebrew mobile screenshot was inspected after moving approval/retry controls into a wrapping
+footer. An uncertain-save regression verifies that a stored card is not falsely described as
+unsaved after its acknowledgement is lost.

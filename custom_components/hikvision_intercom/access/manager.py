@@ -28,6 +28,7 @@ from .csv_transfer import (
 )
 from .diagnostics import SAFE_ERRORS, SyncDiagnostics, error_code
 from .engine import SyncEngine
+from .enrollment import CardEnrollment
 from .models import (
     SYNC_STATES,
     AccessError,
@@ -83,6 +84,7 @@ class AccessManager:
             lambda coro, name: asyncio.create_task(coro, name=name)
         )
         self._closed = False
+        self.enrollment = CardEnrollment(self)
 
     def register(self, station_id: str, name: str, lock_enabled: bool) -> None:
         if station_id in self.stations:
@@ -102,6 +104,7 @@ class AccessManager:
     async def async_detach(self, station_id: str) -> None:
         station = self._station(station_id)
         station.driver = None
+        await self.enrollment.close_station(station_id)
         if station.timer:
             station.timer.cancel()
             station.timer = None

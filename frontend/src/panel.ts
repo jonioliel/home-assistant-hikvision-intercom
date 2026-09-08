@@ -34,6 +34,18 @@ interface ReleaseState {
   code: string;
   requestedAt: string;
 }
+interface ReaderCapture {
+  user: Person;
+  station: string;
+  reader: number;
+  readers?: number[];
+  loading: boolean;
+  state: string;
+  session_id?: string;
+  card?: { masked_number: string; technology: string | null; reader_id: number | null } | null;
+  error?: string | null;
+  label: string;
+}
 const releaseErrors = new Set([
   "release_in_progress",
   "release_unconfirmed",
@@ -64,6 +76,7 @@ export class IntercomManagerPanel extends LitElement {
     _csvPreview: { state: true },
     _csvName: { state: true },
     _csvMode: { state: true },
+    _capture: { state: true },
   };
   hass?: Hass;
   narrow = false;
@@ -83,6 +96,9 @@ export class IntercomManagerPanel extends LitElement {
   private _csvContent = "";
   private _csvName = "";
   private _csvMode = "create";
+  private _capture?: ReaderCapture;
+  private _captureEpoch = 0;
+  private _captureTimer?: ReturnType<typeof setTimeout>;
   private _reviewUser = "";
   private _reviewStation = "";
   private _cameraStation?: Station;
@@ -117,6 +133,7 @@ export class IntercomManagerPanel extends LitElement {
       });
     this._draft = undefined;
     this.clearCsv();
+    this.clearCapture();
     this._dialog = "";
     this._data = undefined;
     this._releases = new Map();
@@ -147,6 +164,7 @@ export class IntercomManagerPanel extends LitElement {
         this._connecting = false;
         this._draft = undefined;
         this.clearCsv();
+        this.clearCapture();
         this._data = undefined;
         this._releases = new Map();
         this._dialog = "";
@@ -232,6 +250,7 @@ export class IntercomManagerPanel extends LitElement {
     if (this._busy) return;
     this._draft = undefined;
     this.clearCsv();
+    this.clearCapture();
     this._review = undefined;
     this._importRows = [];
     this._cameraStation = undefined;
@@ -412,6 +431,205 @@ export class IntercomManagerPanel extends LitElement {
       "deleted",
     );
   }
+  private clearCapture() {
+    this._captureEpoch++;
+    clearTimeout(this._captureTimer);
+    const id = this._capture?.session_id;
+    this._capture = undefined;
+    if (id) void this.api("cards/capture_cancel", { session_id: id }).catch(() => {});
+  }
+  private openCapture(user: Person) {
+    this.clearCapture();
+    this._error = "";
+    this._dialog = "capture";
+    const station = this._data?.stations.find((s) => s.lock_enabled && s.online)?.id ?? "";
+    this._capture = { user, station, reader: 0, loading: false, state: "choose", label: "" };
+    if (station) void this.readCaptureCapabilities(station);
+  }
+  private async readCaptureCapabilities(station: string) {
+    const old = this._capture;
+    if (!old) return;
+    this.clearCapture();
+    this._capture = {
+      user: old.user,
+      station,
+      reader: 0,
+      loading: true,
+      state: "choose",
+      label: old.label,
+    };
+    const epoch = this._captureEpoch;
+    try {
+      const caps = await this.api<{ readers: number[] }>("cards/reader_capabilities", {
+        station_id: station,
+      });
+      if (epoch !== this._captureEpoch || !this._capture) return;
+      this._capture = { ...this._capture, readers: caps.readers, reader: caps.readers[0] ?? 0 };
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    } finally {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = { ...this._capture, loading: false };
+    }
+  }
+  private captureStale() {
+    return (
+      !this._capture ||
+      this._data?.users.find((user) => user.id === this._capture?.user.id)?.revision !==
+        this._capture.user.revision
+    );
+  }
+  private async startCapture() {
+    const capture = this._capture;
+    if (!capture || this.captureStale() || capture.loading || !capture.readers?.length) return;
+    const epoch = this._captureEpoch;
+    const hass = this.hass;
+    this._capture = { ...capture, loading: true, state: "preparing", error: null };
+    try {
+      const result = await this.api<{ session_id: string }>("cards/capture_start", {
+        station_id: capture.station,
+        user_id: capture.user.id,
+        revision: capture.user.revision,
+        reader_id: capture.reader,
+      });
+      if (epoch !== this._captureEpoch || !this._capture) {
+        void hass
+          ?.callWS({
+            type: "hikvision_intercom/cards/capture_cancel",
+            session_id: result.session_id,
+          })
+          .catch(() => {});
+        return;
+      }
+      this._capture = { ...this._capture, session_id: result.session_id, loading: false };
+      void this.pollCapture(epoch);
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          loading: false,
+          state: "error",
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    }
+  }
+  private async pollCapture(epoch: number) {
+    const id = this._capture?.session_id;
+    if (!id || epoch !== this._captureEpoch) return;
+    try {
+      const result = await this.api<{
+        state: string;
+        card: ReaderCapture["card"];
+        error: string | null;
+      }>("cards/capture_status", { session_id: id });
+      if (epoch !== this._captureEpoch || !this._capture) return;
+      this._capture = {
+        ...this._capture,
+        state: result.state,
+        card: result.card,
+        error: result.error,
+      };
+      if (["preparing", "waiting"].includes(result.state))
+        this._captureTimer = setTimeout(() => void this.pollCapture(epoch), 1000);
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          state: "error",
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    }
+  }
+  private async confirmCapture() {
+    const capture = this._capture;
+    if (!capture?.session_id || capture.state !== "captured" || this.captureStale()) return;
+    if (!confirm(this.t("capture_confirm_prompt").replace("{name}", capture.user.display_name)))
+      return;
+    const epoch = this._captureEpoch;
+    const success = await this.run(
+      () =>
+        this.api("cards/capture_confirm", { session_id: capture.session_id, label: capture.label }),
+      "saved",
+    );
+    if (epoch !== this._captureEpoch) return;
+    if (success) this.close();
+    else if (this._capture) this._capture = { ...this._capture, state: "unconfirmed", card: null };
+  }
+  private captureBody() {
+    const capture = this._capture;
+    if (!capture) return nothing;
+    const locked = capture.loading || capture.state !== "choose";
+    return html`<p>
+        <strong>${capture.user.display_name}</strong> · <bdi>${capture.user.employee_no}</bdi>
+      </p>
+      <p class="field-note">${this.t("capture_hint")}</p>
+      <div class="form-grid">
+        <label
+          >${this.t("station")}<select
+            ?disabled=${locked}
+            .value=${capture.station}
+            @change=${(event: Event) => this.readCaptureCapabilities(value(event))}
+          >
+            <option value="" disabled>${this.t("select_station")}</option>
+            ${(this._data?.stations ?? []).filter((s) => s.lock_enabled && s.online).map((s) => html`<option value=${s.id}>${s.name}</option>`)}
+          </select></label
+        >
+        <label
+          >${this.t("capture_reader")}<select
+            aria-label=${this.t("capture_reader")}
+            ?disabled=${locked || !capture.readers?.length}
+            .value=${String(capture.reader)}
+            @change=${(event: Event) => {
+              if (this._capture) this._capture = { ...this._capture, reader: Number(value(event)) };
+            }}
+          >
+            ${(capture.readers ?? []).map((id) => html`<option value=${id}>${id === 0 ? this.t("capture_default_reader") : id}</option>`)}
+          </select></label
+        >
+      </div>
+      ${capture.error ? html`<p class="notice error" role="alert">${this.t(capture.error)}</p>` : nothing}
+      ${this.captureStale() ? html`<p class="notice error" role="alert">${this.t("capture_revision_changed")}</p>` : nothing}
+      <p role="status">
+        ${capture.loading && capture.state === "choose" ? this.t("loading") : this.t("capture_state_" + capture.state)}
+      </p>
+      ${
+        capture.card
+          ? html`<div class="notice">
+                <bdi>${capture.card.masked_number}</bdi
+                >${capture.card.technology ? html`<span> · <bdi>${capture.card.technology}</bdi></span>` : nothing}
+              </div>
+              <label
+                >${this.t("card_label")}<input
+                  maxlength="64"
+                  .value=${capture.label}
+                  @input=${(event: Event) => {
+                    if (this._capture) this._capture.label = value(event);
+                  }}
+              /></label>
+              <p class="field-note">
+                ${this.t("capture_targets")}:
+                ${
+                  Object.keys(capture.user.assignments)
+                    .map((id) => this.stationName(id))
+                    .join(", ") || this.t("csv_no_stations")
+                }
+              </p>`
+          : nothing
+      }
+      <p class="field-note">${this.t("capture_limits")}</p>`;
+  }
+  private captureFooter() {
+    const capture = this._capture;
+    if (!capture) return nothing;
+    return html` ${capture.state === "choose" ? html`<button class="primary" ?disabled=${capture.loading || !capture.readers?.length || this.captureStale()} @click=${() => this.startCapture()}>${this.t("capture_start")}</button>` : nothing}
+      ${capture.state === "captured" ? html`<button class="primary" ?disabled=${this._busy || this.captureStale()} @click=${() => this.confirmCapture()}>${this.t("capture_save")}</button>` : nothing}
+      ${["error", "captured"].includes(capture.state) ? html`<button ?disabled=${this._busy} @click=${() => this.readCaptureCapabilities(capture.station)}>${this.t("capture_again")}</button>` : nothing}
+      <button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`;
+  }
   private clearCsv() {
     this._csvContent = "";
     this._csvPreview = undefined;
@@ -420,6 +638,7 @@ export class IntercomManagerPanel extends LitElement {
   }
   private openCsv() {
     this.clearCsv();
+    this.clearCapture();
     this._error = "";
     this._dialog = "csv";
   }
@@ -751,8 +970,9 @@ export class IntercomManagerPanel extends LitElement {
     ></hikvision-intercom-camera>`;
   }
   private userActions(user: Person) {
-    return html`<button @click=${() => this.edit(user)} ?disabled=${this._busy}>
-        ${this.t("edit")}</button
+    return html`<button @click=${() => this.openCapture(user)} ?disabled=${this._busy}>
+        ${this.t("capture_card")}</button
+      ><button @click=${() => this.edit(user)} ?disabled=${this._busy}>${this.t("edit")}</button
       ><button
         @click=${() => this.run(() => this.api("users/set_active", { user_id: user.id, revision: user.revision, active: !user.active }), "saved")}
         ?disabled=${this._busy}
@@ -1611,17 +1831,19 @@ export class IntercomManagerPanel extends LitElement {
       (station) => station.id === this._cameraStation?.id,
     );
     const title =
-      this._dialog === "editor"
-        ? this.t(this._draft?.id ? "edit_user" : "add_user")
-        : this._dialog === "csv"
-          ? this.t("csv_import")
-          : this._dialog === "import"
-            ? this.t("import_title")
-            : this._dialog === "camera"
-              ? cameraStation?.name
-              : this.t("review");
+      this._dialog === "capture"
+        ? this.t("capture_card")
+        : this._dialog === "editor"
+          ? this.t(this._draft?.id ? "edit_user" : "add_user")
+          : this._dialog === "csv"
+            ? this.t("csv_import")
+            : this._dialog === "import"
+              ? this.t("import_title")
+              : this._dialog === "camera"
+                ? cameraStation?.name
+                : this.t("review");
     return html`<dialog
-      class=${this._dialog === "camera" ? "camera-dialog" : ""}
+      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : ""}
       aria-label=${title ?? ""}
       @cancel=${(event: Event) => {
         event.preventDefault();
@@ -1640,10 +1862,10 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }
