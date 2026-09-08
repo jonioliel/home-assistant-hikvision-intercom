@@ -154,3 +154,11 @@ cycles across nine simulated stations. Deletion with one offline station retains
 The real single-station concurrent read check made 31 requests (28 status + 3 snapshot) and
 received 50 stream messages in 60 seconds. All requests succeeded; measured p95 was 500 ms.
 The evidence contains counts and timing only. This does not replace sustained nine-station testing.
+
+Final software commit `14e62c8`: 328 protocol tests, 104 actual HA tests, 14 Chromium tests,
+HACS and Hassfest all passed. ConfigFlow and config migration have 100% line coverage.
+Exact [Python/HA/frontend run](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34226155490),
+[HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34226155305),
+[Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34226155303).
+The release metadata test now also checks the real repository's versioned changelog entry.
+Code-only simulator checks do not close the physical/installation gates in HARDENING.md.

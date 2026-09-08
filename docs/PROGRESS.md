@@ -9,7 +9,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 2 — Access backend | Software complete; all CI passed; publication awaiting approval | Verified credential and permission behavior |
 | 3 — Admin panel | Software complete; all CI passed; publication awaiting approval | All CI; publication awaiting approval |
 | 4 — Events | Software complete; all CI passed; publication awaiting approval | Verified event behavior |
-| 5 — Hardening | Software implemented; final validation in progress | Nine-device soak and HACS install/upgrade acceptance |
+| 5 — Hardening | Software complete; all CI passed; hardware/installation acceptance open | Nine-device soak and HACS install/upgrade acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
 
 No release until required CI passes on the exact main commit.
@@ -80,3 +80,10 @@ which was corrected to the actual capability model before final validation.
 A real 60-second concurrent read-only check completed 28 polls, 3 snapshots and 50 event
 messages, with zero errors and zero physical or credential writes. This is one station,
 not the mandatory nine-station hardware soak. Six simulated fleet rotation/restart cycles pass.
+
+Phase 5 final software commit `14e62c8` passed all GitHub checks: 328 protocol tests,
+104 actual HA tests, 14 browser tests, HACS and Hassfest. ConfigFlow and config-entry
+migration each have 100% line coverage in the HA job. Version `0.6.0-alpha.1` is prepared.
+Only owner-dependent commissioning, HA/HACS acceptance, nine-station physical soak and
+explicit approval to update main/publish remain. No Phase 6 optional work is required for v1.
+The latest local documentation commit records this evidence without changing runtime behavior.

@@ -12,6 +12,7 @@ Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
+[דוח מסירה בעברית](docs/DELIVERY_HE.md).
 
 ## Core features
 
