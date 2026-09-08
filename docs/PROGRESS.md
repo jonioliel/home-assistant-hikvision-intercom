@@ -190,3 +190,10 @@ are implemented. The separate collection lane leaves normal station I/O independ
 [Operator/protocol guide](CARD_ENROLLMENT.md) and HW-ENROLL preserve the physical test plan.
 No collection request or access/relay mutation was performed during development. Mandatory
 acceptance remains28/38; this optional implementation does not close physical card acceptance.
+
+
+Enrollment code `018e10a94fd18fde85bf3b80821e0a0163406961` passed all branch CI:
+425 protocol/access,142 actual HA,58 browser tests. HACS34274523587,
+Hassfest34274523629 and Python/HA/frontend34274523581 all pass. The production
+capability client also passed a read-only check against the real firmware. Owner-authorized
+main publication runs the exact-commit release gate. Physical HW-ENROLL remains open.

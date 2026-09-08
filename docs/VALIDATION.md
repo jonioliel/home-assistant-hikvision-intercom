@@ -331,3 +331,20 @@ Local frontend validation: **58 browser tests passed**, TypeScript and productio
 The Hebrew mobile screenshot was inspected after moving approval/retry controls into a wrapping
 footer. An uncertain-save regression verifies that a stored card is not falsely described as
 unsaved after its acknowledgement is lost.
+
+
+Enrollment code `018e10a94fd18fde85bf3b80821e0a0163406961` passed every branch check:
+**425 protocol/access + 142 actual Home Assistant + 58 browser tests (625 total)**.
+Python3.12/3.14, Ruff, mypy29 modules, TypeScript, formatting, reproducible bundle, HACS
+and Hassfest all pass. ConfigFlow line coverage remains100%.
+
+- [Python/HA/frontend checks](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34274523581)
+- [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34274523587)
+- [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34274523629)
+
+HA job102224124289 completed142 tests; frontend job102224124436 completed58 tests.
+The production CardCaptureClient was also run in read-only capability mode against the
+commissioned firmware. Identity verification and capability parsing passed; default reader
+and length1–32 were returned. No collection or access/relay operation was requested.
+The exact main code commit is submitted to the gated v0.12.0-alpha.1 release workflow;
+this validation documentation commit changes no runtime behavior.

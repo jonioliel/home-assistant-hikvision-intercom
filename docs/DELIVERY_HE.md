@@ -152,3 +152,11 @@ Commit הקוד: `442d798eb16f5a4b85b0682be416e2454ecdf833`.
 קורא ברירת המחדל נבחר בלי להמציא מזהה שאינו מפורסם. בדיקות PIN/כרטיסים/תוקף/צלצול/
 וידאו וצי עדיין פתוחות. [מדריך מפורט](CARD_ENROLLMENT.md) ·
 [נקודת ההמשך לבדיקה](DEFERRED_VALIDATION.md).
+
+
+Commit הקוד: `018e10a94fd18fde85bf3b80821e0a0163406961`.
+עברו **425 בדיקות ליבה, 142 בדיקות Home Assistant ו־58 בדיקות דפדפן — 625 בסך הכול**.
+גם HACS, Hassfest, Ruff, mypy, TypeScript ובנייה שחוזרת על עצמה עברו.
+[תוצאות GitHub](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34274523581).
+רכיב קריאת היכולות החדש עבר גם בדיקה מול המכשיר בלי הפעלת איסוף כרטיסים.
+הפרסום מריץ שוב את הבדיקות על commit הקוד המדויק.
