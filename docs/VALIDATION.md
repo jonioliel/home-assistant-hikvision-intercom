@@ -218,3 +218,10 @@ Real HA configuration, entity identity/name, admin projection and strict API-mod
 are included in CI. Release publication remains gated on the complete checks for its main commit.
 No physical credential/relay operation was performed for this release; unresolved commissioning
 results from earlier sections are unchanged.
+
+
+Admin-completion code `4efe4e0ebfe568dff1487542bcb2ced58ef30756` passed all branch CI:
+354 protocol/access tests on Python 3.12 and 3.14, 119 actual Home Assistant tests,
+30 browser tests, Ruff, mypy, TypeScript and reproducible frontend build. ConfigFlow retains
+100% coverage. Python checks: 34254503208; HACS: 34254503166; Hassfest: 34254503200.
+The owner is currently unavailable for supervised physical checks; those gates remain deferred.
