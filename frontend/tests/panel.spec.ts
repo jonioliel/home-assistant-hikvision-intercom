@@ -940,3 +940,151 @@ test("reconnect refreshes after an old overview response and restores its subscr
   });
   await expect(page.getByRole("heading", { name: "Updated after reconnect" })).toBeVisible();
 });
+
+async function openReview(page) {
+  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await page.getByRole("button", { name: "Conflict", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Reconciliation targets" }),
+  ).toBeVisible();
+  return page.getByRole("dialog");
+}
+
+test("review shows field differences, logical changes and fleet impact without writes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const dialog = await openReview(page);
+  await expect(dialog.locator(".review-field")).toHaveCount(10);
+  await expect(dialog.locator(".review-field.changed")).toHaveCount(3);
+  await expect(dialog.locator('[data-field="pin"]')).toContainText("Different");
+  await expect(dialog.locator('[data-field="validity"]')).toContainText("No expiry");
+  await expect(dialog.locator('[data-field="cards"]')).toContainText("•••• 4822");
+  await expect(dialog.locator(".review-plan")).toContainText("Update");
+  await expect(dialog.locator("li")).toHaveCount(3);
+  expect(
+    await page.evaluate(() =>
+      window.calls.some((item) => /conflicts\/resolve|users\/update|test_unlock/.test(item.type)),
+    ),
+  ).toBeFalsy();
+});
+
+test("central edits invalidate a review until it is read again", async ({ page }) => {
+  await page.goto("/");
+  const dialog = await openReview(page);
+  await page.evaluate(() => {
+    window.demoData.users[1].display_name = "Edited in another session";
+    window.demoData.users[1].revision++;
+    window.demoNotify();
+  });
+  await expect(dialog.getByRole("alert")).toContainText("central record changed");
+  await expect(dialog.getByRole("button", { name: "Use central state" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Import device state" })).toBeDisabled();
+  await expect(dialog.locator('[data-field="display_name"]')).toContainText("Dana Cohen");
+  await dialog.getByRole("button", { name: "Read comparison again" }).click();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await expect(dialog.locator('[data-field="display_name"]')).toContainText(
+    "Edited in another session",
+  );
+  page.once("dialog", (popup) => popup.accept());
+  await dialog.getByRole("button", { name: "Use central state" }).click();
+  await expect(dialog).toHaveCount(0);
+  const calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("conflicts/resolve")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toMatchObject({
+    revision: 2,
+    review_token: "synthetic-review",
+    direction: "central",
+    user_id: "person-1",
+    station_id: "station-2",
+  });
+});
+
+test("unsupported device schedule explains and disables both resolution actions", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      const result = await original(message);
+      if (message.type.endsWith("conflicts/review")) {
+        result.device.schedule_configured = true;
+        for (const action of ["central", "device"])
+          result.actions[action] = { allowed: false, reason: "schedule_unverified" };
+      }
+      return result;
+    };
+  });
+  const dialog = await openReview(page);
+  await expect(dialog.getByRole("button", { name: "Use central state" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Import device state" })).toBeDisabled();
+  await expect(dialog.locator(".notice.error")).toHaveCount(2);
+  await expect(dialog.locator('[data-field="schedule"]')).toContainText("Configured");
+});
+
+test("rejected stale device review stays open for a fresh read and does not retry", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("conflicts/resolve")) {
+        window.calls.push(message);
+        throw { code: "review_stale" };
+      }
+      return original(message);
+    };
+  });
+  const dialog = await openReview(page);
+  page.once("dialog", (popup) => popup.accept());
+  await dialog.getByRole("button", { name: "Import device state" }).click();
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Read comparison again" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Import device state" })).toBeDisabled();
+  const calls = await page.evaluate(() =>
+    window.calls.filter((item) => item.type.endsWith("conflicts/resolve")),
+  );
+  expect(calls).toHaveLength(1);
+  expect(calls[0].revision).toBe(1);
+});
+
+test("Hebrew mobile review keeps comparison and resolution controls accessible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "סנכרון", exact: true }).click();
+  await page.getByRole("button", { name: "התנגשות", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "יעדי הסנכרון" })).toBeVisible();
+  await expect(dialog.locator(".review-field")).toHaveCount(10);
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBeTruthy();
+  await expect(dialog.getByRole("button", { name: "שימוש במצב המרכזי" })).toBeEnabled();
+  await page.screenshot({ path: "test-results/review-he-mobile.png", fullPage: true });
+});
+
+test("unverified PIN readback is never labelled as matching", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      const result = await original(message);
+      if (message.type.endsWith("conflicts/review")) {
+        result.unverified_fields = ["pin"];
+        result.differences = ["display_name"];
+        result.device.pin_configured = null;
+        result.central.pin_configured = null;
+        for (const action of ["central", "device"])
+          result.actions[action] = { allowed: false, reason: "pin_device_managed" };
+      }
+      return result;
+    };
+  });
+  const dialog = await openReview(page);
+  await expect(dialog.locator('[data-field="pin"]')).toContainText("Unverified");
+  await expect(dialog.locator('[data-field="pin"]')).not.toContainText("Matches");
+});

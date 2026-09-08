@@ -12,11 +12,12 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
 
-The September 8 audit estimated roughly 90% software implementation and 80% overall completion,
-including physical acceptance, before the 0.9 additions. These are scope estimates, not measured
-hours or percentages derived from test counts. Historical "software complete" entries below
-record major-component milestones; they do not certify every specification detail or physical gate.
-The owner's single-active-relay scope supersedes the generic second-relay requirements.
+The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
+with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
+This replaces the earlier rough 90% software / 80% overall estimates with a fixed denominator;
+it is not a regression, an effort estimate or a percentage derived from test counts.
+The owner's two Relay 2 selection items are excluded. Optional Phase 6 is outside mandatory v1.
+Historical "software complete" entries below record component milestones, not final acceptance.
 
 No release until required CI passes on the exact main commit.
 A Phase 0 tooling prerelease must say HA setup/entities arrive in Phase 1.
@@ -146,3 +147,11 @@ Ruff, mypy, TypeScript and reproducible bundle checks. ConfigFlow coverage remai
 Python checks34259688049; HACS34259688072; Hassfest34259688067. HA job102174232294
 confirms independent runtime completion, same-target guarding and safe failure translation.
 These tests mock device I/O and do not close the outstanding physical commissioning gates.
+
+
+0.10.0-alpha.1 adds a detailed read-only reconciliation comparison, logical change preview,
+fleet impact, supported-action reasons and captured-revision protection. It closes UI inspection
+and stale-approval gaps without adding unverified device behavior. The ten remaining acceptance
+items are deliberately left open; tests cannot certify the previously failed physical PIN change.
+Local verification: 367 protocol/access tests, Ruff and mypy (25 modules). The real HA transport
+and responsive browser regressions are part of the exact-commit release gate.

@@ -599,3 +599,244 @@ async def test_failed_save_never_requests_device_sync(fleet):
         )
     assert manager.stations["a"].task is None
     assert manager.repository.users() == [] and device.writes == []
+
+
+async def test_review_compares_credentials_before_masking_without_writes(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {
+            "employee_no": "1001",
+            "display_name": "Central",
+            "pin": "918273",
+            "cards": [{"card_no": "000011112222"}],
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    device.users["1001"].update(name="Device", localPassword="817263")
+    device.cards.clear()
+    device.cards["999911112222"] = {
+        "employeeNo": "1001",
+        "cardNo": "999911112222",
+        "cardType": "normalCard",
+    }
+    device.writes.clear()
+    before = manager.repository.snapshot()
+    manager.request = AsyncMock()
+    review = await manager.async_review("a", user["id"])
+    assert review["revision"] == 1 and review["affected_stations"] == ["a"]
+    assert review["differences"] == ["display_name", "pin", "cards"]
+    assert review["plan"] == {
+        "person": "update",
+        "pin": "change",
+        "cards_add": 1,
+        "cards_remove": 1,
+        "cards_update": 0,
+    }
+    assert (
+        review["central"]["cards"][0]["masked_number"]
+        == review["device"]["cards"][0]["masked_number"]
+    )
+    assert review["actions"]["central"]["allowed"] and review["actions"]["device"]["allowed"]
+    for secret in ("918273", "817263", "000011112222", "999911112222", "fingerprint_key"):
+        assert secret not in str(review)
+    assert manager.repository.snapshot() == before and not device.writes
+    manager.request.assert_not_called()
+
+
+async def test_review_disabled_user_plans_revocation_and_lists_offline_targets(fleet):
+    manager, device, _ = fleet
+    manager.register("b", "Offline side gate", True)
+    user = await manager.async_create(
+        {
+            "display_name": "Resident",
+            "pin": "918273",
+            "cards": [{"card_no": "000011112222"}],
+            "assignments": {"a": {"allowed_locks": [1]}, "b": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    await manager.async_update(user["id"], {"active": False}, revision=1, sync_now=False)
+    review = await manager.async_review("a", user["id"])
+    assert not review["active"] and not review["central"]["present"]
+    assert review["device"]["present"] and review["revision"] == 2
+    assert review["plan"]["person"] == "delete" and review["plan"]["pin"] == "remove"
+    assert review["plan"]["cards_remove"] == 1
+    assert review["affected_stations"] == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    "field,value,reason",
+    [
+        ("RightPlan", [{"doorNo": 1, "planTemplateNo": "1"}], "schedule_unverified"),
+        ("doorRight", "2", "unmanaged_lock"),
+        ("localUIRight", True, "unsupported_credentials"),
+        ("numOfFace", 1, "unsupported_credentials"),
+    ],
+)
+async def test_review_explains_blocked_actions_without_overwriting(fleet, field, value, reason):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {"display_name": "Resident", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    device.users[user["employee_no"]][field] = value
+    device.writes.clear()
+    review = await manager.async_review("a", user["id"])
+    for direction in ("central", "device"):
+        assert review["actions"][direction] == {"allowed": False, "reason": reason}
+        with pytest.raises(AccessError, match=reason):
+            await manager.async_resolve(
+                "a",
+                user["id"],
+                review_token=review["review_token"],
+                revision=1,
+                direction=direction,
+            )
+    assert not device.writes
+
+
+async def test_review_missing_record_and_stale_central_revision(fleet):
+    manager, device, driver = fleet
+    user = await manager.async_create(
+        {"display_name": "Resident", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    device.users.clear()
+    review = await manager.async_review("a", user["id"])
+    assert review["plan"]["person"] == "create"
+    assert review["actions"]["central"]["allowed"]
+    assert review["actions"]["device"]["reason"] == "device_user_missing"
+    await manager.async_update(
+        user["id"], {"display_name": "Edited elsewhere"}, revision=1, sync_now=False
+    )
+    driver.async_person = AsyncMock(side_effect=AssertionError("Stale review must not read device"))
+    with pytest.raises(AccessError, match="revision_conflict"):
+        await manager.async_resolve(
+            "a",
+            user["id"],
+            review_token=review["review_token"],
+            revision=review["revision"],
+            direction="central",
+        )
+    driver.async_person.assert_not_called()
+    assert manager.repository.get(user["id"]).display_name == "Edited elsewhere"
+
+
+async def test_review_captures_revision_before_slow_device_read(fleet):
+    manager, device, driver = fleet
+    user = await manager.async_create(
+        {"display_name": "Before", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    original = driver.async_person
+
+    async def read(employee_no):
+        await manager.async_update(
+            user["id"], {"display_name": "After"}, revision=1, sync_now=False
+        )
+        return await original(employee_no)
+
+    driver.async_person = read
+    review = await manager.async_review("a", user["id"])
+    assert review["revision"] == 1 and review["central"]["display_name"] == "Before"
+    assert manager.repository.get(user["id"]).revision == 2
+
+
+async def test_review_deleted_user_has_only_targeted_delete_action(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {"display_name": "Resident", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    device.offline = True
+    await manager.async_delete(user["id"], revision=1)
+    await drain(manager)
+    device.offline = False
+    review = await manager.async_review("a", user["id"])
+    assert review["deletion_pending"] and review["revision"] is None
+    assert review["actions"]["delete"]["allowed"]
+    assert (
+        not review["actions"]["central"]["allowed"] and not review["actions"]["device"]["allowed"]
+    )
+    assert review["plan"]["person"] == "delete"
+
+
+async def test_review_timed_validity_and_card_type_change(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {
+            "display_name": "Resident",
+            "cards": [{"card_no": "000011112222"}],
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    await manager.async_update(
+        user["id"],
+        {"valid_from": "2027-01-01T00:00:00+00:00", "valid_until": "2027-02-01T00:00:00+00:00"},
+        revision=1,
+        sync_now=False,
+    )
+    device.cards["000011112222"]["cardType"] = "blackListCard"
+    review = await manager.async_review("a", user["id"])
+    assert review["central"]["validity"]["timed"]
+    assert review["central"]["validity"]["time_type"] == "UTC"
+    assert not review["device"]["validity"]["timed"]
+    assert review["differences"] == ["validity", "cards"]
+    assert review["plan"]["cards_update"] == 1
+    assert review["plan"]["cards_add"] == review["plan"]["cards_remove"] == 0
+
+
+async def test_review_identical_state_has_no_changes_and_excludes_disabled_cards(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {
+            "display_name": "Resident",
+            "cards": [{"card_no": "000011112222"}, {"card_no": "000077779999", "enabled": False}],
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    review = await manager.async_review("a", user["id"])
+    assert review["differences"] == [] and review["plan"]["person"] == "none"
+    assert len(review["central"]["cards"]) == 1
+    assert (
+        review["plan"]["cards_add"]
+        == review["plan"]["cards_remove"]
+        == review["plan"]["cards_update"]
+        == 0
+    )
+
+
+async def test_review_cannot_claim_ownership_of_unmanaged_device_person(fleet):
+    manager, device, _ = fleet
+    device.users["1001"] = deepcopy(PERSON)
+    user = await manager.async_create(
+        {
+            "employee_no": "1001",
+            "display_name": "Central",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        },
+        sync_now=False,
+    )
+    review = await manager.async_review("a", user["id"])
+    assert review["actions"]["central"]["reason"] == "ownership_missing"
+    assert review["actions"]["device"]["reason"] == "ownership_missing"
+    assert not device.writes
+
+
+async def test_review_reports_device_managed_pin_as_unverified(fleet):
+    from dataclasses import replace
+
+    manager, device, driver = fleet
+    user = await manager.async_create(
+        {"display_name": "Resident", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    driver.capabilities = replace(driver.capabilities, pin_field=None)
+    driver.async_capabilities = AsyncMock(return_value=driver.capabilities)
+    review = await manager.async_review("a", user["id"])
+    assert review["unverified_fields"] == ["pin"]
+    assert review["device"]["pin_configured"] is None
+    assert review["actions"]["central"]["reason"] == "pin_device_managed"

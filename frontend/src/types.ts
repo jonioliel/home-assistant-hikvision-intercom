@@ -13,6 +13,7 @@ export interface Assignment {
   last_error?: string | null;
   desired_revision?: number;
   applied_revision?: number | null;
+  last_sync_at?: string | null;
 }
 export interface Person {
   id: string;
@@ -115,7 +116,41 @@ export interface Inventory {
   pin_configured: boolean;
   cards: Card[];
 }
+export interface ReviewState {
+  present: boolean;
+  display_name: string | null;
+  user_type: string | null;
+  validity: {
+    timed: boolean | null;
+    from: string | null;
+    until: string | null;
+    time_type: string | null;
+  };
+  door_rights: number[];
+  pin_configured: boolean | null;
+  cards: Card[];
+  schedule_configured: boolean;
+  privileged: boolean;
+  other_credentials: boolean;
+}
 export interface Review {
+  invalidated?: boolean;
+  revision: number | null;
+  reviewed_at: string;
+  central: ReviewState | null;
+  device: ReviewState;
+  active: boolean;
+  affected_stations: string[];
+  differences: string[];
+  unverified_fields: string[];
+  plan: {
+    person: string;
+    pin: string;
+    cards_add: number;
+    cards_remove: number;
+    cards_update: number;
+  } | null;
+  actions: Record<string, { allowed: boolean; reason: string | null }>;
   user_id: string;
   station_id: string;
   employee_no: string;

@@ -244,3 +244,18 @@ Ruff, mypy, TypeScript and reproducible bundle checks. ConfigFlow coverage remai
 Python checks34259688049; HACS34259688072; Hassfest34259688067. HA job102174232294
 confirms independent runtime completion, same-target guarding and safe failure translation.
 These tests mock device I/O and do not close the outstanding physical commissioning gates.
+
+
+## Detailed reconciliation review — 0.10.0-alpha.1
+
+Local protocol/access suite: **367 passed**. Ruff checks/formatting and mypy (25 modules) pass.
+The browser suite contains **44 tests**, including ten-field comparison, masked equal-suffix card
+changes, concurrent central updates, explicit fresh reads, unsupported-action explanations,
+stale-device invalidation and Hebrew mobile layout. Screenshots contain synthetic data only.
+Two new real HA WebSocket tests exercise the production manager's read-only review, redaction and
+stale-revision rejection in both resolution directions. Exact CI results are recorded after the gate.
+
+Review does not queue writes or mutate storage; regression tests compare repository snapshots and
+track device mutation calls. It reuses existing canonical/desired-state builders and documented
+read endpoints. Logical previews do not establish physical access or reserve capacity. No actual
+hardware operation was performed for this change. See COMPLETION_HE.md for every acceptance item.

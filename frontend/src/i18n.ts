@@ -1,4 +1,43 @@
 const en = {
+  review_present: "Present on this station",
+  review_refresh: "Read comparison again",
+  review_hint:
+    "This read-only comparison shows the effective central configuration for this station. PINs and full card numbers stay private; differences are checked before masking. It does not prove physical access.",
+  review_timestamp: "Read at",
+  review_utc: "UTC source; shown in browser time",
+  review_local: "Station local time; conversion unverified",
+  review_revision_changed:
+    "The central record changed since this comparison. Read it again before choosing a resolution.",
+  review_inactive:
+    "The central user is inactive or deleted. Reconciliation removes their access; importing device fields does not reactivate them.",
+  review_presence: "Presence on station",
+  review_display_name: "Name",
+  review_user_type: "User type",
+  review_validity: "Validity",
+  review_door_rights: "Door permissions",
+  review_pin: "PIN",
+  review_cards: "Cards",
+  review_schedule: "Device schedule",
+  review_privileged: "Device administrator rights",
+  review_other_credentials: "Other credentials (face / fingerprint)",
+  review_different: "Different",
+  review_same: "Matches",
+  review_plan: "Changes required by central state",
+  review_person_operation: "User record",
+  plan_create: "Create",
+  plan_update: "Update",
+  plan_delete: "Remove",
+  plan_none: "No change",
+  plan_set: "Set",
+  plan_change: "Change",
+  plan_remove: "Remove",
+  review_impact: "Reconciliation targets",
+  review_impact_hint:
+    "Using central state retries this user across these stations. Importing device state changes the central name, validity, PIN and cards, then reconciles all targets. Active state and station assignments stay as configured. Offline targets wait for reconnection. Capacity, ownership and fresh device state are checked again before writes; this comparison does not reserve capacity.",
+  ownership_missing:
+    "This station record is not managed yet. Use Import existing to review and adopt or map it first.",
+  deletion_not_pending: "There is no pending deletion for this target.",
+
   capabilities_title: "Observed capabilities",
   capability_hint:
     "Core observations come from integration loading; user/card capabilities come from the latest access scan. An unverified capability may still be supported.",
@@ -285,6 +324,44 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  review_present: "קיים באינטרקום",
+  review_refresh: "קריאת ההשוואה מחדש",
+  review_hint:
+    "השוואה לקריאה בלבד של ההגדרות המרכזיות המיועדות לאינטרקום הזה. הקודים ומספרי הכרטיסים המלאים נשארים חסויים; ההבדלים נבדקים לפני ההסתרה. ההשוואה אינה אישור לפתיחה בפועל.",
+  review_timestamp: "מועד הקריאה",
+  review_utc: "מקור UTC; מוצג בזמן הדפדפן",
+  review_local: "זמן מקומי במכשיר; ההמרה טרם אומתה",
+  review_revision_changed: "המשתמש המרכזי השתנה מאז ההשוואה. יש לקרוא אותה מחדש לפני בחירת פעולה.",
+  review_inactive:
+    "המשתמש המרכזי מושבת או נמחק. הסנכרון מסיר את הגישה שלו; ייבוא נתוני המכשיר אינו מפעיל אותו מחדש.",
+  review_presence: "קיום באינטרקום",
+  review_display_name: "שם",
+  review_user_type: "סוג משתמש",
+  review_validity: "תוקף",
+  review_door_rights: "הרשאות דלת",
+  review_pin: "קוד PIN",
+  review_cards: "כרטיסים",
+  review_schedule: "לוח זמנים במכשיר",
+  review_privileged: "הרשאות מנהל במכשיר",
+  review_other_credentials: "אמצעי זיהוי נוספים (פנים / טביעת אצבע)",
+  review_different: "שונה",
+  review_same: "תואם",
+  review_plan: "השינויים הנדרשים לפי המצב המרכזי",
+  review_person_operation: "רשומת המשתמש",
+  plan_create: "יצירה",
+  plan_update: "עדכון",
+  plan_delete: "הסרה",
+  plan_none: "ללא שינוי",
+  plan_set: "הגדרה",
+  plan_change: "שינוי",
+  plan_remove: "הסרה",
+  review_impact: "יעדי הסנכרון",
+  review_impact_hint:
+    "שימוש במצב המרכזי מחדש את הסנכרון של המשתמש באינטרקומים האלה. ייבוא מצב המכשיר מעדכן את השם, התוקף, ה־PIN והכרטיסים במאגר המרכזי, ואז מסנכרן את כל היעדים. מצב ההפעלה והשיוכים לאינטרקומים נשמרים. יעד מנותק ימתין לחיבור מחדש. לפני הכתיבה נבדקים שוב הקיבולת, הבעלות והמצב העדכני במכשיר; ההשוואה אינה שומרת מקום פנוי.",
+  ownership_missing:
+    "הרשומה באינטרקום עדיין אינה מנוהלת. יש להשתמש בייבוא משתמשים קיימים לצורך בדיקה ואימוץ או מיפוי.",
+  deletion_not_pending: "אין מחיקה ממתינה ליעד הזה.",
+
   capabilities_title: "יכולות שנצפו",
   capability_hint:
     "יכולות הליבה נבדקו בטעינת האינטגרציה; יכולות המשתמשים והכרטיסים נלקחות מסריקת הגישה האחרונה. יכולת שטרם אומתה עשויה להיות נתמכת.",

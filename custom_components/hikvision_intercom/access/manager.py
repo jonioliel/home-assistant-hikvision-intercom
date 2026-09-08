@@ -30,6 +30,7 @@ from .models import (
 )
 from .normalize import canonical, desired_cards, desired_person
 from .repository import AccessRepository
+from .review import compare, desired_view, public_view
 
 TaskFactory = Callable[[Coroutine[Any, Any, Any], str], asyncio.Task[Any]]
 
@@ -564,6 +565,8 @@ class AccessManager:
         station = self._station(station_id)
         driver = self._driver(station)
         user = self.repository.get(user_id)
+        if user.revision != revision:
+            raise AccessError("revision_conflict")
         async with driver.transaction():
             caps = await driver.async_capabilities()
             inventory = await driver.async_person(user.employee_no)
@@ -606,20 +609,70 @@ class AccessManager:
             inventory = await driver.async_person(employee_no)
             normal = canonical(inventory, employee_no, caps)
             token = self.repository.fingerprint(normal)
-        person = normal["person"]
+        user = ManagedUser.from_private(raw) if raw is not None else None
+        binding = state["bindings"].get(station_id, {}).get(user_id)
+        targets = set(user.assignments) if user else set(tombstone["targets"])
+        targets.update(key for key, records in state["bindings"].items() if user_id in records)
+        reasons: dict[str, str | None] = {"central": None, "device": None, "delete": None}
+        if user is not None:
+            reasons["delete"] = "deletion_not_pending"
+            if binding is None:
+                reasons["central"] = reasons["device"] = "ownership_missing"
+        else:
+            reasons["central"] = reasons["device"] = "user_not_found"
+            if station_id not in tombstone["targets"] or station_id in tombstone["confirmed"]:
+                reasons["delete"] = "deletion_not_pending"
+        data = None
+        if normal["person"] is not None:
+            try:
+                data = self._import_data(station, employee_no, inventory)
+            except AccessError as err:
+                for action in reasons:
+                    reasons[action] = reasons[action] or err.code
+        else:
+            reasons["device"] = reasons["device"] or "device_user_missing"
+        desired = None
+        comparison: dict[str, Any] = {"differences": [], "plan": None}
+        try:
+            desired = desired_view(user, station_id, next(iter(driver.client.enabled_doors)), caps)
+            comparison = compare(desired, normal)
+        except AccessError as err:
+            reasons["central"] = reasons["central"] or err.code
+        if user is not None and data is not None and reasons["device"] is None:
+            try:
+                self._validate(
+                    build_user(
+                        {key: value for key, value in data.items() if key != "assignments"},
+                        employee_no=employee_no,
+                        now=utc_now(),
+                        previous=user,
+                    )
+                )
+            except AccessError as err:
+                reasons["device"] = err.code
+        device = public_view(normal, caps)
         return {
             "user_id": user_id,
             "employee_no": employee_no,
             "station_id": station_id,
             "review_token": token,
-            "absent": person is None,
-            "display_name": person["name"] if person else None,
-            "pin_configured": bool(person["pin"]) if person and caps.pin_field else None,
-            "cards": [
-                ManagedCard(str(uuid4()), SecretValue(card["cardNo"])).public()
-                for card in normal["cards"]
-            ],
+            "revision": user.revision if user else None,
+            "reviewed_at": utc_now(),
+            "absent": not device["present"],
+            "display_name": device["display_name"],
+            "pin_configured": device["pin_configured"],
+            "cards": device["cards"],
             "deletion_pending": tombstone is not None,
+            "central": public_view(desired, caps) if desired is not None else None,
+            "device": device,
+            "active": user.active if user else False,
+            "unverified_fields": ["pin"] if caps.pin_field is None else [],
+            "affected_stations": sorted(targets),
+            "actions": {
+                key: {"allowed": reason is None, "reason": reason}
+                for key, reason in reasons.items()
+            },
+            **comparison,
         }
 
     async def async_resolve_deletion(

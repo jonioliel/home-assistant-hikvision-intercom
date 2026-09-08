@@ -44,7 +44,7 @@ are software previews, not evidence of physical commissioning.
 
 Protocol/configuration readback does not establish physical credential acceptance. The earlier PIN
 change failed at the keypad, and a later permission experiment still awaits a supervised retry.
-Live camera playback and HACS install/upgrade acceptance on the owner's actual HA remain open.
+HACS installation and updates are owner-confirmed; full live camera playback acceptance remains open.
 Events/audit capture is implemented in Phase 4; see [event behavior and filters](EVENTS.md).
 
 Development: install the locked frontend packages with `pnpm --dir frontend install --frozen-lockfile
@@ -150,3 +150,23 @@ completion without holding the release button busy until the entire refresh fini
 Closing/reopening the camera dialog retains same-station protection. Leaving/rejoining the panel
 clears local outcomes and reconnects its subscription; late responses from the old lifecycle are
 ignored. Removed stations' local outcomes are pruned. Normal event history remains separate.
+
+## Detailed sync review — 0.10.0-alpha.1
+
+Select a user's Sync cell to read a fresh ten-field comparison. Highlighted fields differ before
+masking, so two cards with identical visible suffixes can still be different. The central column
+shows effective desired state for this target: a disabled/unassigned/deleted user should be absent,
+and centrally disabled cards are omitted. Device schedules, privileged rights and biometric
+credentials are summarized without exposing raw device structures. Unsupported resolution buttons
+are disabled with a reason; this does not imply that the device itself lacks the feature.
+
+The change summary describes logical user/PIN/card changes needed to reach central state. The
+reconciliation target list includes offline stations and retained cleanup targets. Import device
+state changes shared central identity fields/credentials and retries all affected targets; active
+state and assignments are preserved. Use central state also retries this user's targets. Neither
+choice bypasses the normal ownership/capacity/freshness checks or proves that a credential opens a door.
+
+The review records its own revision and time. If another session edits the person, the old central
+snapshot remains visible but approval is disabled. **Read comparison again** obtains a fresh snapshot.
+A stale-device or revision-conflict response also requires a fresh read. API-only clients must submit
+the returned revision; it is checked before station reads and atomically again before saving.

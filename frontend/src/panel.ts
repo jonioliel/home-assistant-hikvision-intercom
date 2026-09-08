@@ -11,6 +11,7 @@ import type {
   Card,
   Inventory,
   Review,
+  ReviewState,
   Assignment,
 } from "./types";
 import "./camera";
@@ -449,8 +450,12 @@ export class IntercomManagerPanel extends LitElement {
   }
   private async resolve(direction: string) {
     const review = this._review;
-    if (!review) return;
-    const user = this._data?.users.find((item) => item.id === review.user_id);
+    if (
+      !review ||
+      this.reviewStale() ||
+      !review.actions[review.deletion_pending ? "delete" : direction]?.allowed
+    )
+      return;
     if (
       !confirm(
         this.t(
@@ -463,14 +468,28 @@ export class IntercomManagerPanel extends LitElement {
       )
     )
       return;
-    const success = await this.run(() =>
-      this.api(review.deletion_pending ? "conflicts/resolve_deletion" : "conflicts/resolve", {
-        station_id: review.station_id,
-        user_id: review.user_id,
-        review_token: review.review_token,
-        ...(!review.deletion_pending ? { revision: user?.revision, direction } : {}),
-      }),
-    );
+    const success = await this.run(async () => {
+      try {
+        await this.api(
+          review.deletion_pending ? "conflicts/resolve_deletion" : "conflicts/resolve",
+          {
+            station_id: review.station_id,
+            user_id: review.user_id,
+            review_token: review.review_token,
+            ...(!review.deletion_pending ? { revision: review.revision, direction } : {}),
+          },
+        );
+      } catch (error) {
+        if (
+          ["review_stale", "revision_conflict"].includes(
+            (error as { code?: string })?.code ?? "",
+          ) &&
+          this._review === review
+        )
+          this._review = { ...review, invalidated: true };
+        throw error;
+      }
+    });
     if (success) this.close();
   }
   private releasing(station: Station) {
@@ -1246,56 +1265,157 @@ export class IntercomManagerPanel extends LitElement {
           </article>`,
       )}`;
   }
+  private reviewStale() {
+    const review = this._review;
+    if (!review) return false;
+    if (review.invalidated) return true;
+    if (review.deletion_pending)
+      return !this._data?.tombstones.some(
+        (item) =>
+          item.user_id === review.user_id &&
+          item.targets.includes(review.station_id) &&
+          !item.confirmed.includes(review.station_id),
+      );
+    return (
+      this._data?.users.find((item) => item.id === review.user_id)?.revision !== review.revision
+    );
+  }
+  private reviewValue(state: ReviewState | null, field: string) {
+    if (!state) return this.t("not_verified");
+    if (field === "presence") return this.t(state.present ? "review_present" : "absent");
+    if (!state.present && field !== "cards") return "—";
+    if (field === "display_name") return state.display_name ?? "—";
+    if (field === "user_type") return state.user_type ?? this.t("not_verified");
+    if (field === "pin")
+      return this.t(
+        state.pin_configured === null
+          ? "not_verified"
+          : state.pin_configured
+            ? "configured"
+            : "not_configured",
+      );
+    if (field === "validity") {
+      const valid = state.validity;
+      if (!valid.timed) return this.t("permanent");
+      return html`<span
+          >${valid.time_type === "UTC" ? this.dateText(valid.from) : valid.from} →
+          ${valid.time_type === "UTC" ? this.dateText(valid.until) : valid.until}</span
+        ><span class="sub">
+          · ${valid.time_type === "UTC" ? this.t("review_utc") : this.t("review_local")}</span
+        >`;
+    }
+    if (field === "door_rights")
+      return (
+        state.door_rights
+          .map((id) => {
+            const station = this._data?.stations.find((item) => item.id === this._reviewStation);
+            const lock = station?.integrated_locks.find((item) => item.api_id === id);
+            return lock?.name || `${this.t("physical_lock")} ${lock?.physical_index ?? id}`;
+          })
+          .join(", ") || "—"
+      );
+    if (field === "cards")
+      return (
+        state.cards.map((card) => `${card.masked_number} (${card.card_type})`).join(", ") || "—"
+      );
+    return this.t(
+      (
+        field === "schedule"
+          ? state.schedule_configured
+          : field === "privileged"
+            ? state.privileged
+            : state.other_credentials
+      )
+        ? "configured"
+        : "not_configured",
+    );
+  }
   private reviewBody() {
+    const review = this._review;
     const user = this._data?.users.find((item) => item.id === this._reviewUser);
     const assignment = user?.assignments[this._reviewStation];
-    return html`<p>${this.stationName(this._reviewStation)}</p>
-      ${
-        assignment
-          ? html`<dl>
-                <dt>${this.t("desired")}</dt>
-                <dd>${assignment.desired_revision}</dd>
-                <dt>${this.t("applied")}</dt>
-                <dd>${assignment.applied_revision ?? "—"}</dd>
-                <dt>${this.t("status")}</dt>
-                <dd>${this.badge(assignment.sync_state ?? "pending")}</dd>
-              </dl>
-              ${assignment.last_error ? html`<p class="danger">${this.t(assignment.last_error)}</p>` : nothing}`
-          : nothing
-      }${
-        this._review
-          ? html`<div class="comparison">
-              <div>
-                <h3>${this.t("central_state")}</h3>
-                <strong>${user?.display_name ?? this._review.employee_no}</strong>
-                <p class="sub">
-                  ${this.t("pin")}:
-                  ${this.t(user?.pin_configured ? "configured" : "not_configured")}
-                </p>
-                <p class="sub">
-                  ${this.t("cards")}:
-                  ${user?.cards.map((card) => card.masked_number).join(", ") || "—"}
-                </p>
-              </div>
-              <div>
-                <h3>${this.t("device_state")}</h3>
-                <strong
-                  >${this._review.absent ? this.t("absent") : this._review.display_name}</strong
+    if (!review) return this._busy ? html`<p>${this.t("loading")}</p>` : nothing;
+    const fields = [
+      "presence",
+      "display_name",
+      "user_type",
+      "validity",
+      "door_rights",
+      "pin",
+      "cards",
+      "schedule",
+      "privileged",
+      "other_credentials",
+    ];
+    return html`<div class="row between">
+        <strong>${this.stationName(review.station_id)}</strong
+        ><button
+          ?disabled=${this._busy}
+          @click=${() => this.inspect(review.user_id, review.station_id)}
+        >
+          ${this.t("review_refresh")}
+        </button>
+      </div>
+      <p class="field-note">${this.t("review_hint")}</p>
+      <p class="sub">
+        ${this.t("review_timestamp")}: ${this.dateText(review.reviewed_at)} · ${this.t("desired")}:
+        ${review.revision ?? "—"} · ${this.t("applied")}: ${assignment?.applied_revision ?? "—"}
+      </p>
+      ${assignment?.last_sync_at ? html`<p class="sub">${this.t("last_reconciliation")}: ${this.dateText(assignment.last_sync_at)}</p>` : nothing}
+      ${assignment ? html`<p>${this.badge(assignment.sync_state ?? "pending")}${assignment.last_error ? html` <span class="danger">${this.t(assignment.last_error)}</span>` : nothing}</p>` : nothing}
+      ${this.reviewStale() && !this._error ? html`<p class="notice error" role="alert">${this.t("review_revision_changed")}</p>` : nothing}
+      ${!review.active ? html`<p class="notice">${this.t("review_inactive")}</p>` : nothing}
+      <div class="review-fields">
+        ${fields.map(
+          (field) =>
+            html`<section
+              class="review-field ${review.differences.includes(field) ? "changed" : ""}"
+              data-field=${field}
+            >
+              <div class="row between">
+                <h3>${this.t(`review_${field}`)}</h3>
+                <span class="sub"
+                  >${this.t(!review.central || review.unverified_fields.includes(field) ? "not_verified" : review.differences.includes(field) ? "review_different" : "review_same")}</span
                 >
-                <p class="sub">
-                  ${this.t("pin")}:
-                  ${this.t(this._review.pin_configured ? "configured" : "not_configured")}
-                </p>
-                <p class="sub">
-                  ${this.t("cards")}:
-                  ${this._review.cards.map((card) => card.masked_number).join(", ") || "—"}
-                </p>
               </div>
-            </div>`
-          : this._busy
-            ? html`<p>${this.t("loading")}</p>`
-            : nothing
-      }`;
+              <div class="review-values">
+                <div>
+                  <span class="sub">${this.t("central_state")}</span>
+                  <div>${this.reviewValue(review.central, field)}</div>
+                </div>
+                <div>
+                  <span class="sub">${this.t("device_state")}</span>
+                  <div>${this.reviewValue(review.device, field)}</div>
+                </div>
+              </div>
+            </section>`,
+        )}
+      </div>
+      ${
+        review.plan
+          ? html`<section class="review-plan">
+              <h3>${this.t("review_plan")}</h3>
+              <p>
+                ${this.t("review_person_operation")}:
+                <strong>${this.t(`plan_${review.plan.person}`)}</strong> · ${this.t("pin")}:
+                <strong
+                  >${review.unverified_fields.includes("pin") ? this.t("not_verified") : this.t(`plan_${review.plan.pin}`)}</strong
+                >
+              </p>
+              <p>
+                ${this.t("cards")}: ${this.t("plan_create")} ${review.plan.cards_add} ·
+                ${this.t("plan_delete")} ${review.plan.cards_remove} · ${this.t("plan_update")}
+                ${review.plan.cards_update}
+              </p>
+            </section>`
+          : nothing
+      }
+      <h3>${this.t("review_impact")}</h3>
+      <p>${this.t("review_impact_hint")}</p>
+      <ul>
+        ${review.affected_stations.map((id) => html`<li>${this.stationName(id)} · ${this.badge(this._data?.stations.find((item) => item.id === id)?.online ? "online" : "offline")}</li>`)}
+      </ul>
+      ${[review.deletion_pending ? "delete" : "central", ...(!review.deletion_pending ? ["device"] : [])].map((action) => (review.actions[action]?.reason ? html`<p class="notice error">${this.t(action === "delete" ? "resolve_delete" : action)}: ${this.t(review.actions[action].reason!)}</p>` : nothing))} `;
   }
   private dialogView() {
     if (!this._dialog) return nothing;
@@ -1333,7 +1453,7 @@ export class IntercomManagerPanel extends LitElement {
         ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
       </div>
       <div class="dialog-foot">
-        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this._review.absent} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

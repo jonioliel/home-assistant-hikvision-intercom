@@ -76,7 +76,7 @@ HTTP sessions and optimistic release timers stop on unload or HA shutdown.
   result before further changes. Validate old-PIN rejection, removal and targeted test-user cleanup.
 - Complete test-card add/remove and readback/physical acceptance without modifying the owner's card.
 - Obtain a reproducible actual bell status sequence. Busy-tone/idle observations do not prove ringing.
-- Verify HA/HACS installation, camera/live video, admin access and upgrade on the owner's HA system.
+- Finish installed camera/live video and administrator acceptance; HACS install/upgrade are owner-confirmed.
 - Run the multi-station hardware soak and reconnect/reboot acceptance with the owner. Only one active
   physical relay per station is in scope; disabled relay 2 is excluded by the owner's instruction.
 - Answered-call checks remain deferred because an answering screen is not installed. Busy state is

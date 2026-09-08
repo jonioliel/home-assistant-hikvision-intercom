@@ -8,12 +8,12 @@ V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 It includes user/card/PIN administration, cameras, one active lock per station, events,
 audit history, recovery and Repairs. HACS installation is owner-confirmed; physical commissioning remains open.
 Recent updates fix permanent-user synchronization, add private-safe sync reports, show fleet/access health,
-and provide read-only station inspection plus deliberate bulk station assignments.
+and provide read-only station inspection, deliberate bulk assignments and detailed conflict comparison.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
-[דוח מסירה בעברית](docs/DELIVERY_HE.md).
+[דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
 
 ## Core features
 
@@ -57,7 +57,8 @@ and only configured lock controls. Open a camera for HA-proxied live video. **Us
 assignments (including explicit select-all/clear controls) and validity periods. **Intercoms** displays
 observed capabilities, configured lock mapping, inventory and live-event/history connection health.
 Its access rescan reads capabilities and inventory; **Sync now** requests pending reconciliation.
-**Sync** shows per-user/per-station revisions, conflicts and pending removals. **Events** provides
+**Sync** shows per-user/per-station revisions, conflicts and pending removals. Its read-only review
+compares ten fields, previews logical changes and fleet impact, and protects against stale approvals. **Events** provides
 bounded audit history with filters and distinguishes recovered records from live events.
 
 A device-record review is required before adoption, overwrite or resuming a conflicted deletion.

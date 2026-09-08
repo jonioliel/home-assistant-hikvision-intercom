@@ -4,6 +4,40 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.10.0-alpha.1] - 2026-09-08
+
+### Added
+- Detailed read-only sync review compares ten fields of effective central and observed station
+  state: presence, name, user type, validity, door rights, PIN, cards, schedules, administrative
+  rights and biometric credentials. PINs remain write-only and card numbers remain masked.
+  Credential differences are computed before masking, including cards with identical suffixes.
+- Preview the logical user/PIN/card changes required by central state, including revocation for
+  disabled/unassigned/deleted users, together with reconciliation targets and offline status.
+  Importing device fields explicitly explains its fleet-wide impact and preserves active state
+  and assignments. The preview does not reserve capacity or prove physical access.
+- Supported-action checks explain why a resolution is unavailable, including unmanaged ownership,
+  unsupported schedules/credentials/door permissions and missing device records. Unknown PIN
+  readback is displayed as unverified. Writes still require fresh validation and readback.
+- English and Hebrew responsive field comparisons, read time, captured revision, applied revision,
+  last reconciliation, changed-field highlights and an explicit Read comparison again action.
+
+### Fixed
+- Resolution uses the central revision captured with the review, rather than a newer background
+  overview revision the administrator has not reviewed. Concurrent central edits disable approval;
+  the backend rejects stale revisions before device reads and atomically before persistence.
+- A stale-device or revision-conflict response invalidates the open review until it is read again.
+  No automatic retry or silent overwrite is performed.
+
+### Validation and scope
+- Regression coverage exercises secret masking, identical card suffixes, disabled-card exclusion,
+  timed-validity display, offline targets, unsupported fields, deletion, missing ownership,
+  concurrent edits, real HA WebSocket privacy/revision handling and Hebrew mobile behavior.
+- No new ISAPI endpoint, storage migration or live device mutation. Physical PIN/card lifecycle,
+  validity enforcement, ringing/camera acceptance and nine-station soak remain open.
+- A requirement-by-requirement completion ledger replaces previous rough estimates: 28 of 38
+  applicable Definition of Done items are closed (73.7%); ten remain open (26.3%). The owner's
+  two excluded Relay 2 selection items and optional Phase 6 do not enter this denominator.
+
 ## [0.9.1-alpha.1] - 2026-09-08
 
 ### Fixed

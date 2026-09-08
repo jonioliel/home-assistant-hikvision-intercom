@@ -513,3 +513,75 @@ async def test_unknown_ha_release_errors_do_not_expose_exception_details(
         )
     assert result["error"]["code"] == "action_failed"
     assert "PRIVATE" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("direction", ["central", "device"])
+async def test_review_transport_is_private_and_stale_resolution_preserves_user(
+    hass, loaded_entry, hass_ws_client, device_io, monkeypatch, direction
+):
+    from copy import deepcopy
+    from unittest.mock import AsyncMock
+
+    from custom_components.hikvision_intercom.access.normalize import (
+        canonical,
+        desired_cards,
+        desired_person,
+    )
+    from custom_components.hikvision_intercom.client.access import StationInventory
+
+    manager = get_manager(hass)
+    station_id = loaded_entry.entry_id
+    driver = manager.stations[station_id].driver
+    user = await manager.repository.async_create(
+        {
+            "display_name": "Central resident",
+            "pin": "847291",
+            "cards": [{"card_no": "000077779999"}],
+            "assignments": {station_id: {"allowed_locks": [1]}},
+        }
+    )
+    inventory = StationInventory(
+        {user.employee_no: desired_person(user, 1, driver.capabilities)},
+        desired_cards(user, driver.capabilities),
+    )
+    await manager.repository.async_bind(
+        station_id,
+        user.id,
+        fingerprint=manager.repository.fingerprint(
+            canonical(inventory, user.employee_no, driver.capabilities)
+        ),
+    )
+    observed = deepcopy(inventory)
+    observed.users[user.employee_no].update(name="Device resident", localPassword="735281")
+    reader = AsyncMock(return_value=observed)
+    monkeypatch.setattr(driver, "async_person", reader)
+    before = manager.repository.snapshot()
+    client = await hass_ws_client(hass)
+    response = await request(client, "conflicts/review", station_id=station_id, user_id=user.id)
+    assert response["success"]
+    review = response["result"]
+    assert review["revision"] == 1 and review["differences"] == ["display_name", "pin"]
+    assert review["actions"][direction]["allowed"]
+    assert review["affected_stations"] == [station_id]
+    for secret in ("847291", "735281", "000077779999", "fingerprint_key"):
+        assert secret not in json.dumps(response)
+    assert manager.repository.snapshot() == before
+    device_io["write_person"].assert_not_called()
+    device_io["unlock"].assert_not_called()
+    await manager.repository.async_update(
+        user.id, {"display_name": "Concurrent edit"}, expected_revision=1
+    )
+    reader.reset_mock()
+    response = await request(
+        client,
+        "conflicts/resolve",
+        station_id=station_id,
+        user_id=user.id,
+        revision=review["revision"],
+        review_token=review["review_token"],
+        direction=direction,
+    )
+    assert response["error"]["code"] == "revision_conflict"
+    assert manager.repository.get(user.id).display_name == "Concurrent edit"
+    reader.assert_not_called()
+    device_io["write_person"].assert_not_called()

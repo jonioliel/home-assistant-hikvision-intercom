@@ -42,9 +42,10 @@ revocations finish: its stored target ID is needed to resume pending cleanup.
 ## Actions and administrator interface
 
 `hikvision_intercom.sync_user` takes a central `user_id`; `sync_station` and `rescan_station` take
-`station_id` (a HA config-entry ID). `sync_all` takes no arguments. All four are administrator-only,
-queue work and return without waiting for offline devices. Rescan may reconcile explicitly managed
-records; it never adopts unmanaged records. The CRUD, inventory and review methods are exposed by the administrator-only Phase 3 WebSocket API.
+`station_id` (a HA config-entry ID). `sync_all` takes no arguments. All four are administrator-only.
+Sync actions queue reconciliation without waiting for offline devices. Rescan waits for a read-only
+capability/inventory refresh and never requests reconciliation; ordinary background work continues.
+The CRUD, inventory and review methods use the administrator-only WebSocket API.
 
 ## What readback establishes
 
@@ -54,3 +55,17 @@ unconfirmed after an earlier failed test. Temporary test-user cleanup is still p
 credential mutations were performed during this backend implementation.
 
 Phase 5 adds private schema-2 PIN retirement and config migration; see [upgrade and recovery guidance](HARDENING.md).
+
+## Detailed review contract — 0.10.0-alpha.1
+
+`conflicts/review` captures one central snapshot/revision before acquiring fresh station capabilities
+and person/card readback. It returns allowlisted public projections, private-value comparison flags,
+logical change counts, resolution eligibility/reasons and reconciliation target IDs. It neither
+persists nor queues work. Disabled cards are excluded from effective desired credentials. Disabled,
+unassigned and tombstoned users have an absent target. Unavailable PIN data is explicitly unverified.
+
+The UI retains that revision and public snapshot when the overview changes. Resolution must use the
+captured revision; repository atomic validation remains authoritative. Device fingerprints are
+rechecked separately. A preview is not a reserved transaction: firmware capabilities, collisions,
+capacity, storage and device state can change before reconciliation and are checked again there.
+Unsupported imports block explicit takeover too. Pending-deletion resolution remains separate.

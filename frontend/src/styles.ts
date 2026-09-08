@@ -546,6 +546,39 @@ export const styles = css`
   .import-row h3 {
     margin: 0;
   }
+  .review-field {
+    padding: 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    margin-block: 8px;
+  }
+  .review-field.changed {
+    border-inline-start: 4px solid var(--warning-color, #e7a12c);
+  }
+  .review-field h3 {
+    margin: 0;
+    font-size: 14px;
+  }
+  .review-values {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-block-start: 8px;
+  }
+  .review-values > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .review-plan {
+    padding: 12px;
+    background: var(--secondary-background-color);
+    border-radius: 10px;
+  }
+  @media (max-width: 480px) {
+    .review-values {
+      grid-template-columns: 1fr;
+    }
+  }
   .comparison {
     display: grid;
     grid-template-columns: 1fr 1fr;

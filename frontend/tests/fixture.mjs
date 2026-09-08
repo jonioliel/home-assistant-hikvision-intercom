@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.9.1-alpha.1",
+  version: "0.10.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -290,18 +290,52 @@ const fake = {
           cards: [{ masked_number: "•••• 7352" }],
         },
       ];
-    if (command === "conflicts/review")
+    if (command === "conflicts/review") {
+      const user = data.users.find((item) => item.id === message.user_id);
+      const central = {
+        present: true,
+        display_name: user.display_name,
+        user_type: "normal",
+        validity: { timed: false, from: null, until: null, time_type: null },
+        door_rights: [1],
+        pin_configured: user.pin_configured,
+        cards: user.cards,
+        schedule_configured: false,
+        privileged: false,
+        other_credentials: false,
+      };
+      const device = {
+        ...central,
+        display_name: hebrew ? "שם ששונה בתחנה" : "Name changed on station",
+        pin_configured: true,
+        cards: [{ masked_number: "•••• 4822", card_type: "normalCard" }],
+      };
       return {
         user_id: message.user_id,
         station_id: message.station_id,
-        employee_no: "1001",
+        employee_no: user.employee_no,
         review_token: "synthetic-review",
         absent: false,
-        display_name: hebrew ? "שם ששונה בתחנה" : "Name changed on station",
+        display_name: device.display_name,
         pin_configured: true,
-        cards: [{ masked_number: "•••• 4822" }],
+        cards: device.cards,
         deletion_pending: false,
+        revision: user.revision,
+        reviewed_at: "2026-09-08T12:30:00Z",
+        active: user.active,
+        central,
+        device,
+        affected_stations: Object.keys(user.assignments),
+        differences: ["display_name", "pin", "cards"],
+        unverified_fields: [],
+        plan: { person: "update", pin: "remove", cards_add: 0, cards_remove: 0, cards_update: 0 },
+        actions: {
+          central: { allowed: true, reason: null },
+          device: { allowed: true, reason: null },
+          delete: { allowed: false, reason: "deletion_not_pending" },
+        },
       };
+    }
     if (message.type === "camera/stream") throw { code: "synthetic_no_video" };
     return { accepted: true };
   },
