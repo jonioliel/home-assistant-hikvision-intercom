@@ -14,9 +14,13 @@ if TYPE_CHECKING:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register integration actions once, independent of individual station lifetimes."""
     from .access_runtime import async_setup_access
+    from .panel import async_setup_panel
     from .runtime import async_register_services
+    from .websocket import async_register_websocket
 
     await async_setup_access(hass)
+    async_register_websocket(hass)
+    await async_setup_panel(hass)
     async_register_services(hass)
     return True
 

@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Intercom panel — synthetic test fixture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+      }
+      body {
+        --primary-color: #087e83;
+        --card-background-color: #fff;
+        --primary-background-color: #f3f6f6;
+        --primary-text-color: #183a3e;
+        --secondary-text-color: #637c80;
+        --divider-color: #dce5e6;
+        --text-primary-color: #fff;
+      }
+      body.dark {
+        --primary-color: #63cbc6;
+        --card-background-color: #202c30;
+        --primary-background-color: #142125;
+        --primary-text-color: #e4eff0;
+        --secondary-text-color: #a3b8ba;
+        --divider-color: #3b5055;
+        --text-primary-color: #142125;
+        --secondary-background-color: #263a3d;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="/fixture.mjs"></script>
+  </body>
+</html>

@@ -33,3 +33,28 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements-ha-test.txt
       - run: python -m pytest tests/ha --cov=custom_components.hikvision_intercom --cov-report=term-missing
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend run check
+      - run: pnpm --dir frontend run format:check
+      - run: pnpm --dir frontend run build
+      - run: git diff --exit-code -- custom_components/hikvision_intercom/frontend
+      - run: pnpm --dir frontend exec playwright install --with-deps chromium
+      - run: pnpm --dir frontend run test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: panel-test-results
+          path: frontend/test-results

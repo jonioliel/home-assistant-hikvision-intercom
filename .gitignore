@@ -23,3 +23,6 @@ private/
 .tools/
 
 release-notes.md
+
+frontend/test-results/
+frontend/playwright-report/

@@ -4,3 +4,5 @@ defusedxml==0.7.1
 PyTurboJPEG==1.8.3
 av==17.0.1
 numpy==2.3.2
+
+home-assistant-frontend==20260826.6
