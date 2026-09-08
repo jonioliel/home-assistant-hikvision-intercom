@@ -138,3 +138,19 @@ those adapters are exercised against the real pinned HA runtime in CI.
   external CDN dependency. English desktop and Hebrew mobile screenshots were visually reviewed.
 - HA device I/O and browser test data are simulated. Actual HA install, media playback and hardware
   credential acceptance have not been inferred from these tests. Publication awaits owner approval.
+
+## Phase 4 event validation
+
+`c15ef98` passed 321 protocol tests, 94 real HA tests and 14 browser tests, HACS and
+Hassfest: [exact CI](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34223969810).
+Physical reads verified 241 query records over nine pages and nested MIME stream framing.
+No physical release or credential mutation was performed during those checks.
+
+## Phase 5 hardening validation
+
+328 local protocol tests include deferred PIN retirement, schema migration, corrupt ownership,
+admin rate/concurrency admission, private-free request metrics and six repeated rotation/restart
+cycles across nine simulated stations. Deletion with one offline station retains its tombstone.
+The real single-station concurrent read check made 31 requests (28 status + 3 snapshot) and
+received 50 stream messages in 60 seconds. All requests succeeded; measured p95 was 500 ms.
+The evidence contains counts and timing only. This does not replace sustained nine-station testing.

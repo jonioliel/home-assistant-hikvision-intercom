@@ -111,7 +111,12 @@ class EventManager:
 
     @callback
     def accept(self, row: dict[str, Any]) -> bool:
-        if self._closing or not self.cache.add(row, datetime.now(UTC)):
+        if self._closing:
+            return False
+        before = len(self.cache.rows)
+        if not self.cache.add(row, datetime.now(UTC)):
+            if len(self.cache.rows) != before:
+                self.changed()
             return False
         self.changed()
         if not row["recovered"]:
@@ -119,8 +124,12 @@ class EventManager:
         return True
 
     def query(self, filters: dict[str, Any]) -> dict[str, Any]:
+        before = len(self.cache.rows)
+        result = self.cache.query(filters, datetime.now(UTC))
+        if len(self.cache.rows) != before:
+            self.changed()
         return {
-            **self.cache.query(filters, datetime.now(UTC)),
+            **result,
             "storage_failed": self.storage_failed,
             "stations": {key: value.status() for key, value in self.stations.items()},
         }

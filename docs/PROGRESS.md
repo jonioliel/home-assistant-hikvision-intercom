@@ -8,8 +8,8 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
 | 2 — Access backend | Software complete; all CI passed; publication awaiting approval | Verified credential and permission behavior |
 | 3 — Admin panel | Software complete; all CI passed; publication awaiting approval | All CI; publication awaiting approval |
-| 4 — Events | Software implemented; final validation in progress | Verified event behavior |
-| 5 — Hardening | Not started | Nine-device soak and HACS install/upgrade acceptance |
+| 4 — Events | Software complete; all CI passed; publication awaiting approval | Verified event behavior |
+| 5 — Hardening | Software implemented; final validation in progress | Nine-device soak and HACS install/upgrade acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
 
 No release until required CI passes on the exact main commit.
@@ -71,3 +71,12 @@ identified a filter-label locator problem, since fixed with explicit accessible 
 All 14 local browser tests then passed. The production stream parser was subsequently
 verified against nested MIME framing: 13 documents / 11 access events in 12 seconds.
 Final Phase 4 adds a framing regression and capability-bounded dense-window recovery.
+
+Phase 4 final `c15ef98` passed 321 protocol tests, 94 real HA tests, 14 browser tests,
+HACS and Hassfest. It prepares `0.5.0-alpha.1`; no main mutation/publication occurred.
+Phase 5 checkpoint `65ee939` passed 328 protocol and 14 browser tests, HACS and Hassfest.
+The HA run identified a diagnostics capability-field mismatch (100 passed / 2 failed),
+which was corrected to the actual capability model before final validation.
+A real 60-second concurrent read-only check completed 28 polls, 3 snapshots and 50 event
+messages, with zero errors and zero physical or credential writes. This is one station,
+not the mandatory nine-station hardware soak. Six simulated fleet rotation/restart cycles pass.

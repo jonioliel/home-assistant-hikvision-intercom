@@ -4,12 +4,14 @@ Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed thro
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
-**Phase 3 (`0.4.0-alpha.1`) adds the administrator panel to the core and access backend.**
-The Phase 2/3 releases await approval for publication; the published HACS version remains `0.2.0-alpha.1`.
+**Development version `0.6.0-alpha.1` implements the mandatory software phases 0–5.**
+It includes user/card/PIN administration, cameras, one active lock per station, events,
+audit history, recovery and Repairs. Physical commissioning and installation acceptance remain open.
+Publication of Phases 2–5 awaits approval; the published HACS version remains `0.2.0-alpha.1`.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
 publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
-The central Users/Cards/PIN administration panel follows in Phases 2–3.
-See [progress](docs/PROGRESS.md) and [validation](docs/VALIDATION.md).
+See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
+[upgrades, diagnostics and recovery](docs/HARDENING.md).
 
 ## Core features
 
@@ -36,7 +38,7 @@ this core release.
 - Private HA storage for users, PINs, multiple cards, station assignments and validity periods.
 - Explicit adoption of existing users; matching employee numbers alone never authorize overwrite.
 - Durable revision-aware sync, per-station offline recovery, conflict review and deletion tombstones.
-- Card numbers remain reserved until every affected station confirms removal.
+- Removed cards and replaced PINs remain reserved until every affected station confirms removal.
 - Administrator actions: `sync_user`, `sync_station`, `sync_all` and `rescan_station`.
 - State-changing requests are journaled before sending and verified by readback. Unchanged periodic
   reconciliation does not rewrite the database or credentials.
@@ -51,8 +53,8 @@ See [backend behavior and limits](docs/ACCESS_BACKEND.md).
 **Overview** shows camera previews, call status and only configured lock controls. Open a camera
 for HA-proxied live video. **Users** provides write-only PIN editing, masked cards, station
 assignments and validity periods. **Intercoms** displays capabilities and inventory counts.
-**Sync** shows per-user/per-station revisions, conflicts and pending removals. The Events tab is
-reserved for Phase 4 capture and audit history.
+**Sync** shows per-user/per-station revisions, conflicts and pending removals. **Events** provides
+bounded audit history with filters and distinguishes recovered records from live events.
 
 A device-record review is required before adoption, overwrite or resuming a conflicted deletion.
 An offline target remains pending; the panel does not wait for all stations before closing a saved

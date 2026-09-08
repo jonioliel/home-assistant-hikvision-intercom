@@ -52,3 +52,5 @@ A synced status means desired API configuration was observed. It does not prove 
 PIN opened the lock. Initial local PIN acceptance was witnessed; PIN modification remains physically
 unconfirmed after an earlier failed test. Temporary test-user cleanup is still pending. No new live
 credential mutations were performed during this backend implementation.
+
+Phase 5 adds private schema-2 PIN retirement and config migration; see [upgrade and recovery guidance](HARDENING.md).

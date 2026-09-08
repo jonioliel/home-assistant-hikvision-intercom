@@ -45,7 +45,7 @@ are software previews, not evidence of physical commissioning.
 Protocol/configuration readback does not establish physical credential acceptance. The earlier PIN
 change failed at the keypad, and a later permission experiment still awaits a supervised retry.
 Live camera playback and HACS install/upgrade acceptance on the owner's actual HA remain open.
-Events/audit capture follows in Phase 4.
+Events/audit capture is implemented in Phase 4; see [event behavior and filters](EVENTS.md).
 
 Development: install the locked frontend packages with `pnpm --dir frontend install --frozen-lockfile
 --ignore-scripts`, then run `check`, `format:check`, `build` and `test` from `frontend/package.json`.

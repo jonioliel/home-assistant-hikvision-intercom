@@ -1,0 +1,20 @@
+{
+  "physical_commands": 0,
+  "credential_writes": 0,
+  "station_count": 1,
+  "duration_seconds": 60,
+  "polls": 28,
+  "snapshots": 3,
+  "event_documents": 50,
+  "errors": {},
+  "call_states": {
+    "idle": 28
+  },
+  "request_metrics": {
+    "requests": 31,
+    "failures": 0,
+    "sample_count": 31,
+    "last_ms": 109.0,
+    "p95_ms": 500.0
+  }
+}

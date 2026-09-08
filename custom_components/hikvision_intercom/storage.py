@@ -19,6 +19,15 @@ from .access.models import AccessError
 from .issues import issue
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise AccessError("invalid_storage")
+        result[key] = value
+    return result
+
+
 class AccessStore(Store[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, *, key: str = "hikvision_intercom.users") -> None:
         super().__init__(hass, 1, key, private=True, atomic_writes=True)
@@ -34,11 +43,11 @@ class AccessStore(Store[dict[str, Any]]):
     def _load_strict(self) -> dict[str, Any] | None:
         path = Path(self.path)
         try:
-            with path.open(encoding="utf-8") as source:
+            with path.open("rb") as source:
                 encoded = source.read(33_554_433)
-                if len(encoded.encode("utf-8")) > 33_554_432:
+                if len(encoded) > 33_554_432:
                     raise AccessError("invalid_storage")
-                envelope = json.loads(encoded)
+                envelope = json.loads(encoded, object_pairs_hook=_unique_object)
             if (
                 not isinstance(envelope, dict)
                 or envelope.get("key") != self.key

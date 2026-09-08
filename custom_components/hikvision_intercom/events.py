@@ -202,6 +202,16 @@ class EventCache:
             for field in ("station_id", "employee_no", "person_name"):
                 if row[field] is not None and _text(row[field]) is None:
                     raise HikvisionValidationError("Invalid audit text")
+            if row["source"] not in {"stream", "query", "call_status"} or row[
+                "time_source"
+            ] not in {"device", "received"}:
+                raise HikvisionValidationError("Invalid audit source")
+            for field in ("major", "minor", "api_door", "door"):
+                number = row[field]
+                if number is not None and (type(number) is not int or number < 0):
+                    raise HikvisionValidationError("Invalid audit number")
+            if row["door"] not in {None, 1} or row["api_door"] not in {None, 1, 2}:
+                raise HikvisionValidationError("Invalid audit door")
             self.rows[row["id"]] = copy.deepcopy(row)
         self.prune(now)
 
@@ -246,7 +256,9 @@ class EventCache:
             ("result", {"granted", "denied", "unknown"}),
             ("authentication", {"card", "pin", "unknown"}),
         ):
-            if field in filters and filters[field] not in values:
+            if field in filters and (
+                not isinstance(filters[field], str) or filters[field] not in values
+            ):
                 raise HikvisionValidationError("Invalid event filter")
         if "door" in filters and (type(filters["door"]) is not int or filters["door"] != 1):
             raise HikvisionValidationError("Invalid door filter")

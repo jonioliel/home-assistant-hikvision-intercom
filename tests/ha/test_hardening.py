@@ -132,3 +132,46 @@ async def test_independent_storage_issue_clears_only_after_matching_success(hass
     assert registry.async_get_issue(DOMAIN, "users_storage_write")
     await users.async_save(data)
     assert registry.async_get_issue(DOMAIN, "users_storage_write") is None
+
+
+async def test_audit_retention_is_persisted_after_an_admin_query(hass, loaded_entry):
+    from datetime import UTC, datetime, timedelta
+
+    from custom_components.hikvision_intercom.event_manager import get_events
+
+    from .test_events import live
+
+    manager = get_events(hass)
+    loaded_entry.runtime_data.events.ingest(live())
+    await manager.async_flush()
+    row = next(iter(manager.cache.rows.values()))
+    row["received_at"] = (datetime.now(UTC) - timedelta(days=31)).isoformat()
+    assert manager.query({})["records"] == []
+    await manager.async_flush()
+    assert (await manager.store.async_load())["records"] == []
+
+
+async def test_storage_rejects_duplicate_keys_and_oversized_file(hass):
+    from pathlib import Path
+
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
+
+    store = AccessStore(hass)
+
+    def write_duplicate():
+        path = Path(store.path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"version":1,"key":"hikvision_intercom.users","data":{},"data":{}}')
+
+    await hass.async_add_executor_job(write_duplicate)
+    with pytest.raises(AccessError):
+        await store.async_load()
+
+    def enlarge():
+        with Path(store.path).open("wb") as target:
+            target.truncate(40 * 1024 * 1024)
+
+    await hass.async_add_executor_job(enlarge)
+    with pytest.raises(AccessError):
+        await store.async_load()

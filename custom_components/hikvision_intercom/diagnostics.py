@@ -90,7 +90,7 @@ async def async_get_config_entry_diagnostics(
                 "max_users": caps.max_users,
                 "max_cards": caps.max_cards,
                 "cards_per_person": caps.cards_per_person,
-                "pin_writable": caps.pin_writable,
+                "pin_writable": caps.pin_field is not None,
                 "pin_min": caps.pin_min,
                 "pin_max": caps.pin_max,
             }

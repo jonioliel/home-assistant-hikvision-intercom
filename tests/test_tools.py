@@ -18,6 +18,7 @@ def test_versions_and_hacs_layout():
     manifest = json.loads((ROOT / "custom_components/hikvision_intercom/manifest.json").read_text())
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     assert manifest["version"] == project["project"]["version"] == VERSION
+    assert release_metadata(ROOT)[0] == VERSION
     assert AwesomeVersion(VERSION).valid
     assert AwesomeVersion(VERSION).alpha
     assert manifest["codeowners"] == ["@jonioliel"]

@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.5.0-alpha.1 — Phase 4 (prepared; publication pending)
+Semantic Versioning is used throughout the project.
+
+## [Unreleased]
+
+## [0.6.0-alpha.1] — Phase 5 (prepared; publication pending)
+
+- Add private-free diagnostics for request timing, capability limits and synchronization queues.
+- Add translated Repairs for storage failure, changed identity/mapping, capability regression,
+  authentication, capacity and persistent conflicts; transient offline states stay out of Repairs.
+- Validate and migrate config entries to 1.2 and private access data to schema 2 without changing permissions.
+- Reserve replaced PINs until all former stations confirm removal; preserve ownership across restart/deletion.
+- Bound administrator concurrency/rate, stored-file reads and event retention writes.
+- Add repeated nine-station simulated recovery tests and a successful concurrent read-only station check.
+- Physical PIN/card lifecycle, nine-station soak and real HACS install/upgrade remain acceptance gates.
+
+
+## [0.5.0-alpha.1] — Phase 4 (prepared; publication pending)
 
 - Add bounded alert-stream framing for the station's nested JSON MIME messages.
 - Normalize documented access events without inferring physical door movement or call answer.
@@ -9,10 +25,6 @@
 - Provide the Hebrew/English administrator Events view; no PINs or complete cards in event state.
 - Validate the production client with 241 queried records and a bounded live stream capture.
 
-
-Semantic Versioning is used throughout the project.
-
-## [Unreleased]
 
 ## [0.4.0-alpha.1] - 2026-09-08
 
@@ -31,7 +43,9 @@ Semantic Versioning is used throughout the project.
 - Publication to the default branch/release is awaiting explicit owner approval after an automated approval rejection.
 - Physical acceptance and installation/upgrade on the owner's HA host remain pending.
 
-### In development — Phase 2
+## [0.3.0-alpha.1] — Phase 2 (prepared; publication pending)
+
+### Added — Phase 2
 - Capability-driven user/card access client with bounded complete pagination and explicit write transactions.
 - Private central records, masked administrator views, revision/identity guards and durable ownership journals.
 - User-deletion tombstones and retired-card reservations survive offline stations and restarts.
