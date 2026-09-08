@@ -10,6 +10,7 @@ from defusedxml.ElementTree import fromstring
 
 from ..exceptions import (
     HikvisionAuthError,
+    HikvisionBusyError,
     HikvisionCapacityError,
     HikvisionConflictError,
     HikvisionDeviceError,
@@ -110,18 +111,31 @@ def check_response_status(data: dict[str, Any]) -> None:
     """HTTP success cannot override an ISAPI ResponseStatus error.
 
     Code 1 is the generic ISAPI success code; all other reported codes fail.
-    Symbolic classifications are conservative and will be extended from fixtures.
+    Symbolic classifications use observed fixtures and the manufacturer error dictionary.
     """
     for code in find_values(data, "statusCode"):
         if str(code) == "1":
             continue
+        if str(code) == "2":
+            raise HikvisionBusyError("Device is busy")
         subcodes = {str(s).casefold() for s in find_values(data, "subStatusCode")}
         if subcodes & {"notsupport", "notsupported", "methodnotallowed"}:
             raise HikvisionUnsupportedError("Operation explicitly unsupported")
         if subcodes & {"unauthorized", "nopermission"}:
             raise HikvisionAuthError("Device denied authorization")
-        if subcodes & {"cardnoalreadyexist", "employeenoalreadyexist"}:
+        if subcodes & {
+            "cardnoalreadyexist",
+            "employeenoalreadyexist",
+            "deviceuseralreadyexist",
+            "userpasswordalreadyexist",
+        }:
             raise HikvisionConflictError("Device reported a record conflict")
-        if subcodes & {"cardfull", "userfull"}:
+        if subcodes & {
+            "cardfull",
+            "userfull",
+            "devicecardfull",
+            "deviceuserfull",
+            "cardfullperuser",
+        }:
             raise HikvisionCapacityError("Device reported capacity exhaustion")
         raise HikvisionDeviceError("Device reported an unsuccessful ResponseStatus")

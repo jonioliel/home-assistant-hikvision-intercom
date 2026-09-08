@@ -1,0 +1,117 @@
+{
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/AcsEvent/capabilities?format=json",
+  "document": "ISAPI_IP Series_Pro Series.pdf",
+  "source_page": 387,
+  "device_write": false,
+  "http_status": 200,
+  "payload": {
+    "AcsEvent": {
+      "AcsEventCond": {
+        "searchID": {
+          "@min": 1,
+          "@max": 64
+        },
+        "searchResultPosition": {
+          "@min": 0,
+          "@max": 1000
+        },
+        "maxResults": {
+          "@min": 1,
+          "@max": 30
+        },
+        "major": {
+          "@opt": "0,1,2,3,5"
+        },
+        "minorAlarm": {
+          "@opt": "1028,1029,1034,3"
+        },
+        "minorException": {
+          "@opt": "38,39,1031"
+        },
+        "minorOperation": {
+          "@opt": "112,113,123,126,134,135,241,311,312,1024,1028,1029,1031,1057,1058,1055,1056,9729"
+        },
+        "minorEvent": {
+          "@opt": "1,9,21,22,25,26,92,214,215,216,148,181,150,229"
+        },
+        "startTime": {
+          "@min": 1,
+          "@max": 32
+        },
+        "endTime": {
+          "@min": 1,
+          "@max": 32
+        },
+        "cardNo": {
+          "@min": 1,
+          "@max": 32
+        },
+        "name": {
+          "@min": 0,
+          "@max": 32
+        },
+        "picEnable": "REDACTED",
+        "employeeNoString": {
+          "@min": 1,
+          "@max": 32
+        }
+      },
+      "InfoList": {
+        "maxSize": 30,
+        "time": {
+          "@min": 1,
+          "@max": 32
+        },
+        "netUser": {
+          "@min": 1,
+          "@max": 32
+        },
+        "remoteHostAddr": {
+          "@min": 1,
+          "@max": 15
+        },
+        "cardNo": {
+          "@min": 1,
+          "@max": 32
+        },
+        "cardType": {
+          "@opt": "1"
+        },
+        "doorNo": {
+          "@min": 1,
+          "@max": 2
+        },
+        "employeeNo": {
+          "@min": 1,
+          "@max": 36
+        },
+        "userType": {
+          "@opt": "normal,visitor"
+        },
+        "pictureURL": {
+          "@min": 1,
+          "@max": 256
+        },
+        "FaceRect": {
+          "height": {
+            "@min": 0,
+            "@max": 1
+          },
+          "width": {
+            "@min": 0,
+            "@max": 1
+          },
+          "x": {
+            "@min": 0,
+            "@max": 1
+          },
+          "y": {
+            "@min": 0,
+            "@max": 1
+          }
+        }
+      }
+    }
+  }
+}

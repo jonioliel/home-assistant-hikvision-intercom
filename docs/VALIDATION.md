@@ -5,7 +5,7 @@ Branch: `phase/0-protocol-probe`. Remote reconnaissance is recorded; hardware Ph
 ## Local validation
 
 - Python 3.12.14 on Windows.
-- pytest with coverage: **118 passed**, **90%** total measured coverage.
+- pytest with coverage: **130 passed**, **90%** total measured coverage.
 - Protocol parser: 99%; probe: 94%; redaction: 97%; transport: 100%.
 - Ruff lint and formatting: passed.
 - Strict mypy: passed for 13 source files.
@@ -77,3 +77,10 @@ See the [sanitized fixture provenance](../tests/fixtures/ds_kv6124_e1_fw_3_9_0_s
 
 These observations advance Phase 0. They do not establish production HA/HACS acceptance,
 card CRUD, duplicate behavior, schedule enforcement, reboot persistence or nine-station soak.
+
+## Manufacturer-backed protocol checkpoint
+
+130 tests passed with 90% coverage. Twelve new cases verify documented capacity/conflict
+classification and busy responses without exposing private error text. Three additional
+capability GETs returned HTTP 200. See MANUFACTURER_PROTOCOL.md for source references,
+PIN-attempt-limit interpretation and the owner-authorized continuation to Phase 1.

@@ -10,6 +10,7 @@ from custom_components.hikvision_intercom.client.parser import (
 )
 from custom_components.hikvision_intercom.exceptions import (
     HikvisionAuthError,
+    HikvisionBusyError,
     HikvisionCapacityError,
     HikvisionConflictError,
     HikvisionDeviceError,
@@ -63,6 +64,11 @@ def test_malformed_and_entity_payloads_rejected(body):
         ("noPermission", HikvisionAuthError),
         ("cardNoAlreadyExist", HikvisionConflictError),
         ("userFull", HikvisionCapacityError),
+        ("deviceCardFull", HikvisionCapacityError),
+        ("deviceUserFull", HikvisionCapacityError),
+        ("cardFullPerUser", HikvisionCapacityError),
+        ("deviceUserAlreadyExist", HikvisionConflictError),
+        ("userPasswordAlreadyExist", HikvisionConflictError),
         ("unknownFutureCode", HikvisionDeviceError),
     ],
 )
@@ -94,3 +100,10 @@ def test_deep_response_rejected_before_recursive_export():
         data = {"nested": data}
     with pytest.raises(HikvisionValidationError, match="traversal"):
         parse_payload(json.dumps(data).encode())
+
+
+@pytest.mark.parametrize("code", [2, "2"])
+def test_manufacturer_device_busy_is_distinct_without_echoing_body(code):
+    with pytest.raises(HikvisionBusyError) as caught:
+        check_response_status({"statusCode": code, "errorMsg": "PRIVATE-PIN-AND-IDENTITY"})
+    assert str(caught.value) == "Device is busy"

@@ -35,3 +35,7 @@ class HikvisionCapacityError(HikvisionError):
 
 class HikvisionDeviceError(HikvisionError):
     """The device reported an otherwise unclassified failure."""
+
+
+class HikvisionBusyError(HikvisionDeviceError):
+    """The device is temporarily busy; callers must not blindly replay writes."""

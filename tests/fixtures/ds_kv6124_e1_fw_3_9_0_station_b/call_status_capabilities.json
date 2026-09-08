@@ -1,0 +1,19 @@
+{
+  "method": "GET",
+  "path": "/ISAPI/VideoIntercom/callStatus/capabilities?format=json",
+  "document": "ISAPI_IP Series_Pro Series.pdf",
+  "source_page": 490,
+  "device_write": false,
+  "http_status": 200,
+  "payload": {
+    "CallStatus": {
+      "status": {
+        "@opt": [
+          "idle",
+          "ring",
+          "onCall"
+        ]
+      }
+    }
+  }
+}

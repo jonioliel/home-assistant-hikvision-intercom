@@ -1,0 +1,29 @@
+{
+  "method": "GET",
+  "path": "/ISAPI/AccessControl/UserRightPlanTemplate/capabilities?format=json",
+  "document": "ISAPI_IP Series_Pro Series.pdf",
+  "source_page": 443,
+  "device_write": false,
+  "http_status": 200,
+  "payload": {
+    "UserRightPlanTemplate": {
+      "templateNo": {
+        "@min": 1,
+        "@max": 255
+      },
+      "enable": "REDACTED",
+      "templateName": {
+        "@min": 0,
+        "@max": 32
+      },
+      "weekPlanNo": {
+        "@min": 1,
+        "@max": 255
+      },
+      "holidayGroupNo": {
+        "@min": 1,
+        "@max": 64
+      }
+    }
+  }
+}

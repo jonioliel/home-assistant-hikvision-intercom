@@ -4,7 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] - 2026-09-08
+
 ### Added
+- Review of seven supplied manufacturer references with exact API/page and dictionary provenance.
+- Verified call-status, permission-template and event-search capability responses.
 - Sanitized supervised evidence for one active relay, populated user/card reads, card access,
   initial local PIN acceptance and failed PIN change despite successful API readback.
 - Owner scope: relay 2 excluded throughout the project; answered-call tests deferred.
@@ -19,6 +23,7 @@ Semantic Versioning is used throughout the project.
 - Real-device commissioning runbook and phase tracking.
 
 ### Fixed
+- Recognize documented card/person capacity errors, person/PIN conflicts and device-busy status.
 - Parse the real CallStatus.status and responseStatusStrg search response fields.
 - Read length-delimited JSON alert-stream events and reject incomplete MIME parts.
 - Obtain a fresh Digest challenge for each read after observed cached-auth rejection.
@@ -36,5 +41,6 @@ Semantic Versioning is used throughout the project.
 
 ### Release status
 - Prepared development version: 0.1.0-alpha.1.
-- No release published. Phase 0 now has witnessed active-relay/card/initial-PIN evidence;
+- Phase 0 protocol-tooling prerelease; HA setup/entities arrive in Phase 1.
+- Witnessed active-relay/card/initial-PIN evidence is available;
   PIN change diagnosis, test-user cleanup and remaining acceptance gates are open.

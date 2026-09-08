@@ -4,8 +4,8 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
 | Phase | Status | Gate |
 | --- | --- | --- |
-| 0 — Reconnaissance | Reads, video, active relay, card and initial PIN verified; change test open | Probe, call sequence, relay mapping, PIN/card findings |
-| 1 — Core integration | Not started | Phase 0 evidence |
+| 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
+| 1 — Core integration | Authorized next | Documented contracts and observed firmware baseline |
 | 2 — Access backend | Not started | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
 | 4 — Events | Not started | Verified event behavior |
@@ -19,7 +19,7 @@ Do not describe physical Phase 0, the full project or installation acceptance as
 Permanent requirements: camera in HA and panel; explicit relay selection enforced by backend/UI;
 persistent offline sync/tombstones; secret redaction and administrator-only access management.
 
-Local validation: 118 tests passed with 90% coverage; Ruff and strict mypy passed.
+Local validation: 130 tests passed with 90% coverage; Ruff and strict mypy passed.
 See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and limits.
 The owner approved publication and all source/history/specification files were uploaded.
 GitHub HACS, Hassfest and Python checks passed on f256a5a (Python 3.12 and 3.14).
@@ -35,3 +35,7 @@ The owner excludes disabled relay 2 project-wide and defers answer testing becau
 answering screen is installed. A witnessed bell attempt produced busy tone and only idle samples.
 See the [station B evidence](../tests/fixtures/ds_kv6124_e1_fw_3_9_0_station_b/README.md).
 Two stream reconnections returned HTTP 500 before a later successful retry.
+
+Manufacturer review and continuation scope: [MANUFACTURER_PROTOCOL.md](MANUFACTURER_PROTOCOL.md).
+The owner requested continued development while away from the equipment; physical checks
+remain deferred, not counted as passed. Numeric PIN event meanings are now documented.
