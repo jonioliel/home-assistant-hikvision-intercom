@@ -129,6 +129,21 @@
       "door_1": {
         "name": "Active lock"
       }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Doorbell",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "Ring"
+            }
+          }
+        }
+      },
+      "access": {
+        "name": "Access event"
+      }
     }
   },
   "services": {

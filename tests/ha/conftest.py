@@ -59,6 +59,7 @@ def device_io():
         return caps
 
     with (
+        patch("custom_components.hikvision_intercom.event_manager.StationEvents.start"),
         patch(
             "custom_components.hikvision_intercom.client.access.AccessClient.async_capabilities",
             access_caps,

@@ -129,6 +129,21 @@
       "door_1": {
         "name": "מנעול פעיל"
       }
+    },
+    "event": {
+      "doorbell": {
+        "name": "פעמון",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "צלצול"
+            }
+          }
+        }
+      },
+      "access": {
+        "name": "אירוע גישה"
+      }
     }
   },
   "services": {

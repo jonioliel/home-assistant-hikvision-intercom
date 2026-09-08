@@ -1,0 +1,328 @@
+"""Own bounded audit persistence, live event subscriptions and station recovery."""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import logging
+import secrets
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
+
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+from .access_runtime import SIGNAL_ACCESS_CHANGED
+from .client.events import EventClient, create_event_session
+from .const import DOMAIN
+from .events import EventCache, normalize_event, timestamp
+from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
+from .storage import AccessStore
+
+if TYPE_CHECKING:
+    from .runtime import IntercomRuntime
+
+_LOGGER = logging.getLogger(__name__)
+SIGNAL_EVENT = f"{DOMAIN}_event"
+
+
+class EventManager:
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+        self.store = AccessStore(hass, key=f"{DOMAIN}.events")
+        self.cache = EventCache()
+        self.key = secrets.token_bytes(32)
+        self.cursors: dict[str, str] = {}
+        self.stations: dict[str, StationEvents] = {}
+        self.storage_failed = False
+        self._revision = 0
+        self._saved = 0
+        self._timer: asyncio.TimerHandle | None = None
+        self._save_lock = asyncio.Lock()
+        self._closing = False
+
+    async def async_load(self) -> None:
+        data = await self.store.async_load()
+        if data:
+            self.key = bytes.fromhex(data["fingerprint_key"])
+            if len(self.key) != 32 or not isinstance(data.get("cursors"), dict):
+                raise ValueError("Invalid event storage")
+            self.cursors = {
+                key: value for key, value in data["cursors"].items() if timestamp(value)
+            }
+        self.cache.load(data, datetime.now(UTC))
+        # Persist the event ID key before it can be used by a stream.
+        await self.store.async_save(self._data())
+
+    def _data(self) -> dict[str, Any]:
+        return {
+            **self.cache.dump(),
+            "fingerprint_key": self.key.hex(),
+            "cursors": dict(self.cursors),
+        }
+
+    @callback
+    def changed(self) -> None:
+        self._revision += 1
+        async_dispatcher_send(self.hass, SIGNAL_ACCESS_CHANGED)
+        if self._timer is None and not self._closing:
+            self._timer = self.hass.loop.call_later(2, self._save_due)
+
+    @callback
+    def _save_due(self) -> None:
+        self._timer = None
+        self.hass.async_create_background_task(
+            self.async_flush(), "Hikvision event save", eager_start=False
+        )
+
+    async def async_flush(self) -> None:
+        async with self._save_lock:
+            if self._saved == self._revision:
+                return
+            revision = self._revision
+            data = self._data()
+            try:
+                if self._closing:
+                    await self.hass.async_add_executor_job(self.store._save_strict, data)
+                else:
+                    await self.store.async_save(data)
+            except Exception:
+                if not self.storage_failed:
+                    _LOGGER.error("Event history could not be saved; private records omitted")
+                self.storage_failed = True
+                if not self._closing and self._timer is None:
+                    self._timer = self.hass.loop.call_later(30, self._save_due)
+                return
+            self.storage_failed = False
+            self._saved = revision
+
+    @callback
+    def accept(self, row: dict[str, Any]) -> bool:
+        if self._closing or not self.cache.add(row, datetime.now(UTC)):
+            return False
+        self.changed()
+        if not row["recovered"]:
+            async_dispatcher_send(self.hass, SIGNAL_EVENT, dict(row))
+        return True
+
+    def query(self, filters: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **self.cache.query(filters, datetime.now(UTC)),
+            "storage_failed": self.storage_failed,
+            "stations": {key: value.status() for key, value in self.stations.items()},
+        }
+
+    def attach(self, runtime: IntercomRuntime) -> StationEvents:
+        station = StationEvents(self, runtime)
+        self.stations[runtime.station_id] = station
+        station.start()
+        return station
+
+    async def async_close(self) -> None:
+        self._closing = True
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+        for station in list(self.stations.values()):
+            await station.async_close()
+        await self.async_flush()
+
+
+class StationEvents:
+    def __init__(self, manager: EventManager, runtime: IntercomRuntime) -> None:
+        self.manager, self.runtime = manager, runtime
+        self.client = EventClient(runtime.client)
+        self.stream_state = "connecting"
+        self.history_state = "pending"
+        self.reconnects = 0
+        self._tasks: list[asyncio.Task[Any]] = []
+        self._closed = False
+        self._previous_call = runtime.coordinator.data.normalized
+        self._last_ring = float("-inf")
+        self._unsubscribe = runtime.coordinator.async_add_listener(self._call_changed)
+
+    def start(self) -> None:
+        for coro, name in ((self._stream(), "stream"), (self._history(), "history")):
+            self._tasks.append(
+                self.manager.hass.async_create_background_task(
+                    coro,
+                    f"Hikvision {name}",
+                    eager_start=False,
+                )
+            )
+
+    def status(self) -> dict[str, Any]:
+        return {
+            "stream": self.stream_state,
+            "history": self.history_state,
+            "reconnects": self.reconnects,
+            "recovered_until": self.manager.cursors.get(self.runtime.station_id),
+        }
+
+    @callback
+    def _call_changed(self) -> None:
+        coordinator = self.runtime.coordinator
+        current = coordinator.data.normalized if coordinator.last_update_success else None
+        # A ring already in progress at load/reconnect is not a new button press.
+        if current == "ringing" and self._previous_call in {"idle", "in_call", "ending"}:
+            loop = self.manager.hass.loop
+            if loop.time() - self._last_ring >= 2:
+                self._last_ring = loop.time()
+                now = datetime.now(UTC).isoformat()
+                self.manager.accept(
+                    {
+                        "id": hashlib.sha256(
+                            f"{self.runtime.station_id}:{now}:ring".encode()
+                        ).hexdigest(),
+                        "station_id": self.runtime.station_id,
+                        "timestamp": now,
+                        "received_at": now,
+                        "time_source": "received",
+                        "employee_no": None,
+                        "person_name": None,
+                        "door": None,
+                        "api_door": None,
+                        "authentication": "unknown",
+                        "result": "unknown",
+                        "event_type": "ring",
+                        "major": None,
+                        "minor": None,
+                        "card": None,
+                        "recovered": False,
+                        "source": "call_status",
+                    }
+                )
+        self._previous_call = current
+
+    def ingest(
+        self, payload: dict[str, Any], *, historical: bool = False, occurrence: int = 0
+    ) -> None:
+        selected = self.runtime.locks[0].api_id if self.runtime.locks else None
+        row = normalize_event(
+            payload,
+            self.runtime.station_id,
+            self.manager.key,
+            received=datetime.now(UTC),
+            selected_api=selected,
+            historical=historical,
+            occurrence=occurrence,
+        )
+        if row:
+            # Resolve names only by an explicit employee ID. Missing identity stays unknown.
+            if row["employee_no"] and not row["person_name"]:
+                for user in self.runtime.access_manager.repository.users():
+                    if user.employee_no == row["employee_no"]:
+                        row["person_name"] = user.display_name
+                        break
+            self.manager.accept(row)
+
+    async def _stream(self) -> None:
+        session = await self.manager.hass.async_add_executor_job(
+            create_event_session, self.runtime.client.settings
+        )
+        delay = 2
+        try:
+            while not self._closed:
+                try:
+                    await self.runtime.client.async_confirm_identity()
+                    # Renew healthy streams periodically; call polling has its own connection.
+                    async with asyncio.timeout(1800):
+                        frames = 0
+                        started = self.manager.hass.loop.time()
+                        async for document in self.client.async_stream(session):
+                            self.stream_state = "connected"
+                            delay = 2
+                            frames += 1
+                            if frames > 1200 and self.manager.hass.loop.time() - started < 60:
+                                raise HikvisionUnsupportedError("Event flood")
+                            if self.manager.hass.loop.time() - started >= 60:
+                                frames, started = 0, self.manager.hass.loop.time()
+                            self.ingest(document)
+                            await asyncio.sleep(0)
+                    self.stream_state = "disconnected"
+                except HikvisionAuthError:
+                    self.stream_state, delay = "authentication_failed", 300
+                except HikvisionUnsupportedError:
+                    self.stream_state, delay = "unavailable", 300
+                except (HikvisionError, TimeoutError):
+                    self.stream_state = "disconnected"
+                self.reconnects += 1
+                await asyncio.sleep(
+                    delay
+                    + int(hashlib.sha256(self.runtime.station_id.encode()).hexdigest()[:2], 16)
+                    / 255
+                )
+                delay = min(delay * 2, 300)
+        finally:
+            await session.aclose()
+
+    async def _history(self) -> None:
+        while not self._closed:
+            try:
+                if not self.runtime.coordinator.last_update_success:
+                    self.history_state = "offline"
+                elif not self.client.page_size and not await self.client.async_capabilities():
+                    self.history_state = "unavailable"
+                else:
+                    await self.runtime.client.async_confirm_identity()
+                    end = datetime.now(UTC) - timedelta(seconds=2)
+                    saved = timestamp(self.manager.cursors.get(self.runtime.station_id))
+                    start = max(saved or end - timedelta(days=1), end - timedelta(days=30))
+                    if start >= end:
+                        start = end - timedelta(minutes=5)
+                    # Overlap prevents a boundary event being missed; cache deduplicates.
+                    rows = await self.client.async_history(start - timedelta(seconds=2), end)
+                    for row in rows:
+                        when = timestamp(row.get("time"))
+                        if when is None or when < start - timedelta(seconds=2) or when > end:
+                            raise ValueError("History time filter was not honored")
+                    occurrences: dict[str, int] = {}
+                    for row in rows:
+                        import json
+
+                        identity = json.dumps(row, sort_keys=True)
+                        occurrence = occurrences.get(identity, 0)
+                        occurrences[identity] = occurrence + 1
+                        self.ingest(row, historical=True, occurrence=occurrence)
+                        await asyncio.sleep(0)
+                    self.manager.cursors[self.runtime.station_id] = end.isoformat()
+                    self.history_state = "recovered"
+                    self.manager.changed()
+            except HikvisionAuthError:
+                self.history_state = "authentication_failed"
+            except HikvisionUnsupportedError:
+                self.history_state = "unavailable"
+            except (HikvisionError, TimeoutError, ValueError):
+                # Keep the old cursor; incompleteness is visible and can be retried.
+                self.history_state = "incomplete"
+            await asyncio.sleep(60 if self.history_state in {"incomplete", "offline"} else 300)
+
+    async def async_close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        self._unsubscribe()
+        for task in self._tasks:
+            task.cancel()
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+        self._tasks.clear()
+        self.stream_state = "stopped"
+        self.manager.stations.pop(self.runtime.station_id, None)
+
+
+def get_events(hass: HomeAssistant) -> EventManager:
+    return hass.data[DOMAIN]["events"]
+
+
+async def async_setup_events(hass: HomeAssistant) -> None:
+    if "events" in hass.data.setdefault(DOMAIN, {}):
+        return
+    manager = EventManager(hass)
+    await manager.async_load()
+    hass.data[DOMAIN]["events"] = manager
+
+    async def stop(_event: Any) -> None:
+        await manager.async_close()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop)

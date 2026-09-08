@@ -2,7 +2,7 @@
 
 DOMAIN = "hikvision_intercom"
 VERSION = "0.4.0-alpha.1"
-PLATFORMS = ("binary_sensor", "sensor", "camera", "lock")
+PLATFORMS = ("binary_sensor", "sensor", "camera", "lock", "event")
 DEFAULT_IDLE_INTERVAL = 2.0
 DEFAULT_ACTIVE_INTERVAL = 0.75
 DEFAULT_PULSE_SECONDS = 5.0

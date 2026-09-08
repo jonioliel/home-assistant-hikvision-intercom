@@ -215,3 +215,31 @@ test("live camera rejects a URL outside Home Assistant", async ({ page }) => {
   await expect(page.getByRole("dialog").locator("hikvision-intercom-camera video")).toHaveCount(0);
   expect(external).toEqual([]);
 });
+
+test("audit filters render historical records with masked credentials", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  const view = page.locator("hikvision-intercom-events");
+  await expect(view.locator("article")).toHaveCount(2);
+  await expect(view.getByText("Historical record", { exact: true })).toBeVisible();
+  await expect(view.getByText("••••3210", { exact: true })).toBeVisible();
+  await view.getByLabel("Result", { exact: true }).selectOption("denied");
+  await view.getByRole("button", { name: "Apply filters" }).click();
+  await expect(view.locator("article")).toHaveCount(1);
+  await expect(view.getByText("Authentication rejected", { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("events/list")).at(-1).filters.result,
+    ),
+  ).toBe("denied");
+});
+
+test("Hebrew audit remains within mobile screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "אירועים", exact: true }).click();
+  const view = page.locator("hikvision-intercom-events");
+  await expect(view.locator("article")).toHaveCount(2);
+  expect(await view.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "test-results/events-he-mobile.png", fullPage: true });
+});

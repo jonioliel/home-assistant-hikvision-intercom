@@ -1,5 +1,14 @@
 import { css } from "lit";
 export const styles = css`
+  .audit-list {
+    display: grid;
+    gap: 12px;
+    margin-block: 20px;
+  }
+  .audit-row {
+    padding: 16px;
+    overflow-wrap: anywhere;
+  }
   :host {
     --accent: var(--primary-color, #087e83);
     --surface: var(--card-background-color, #fff);

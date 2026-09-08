@@ -7,8 +7,8 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 0 — Reconnaissance | Protocol baseline complete; commissioning remains open | Probe, call sequence, relay mapping, PIN/card findings |
 | 1 — Core integration | Software complete | 190 protocol tests + 41 real HA tests; HACS/Hassfest pass |
 | 2 — Access backend | Software complete; all CI passed; publication awaiting approval | Verified credential and permission behavior |
-| 3 — Admin panel | Implemented and under final validation | All CI; publication awaiting approval |
-| 4 — Events | Not started | Verified event behavior |
+| 3 — Admin panel | Software complete; all CI passed; publication awaiting approval | All CI; publication awaiting approval |
+| 4 — Events | Implemented; runtime validation in progress | Verified event behavior |
 | 5 — Hardening | Not started | Nine-device soak and HACS install/upgrade acceptance |
 | 6 — Optional future | Outside mandatory v1 | Follow-on work |
 
@@ -60,3 +60,8 @@ Phase 3 checkpoint `384c179` passed 280 protocol tests, 86 actual HA tests (100%
 coverage now has 12 tests. The first HA run found outer schema errors could echo malformed
 credential payloads; validation was moved inside admin handlers and the privacy regression passed.
 UI screenshots use synthetic data and illustrative camera frames, never live station identities.
+
+Phase 3 final `f7d925a` passed all CI: 281 protocol, 86 HA and 12 browser tests.
+Phase 4 adds event framing, verified access normalization, event entities, bounded audit storage
+and an administrator history view. A read-only manufacturer-documented event query returned
+241 records in nine pages, with no credential writes or physical commands.

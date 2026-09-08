@@ -1,0 +1,171 @@
+"""Native HA events, privacy, recovery and lifecycle using real HA entities."""
+
+import asyncio
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from homeassistant.helpers import entity_registry as er
+
+from custom_components.hikvision_intercom.client.client import CallState
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.event_manager import get_events
+from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+
+from .test_websocket import request
+
+
+def state(hass, key):
+    entity = er.async_get(hass).async_get_entity_id("event", DOMAIN, f"DEMO-SERIAL_{key}")
+    return hass.states.get(entity)
+
+
+def live(minor=181, **fields):
+    return {
+        "eventType": "AccessControllerEvent",
+        "eventState": "active",
+        "dateTime": datetime.now(UTC).isoformat(),
+        "AccessControllerEvent": {
+            "majorEventType": 5,
+            "subEventType": minor,
+            "serialNo": 1,
+            "currentEvent": True,
+            **fields,
+        },
+    }
+
+
+async def test_live_access_entity_and_dedupe_do_not_expose_secrets(hass, loaded_entry):
+    monitor = loaded_entry.runtime_data.events
+    data = live(cardNo="9876543210", password="private-pin", employeeNoString="42", doorNo=1)
+    monitor.ingest(data)
+    await hass.async_block_till_done()
+    first = state(hass, "access")
+    assert first.attributes["event_type"] == "access_granted"
+    assert first.attributes["door"] == 1 and first.attributes["authentication"] == "pin"
+    assert "private-pin" not in str(first.as_dict()) and "9876543210" not in str(first.as_dict())
+    monitor.ingest(data)
+    await hass.async_block_till_done()
+    assert state(hass, "access").state == first.state
+    manager = get_events(hass)
+    assert len(manager.query({})["records"]) == 1
+    await manager.async_flush()
+    stored = await manager.store.async_load()
+    assert len(stored["records"]) == 1 and "private-pin" not in str(stored)
+
+
+async def test_replayed_old_or_unknown_time_events_only_enter_history(hass, loaded_entry):
+    monitor = loaded_entry.runtime_data.events
+    monitor.ingest(live(currentEvent=False))
+    old = live()
+    old["dateTime"] = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    monitor.ingest(old)
+    monitor.ingest(
+        {"major": 5, "minor": 150, "time": datetime.now(UTC).isoformat()}, historical=True
+    )
+    await hass.async_block_till_done()
+    assert state(hass, "access").state == "unknown"
+    records = get_events(hass).query({})["records"]
+    assert len(records) == 3 and all(row["recovered"] for row in records)
+
+
+async def test_doorbell_edge_and_reconnect_baseline(hass, loaded_entry, device_io):
+    coordinator = loaded_entry.runtime_data.coordinator
+    device_io["call"].return_value = CallState("ringing", "ring")
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    first = state(hass, "doorbell")
+    assert first.attributes["event_type"] == "ring"
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert state(hass, "doorbell").state == first.state
+    device_io["call"].side_effect = HikvisionConnectionError("offline")
+    await coordinator.async_refresh()
+    device_io["call"].side_effect = None
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert state(hass, "doorbell").state == first.state
+    assert len(get_events(hass).query({})["records"]) == 1
+
+
+async def test_event_admin_query_filters_and_no_secret_error_echo(
+    hass, loaded_entry, hass_ws_client
+):
+    loaded_entry.runtime_data.events.ingest(live(150, employeeNoString="42", name="Dana"))
+    client = await hass_ws_client(hass)
+    response = await request(client, "events/list", filters={"result": "denied", "person": "Dana"})
+    assert response["success"] and len(response["result"]["records"]) == 1
+    response = await request(client, "events/list", filters={"pin": "secret-event-filter"})
+    assert not response["success"] and "secret-event-filter" not in str(response)
+
+
+async def test_event_history_save_failure_is_visible(hass, loaded_entry):
+    manager = get_events(hass)
+    loaded_entry.runtime_data.events.ingest(live())
+    with patch.object(manager.store, "async_save", side_effect=OSError("private-path")):
+        await manager.async_flush()
+    assert manager.query({})["storage_failed"]
+    await manager.async_flush()
+    assert not manager.storage_failed
+
+
+async def test_stream_task_cancelled_and_session_closed_on_unload(hass, loaded_entry):
+    monitor = loaded_entry.runtime_data.events
+    entered = asyncio.Event()
+    session = AsyncMock()
+
+    async def stream(_session):
+        entered.set()
+        yield live()
+        await asyncio.Future()
+
+    with (
+        patch(
+            "custom_components.hikvision_intercom.event_manager.create_event_session",
+            return_value=session,
+        ),
+        patch.object(monitor.client, "async_stream", stream),
+    ):
+        task = hass.async_create_background_task(
+            monitor._stream(), "test stream", eager_start=False
+        )
+        monitor._tasks.append(task)
+        await entered.wait()
+        assert await hass.config_entries.async_unload(loaded_entry.entry_id)
+        assert task.cancelled()
+        session.aclose.assert_awaited_once()
+        assert not get_events(hass).stations
+
+
+async def test_history_failure_preserves_cursor_and_success_does_not_trigger(hass, loaded_entry):
+    monitor = loaded_entry.runtime_data.events
+    manager = get_events(hass)
+    old = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    manager.cursors[loaded_entry.entry_id] = old
+    monitor.client.page_size = 30
+    real_sleep = asyncio.sleep
+
+    async def sleep(delay):
+        if delay:
+            raise asyncio.CancelledError
+        await real_sleep(0)
+
+    with (
+        patch.object(
+            monitor.client, "async_history", side_effect=HikvisionConnectionError("offline")
+        ),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", sleep),
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await monitor._history()
+    assert manager.cursors[loaded_entry.entry_id] == old and monitor.history_state == "incomplete"
+    row = {"major": 5, "minor": 181, "time": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()}
+    with (
+        patch.object(monitor.client, "async_history", return_value=[row, row]),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", sleep),
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await monitor._history()
+    assert manager.cursors[loaded_entry.entry_id] != old and monitor.history_state == "recovered"
+    assert len(manager.query({})["records"]) == 2
+    assert state(hass, "access").state == "unknown"

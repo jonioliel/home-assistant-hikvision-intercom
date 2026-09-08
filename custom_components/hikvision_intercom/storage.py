@@ -19,8 +19,8 @@ from .access.models import AccessError
 
 
 class AccessStore(Store[dict[str, Any]]):
-    def __init__(self, hass: HomeAssistant) -> None:
-        super().__init__(hass, 1, "hikvision_intercom.users", private=True, atomic_writes=True)
+    def __init__(self, hass: HomeAssistant, *, key: str = "hikvision_intercom.users") -> None:
+        super().__init__(hass, 1, key, private=True, atomic_writes=True)
 
     async def async_load(self) -> dict[str, Any] | None:
         return await self.hass.async_add_executor_job(self._load_strict)

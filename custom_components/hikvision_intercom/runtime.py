@@ -31,6 +31,7 @@ from .client.client import ConnectionSettings, HikvisionClient, StationProfile, 
 from .configuration import ManagedLock, PollOptions, managed_locks
 from .const import DOMAIN, PLATFORMS
 from .coordinator import IntercomCoordinator
+from .event_manager import StationEvents, get_events
 from .exceptions import (
     HikvisionAuthError,
     HikvisionError,
@@ -50,6 +51,7 @@ class IntercomRuntime:
     pulse_seconds: float
     access_manager: AccessManager
     station_id: str
+    events: StationEvents | None = None
     unlocking: bool = False
     released: bool = False
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
@@ -94,6 +96,8 @@ class IntercomRuntime:
         self.coordinator.async_update_listeners()
 
     async def async_close(self) -> None:
+        if self.events:
+            await self.events.async_close()
         await self.access_manager.async_detach(self.station_id)
         if self._cancel_pulse:
             self._cancel_pulse()
@@ -153,6 +157,7 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
                 registry.async_remove(old)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         manager.attach(entry.entry_id, AccessClient(client))
+        entry.runtime_data.events = get_events(hass).attach(entry.runtime_data)
         was_online = coordinator.last_update_success
 
         @callback

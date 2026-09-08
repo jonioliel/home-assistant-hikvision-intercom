@@ -14,6 +14,7 @@ import type {
   Assignment,
 } from "./types";
 import "./camera";
+import "./events";
 
 const settingsPath = "/config/integrations/integration/hikvision_intercom";
 const value = (event: Event) => (event.target as HTMLInputElement).value;
@@ -1141,10 +1142,10 @@ export class IntercomManagerPanel extends LitElement {
                   ? this.devicesView()
                   : this._tab === "sync"
                     ? this.syncView()
-                    : html`<div class="empty">
-                        <h2>${this.t("events")}</h2>
-                        <p>${this.t("event_phase")}</p>
-                      </div>`
+                    : html`<hikvision-intercom-events
+                        .hass=${this.hass}
+                        .stations=${this._data.stations}
+                      ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

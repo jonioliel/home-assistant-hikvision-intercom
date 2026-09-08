@@ -17,7 +17,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .access.models import AccessError
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
 from .const import DOMAIN, VERSION
-from .exceptions import HikvisionError
+from .event_manager import get_events
+from .exceptions import HikvisionError, HikvisionValidationError
 from .log_filter import install_filter
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ USER_FIELDS = {
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
     "overview": {},
+    "events/list": {"filters": dict},
     "users/list": {},
     "users/get": {"user_id": str},
     "users/create": {"data": dict},
@@ -115,6 +117,11 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
 
 async def _dispatch(hass: HomeAssistant, command: str, msg: dict[str, Any]) -> Any:
     manager = get_manager(hass)
+    if command == "events/list":
+        try:
+            return get_events(hass).query(msg["filters"])
+        except HikvisionValidationError:
+            raise AccessError("invalid_fields") from None
     if command in {"overview", "sync/status"}:
         return overview(hass)
     if command == "users/list":

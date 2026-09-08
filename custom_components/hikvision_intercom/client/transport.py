@@ -29,16 +29,20 @@ class LimitedStream(httpx.AsyncByteStream):
 class LimitedTransport(httpx.AsyncBaseTransport):
     """Delegate connections and TLS to HTTPX with an independent raw-body ceiling."""
 
-    def __init__(self, transport: httpx.AsyncBaseTransport, limit: int) -> None:
+    def __init__(
+        self, transport: httpx.AsyncBaseTransport, limit: int, *, stream_path: str | None = None
+    ) -> None:
         self._transport = transport
         self._limit = limit
+        self._stream_path = stream_path
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         response = await self._transport.handle_async_request(request)
         if response.headers.get("content-encoding", "identity").casefold() != "identity":
             await response.aclose()
             raise HikvisionValidationError("Compressed probe responses are not accepted")
-        response.stream = LimitedStream(response.stream, self._limit)  # type: ignore[arg-type]
+        if not (response.status_code == 200 and request.url.path == self._stream_path):
+            response.stream = LimitedStream(response.stream, self._limit)  # type: ignore[arg-type]
         return response
 
     async def aclose(self) -> None:

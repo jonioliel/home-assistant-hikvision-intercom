@@ -34,7 +34,7 @@ strict = true
 follow_imports = "silent"
 explicit_package_bases = true
 # Protocol typing runs without HA; actual HA adapters are exercised on Linux in CI.
-files = ["custom_components/hikvision_intercom/client", "custom_components/hikvision_intercom/access", "custom_components/hikvision_intercom/configuration.py", "custom_components/hikvision_intercom/models.py", "custom_components/hikvision_intercom/exceptions.py", "tools"]
+files = ["custom_components/hikvision_intercom/client", "custom_components/hikvision_intercom/access", "custom_components/hikvision_intercom/events.py", "custom_components/hikvision_intercom/configuration.py", "custom_components/hikvision_intercom/models.py", "custom_components/hikvision_intercom/exceptions.py", "tools"]
 
 [[tool.mypy.overrides]]
 module = ["homeassistant.*"]

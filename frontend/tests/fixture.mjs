@@ -132,6 +132,45 @@ const fake = {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "overview") return structuredClone(data);
+    if (command === "events/list") {
+      const records = [
+        {
+          id: "event-1",
+          station_id: data.stations[0]?.id,
+          timestamp: "2026-09-08T12:00:00Z",
+          person_name: "Dana",
+          employee_no: "42",
+          door: 1,
+          authentication: "pin",
+          result: "denied",
+          event_type: "access_denied",
+          card: null,
+          recovered: false,
+          major: 5,
+          minor: 150,
+        },
+        {
+          id: "event-2",
+          station_id: data.stations[0]?.id,
+          timestamp: "2026-09-08T11:00:00Z",
+          person_name: null,
+          employee_no: null,
+          door: null,
+          authentication: "card",
+          result: "granted",
+          event_type: "access_granted",
+          card: "••••3210",
+          recovered: true,
+          major: 5,
+          minor: 1,
+        },
+      ].filter(
+        (row) =>
+          (!message.filters.result || row.result === message.filters.result) &&
+          (!message.filters.person || row.person_name?.includes(message.filters.person)),
+      );
+      return { records, next: null, storage_failed: false, stations: {} };
+    }
     if (command === "users/create") {
       const { pin, cards, ...fields } = message.data;
       const user = {

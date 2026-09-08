@@ -25,8 +25,14 @@ def entity_id(hass, domain, key):
 async def test_entities_states_and_diagnostics(hass, loaded_entry):
     registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(registry, loaded_entry.entry_id)
-    assert len(entities) == 5
-    assert {item.domain for item in entities} == {"binary_sensor", "sensor", "camera", "lock"}
+    assert len(entities) == 7
+    assert {item.domain for item in entities} == {
+        "binary_sensor",
+        "sensor",
+        "camera",
+        "lock",
+        "event",
+    }
     assert not any("door_2" in item.unique_id for item in entities)
     assert hass.states.get(entity_id(hass, "sensor", "call_status")).state == "idle"
     assert hass.states.get(entity_id(hass, "binary_sensor", "online")).state == "on"
