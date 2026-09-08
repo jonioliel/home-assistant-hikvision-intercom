@@ -145,3 +145,38 @@ async def test_options(hass):
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options["pulse_seconds"] == 4.0
+
+
+async def test_failed_mapping_does_not_create_entry(hass, device_io):
+    from custom_components.hikvision_intercom.exceptions import HikvisionTimeoutError
+
+    result = await start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"mode": "map_active_relay"}
+    )
+    device_io["unlock"].side_effect = HikvisionTimeoutError("timeout")
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"api_id": 1, "test_unlock": True}
+    )
+    assert result["errors"] == {"base": "unlock_failed"}
+    assert not hass.config_entries.async_entries(DOMAIN)
+    device_io["unlock"].assert_awaited_once()
+
+
+async def test_successful_reauth_preserves_mapping(hass, device_io):
+    entry = MockConfigEntry(domain=DOMAIN, title="Front", unique_id=PROFILE.unique_id, data=DATA)
+    entry.add_to_hass(hass)
+    with patch.object(hass.config_entries, "async_reload", AsyncMock(return_value=True)):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_REAUTH, "entry_id": entry.entry_id},
+            data=DATA,
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"username": "demo", "password": "replacement-secret"}
+        )
+        assert result["reason"] == "reauth_successful"
+        await hass.async_block_till_done()
+    assert entry.data["password"] == "replacement-secret"
+    assert entry.data["locks"] == DATA["locks"]
+    device_io["unlock"].assert_not_called()

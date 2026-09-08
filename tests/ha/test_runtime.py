@@ -6,7 +6,6 @@ from datetime import timedelta
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
@@ -78,16 +77,16 @@ async def test_lock_service_display_timer_and_rejected_lock(hass, loaded_entry, 
 
 
 async def test_custom_service_and_unselected_rejection(hass, loaded_entry, device_io):
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, PROFILE.unique_id)})
+    device_id = er.async_get(hass).async_get(entity_id(hass, "lock", "door_1")).device_id
     await hass.services.async_call(
-        DOMAIN, "unlock_door", {"device_id": device.id, "lock": 1}, blocking=True
+        DOMAIN, "unlock_door", {"device_id": device_id, "lock": 1}, blocking=True
     )
     device_io["unlock"].assert_awaited_once_with(1)
     import voluptuous as vol
 
     with pytest.raises(vol.Invalid):
         await hass.services.async_call(
-            DOMAIN, "unlock_door", {"device_id": device.id, "lock": 2}, blocking=True
+            DOMAIN, "unlock_door", {"device_id": device_id, "lock": 2}, blocking=True
         )
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "unlock_door", {"lock": 1}, blocking=True)
@@ -143,3 +142,75 @@ async def test_camera_image_and_backend_source(hass, loaded_entry):
     assert await camera.async_camera_image() == b"\xff\xd8image\xff\xd9"
     assert (await camera.stream_source()).startswith("rtsp://demo:demo-secret@")
     assert "demo-secret" not in str(camera.extra_state_attributes)
+
+
+async def test_admin_action_rejects_non_admin(hass, loaded_entry, device_io):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, patch
+
+    from homeassistant.core import Context
+    from homeassistant.exceptions import Unauthorized
+
+    with patch.object(
+        hass.auth, "async_get_user", AsyncMock(return_value=SimpleNamespace(is_admin=False))
+    ):
+        with pytest.raises(Unauthorized):
+            await hass.services.async_call(
+                DOMAIN,
+                "unlock_door",
+                {"entity_id": entity_id(hass, "lock", "door_1"), "lock": 1},
+                blocking=True,
+                context=Context(user_id="non-admin"),
+            )
+    device_io["unlock"].assert_not_called()
+
+
+@pytest.mark.parametrize("lock", [2, 65535, True, False, 1.5, "all"])
+async def test_service_invalid_lock_never_reaches_device(hass, loaded_entry, device_io, lock):
+    import voluptuous as vol
+
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            "unlock_door",
+            {"entity_id": entity_id(hass, "lock", "door_1"), "lock": lock},
+            blocking=True,
+        )
+    device_io["unlock"].assert_not_called()
+
+
+async def test_setup_failure_closes_owned_session(hass, device_io):
+    from unittest.mock import patch
+
+    from custom_components.hikvision_intercom.client.client import create_session
+
+    sessions = []
+
+    def capture(settings):
+        session = create_session(settings)
+        sessions.append(session)
+        return session
+
+    device_io["profile"].return_value = replace(PROFILE, unique_id="DIFFERENT")
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=PROFILE.unique_id, data=DATA)
+    entry.add_to_hass(hass)
+    with patch("custom_components.hikvision_intercom.runtime.create_session", capture):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+    assert len(sessions) == 1 and sessions[0].is_closed
+
+
+async def test_camera_optional_failure(hass, loaded_entry, device_io):
+    from unittest.mock import AsyncMock, patch
+
+    from custom_components.hikvision_intercom.camera import IntercomCamera
+
+    camera = IntercomCamera(loaded_entry)
+    with patch.object(
+        loaded_entry.runtime_data.client,
+        "async_snapshot",
+        AsyncMock(side_effect=HikvisionConnectionError("offline")),
+    ):
+        assert await camera.async_camera_image() is None
+    loaded_entry.runtime_data.profile = replace(PROFILE, stream=False, snapshot=False)
+    assert await camera.stream_source() is None
+    assert await camera.async_camera_image() is None

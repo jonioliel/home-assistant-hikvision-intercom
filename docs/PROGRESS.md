@@ -19,12 +19,11 @@ Do not describe physical Phase 0, the full project or installation acceptance as
 Permanent requirements: camera in HA and panel; explicit relay selection enforced by backend/UI;
 persistent offline sync/tombstones; secret redaction and administrator-only access management.
 
-Local validation: 130 tests passed with 90% coverage; Ruff and strict mypy passed.
-See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and limits.
-The owner approved publication and all source/history/specification files were uploaded.
-GitHub HACS, Hassfest and Python checks passed on f256a5a (Python 3.12 and 3.14).
-Phase 0 test sources are on phase/0-protocol-probe. The physical gate is still open;
-no production release has been published.
+Phase 0: 130 tests / 90% coverage, Ruff, mypy, HACS and Hassfest passed; commit `608abe7`
+was published as `v0.1.0-alpha.1` by release workflow 34206758291.
+Phase 1: 190 protocol/configuration tests pass locally; real HA validation is running in CI.
+See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and remaining acceptance work.
+The owner approved publication of source/history/specification and sanitized evidence.
 
 Remote evidence now covers 20 successful ISAPI reads, idle call samples, local PIN mode,
 real JSON alert-stream fixtures and independently decoded RTSP/snapshot frames.

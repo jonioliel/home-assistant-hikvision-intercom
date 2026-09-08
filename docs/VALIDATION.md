@@ -1,6 +1,7 @@
 # Phase 0 validation — 2026-09-08
 
-Branch: `phase/0-protocol-probe`. Remote reconnaissance is recorded; hardware Phase 0 remains open.
+Current branch: `phase/1-core-integration`. Phase 0 protocol baseline is complete;
+physical commissioning remains open. Historical Phase 0 validation follows below.
 
 ## Local validation
 
@@ -44,9 +45,10 @@ Python checks (3.12/3.14), HACS and Hassfest for each pushed commit; consult tha
 [checks](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions) for exact results.
 The final task report includes the pushed commit hash and its CI outcome.
 
-Development metadata remains `0.1.0-alpha.1` with an Unreleased changelog. No tag or GitHub
-Release exists yet. `main` remains the baseline while the physical Phase 0 gate is open.
-HA setup/entities and HACS install/upgrade acceptance are still pending Phase 1 onward.
+Phase 0 was merged at `608abe7` and published as `v0.1.0-alpha.1` after release workflow
+34206758291 passed. Core integration metadata now targets `0.2.0-alpha.1`; that version
+remains under HA validation and is not yet released. HACS installation and update acceptance
+on the owner's HA host remain pending.
 The supervised session below supplies some physical evidence. Successful answer transitions,
 PIN change/removal and rights enforcement remain unverified; they cannot be inferred from CI
 or capability advertisements. Relay 2 is excluded by the owner, not counted as tested.
@@ -84,3 +86,17 @@ card CRUD, duplicate behavior, schedule enforcement, reboot persistence or nine-
 classification and busy responses without exposing private error text. Three additional
 capability GETs returned HTTP 200. See MANUFACTURER_PROTOCOL.md for source references,
 PIN-attempt-limit interpretation and the owner-authorized continuation to Phase 1.
+
+## Phase 1 core validation in progress
+
+- 190 local protocol/configuration tests pass on Python 3.12.14.
+- Ruff lint/format and strict protocol mypy checks pass (13 protocol/tool files).
+- New live **read-only production-client** check on the commissioned station succeeded:
+  identity/model/firmware, advertised relay IDs, documented call enums, JPEG snapshot and
+  enabled RTSP channel configuration. Zero physical commands were sent.
+- Real HA 2026.9.1 tests run separately on Linux/Python 3.14 with stream/camera dependencies.
+  Their final outcomes will be recorded before merging/releasing Phase 1.
+- HACS and Hassfest pass on `bd05cc8`. Earlier failures exposed test-environment packaging
+  and missing optional camera dependencies; they were corrected rather than disabling checks.
+- The standard camera keeps its credential-bearing RTSP source backend-only. Diagnostics
+  use a small allowlist and never serialize config entry data or raw station records.
