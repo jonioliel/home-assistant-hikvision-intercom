@@ -304,6 +304,14 @@
     "events_storage_write": {
       "title": "Events storage requires attention",
       "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "schedules_storage_corrupt": {
+      "title": "Schedule storage could not be loaded",
+      "description": "Schedule drafts are unavailable. The existing file is preserved; restore hikvision_intercom.schedules from a valid backup and restart. Existing user access continues to operate."
+    },
+    "schedules_storage_write": {
+      "title": "Schedule storage write failed",
+      "description": "Check free disk space and write permissions, then save again. The change was not acknowledged as saved."
     }
   }
 }

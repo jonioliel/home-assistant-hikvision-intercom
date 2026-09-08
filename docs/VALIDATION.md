@@ -348,3 +348,17 @@ commissioned firmware. Identity verification and capability parsing passed; defa
 and length1–32 were returned. No collection or access/relay operation was requested.
 The exact main code commit is submitted to the gated v0.12.0-alpha.1 release workflow;
 this validation documentation commit changes no runtime behavior.
+
+
+## 0.13.0-alpha.1 — local schedule planning and read-only readiness
+
+Local protocol/access suite: **475 passed**, including50 new calendar, holiday-precedence,
+revision, capacity, corrupt/failed/interrupted storage and no-write readiness cases.
+Browser suite:58 existing cases passed and all7 new schedule cases passed after correcting
+an explicit accessible label on the station selector. TypeScript/build/format/Ruff pass.
+The Windows application-control policy blocked a mypy dependency DLL; strict typing and actual
+Home Assistant tests are delegated to the required Linux GitHub checks before publication.
+
+Two live GET-only passes verified advertised schedules and reproduced status3 on all four ID1
+reads. The second pass used the production readiness client with expected station identity.
+No device writes occurred. Physical schedule enforcement is unavailable, not validated.

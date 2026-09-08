@@ -4,6 +4,36 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.13.0-alpha.1] - 2026-09-08
+
+### Added
+- Central schedule planning: named weekly drafts, up to eight windows per day, holiday date
+  exceptions and a local-date/time preview with explicit holiday precedence. Empty holiday
+  windows close the draft day; overlapping periods/dates and ambiguous overnight windows
+  are rejected. End-of-day 24:00 is supported. Drafts are not applied to stations or users.
+- Independent, private, atomic Home Assistant schedule storage with revision checks, bounded
+  library size, cancellation-safe persistence, corruption preservation and Repairs. Existing
+  user storage and synchronization remain independent of draft availability.
+- English/Hebrew mobile schedule editor with add/edit/delete, unsaved-change checks, stale
+  revision handling and explicit reload after an uncertain save. Preview never claims actual
+  credential acceptance, timezone conversion or door access.
+- Read-only station readiness checks for permission templates, weekly plans, holiday groups
+  and holiday plans. Fresh identity and advertised bounds govern the sampled ID. Results
+  contain sanitized counts/errors and can be exported; device configuration names and raw
+  payloads are omitted. At most one check per station and three in the fleet, with deadlines.
+
+### Validation and limitations
+- Live GET-only checks against DS-KV6124-E1 V3.9.0 build260115 confirmed advertised ranges
+  1–255 for templates/weeks, 1–64 for groups and 1–1024 for holidays. Every sample-1 GET
+  returned device status 3. A failed GET is never treated as an empty or available slot.
+- Schedule allocation, device writes, RightPlan assignment and physical enforcement remain
+  unavailable pending protocol/ownership/readback validation. Even successful readiness
+  reads do not enable assignment. No schedule, credential or relay write occurred in this work.
+- Automated tests cover calendar/window boundaries, holiday overrides, concurrency, failed
+  and interrupted saves, actual HA authorization/storage/privacy and browser workflows.
+- Mandatory acceptance remains 28 of 38 applicable items (73.7%), ten open (26.3%).
+  Weekly/holiday Phase 6 work has progressed to planning, not completed device enforcement.
+
 ## [0.12.0-alpha.1] - 2026-09-08
 
 ### Added

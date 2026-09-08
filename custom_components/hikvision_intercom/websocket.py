@@ -16,7 +16,9 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .access.models import AccessError
+from .access.schedules import ScheduleLibrary, preview
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
+from .client.schedules import inspect_schedules
 from .configuration import managed_locks
 from .const import DOMAIN, VERSION
 from .event_manager import get_events
@@ -38,6 +40,12 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "schedules/list": {},
+    "schedules/create": {"data": dict},
+    "schedules/update": {"schedule_id": str, "revision": int, "data": dict},
+    "schedules/delete": {"schedule_id": str, "revision": int},
+    "schedules/preview": {"data": dict, "date": str, "time": str},
+    "schedules/readiness": {"station_id": str},
     "cards/reader_capabilities": {"station_id": str},
     "cards/capture_start": {"station_id": str, "user_id": str, "revision": int, "reader_id": int},
     "cards/capture_status": {"session_id": str},
@@ -176,6 +184,40 @@ async def _dispatch(
             await enrollment.cancel(msg["session_id"], actor)
             return {"cancelled": True}
         return await enrollment.confirm(msg["session_id"], actor, msg["label"])
+    if command.startswith("schedules/"):
+        if command == "schedules/readiness":
+            station = manager._station(msg["station_id"])
+            driver = manager._driver(station)
+            busy = hass.data[DOMAIN].setdefault("schedule_reads", set())
+            if station.id in busy or len(busy) >= 3:
+                raise AccessError("schedule_read_busy")
+            busy.add(station.id)
+            try:
+                async with asyncio.timeout(40):
+                    async with manager._read_slots:
+                        result = await inspect_schedules(driver.client)
+                if station.driver is not driver or manager._closed:
+                    raise AccessError("station_unloaded")
+                return result
+            except TimeoutError:
+                raise AccessError("connection_failed") from None
+            finally:
+                busy.discard(station.id)
+        library = hass.data[DOMAIN].get("schedules")
+        if not isinstance(library, ScheduleLibrary):
+            raise AccessError("invalid_storage")
+        if command == "schedules/list":
+            return library.list()
+        if command == "schedules/create":
+            return await library.async_save(msg["data"])
+        if command == "schedules/update":
+            return await library.async_save(
+                msg["data"], schedule_id=msg["schedule_id"], revision=msg["revision"]
+            )
+        if command == "schedules/delete":
+            await library.async_delete(msg["schedule_id"], msg["revision"])
+            return {"deleted": True}
+        return preview(msg["data"], msg["date"], msg["time"])
     if command == "sync/diagnostics":
         return {"integration_version": VERSION, **manager.sync_diagnostics()}
     if command in {"events/report", "events/export"}:

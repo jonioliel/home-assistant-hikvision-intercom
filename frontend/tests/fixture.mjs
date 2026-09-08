@@ -26,7 +26,7 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
-  version: "0.12.0-alpha.1",
+  version: "0.13.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -146,6 +146,8 @@ const captures = new Map();
 const callbacks = new Set();
 window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refresh" }));
 window.calls = [];
+const schedules = [];
+window.demoSchedules = schedules;
 window.demoData = data;
 const fake = {
   language: hebrew ? "he" : "en",
@@ -170,6 +172,60 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "schedules/list") return structuredClone(schedules);
+    if (command === "schedules/create" || command === "schedules/update") {
+      const current = schedules.find((s) => s.id === message.schedule_id);
+      if (command === "schedules/update" && current?.revision !== message.revision)
+        throw { code: "revision_conflict" };
+      const item = {
+        ...structuredClone(message.data),
+        id: current?.id ?? crypto.randomUUID(),
+        revision: (current?.revision ?? 0) + 1,
+        updated_at: "2026-09-08T20:00:00Z",
+      };
+      if (current) schedules.splice(schedules.indexOf(current), 1, item);
+      else schedules.push(item);
+      return structuredClone(item);
+    }
+    if (command === "schedules/delete") {
+      const index = schedules.findIndex((s) => s.id === message.schedule_id);
+      if (index < 0 || schedules[index].revision !== message.revision)
+        throw { code: "revision_conflict" };
+      schedules.splice(index, 1);
+      return { deleted: true };
+    }
+    if (command === "schedules/preview") {
+      const d = message.data;
+      const holiday = d.holidays.find((h) => h.start <= message.date && h.end >= message.date);
+      const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+        new Date(message.date + "T12:00:00Z").getUTCDay()
+      ];
+      const periods = holiday?.periods ?? d.weekly[day];
+      if (periods.some((p) => p.start >= p.end)) throw { code: "schedule_invalid_time" };
+      return {
+        within_window: periods.some((p) => p.start <= message.time && message.time < p.end),
+        source: holiday ? "holiday" : "weekly",
+        holiday: holiday?.name ?? null,
+        periods,
+        date: message.date,
+        time: message.time,
+      };
+    }
+    if (command === "schedules/readiness")
+      return {
+        checked_at: "2026-09-08T20:00:00Z",
+        can_apply: false,
+        sample_only: true,
+        reason: "schedule_writes_unverified",
+        checks: ["template", "weekly", "holiday_group", "holiday"].map((kind) => ({
+          kind,
+          advertised: true,
+          capabilities: { ids: [1, kind === "holiday" ? 1024 : 255] },
+          sample_id: 1,
+          read_state: "failed",
+          error: "device_rejected",
+        })),
+      };
     if (command === "cards/reader_capabilities") return { readers: [0], card_min: 1, card_max: 32 };
     if (command === "cards/capture_start") {
       const id = "synthetic-capture-" + captures.size;

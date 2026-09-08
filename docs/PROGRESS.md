@@ -10,7 +10,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional extensions | CSV/reporting in 0.11; capability-gated reader enrollment in 0.12 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
+| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -197,3 +197,9 @@ Enrollment code `018e10a94fd18fde85bf3b80821e0a0163406961` passed all branch CI:
 Hassfest34274523629 and Python/HA/frontend34274523581 all pass. The production
 capability client also passed a read-only check against the real firmware. Owner-authorized
 main publication runs the exact-commit release gate. Physical HW-ENROLL remains open.
+
+
+0.13 continues the weekly/holiday extension with a complete local draft editor, durable storage,
+window preview and read-only per-station readiness report. Four live capability GETs succeeded
+but all four configuration samples returned device status 3. Allocation, writes and user linkage
+remain unavailable; schedule enforcement is not counted as complete. See ACCESS_SCHEDULES.md.

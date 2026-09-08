@@ -12,6 +12,7 @@ from homeassistant.helpers.service import async_register_admin_service
 from .access.manager import AccessManager
 from .access.models import AccessError
 from .access.repository import AccessRepository
+from .access.schedules import ScheduleLibrary
 from .configuration import managed_locks
 from .const import DOMAIN
 from .issues import issue
@@ -40,6 +41,17 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     def changed() -> None:
         # The signal carries no personal data. Only administrator subscribers may project it.
         async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
+
+    schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
+    schedules = ScheduleLibrary(schedule_store.async_save, changed)
+    try:
+        await schedules.async_load(await schedule_store.async_load())
+    except AccessError:
+        issue(hass, "schedules_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["schedules"] = None
+    else:
+        issue(hass, "schedules_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["schedules"] = schedules
 
     manager = AccessManager(
         repository,

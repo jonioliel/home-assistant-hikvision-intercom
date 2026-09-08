@@ -1,0 +1,152 @@
+{
+  "model": "DS-KV6124-E1",
+  "firmware": "V3.9.0 build 260115",
+  "method": "GET",
+  "writes": 0,
+  "observations": [
+    {
+      "root": "UserRightPlanTemplate",
+      "item": "capabilities",
+      "payload": {
+        "UserRightPlanTemplate": {
+          "templateNo": {
+            "@min": 1,
+            "@max": 255
+          },
+          "enable": "true,false",
+          "templateName": {
+            "@min": 0,
+            "@max": 32
+          },
+          "weekPlanNo": {
+            "@min": 1,
+            "@max": 255
+          },
+          "holidayGroupNo": {
+            "@min": 1,
+            "@max": 64
+          }
+        }
+      }
+    },
+    {
+      "root": "UserRightPlanTemplate",
+      "item": "1",
+      "error": "HikvisionDeviceError",
+      "status_code": 3,
+      "sub_status": null
+    },
+    {
+      "root": "UserRightWeekPlanCfg",
+      "item": "capabilities",
+      "payload": {
+        "UserRightWeekPlanCfg": {
+          "planNo": {
+            "@min": 1,
+            "@max": 255
+          },
+          "enable": "true,false",
+          "WeekPlanCfg": {
+            "maxSize": 56,
+            "week": {
+              "@opt": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"
+            },
+            "id": {
+              "@min": 1,
+              "@max": 8
+            },
+            "enable": "true,false",
+            "TimeSegment": {
+              "beginTime": "00:00:00",
+              "endTime": "24:00:00"
+            }
+          }
+        }
+      }
+    },
+    {
+      "root": "UserRightWeekPlanCfg",
+      "item": "1",
+      "error": "HikvisionDeviceError",
+      "status_code": 3,
+      "sub_status": null
+    },
+    {
+      "root": "UserRightHolidayGroupCfg",
+      "item": "capabilities",
+      "payload": {
+        "UserRightHolidayGroupCfg": {
+          "groupNo": {
+            "@min": 1,
+            "@max": 64
+          },
+          "enable": "true,false",
+          "groupName": {
+            "@min": 0,
+            "@max": 32
+          },
+          "holidayPlanNo": {
+            "@min": 1,
+            "@max": 1024
+          },
+          "holidayPlanName": {
+            "@size": 16,
+            "@min": 0,
+            "@max": 64
+          }
+        }
+      }
+    },
+    {
+      "root": "UserRightHolidayGroupCfg",
+      "item": "1",
+      "error": "HikvisionDeviceError",
+      "status_code": 3,
+      "sub_status": null
+    },
+    {
+      "root": "UserRightHolidayPlanCfg",
+      "item": "capabilities",
+      "payload": {
+        "UserRightHolidayPlanCfg": {
+          "planNo": {
+            "@min": 1,
+            "@max": 1024
+          },
+          "enable": "true,false",
+          "deleteHolidayPlan": {
+            "@opt": [
+              true,
+              false
+            ]
+          },
+          "beginDate": "2000-01-01",
+          "endDate": "2037-12-31",
+          "holidayPlanName": {
+            "@min": 0,
+            "@max": 64
+          },
+          "HolidayPlanCfg": {
+            "maxSize": 8,
+            "id": {
+              "@min": 1,
+              "@max": 8
+            },
+            "enable": "true,false",
+            "TimeSegment": {
+              "beginTime": "00:00:00",
+              "endTime": "24:00:00"
+            }
+          }
+        }
+      }
+    },
+    {
+      "root": "UserRightHolidayPlanCfg",
+      "item": "1",
+      "error": "HikvisionDeviceError",
+      "status_code": 3,
+      "sub_status": null
+    }
+  ]
+}

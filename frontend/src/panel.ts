@@ -15,6 +15,7 @@ import type {
   CsvPreview,
   Assignment,
 } from "./types";
+import "./schedules";
 import { downloadText } from "./download";
 import "./camera";
 import "./events";
@@ -1902,11 +1903,15 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
         <nav class="nav" aria-label=${this.t("title")}>
-          ${["overview", "users", "devices", "events", "sync"].map(
+          ${["overview", "users", "devices", "events", "sync", "schedules"].map(
             (tab) =>
               html`<button
                 aria-current=${this._tab === tab ? "page" : nothing}
                 @click=${() => {
+                  const schedules = this.renderRoot.querySelector(
+                    "hikvision-intercom-schedules",
+                  ) as (HTMLElement & { canLeave(): boolean }) | null;
+                  if (tab !== this._tab && schedules && !schedules.canLeave()) return;
                   this._tab = tab;
                 }}
               >
@@ -1941,10 +1946,15 @@ export class IntercomManagerPanel extends LitElement {
                   ? this.devicesView()
                   : this._tab === "sync"
                     ? this.syncView()
-                    : html`<hikvision-intercom-events
-                        .hass=${this.hass}
-                        .stations=${this._data.stations}
-                      ></hikvision-intercom-events>`
+                    : this._tab === "schedules"
+                      ? html`<hikvision-intercom-schedules
+                          .hass=${this.hass}
+                          .stations=${this._data.stations}
+                        ></hikvision-intercom-schedules>`
+                      : html`<hikvision-intercom-events
+                          .hass=${this.hass}
+                          .stations=${this._data.stations}
+                        ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

@@ -35,6 +35,13 @@ The intercom controls the actual relay duration; no physical door contact is inf
 Unknown call states remain unknown. Two-way audio and answer/reject actions are outside
 this core release.
 
+## Schedule planning
+
+The administrator **Access schedules** tab saves named weekly/holiday drafts locally, previews
+window membership and runs read-only readiness checks against a station. Drafts are not assigned
+to users or enforced at doors: the observed firmware advertises all four schedule interfaces but
+rejects the sampled configuration reads. See [usage and remaining device work](docs/ACCESS_SCHEDULES.md).
+
 ## Central access backend
 
 - Private HA storage for users, PINs, multiple cards, station assignments and validity periods.

@@ -139,3 +139,15 @@ No collection request or physical operation was issued for this check.
 The implementation uses the dedicated collection result, not ordinary access events. Collected
 physical technology is not the normalCard access enum. Full identifiers stay server-side until
 explicit user-revision-bound approval. [Contract and commissioning plan](CARD_ENROLLMENT.md).
+
+
+## Schedule planning follow-up (0.13)
+
+Pages123–126 document the four explicit capability flags and holiday-over-week precedence;
+pages438–447 define UserRightPlanTemplate, UserRightWeekPlanCfg, UserRightHolidayGroupCfg
+and UserRightHolidayPlanCfg. The CardRight support flag names route to the documented UserRight
+weekly/holiday endpoints. Absent validUnit defaults to minute in the manufacturer contract.
+A fresh read-only check returned ranges255/255/64/1024 respectively and status3 for every ID1
+configuration GET. The production readiness implementation reproduced this result. No PUT,
+RightPlan association or credential/relay operation was performed. Local drafts do not claim
+firmware enforcement. See ACCESS_SCHEDULES.md and the sanitized schedule capabilities fixture.
