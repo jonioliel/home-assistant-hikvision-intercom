@@ -1,0 +1,38 @@
+{
+  "capture": {
+    "evidence_source": "live_device_supervised_bell_capture",
+    "duration_limit_seconds": 180,
+    "call_samples": 283,
+    "call_changes": [
+      {
+        "offset_seconds": 0.282,
+        "kind": "call_status",
+        "status": 200,
+        "outcome": "observed",
+        "payload": {
+          "CallStatus": {
+            "status": "idle"
+          }
+        },
+        "error": null
+      }
+    ],
+    "stream": {
+      "http_status": 401,
+      "headers": {
+        "content-type": "application/xml"
+      },
+      "events_received": 0,
+      "bytes_received": 0
+    },
+    "writes_performed": false,
+    "elapsed_seconds": 166.844
+  },
+  "owner_observation": {
+    "source": "owner_physical_observation",
+    "action": "bell_pressed_once",
+    "result": "busy_tone",
+    "answer_test_available": false,
+    "press_timestamp": "not_measured"
+  }
+}

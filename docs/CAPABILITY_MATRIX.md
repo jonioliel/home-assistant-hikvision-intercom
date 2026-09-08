@@ -63,3 +63,30 @@ Vendor JavaScript and private connection data are not included in this repositor
 
 Reboot, Home Assistant/HACS install and upgrade, nine-station acceptance and soak testing
 remain later commissioning gates. No physical mutation was performed in the remote session.
+
+## Supervised second station — 2026-09-08 UTC
+
+The initial table above describes the first remote-only station. The owner then supplied a
+second station with the same model/firmware and one bound test card. The following evidence
+supersedes pending statements only for the explicitly tested behavior.
+
+| Area | Witnessed or read-back result | Limit |
+| --- | --- | --- |
+| Bell | Busy tone; 283 samples all `idle` | Ringing/answer/hangup not established; no answering screen |
+| Relay | API door 1 opens the active door lock and it returns normally | Relay 2 disabled and excluded project-wide by owner |
+| User/card read | One existing person and one matching normal card | Multi-page and multiple-card behavior pending |
+| Card authentication | Test card accepted; physical release/return confirmed | Card create/update/delete not yet tested through our client |
+| PIN create | Local mode, `UserInfo.localPassword`; six digits alone accepted | One length tested; capability range alone is not proof of other lengths |
+| PIN change | HTTP 200/statusCode 1, exact new-secret readback, owner unchanged | Both codes failed physically; new code gave an error tone |
+| Permission diagnosis | Same changed PIN resent with vendor UI door-1 RightPlan structure; readback passed | Physical result pending; no root cause established |
+| Live events | `currentEvent=true`; unlockType card/password/centerplatform correlated with witnessed operations | Numeric codes are not universal mappings; PIN event person identity absent |
+
+The user editor on the active station (`1212_be02bbe4.js`, helper `5607_8b69d2b9.js`)
+selects POST `UserInfo/Record` for creation and PUT `UserInfo/Modify` for editing. It sends
+`localPassword` in local mode and `password` in platform mode. Only local mode was tested.
+Its ordinary door selection constructs `RightPlan` entries with `doorNo` and `planTemplateNo`.
+A GET of advertised `UserRightPlanTemplate/1` returned HTTP 500/deviceError, so template
+contents and enforcement remain unknown. No schedule or global mode was changed.
+
+The temporary test user still requires cleanup. The owner-created user/card are preserved.
+See [station B fixtures](../tests/fixtures/ds_kv6124_e1_fw_3_9_0_station_b/README.md).

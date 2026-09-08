@@ -4,7 +4,7 @@ Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
 | Phase | Status | Gate |
 | --- | --- | --- |
-| 0 — Reconnaissance | Remote reads and video verified; physical gate open | Probe, call sequence, relay mapping, PIN/card findings |
+| 0 — Reconnaissance | Reads, video, active relay, card and initial PIN verified; change test open | Probe, call sequence, relay mapping, PIN/card findings |
 | 1 — Core integration | Not started | Phase 0 evidence |
 | 2 — Access backend | Not started | Verified credential and permission behavior |
 | 3 — Admin panel | Not started | Backend and admin API |
@@ -22,11 +22,16 @@ persistent offline sync/tombstones; secret redaction and administrator-only acce
 Local validation: 118 tests passed with 90% coverage; Ruff and strict mypy passed.
 See VALIDATION.md and CAPABILITY_MATRIX.md for evidence and limits.
 The owner approved publication and all source/history/specification files were uploaded.
-GitHub HACS, Hassfest and Python checks passed on ba2f7e4 (Python 3.12 and 3.14).
+GitHub HACS, Hassfest and Python checks passed on f256a5a (Python 3.12 and 3.14).
 Phase 0 test sources are on phase/0-protocol-probe. The physical gate is still open;
 no production release has been published.
 
 Remote evidence now covers 20 successful ISAPI reads, idle call samples, local PIN mode,
 real JSON alert-stream fixtures and independently decoded RTSP/snapshot frames.
-Bell transitions, relay mapping and PIN/card/rights acceptance still require an on-site witness.
+The supervised second-station session confirmed API door 1, existing-card authentication and
+initial six-digit local PIN acceptance. PIN modification was acknowledged and read back, but
+both old and new PINs failed physically. Diagnosis and temporary-user cleanup remain open.
+The owner excludes disabled relay 2 project-wide and defers answer testing because no
+answering screen is installed. A witnessed bell attempt produced busy tone and only idle samples.
+See the [station B evidence](../tests/fixtures/ds_kv6124_e1_fw_3_9_0_station_b/README.md).
 Two stream reconnections returned HTTP 500 before a later successful retry.

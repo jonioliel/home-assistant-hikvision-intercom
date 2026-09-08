@@ -1,0 +1,43 @@
+{
+  "name": "user_search_00",
+  "method": "POST",
+  "path": "/ISAPI/AccessControl/UserInfo/Search?format=json",
+  "elapsed_ms": 94,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "UserInfoSearch": {
+      "searchID": "REDACTED",
+      "responseStatusStrg": "OK",
+      "numOfMatches": 1,
+      "totalMatches": 1,
+      "UserInfo": [
+        {
+          "employeeNo": "REDACTED",
+          "name": "REDACTED",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "REDACTED",
+            "endTime": "REDACTED",
+            "timeType": "REDACTED"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "maxOpenDoorTime": "REDACTED",
+          "openDoorTime": "REDACTED",
+          "numOfFace": "REDACTED",
+          "numOfCard": "REDACTED",
+          "localUIRight": "REDACTED"
+        }
+      ]
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 525
+}

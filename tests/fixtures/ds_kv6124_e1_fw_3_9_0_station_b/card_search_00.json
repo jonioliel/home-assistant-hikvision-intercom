@@ -1,0 +1,30 @@
+{
+  "name": "card_search_00",
+  "method": "POST",
+  "path": "/ISAPI/AccessControl/CardInfo/Search?format=json",
+  "elapsed_ms": 93,
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "payload": {
+    "CardInfoSearch": {
+      "searchID": "REDACTED",
+      "responseStatusStrg": "OK",
+      "numOfMatches": 1,
+      "totalMatches": 1,
+      "CardInfo": [
+        {
+          "employeeNo": "REDACTED",
+          "cardNo": "REDACTED",
+          "cardType": "normalCard"
+        }
+      ]
+    }
+  },
+  "namespaces": [],
+  "outcome": "observed",
+  "error": null,
+  "truncated": false,
+  "bytes_received": 228
+}

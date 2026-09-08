@@ -1,0 +1,199 @@
+{
+  "capture": {
+    "source": "supervised_temporary_PIN_test",
+    "duration_limit_seconds": 180,
+    "writes_performed_by_monitor": false,
+    "events_received": 92,
+    "live_events": [
+      {
+        "offset_seconds": 152.219,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 21,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 152.515,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 25,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 152.812,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 181,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 153.125,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 214,
+            "serialNo": "REDACTED",
+            "currentEvent": true,
+            "unlockType": "password"
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 153.922,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 22,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 155.89,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 150,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 158.953,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 216,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      },
+      {
+        "offset_seconds": 160.969,
+        "payload": {
+          "channelID": 1,
+          "ipAddress": "REDACTED",
+          "portNo": "REDACTED",
+          "protocol": "REDACTED",
+          "dateTime": "REDACTED",
+          "activePostCount": 1,
+          "eventType": "AccessControllerEvent",
+          "eventState": "active",
+          "eventDescription": "REDACTED",
+          "AccessControllerEvent": {
+            "deviceName": "REDACTED",
+            "majorEventType": 5,
+            "subEventType": 92,
+            "serialNo": "REDACTED",
+            "currentEvent": true
+          }
+        },
+        "matches_temporary_user": false
+      }
+    ],
+    "http_status": 200,
+    "headers": {
+      "content-type": "multipart/mixed"
+    },
+    "elapsed_seconds": 180.094
+  },
+  "owner_observation": {
+    "source": "owner_physical_observation",
+    "step": "initial_pin_acceptance",
+    "input_sequence": "six_digits_only",
+    "lock_released": true,
+    "returned_to_normal": true
+  }
+}

@@ -79,3 +79,15 @@ physical test, review the result, then continue through the phases in order.
 
 render_readme is omitted because the current HACS schema does not list it.
 The spec requires supported keys despite including it in an illustrative example.
+
+## Owner scope and supervised continuation
+
+The owner has specified one active relay per station across this installation. Relay 2 is
+excluded from management and tests. Answer/hangup tests are deferred until an answering
+screen exists; busy tone plus idle call samples do not establish those transitions.
+
+The second-station session verified API door 1, an existing test card and initial local PIN
+acceptance. PIN change failed physically despite success/readback. Continue from the private
+owned-test-user ledger, resolve or record the limitation, clear/delete only that temporary
+user and verify the original user/card remain. Never promote HTTP success to physical proof.
+See VALIDATION.md for current results and open gates.

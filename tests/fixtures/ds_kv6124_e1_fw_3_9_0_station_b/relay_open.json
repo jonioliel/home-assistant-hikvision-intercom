@@ -1,0 +1,39 @@
+{
+  "source": "supervised_physical_relay_test",
+  "repeat_reason": "owner_requested_repeat_first_attempt_not_witnessed",
+  "api_door_id": 1,
+  "method": "PUT",
+  "path": "/ISAPI/AccessControl/RemoteControl/door/1",
+  "command": "open",
+  "physical_mapping": "api_door_1_controls_active_door_lock",
+  "attempt_started_utc": "2026-09-08T07:49:16.832583+00:00",
+  "automatic_retries": 0,
+  "http_exchange": [
+    {
+      "status": 401,
+      "authorization_sent": false
+    },
+    {
+      "status": 200,
+      "authorization_sent": true
+    }
+  ],
+  "http_status": 200,
+  "headers": {
+    "content-type": "application/xml"
+  },
+  "payload": {
+    "ResponseStatus": {
+      "@version": "1.0",
+      "requestURL": "REDACTED",
+      "statusCode": "1",
+      "statusString": "OK",
+      "subStatusCode": "ok"
+    }
+  },
+  "acknowledgement": "success",
+  "owner_observation": {
+    "lock_released": true,
+    "returned_to_normal": true
+  }
+}

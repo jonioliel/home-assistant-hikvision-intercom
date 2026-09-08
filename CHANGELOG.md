@@ -5,6 +5,9 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Added
+- Sanitized supervised evidence for one active relay, populated user/card reads, card access,
+  initial local PIN acceptance and failed PIN change despite successful API readback.
+- Owner scope: relay 2 excluded throughout the project; answered-call tests deferred.
 - Sanitized real-device fixtures and capability matrix for V3.9.0 build 260115.
 - Extended read-only capability and PIN-mode reconnaissance using observed firmware routes.
 - Separate evidence for decoded RTSP video, snapshot, idle calls and stream recovery.
@@ -33,4 +36,5 @@ Semantic Versioning is used throughout the project.
 
 ### Release status
 - Prepared development version: 0.1.0-alpha.1.
-- No release published. Remote Phase 0 evidence collected; physical call, relay, PIN and card gates remain open.
+- No release published. Phase 0 now has witnessed active-relay/card/initial-PIN evidence;
+  PIN change diagnosis, test-user cleanup and remaining acceptance gates are open.
