@@ -672,3 +672,21 @@ or access-window enforcement. No user is inferred from the secret PIN or timing 
 This turn is planning/documentation only. Twenty additional tasks and a transparent coarse scope
 estimate are in NEXT_BATCH_20_TASKS_HE.md. Implementation, new releases and device operations await
 the owner's approval of that plan. The source image was not copied into the public repository.
+
+
+## Core/media batch — 0.21.0-alpha.1
+
+Final code `e1b23627a1bba72882d7616b64ee886492eb2254`:754 protocol/access/tool tests,
+215 real Home Assistant tests,112 browser tests;1081 total, counting Python versions once.
+ConfigFlow100%, strict mypy51 modules, Ruff/TS/Prettier/build reproducibility, HACS and Hassfest passed.
+Release workflow34345012158 completed before remote tag/manifest/bundle verification.
+New regression cases cover event privacy/origin/ties, acceptance durability/revisions, read-only
+health refresh isolation, call-command serialization, media capability fallback and WebRTC cleanup,
+HLS fallback, delayed config responses and a received track that never produces decoded video.
+
+Authorized read-only station checks verified Search readiness and call/audio capabilities.
+Both stations passed18/18 status reads in90seconds (p95 187ms/141ms); this does not close the
+nine-station soak/recovery gate. One station clock used manual UTC and was approximately8hours
+ahead. No clock, user, PIN, card, schedule or audio setting was changed; no live call or door command
+was sent. Identity issue correlation, two-way audio and physical call acceptance remain open.
+See CORE_MEDIA_BATCH_HE.md for the full20-task ledger and HEALTH_AND_MEDIA.md for usage.

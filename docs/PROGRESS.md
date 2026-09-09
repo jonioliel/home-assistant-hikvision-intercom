@@ -405,3 +405,12 @@ or access-window enforcement. No user is inferred from the secret PIN or timing 
 This turn is planning/documentation only. Twenty additional tasks and a transparent coarse scope
 estimate are in NEXT_BATCH_20_TASKS_HE.md. Implementation, new releases and device operations await
 the owner's approval of that plan. The source image was not copied into the public repository.
+
+
+## 0.21 publication verified
+
+Published v0.21.0-alpha.1 from `e1b23627a1bba72882d7616b64ee886492eb2254`.
+All final checks passed:754 Python +215 actualHA +112 browser =1081 tests;
+ConfigFlow100%, strict mypy51 modules, HACS/Hassfest and reproducible frontend build.
+Release workflow34345012158; exact tag, manifest and bundle verified remotely.
+No device mutation was performed. The current evidence ledger is CORE_MEDIA_BATCH_HE.md.

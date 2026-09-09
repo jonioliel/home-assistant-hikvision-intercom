@@ -66,7 +66,30 @@ WebRTC נספר כמימוש תוכנה עם בדיקות אוטומטיות, ו
 
 ## אימות תוכנה ופרסום
 
-752 בדיקות Python ו־111 בדיקות דפדפן עברו ב־CI הראשון. לאחר הוספת שתי בדיקות
-למסלול יכולות השמע החלופי צפויות 754 בדיקות Python. בבדיקת HA נמצא כשל בעזר בדיקה
-שקיבל פרמטר בשם כפול; העזר תוקן והתרחיש הורחב לבדוק מניעת פקודות שיחה מקבילות.
-תוצאות האימות הסופיות והפרסום יתועדו לאחר סיום CI על ה־commit הסופי.
+**גרסה 0.21.0-alpha.1 פורסמה דרך GitHub Releases, להתקנה ועדכון דרך HACS.**
+לאחר העדכון יש לאתחל Home Assistant.
+
+- commit הגרסה: `e1b23627a1bba72882d7616b64ee886492eb2254`.
+- **1,081 בדיקות עברו:** 754 Python,‏ 215 Home Assistant,‏ 112 דפדפן.
+  בדיקות Python ב־3.12 וב־3.14 נספרות פעם אחת.
+- כיסוי ConfigFlow:‏ **100%**. mypy מחמיר עבר על **51 מודולים**.
+- Ruff, TypeScript, Prettier, בנייה חוזרת זהה, HACS ו־Hassfest עברו.
+- [CI של ה־commit](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34344741066),
+  [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34344741071),
+  [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34344741051).
+- [תהליך הפרסום](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34345012158)
+  מריץ שוב את שערי הבדיקה לפני יצירת הגרסה.
+- [הורדת הגרסה ו־CHANGELOG](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.21.0-alpha.1).
+
+אומתו התג מול ה־commit המדויק, גרסת manifest, תוכן החבילה והיעדר תיקיות פרטיות
+בעץ הקבצים המפורסם. קובצי מקור היצרן, פרטי התחברות ותיעוד גולמי של התחנות לא פורסמו.
+
+| commit | תכולה |
+| --- | --- |
+| `6415e92` | אבחון אירועים, בריאות תחנות, שמירת בדיקות שטח, קריאות מוכנות ואיתות שיחה |
+| `b02ac4b` | מסכים, נגן WebRTC עם HLS חלופי ותהליך בדיקות שטח |
+| `8894a86` | גרסה, CHANGELOG ודוח 20 המשימות |
+| `592fcd1` | יכולות שמע לפי ערוץ מפורש ובדיקת מניעת פקודות שיחה מקבילות |
+| `e1b2362` | נסיגה ל־HLS כאשר מתקבל ערוץ אך לא מגיעה תמונה מפוענחת |
+
+הבדיקות המסכמות הורצו על ה־commit האחרון המכיל את כל השינויים בטבלה.
