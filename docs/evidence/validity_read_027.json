@@ -1,0 +1,83 @@
+{
+  "checked_at": "2026-09-09T20:21:01.229625+00:00",
+  "device_requests": "read_only",
+  "stations": [
+    {
+      "station_alias": "A",
+      "writes": 0,
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "zone": {
+        "kind": "device",
+        "name": "CST-2:00:00DST01:00:00,M4.1.0/02:00:00,M10.5.0/02:00:00",
+        "standard": 7200,
+        "delta": 3600,
+        "start": [
+          4,
+          1,
+          0,
+          7200
+        ],
+        "end": [
+          10,
+          5,
+          0,
+          7200
+        ]
+      },
+      "skew_seconds": 1,
+      "validity_shapes": [
+        {
+          "enabled": false,
+          "time_type": "local",
+          "begin_has_offset": false,
+          "end_has_offset": false,
+          "count": 1
+        },
+        {
+          "enabled": false,
+          "time_type": "local",
+          "begin_has_offset": true,
+          "end_has_offset": true,
+          "count": 2
+        }
+      ],
+      "normalization_errors": {}
+    },
+    {
+      "station_alias": "B",
+      "writes": 0,
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "zone": {
+        "kind": "device",
+        "name": "CST+0:00:00DST01:00:00,M4.1.0/02:00:00,M10.5.0/02:00:00",
+        "standard": 0,
+        "delta": 3600,
+        "start": [
+          4,
+          1,
+          0,
+          7200
+        ],
+        "end": [
+          10,
+          5,
+          0,
+          7200
+        ]
+      },
+      "skew_seconds": 1,
+      "validity_shapes": [
+        {
+          "enabled": false,
+          "time_type": "local",
+          "begin_has_offset": true,
+          "end_has_offset": true,
+          "count": 2
+        }
+      ],
+      "normalization_errors": {}
+    }
+  ]
+}

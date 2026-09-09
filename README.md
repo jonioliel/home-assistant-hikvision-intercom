@@ -1,5 +1,7 @@
 # Hikvision Intercom Manager
 
+Latest delivery: [0.27 camera, audio and upgrade recovery](docs/RECOVERY_027_HE.md).
+
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
