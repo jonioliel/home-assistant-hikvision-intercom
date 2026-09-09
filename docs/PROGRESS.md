@@ -374,3 +374,24 @@ checks are deferred until next week; there is no scheduled automation or confirm
 The current pending-test table now reflects the already-confirmed two-station PIN replacement,
 while retaining the earlier failed commissioning session as historical evidence. No device
 requests or code changes were made for this documentation update.
+
+
+## Owner-confirmed PIN removal and live video; next batch awaits approval — 2026-09-09
+
+The owner explicitly confirms PIN-only removal while retaining the user, with the removed code
+rejected. They also confirm stable live video in the HA camera entity and panel on desktop/mobile,
+while noting that WebRTC is not used. DoD5,6,16 now close:31/38=81.6%,7/38=18.4% remain.
+Original temporary-user cleanup remains a separate commissioning follow-up, not an open PIN feature.
+The offline-change/reboot/reconnect scenario is reported as "seems to work" and retained as tentative
+positive evidence for two stations, not nine-station soak acceptance.
+
+The screenshot shows a PIN authentication accepted event with unidentified person and historical
+label. The UI uses that label when both normalized person_name and employee_no are absent. Existing
+normalization reads employeeNoString/employeeNo, and ingestion resolves names from an explicit ID.
+The raw device event for this occurrence was not inspected; missing source identity, parser coverage
+and history/freshness need investigation. The displayed UTC offset alone cannot prove time correctness
+or access-window enforcement. No user is inferred from the secret PIN or timing alone.
+
+This turn is planning/documentation only. Twenty additional tasks and a transparent coarse scope
+estimate are in NEXT_BATCH_20_TASKS_HE.md. Implementation, new releases and device operations await
+the owner's approval of that plan. The source image was not copied into the public repository.

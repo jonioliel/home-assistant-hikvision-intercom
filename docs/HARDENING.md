@@ -73,13 +73,14 @@ HTTP sessions and optimistic release timers stop on unload or HA shutdown.
 ## Acceptance still needed
 
 - The owner confirmed user creation/sync on two stations and PIN replacement: new accepted,
-  old rejected. User deletion was subsequently reported working. Still validate PIN-only removal
-  while retaining the user, offline revocation/restart recovery and original test-user cleanup.
-  The latest deletion report does not specify those separate scenarios.
+  old rejected. User deletion and PIN-only removal while retaining the user are now owner-confirmed.
+  Offline revocation/restart recovery has a tentative positive two-station report; preserve this
+  distinction from a controlled nine-station acceptance. Original test-user cleanup is separate.
 - Test-card lifecycle and reader enrollment are deferred to next week at the owner's request.
   Add/remove and readback/physical acceptance remain open without modifying the owner's card.
 - Obtain a reproducible actual bell status sequence. Busy-tone/idle observations do not prove ringing.
-- Finish installed camera/live video and administrator acceptance; HACS install/upgrade are owner-confirmed.
+- Installed live video in both the HA entity and panel, on desktop/mobile, is owner-confirmed.
+  Ring-triggered camera prominence and event identity remain open. WebRTC is a separate extension.
 - Run the multi-station hardware soak and reconnect/reboot acceptance with the owner. Only one active
   physical relay per station is in scope; disabled relay 2 is excluded by the owner's instruction.
 - Answered-call checks remain deferred because an answering screen is not installed. Busy state is
