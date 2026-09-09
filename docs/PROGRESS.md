@@ -1,18 +1,17 @@
 # Project progress
 
 The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) remains the forward plan.
-Current release **0.27.1-alpha.1**: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Current release **0.27.2-alpha.1**: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, four partial, one absent. Combined scope remains
-**37/47 = 78.7%**. This patch fixes call/audio ownership, delayed responses, unload cleanup,
-user-management recovery, event-name attribution and keyboard focus inside existing items.
-It does not close physical acceptance. [Overnight delivery and open gates](OVERNIGHT_2026_09_10_HE.md).
-Access storage schema remains 3; legacy station identity boundaries are established on verified readback.
+**37/47 = 78.7%**. This patch fixes event-list recovery, interrupted reports, stale filters
+and connection ownership inside existing items. It does not close physical acceptance.
+[Overnight delivery and open gates](OVERNIGHT_2026_09_10_HE.md). Access storage schema remains 3.
 
-Published [v0.27.1-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.1-alpha.1) from `b6da2b03ab8f8ffeaf14736e8886e2123c721118`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34412993869) passed: 887 Python tests per version (3.12/3.14), 264 HA tests,
-189 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+Published [v0.27.2-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.2-alpha.1) from `74577d0a221ec2a835a42842bc7ea6a5362554b6`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34415443104) passed: 887 Python tests per version (3.12/3.14), 264 HA tests,
+197 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel bundle and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.27.1-alpha.1.json).
+[Publication evidence](evidence/release_0.27.2-alpha.1.json).
 
 ## Historical checkpoints (earlier counts below are not current)
 

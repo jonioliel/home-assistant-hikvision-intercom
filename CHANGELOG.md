@@ -4,8 +4,15 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.3-alpha.1] - 2026-09-10
+
 ### Fixed
+- Reject a live health inspection if the station begins unloading or its runtime is replaced while media capabilities are being read. Do not return a mixed diagnostic snapshot.
+- Bound field-checklist reads and saves; a missing save response requires reading the stored result before another change. Keep its uncertainty message through unrelated health refreshes and reconnect without replaying a save.
 - Isolate health reads with one three-slot queue: station updates cannot overlap batches, completed peers immediately free capacity, and missing cached/live responses expire after 20/45 seconds. Discard old-connection results, stop queued reads on disconnect, and reconnect using cached diagnostics only.
+
+### Validation boundaries
+- No physical device operations were performed. Diagnostic recovery and recorded operator results do not establish field acceptance. The open physical gates remain unchanged.
 
 ## [0.27.2-alpha.1] - 2026-09-10
 
