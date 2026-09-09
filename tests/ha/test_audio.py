@@ -320,6 +320,30 @@ async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
             ]
             await asyncio.gather(*tasks, return_exceptions=True)
             for entry in reversed(entries):
-                if not entry.runtime_data.session.is_closed:
+                runtime = getattr(entry, "runtime_data", None)
+                if runtime is not None and not runtime.session.is_closed:
                     await hass.config_entries.async_unload(entry.entry_id)
             await hass.async_block_till_done()
+
+
+async def test_cancellation_before_audio_task_starts_releases_subscription(
+    hass, loaded_entry, audio_driver
+):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from custom_components.hikvision_intercom.audio_api import AudioBridge
+
+    connection = SimpleNamespace(
+        subscriptions={}, user=SimpleNamespace(is_admin=True), send_event=Mock()
+    )
+    bridge = AudioBridge(hass, connection, loaded_entry.runtime_data, 7)
+    connection.subscriptions[7] = bridge.cancel
+    hass.data[DOMAIN]["audio_sessions"] = {loaded_entry.entry_id: bridge}
+    bridge.task = asyncio.create_task(bridge.run())
+    bridge.cancel()
+    await asyncio.gather(bridge.task, return_exceptions=True)
+    assert not connection.subscriptions
+    assert not hass.data[DOMAIN]["audio_sessions"]
+    audio_driver.start.assert_not_called()
+    assert connection.send_event.call_args.args[1]["state"] == "closed"

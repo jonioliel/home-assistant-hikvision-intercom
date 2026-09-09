@@ -58,6 +58,17 @@ class AudioBridge:
             sessions = self.hass.data.get(DOMAIN, {}).get("audio_sessions", {})
             if sessions.get(self.runtime.station_id) is self:
                 sessions.pop(self.runtime.station_id, None)
+            if self.connection.subscriptions.pop(self.subscription, None):
+                if self.connection.user and self.connection.user.is_admin:
+                    self.connection.send_event(
+                        self.subscription,
+                        {
+                            "format": "hikvision_intercom.audio",
+                            "state": "closed",
+                            "reason": "audio_stopped",
+                            "close_confirmed": None,
+                        },
+                    )
         if self.task:
             self.task.cancel()
 

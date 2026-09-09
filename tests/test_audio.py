@@ -238,3 +238,36 @@ async def test_session_requires_pinned_station_identity(audio):
         await audio.start()
     assert err.value.code == "audio_identity_required"
     audio.control._request.assert_not_called()
+
+
+@pytest.mark.parametrize("stale", [False, True])
+async def test_transmitter_drops_stale_packets_and_mutes_the_next_frame(audio, stale):
+    import time
+    from types import SimpleNamespace
+
+    frames = []
+    first = asyncio.Event()
+    second = asyncio.Event()
+
+    def write(frame):
+        frames.append(frame)
+        if len(frames) == 1:
+            first.set()
+        if len(frames) == 2:
+            second.set()
+
+    audio._writer = SimpleNamespace(
+        write=write, drain=AsyncMock(), close=lambda: None, wait_closed=AsyncMock()
+    )
+    audio.session_id = "owned"
+    audio.outgoing.put_nowait((time.monotonic() - (1 if stale else 0), b"\x00" * 800))
+    task = asyncio.create_task(audio._transmit())
+    try:
+        await asyncio.wait_for(first.wait(), 1)
+        audio.mute()
+        await asyncio.wait_for(second.wait(), 1)
+        assert frames[0] == (b"\xff" if stale else b"\x00") * 160
+        assert frames[1] == b"\xff" * 160
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
