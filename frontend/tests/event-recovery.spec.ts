@@ -157,3 +157,55 @@ test("HA disconnect discards an event export and reconnect never repeats the dow
     await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("events/export")).length),
   ).toBe(1);
 });
+
+test("Hebrew mobile event errors preserve readable records without horizontal overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const events = await setup(page, "export");
+  await page.evaluate(() => {
+    window.demoHass.language = "he";
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+  });
+  await events.getByRole("button", { name: "ייצוא אירועים מסוננים CSV", exact: true }).click();
+  await events.evaluate((node: any) => {
+    window.demoHass.connection.connected = false;
+    node.haDisconnected();
+  });
+  await expect(events.getByRole("alert")).toContainText("תשובת הדוח לא התקבלה");
+  await expect(events.locator(".audit-row")).toHaveCount(2);
+  expect(
+    await events.evaluate(
+      (node) => node.shadowRoot.querySelector("section").scrollWidth <= node.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: "test-results/night-events-offline-he.png", fullPage: true });
+  await events.getByRole("alert").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/night-events-offline-he-result.png" });
+});
+
+test("replacing the HA connection clears old filters and rejects an export from the previous session", async ({
+  page,
+}) => {
+  const events = await setup(page, "export");
+  await events.locator('input[name="person"]').fill("Previous session filter");
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  const button = events.getByRole("button", { name: "Export filtered events CSV", exact: true });
+  let downloads = 0;
+  page.on("download", () => downloads++);
+  await button.click();
+  await expect.poll(() => page.evaluate(() => typeof window.lateEventResponse)).toBe("function");
+  await page.evaluate(() => {
+    window.demoHass.connection = { ...window.demoHass.connection };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+  });
+  await expect(button).toBeEnabled();
+  await expect(events.locator('input[name="person"]')).toHaveValue("");
+  await expect(events.locator(".audit-row")).toHaveCount(2);
+  await page.evaluate(() => window.lateEventResponse());
+  await expect(events.locator(".activity-report")).toHaveCount(0);
+  expect(downloads).toBe(0);
+  expect(
+    await page.evaluate(() => window.calls.findLast((c) => c.type.endsWith("events/list")).filters),
+  ).toEqual({ limit: 100 });
+});
