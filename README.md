@@ -15,6 +15,14 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
 
+## Two-way audio preview (0.26)
+
+Open a camera and select **Start audio** to listen; hold the talk button to transmit.
+Microphone access requires HTTPS. Audio is scoped to the station and browser connection,
+and closes on disconnect, backgrounding, call termination or after three minutes.
+Protocol transport was verified on two stations; audible field acceptance remains pending.
+See the [audio guide and evidence](docs/AUDIO_026_HE.md).
+
 ## Administrator workflows (0.25)
 
 Users, Events, Sync and Change history now share the updated interface. Sync can be filtered
@@ -62,7 +70,8 @@ The displayed lock return is **optimistic**, based on a configurable display tim
 The intercom controls the actual relay duration; no physical door contact is inferred.
 `onCall` means the device reports busy/in-call, and does not prove that somebody answered.
 Unknown call states remain unknown. Capability-gated call commands are available, while
-two-way microphone audio remains unimplemented and physical call acceptance remains open.
+two-way microphone audio is available as a preview in the camera dialog. Physical call and
+audible audio acceptance remain open.
 
 ## Schedule planning
 

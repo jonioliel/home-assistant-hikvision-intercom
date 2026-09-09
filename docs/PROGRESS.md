@@ -4,6 +4,15 @@ The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) is the curren
 plan. It prioritizes remaining acceptance gates, call/audio completion and a concurrent UI redesign.
 Its conditional 45/47 (95.7%) target does not change the current completion figures below.
 
+Current 0.26 candidate: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Phase 6: four software features implemented, four partial, one absent. Audio moves from
+absent to partial after the new HA bridge, hold-to-talk controls and real two-station transport
+checks. Combined scope is **78.7%**. [Audio delivery and remaining gates](AUDIO_026_HE.md).
+Audible field acceptance and physical call/card/fleet tests remain open. Access schema remains 3.
+Publication evidence will be recorded after all candidate checks pass.
+
+## Historical checkpoints (earlier counts below are not current)
+
 Current 0.25 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, three partial, two absent. Combined scope remains
 **77.7%**. The [current delivery ledger](ADMIN_UI_025_HE.md) covers Users, Events, Sync and
@@ -16,7 +25,7 @@ passed all seven jobs: 838 Python tests per version, 238 HA tests, 145 browser t
 Ruff, TypeScript, Prettier, reproducible bundle, HACS and Hassfest. The tag, manifest, bundle
 and expected sources were verified after publication. Access payload schema remains 3.
 
-## Historical checkpoints (earlier counts below are not current)
+
 
 Current 0.24 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, three partial, two absent. The combined scope

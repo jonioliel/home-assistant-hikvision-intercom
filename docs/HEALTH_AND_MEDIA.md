@@ -19,7 +19,9 @@ no third-party server address or station credentials are sent by this panel to t
 If HA does not advertise WebRTC, signaling fails, the peer disconnects, or no decoded video arrives within
 12 seconds of RTC setup, the player falls back to HA HLS. The transport label states what was selected.
 A backend provider and compatible network/codecs are required for actual WebRTC playback.
-The browser requests receive-only tracks; microphone/two-way audio is not implemented.
+The WebRTC video player requests receive-only tracks. Version 0.26 adds a separate
+[ISAPI two-way audio preview](AUDIO_026_HE.md) through the authenticated HA connection;
+it does not depend on the WebRTC provider.
 See the [HA camera signaling contract](https://github.com/home-assistant/frontend/blob/dev/src/data/camera.ts)
 and [HA camera player lifecycle](https://github.com/home-assistant/frontend/blob/dev/src/components/ha-web-rtc-player.ts).
 

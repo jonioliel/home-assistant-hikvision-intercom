@@ -78,6 +78,9 @@ export class IntercomAudioControls extends LitElement {
   private epoch = 0;
   private micEpoch = 0;
   private context?: AudioContext;
+  private connection?: Hass["connection"];
+  private openingTimeout?: ReturnType<typeof setTimeout>;
+  private disconnected = () => this.stop("audio_connection_lost");
   private token = "";
   private unsubscribe?: () => void;
   private stream?: MediaStream;
@@ -118,6 +121,7 @@ export class IntercomAudioControls extends LitElement {
     if (
       this._state !== "idle" &&
       (!this.hass?.user?.is_admin ||
+        this.hass.connection !== this.connection ||
         !this.station?.online ||
         (changed.has("station") &&
           (changed.get("station") as Station | undefined)?.id !== this.station.id))
@@ -132,6 +136,11 @@ export class IntercomAudioControls extends LitElement {
     const epoch = ++this.epoch,
       hass = this.hass;
     this._state = "opening";
+    this.connection = hass.connection;
+    this.connection.addEventListener?.("disconnected", this.disconnected);
+    this.openingTimeout = setTimeout(() => {
+      if (this.valid(epoch) && this._state === "opening") this.stop("audio_connection_lost");
+    }, 25000);
     this._error = "";
     this.sequence = 0;
     try {
@@ -146,12 +155,15 @@ export class IntercomAudioControls extends LitElement {
           if (event.state === "closed") {
             this.stop(event.close_confirmed === false ? "audio_close_unconfirmed" : event.reason);
           } else if (event.token && event.sample_rate === 8000 && event.packet_bytes === 800) {
+            clearTimeout(this.openingTimeout);
+            this.openingTimeout = undefined;
             this.token = event.token;
             this._state = "listening";
             void this.receive(epoch);
           } else this.stop("audio_unsupported");
         },
         { type: "hikvision_intercom/audio/start", station_id: this.station!.id },
+        { resubscribe: false, preCheck: () => this.valid(epoch) && this.context === context },
       );
       if (this.valid(epoch)) this.unsubscribe = unsubscribe;
       else this.cancelSubscription(unsubscribe);
@@ -325,6 +337,10 @@ export class IntercomAudioControls extends LitElement {
   }
   private stop(reason?: string) {
     this.epoch++;
+    clearTimeout(this.openingTimeout);
+    this.openingTimeout = undefined;
+    this.connection?.removeEventListener?.("disconnected", this.disconnected);
+    this.connection = undefined;
     this.token = "";
     this.releaseTalk();
     const unsubscribe = this.unsubscribe;

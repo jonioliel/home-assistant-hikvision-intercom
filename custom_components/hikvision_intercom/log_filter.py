@@ -7,6 +7,11 @@ from typing import Any
 class AccessWebSocketFilter(logging.Filter):
     @staticmethod
     def _redact(value: Any) -> Any:
+        # HA 2026.9 logs outgoing websocket messages as already serialized bytes.
+        if (isinstance(value, bytes) and b"hikvision_intercom.audio" in value) or (
+            isinstance(value, str) and "hikvision_intercom.audio" in value
+        ):
+            return "Hikvision audio payload REDACTED"
         if (
             isinstance(value, dict)
             and isinstance(value.get("type"), str)

@@ -206,3 +206,120 @@ async def test_disconnect_while_opening_still_closes_owned_session(
     await asyncio.wait_for(bridge.task, 3)
     audio_driver.close.assert_awaited_once()
     assert not hass.data[DOMAIN]["audio_sessions"]
+
+
+@pytest.mark.parametrize(
+    "limit,reason", [("MAX_SECONDS", "audio_expired"), ("IDLE_SECONDS", "audio_idle_timeout")]
+)
+async def test_audio_server_enforces_lifetime_even_when_browser_stalls(
+    hass, loaded_entry, hass_ws_client, audio_driver, limit, reason
+):
+    client = await hass_ws_client(hass)
+    with patch("custom_components.hikvision_intercom.audio_api." + limit, 0.01):
+        await started(client, loaded_entry.entry_id)
+        result = await asyncio.wait_for(client.receive_json(), 3)
+    assert result["event"]["reason"] == reason
+    assert not hass.data[DOMAIN]["audio_sessions"]
+    audio_driver.close.assert_awaited_once()
+
+
+async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
+    hass, device_io, hass_ws_client
+):
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.hikvision_intercom.event_manager import get_events
+
+    from .conftest import DATA, PROFILE
+    from .test_events import live
+
+    async def profile(client):
+        return replace(
+            PROFILE, unique_id=client._expected_identity, serial=client._expected_identity
+        )
+
+    async def info(client):
+        return client._expected_identity, PROFILE.model, PROFILE.firmware, client._expected_identity
+
+    drivers = {}
+
+    def factory(client):
+        driver = SimpleNamespace(
+            failure=None,
+            close_confirmed=True,
+            received_bytes=800,
+            sent_bytes=160,
+            start=AsyncMock(),
+            close=AsyncMock(),
+            receive=AsyncMock(return_value=b"\xff" * 800),
+            send=lambda p: None,
+            mute=lambda: None,
+        )
+        drivers[client._expected_identity] = driver
+        return driver
+
+    entries = []
+    clients = []
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
+            profile,
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+            info,
+        ),
+        patch("custom_components.hikvision_intercom.audio_api.AudioSession", factory),
+    ):
+        try:
+            for index in range(9):
+                entry = MockConfigEntry(
+                    domain=DOMAIN,
+                    title=f"Audio station {index}",
+                    unique_id=f"AUDIO-{index}",
+                    data={**DATA, "host": f"192.0.2.{index + 1}"},
+                )
+                entry.add_to_hass(hass)
+                assert await hass.config_entries.async_setup(entry.entry_id)
+                entries.append(entry)
+            clients = [await hass_ws_client(hass) for _ in range(4)]
+            for index in range(3):
+                await started(clients[index], entries[index].entry_id)
+            blocked = await request(clients[3], "audio/start", station_id=entries[3].entry_id)
+            assert blocked["error"]["code"] == "audio_busy"
+            drivers["AUDIO-0"].failure = "audio_connection_lost"
+            event = await asyncio.wait_for(clients[0].receive_json(), 3)
+            assert event["event"]["reason"] == "audio_connection_lost"
+            assert len(hass.data[DOMAIN]["audio_sessions"]) == 2
+            released = await request(
+                clients[3], "stations/test_unlock", station_id=entries[8].entry_id, lock=1
+            )
+            assert released["success"]
+            device_io["unlock"].assert_awaited_once_with(1)
+            for index, entry in enumerate(entries):
+                entry.runtime_data.events.ingest(
+                    live(181, serialNo=8000 + index, employeeNoString=f"RESIDENT-{index}")
+                )
+            assert len(get_events(hass).query({})["records"]) == 9
+            await started(clients[0], entries[3].entry_id)
+            assert len(hass.data[DOMAIN]["audio_sessions"]) == 3
+            assert await hass.config_entries.async_unload(entries[1].entry_id)
+            assert (await clients[1].receive_json())["event"]["state"] == "closed"
+            assert entries[2].entry_id in hass.data[DOMAIN]["audio_sessions"]
+            drivers["AUDIO-2"].close.assert_not_called()
+        finally:
+            for client in clients:
+                await client.close()
+            tasks = [
+                bridge.task
+                for bridge in hass.data.get(DOMAIN, {}).get("audio_sessions", {}).values()
+                if bridge.task
+            ]
+            await asyncio.gather(*tasks, return_exceptions=True)
+            for entry in reversed(entries):
+                if not entry.runtime_data.session.is_closed:
+                    await hass.config_entries.async_unload(entry.entry_id)
+            await hass.async_block_till_done()

@@ -7,8 +7,15 @@ async function setup(page: Page) {
     w.audio = { unsubscribed: 0, microphones: 0, stopped: 0, sent: [], delay: false };
     const base = w.demoHass.callWS.bind(w.demoHass),
       subscribe = w.demoHass.connection.subscribeMessage.bind(w.demoHass.connection);
-    w.demoHass.connection.subscribeMessage = async (callback: any, message: any) => {
+    w.demoHass.connection.addEventListener = (_event: any, callback: any) => {
+      w.audio.disconnected = callback;
+    };
+    w.demoHass.connection.removeEventListener = () => {
+      w.audio.disconnected = undefined;
+    };
+    w.demoHass.connection.subscribeMessage = async (callback: any, message: any, options: any) => {
       if (message.type !== "hikvision_intercom/audio/start") return subscribe(callback, message);
+      w.audio.subscriptionOptions = options;
       w.calls.push(message);
       w.audio.event = callback;
       if (w.audio.delay) await new Promise<void>((r) => (w.audio.ready = r));
@@ -192,4 +199,19 @@ test("ending a call stops audio for the same station", async ({ page }) => {
     .click();
   await expect.poll(() => page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
   await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+});
+
+test("HA reconnect cannot automatically reopen a microphone session", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await expect(audio).toContainText("Audio connected");
+  expect(await page.evaluate(() => (window as any).audio.subscriptionOptions.resubscribe)).toBe(
+    false,
+  );
+  await page.evaluate(() => (window as any).audio.disconnected());
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => (window as any).audio.subscriptionOptions.preCheck())).toBe(
+    false,
+  );
+  expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
 });

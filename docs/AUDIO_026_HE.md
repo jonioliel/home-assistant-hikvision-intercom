@@ -37,6 +37,10 @@ Web Audio מבצע את התאמת קצב הדגימה של המיקרופון �
 
 HTTPX משמש להזדהות Digest ולזרם הקבלה. השידור הגולמי אינו חוזר אוטומטית לאחר כשל;
 פתיחה שתוצאתה אינה ידועה אינה מובילה לסגירה של סשן ללא בעלות מוכחת.
+נרשמת גם סגירה באירוע ניתוק של חיבור HA; הרשמת השמע מוגדרת resubscribe=false
+עם בדיקה חוזרת לפני פקודה שנדחתה לתור, ולכן חיבור מחדש אינו פותח שמע אוטומטית.
+[מקור HA JS](https://github.com/home-assistant/home-assistant-js-websocket/blob/master/lib/connection.ts).
+
 מקורות משלימים: [HTTPX async](https://www.python-httpx.org/async/),
 [Digest authentication](https://www.python-httpx.org/advanced/authentication/),
 [HA WebSocket API](https://developers.home-assistant.io/docs/api/websocket/).
