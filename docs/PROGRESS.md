@@ -7,9 +7,12 @@ The [current execution ledger](BULK_ACCESS_AUDIT_HE.md) records all twenty imple
 deliverables: reviewed bulk access changes, durable receipts, administrator history and read-only
 permission comparison. Physical call, card, validity, WebRTC and nine-station gates remain open.
 
-Version 0.23.0-alpha.1 is prepared for the required exact-commit CI and HACS release checks.
+Published [v0.23.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.23.0-alpha.1)
+from `bb2c9a6`, implementation `5276b65`, plan `6206fff`. [Release run34361493111](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34361493111)
+passed all seven jobs: 822 Python tests per version, 237 HA tests (100% ConfigFlow coverage),
+130 browser tests, mypy56, Ruff, TypeScript, Prettier, HACS and Hassfest. Tag/manifest/bundle
+and expected source files were verified after publication; private evidence was excluded.
 The access store migrates from schema 2 to 3; downgrades require a compatible HA backup.
-Publication evidence will be recorded after the release is verified.
 
 ## Historical checkpoints (earlier counts below are not current)
 
