@@ -107,6 +107,11 @@ async def inspect_plan(
     if draft["holidays"]:
         blockers.append("schedule_plan_holiday_membership_unknown")
     return {
+        # Private bridge input; never forwarded through the public proposal/report API.
+        "observed": {r["key"]: records.get(r["kind"], {}).get(str(r["id"])) for r in candidates},
+        "dependency_fingerprint": fingerprint(
+            [projected, sorted(user_refs), dependencies["users"]]
+        ),
         "capability_fingerprint": fingerprint(
             {kind: item.get("capability") for kind, item in evidence.items()}
         ),

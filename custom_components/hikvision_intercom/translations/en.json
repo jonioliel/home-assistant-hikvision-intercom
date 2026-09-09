@@ -335,6 +335,22 @@
     "schedule_plans_storage_corrupt": {
       "title": "Deployment proposal storage unavailable",
       "description": "Local deployment proposals could not be loaded. The file is preserved without overwrite. Restore a valid backup and restart Home Assistant. User management and draft storage remain independent."
+    },
+    "schedule_journal_storage_corrupt": {
+      "title": "Schedule journal unavailable",
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+    },
+    "schedule_journal_storage_write": {
+      "title": "Schedule journal could not be saved",
+      "description": "Check free space and storage directory permissions. Do not assume the action was saved; reload the list after fixing the storage problem."
+    },
+    "schedule_operations_storage_corrupt": {
+      "title": "Schedule operations unavailable",
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+    },
+    "schedule_operations_storage_write": {
+      "title": "Schedule operations could not be saved",
+      "description": "Check free space and storage directory permissions. Do not assume the action was saved; reload the list after fixing the storage problem."
     }
   }
 }

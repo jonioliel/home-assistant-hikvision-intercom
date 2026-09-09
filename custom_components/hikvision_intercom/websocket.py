@@ -30,6 +30,7 @@ from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
 from .hardening import AdminLimiter
 from .log_filter import install_filter
+from .schedule_operations_api import dispatch_operations
 from .schedule_plan_api import dispatch_plans
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,6 +47,15 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "schedules/operations_list": {},
+    "schedules/operations_export": {},
+    "schedules/operations_claim_preview": {"plan_id": str, "revision": int},
+    "schedules/operations_claim_confirm": {"token": str},
+    "schedules/operations_claim_release": {"claim_id": str, "revision": int},
+    "schedules/operations_create": {"plan_id": str, "revision": int},
+    "schedules/operations_check": {"job_id": str, "revision": int},
+    "schedules/operations_cancel": {"job_id": str, "revision": int},
+    "schedules/operations_archive": {"job_id": str, "revision": int},
     "schedules/plan_list": {},
     "schedules/plan_preview": {
         "station_id": str,
@@ -211,6 +221,8 @@ async def _dispatch(
             await enrollment.cancel(msg["session_id"], actor)
             return {"cancelled": True}
         return await enrollment.confirm(msg["session_id"], actor, msg["label"])
+    if command.startswith("schedules/operations_"):
+        return await dispatch_operations(hass, command, msg, actor)
     if command.startswith("schedules/plan_"):
         return await dispatch_plans(hass, command, msg, actor)
     if command.startswith("schedules/"):

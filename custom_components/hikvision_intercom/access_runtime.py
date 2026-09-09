@@ -13,7 +13,10 @@ from .access.manager import AccessManager
 from .access.models import AccessError
 from .access.repository import AccessRepository
 from .access.schedule_baselines import ScheduleBaselines
+from .access.schedule_journal import ScheduleJournal
+from .access.schedule_operations import ScheduleOperations
 from .access.schedule_plans import SchedulePlans
+from .access.schedule_work_queue import ScheduleWorkQueue
 from .access.schedules import ScheduleLibrary
 from .configuration import managed_locks
 from .const import DOMAIN
@@ -77,6 +80,35 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "schedule_plans_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["schedule_plans"] = plans
 
+    journal_store = AccessStore(hass, key=f"{DOMAIN}.schedule_journal")
+    journal = ScheduleJournal(journal_store.async_save)
+    operations_store = AccessStore(hass, key=f"{DOMAIN}.schedule_operations")
+    operations = ScheduleOperations(operations_store.async_save)
+    for key, database, persistence in (
+        ("schedule_journal", journal, journal_store),
+        ("schedule_operations", operations, operations_store),
+    ):
+        try:
+            await database.async_load(await persistence.async_load())
+        except AccessError:
+            issue(hass, f"{key}_storage_corrupt", active=True)
+            hass.data[DOMAIN][key] = None
+        else:
+            issue(hass, f"{key}_storage_corrupt", active=False)
+            hass.data[DOMAIN][key] = database
+
+    from .schedule_operations_api import preflight
+
+    queue = ScheduleWorkQueue(
+        operations,
+        lambda job: preflight(hass, job),
+        changed,
+        lambda coro: hass.async_create_background_task(
+            coro, "hikvision schedule preflight", eager_start=False
+        ),
+    )
+    hass.data[DOMAIN]["schedule_queue"] = queue
+
     manager = AccessManager(
         repository,
         changed=changed,
@@ -89,6 +121,7 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         manager.register(entry.entry_id, entry.title, bool(managed_locks(entry.data)))
 
     async def stop(_event: Event) -> None:
+        await queue.close()
         await manager.async_close()
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop)
