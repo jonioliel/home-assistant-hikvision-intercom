@@ -594,3 +594,15 @@ run in Linux CI. The blocked local mypy native module was not bypassed.
 The exact passed commit was merged to main and submitted once to gated release run
 [34324306989](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34324306989).
 The release reruns every gate before publishing. No production schedule transport is enabled.
+
+
+## Owner-reported two-station PIN acceptance — 2026-09-09
+
+The owner reports connecting two intercoms to the installed integration, creating a user and
+synchronizing it successfully to both. After replacing the PIN, the new PIN worked and the old
+PIN was rejected. This confirms owner-witnessed creation and replacement in that installation;
+the exact installed integration version and both firmware versions were not provided. It does
+not establish the cause of the earlier commissioning failure, PIN removal without replacement,
+cleanup of the original temporary user, or nine-station acceptance. No PIN values were requested
+or recorded. DoD16 remains open only for its remaining removal/lifecycle evidence; the fixed
+mandatory count remains28/38 until that combined requirement is completed.

@@ -128,3 +128,15 @@ nine-station hardware/reconnect/reboot tests remain pending as documented above.
 לפני חיבור למכשיר יש להשלים בעלות, תלויות, מלאי רלוונטי ומתאם כתיבה מאומת, ואז לשלב
 אחסון פרטי, Repairs, תור הפעלה ופתרון תוצאות לא ידועות. אין כעת תצורות חדשות בציוד
 או פעולות ניקוי חדשות. בדיקות חלונות שעות, חגים ושעון נותרו לתיאום הפיזי הקודם.
+
+
+## Owner-reported two-station PIN acceptance — 2026-09-09
+
+The owner reports connecting two intercoms to the installed integration, creating a user and
+synchronizing it successfully to both. After replacing the PIN, the new PIN worked and the old
+PIN was rejected. This confirms owner-witnessed creation and replacement in that installation;
+the exact installed integration version and both firmware versions were not provided. It does
+not establish the cause of the earlier commissioning failure, PIN removal without replacement,
+cleanup of the original temporary user, or nine-station acceptance. No PIN values were requested
+or recorded. DoD16 remains open only for its remaining removal/lifecycle evidence; the fixed
+mandatory count remains28/38 until that combined requirement is completed.

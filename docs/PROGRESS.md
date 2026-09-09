@@ -328,3 +328,15 @@ Mandatory acceptance remains 28/38; Phase 5 remains 8/9; Phase 6 remains 3 imple
 188 actual HA, 96 browser), ConfigFlow100%, strict mypy44, Ruff, TypeScript, Prettier,
 reproducible build, HACS and Hassfest. Release34324306989 targets this exact main commit.
 The three infrastructure tasks are complete; production deployment and physical acceptance remain open.
+
+
+## Owner-reported two-station PIN acceptance — 2026-09-09
+
+The owner reports connecting two intercoms to the installed integration, creating a user and
+synchronizing it successfully to both. After replacing the PIN, the new PIN worked and the old
+PIN was rejected. This confirms owner-witnessed creation and replacement in that installation;
+the exact installed integration version and both firmware versions were not provided. It does
+not establish the cause of the earlier commissioning failure, PIN removal without replacement,
+cleanup of the original temporary user, or nine-station acceptance. No PIN values were requested
+or recorded. DoD16 remains open only for its remaining removal/lifecycle evidence; the fixed
+mandatory count remains28/38 until that combined requirement is completed.
