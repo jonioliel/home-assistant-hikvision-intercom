@@ -189,3 +189,88 @@ test("a queued station removed from the panel is skipped without a request", asy
     await page.evaluate(() => window.healthRequests.some((c) => c.station_id === "station-5")),
   ).toBe(false);
 });
+
+async function fieldSetup(page: Page, hold: "get" | "update") {
+  const health = await setup(page);
+  await page.evaluate((hold) => {
+    window.healthAuto = true;
+    for (const resolve of [...window.healthPending.values()]) resolve();
+    const base = window.demoHass.callWS;
+    let state = "unverified",
+      revision = 0;
+    window.fieldWrites = 0;
+    window.holdField = hold;
+    window.demoHass.callWS = async function (message) {
+      if (message.type.includes("/acceptance/")) {
+        const operation = message.type.endsWith("/update") ? "update" : "get";
+        if (operation === "update") {
+          state = message.state;
+          revision++;
+          window.fieldWrites++;
+        }
+        const result = {
+          revision,
+          steps: ["relay"],
+          basis: "operator_report",
+          results: {
+            relay: { state, checked_at: "2026-09-09T12:00:00Z", basis: "operator_report" },
+          },
+        };
+        if (operation === window.holdField)
+          return await new Promise((resolve) => (window.lateFieldReply = () => resolve(result)));
+        return result;
+      }
+      return base.call(this, message);
+    };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+  }, hold);
+  await expect(health.getByRole("button", { name: "Refresh", exact: true }).last()).toBeEnabled();
+  await page.clock.install();
+  const card = health.locator(".health-card").first();
+  await card.getByRole("button", { name: "Record field tests" }).click();
+  return card;
+}
+
+test("a lost field checklist read becomes retryable without displaying its late response", async ({
+  page,
+}) => {
+  const card = await fieldSetup(page, "get");
+  await page.clock.fastForward(21000);
+  await expect(card.getByRole("button", { name: "Record field tests" })).toBeEnabled();
+  await page.evaluate(() => window.lateFieldReply());
+  await expect(card.locator(".field-tests")).toHaveCount(0);
+});
+
+test("a lost field save requires reading the stored result before another save", async ({
+  page,
+}) => {
+  const card = await fieldSetup(page, "update");
+  await card.locator(".field-tests select").selectOption("passed");
+  await card.getByRole("button", { name: "Save", exact: true }).click();
+  await page.clock.fastForward(31000);
+  await expect(card.locator(".field-tests")).toHaveCount(0);
+  await expect(card).toContainText("Saving the field result could not be confirmed");
+  await page.evaluate(() => {
+    window.holdField = "";
+    window.lateFieldReply();
+  });
+  await expect(card.locator(".field-tests")).toHaveCount(0);
+  await card.getByRole("button", { name: "Record field tests" }).click();
+  await expect(card.locator(".field-tests select")).toHaveValue("passed");
+  expect(await page.evaluate(() => window.fieldWrites)).toBe(1);
+});
+
+test("a disconnected field save is not replayed on reconnect", async ({ page }) => {
+  const card = await fieldSetup(page, "update");
+  await card.locator(".field-tests select").selectOption("passed");
+  await card.getByRole("button", { name: "Save", exact: true }).click();
+  await page.evaluate(() => window.healthConnectionState(false));
+  await expect(card.locator(".field-tests")).toHaveCount(0);
+  await page.evaluate(() => {
+    window.healthConnectionState(true);
+    window.lateFieldReply();
+  });
+  await expect(card.locator(".field-tests")).toHaveCount(0);
+  await expect(card).toContainText("Saving the field result could not be confirmed");
+  expect(await page.evaluate(() => window.fieldWrites)).toBe(1);
+});

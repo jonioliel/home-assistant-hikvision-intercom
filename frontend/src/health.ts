@@ -90,6 +90,7 @@ export class IntercomHealth extends LitElement {
     _reports: { state: true },
     _busy: { state: true },
     _errors: { state: true },
+    _fieldErrors: { state: true },
     _acceptance: { state: true },
     _selected: { state: true },
     _haConnected: { state: true },
@@ -99,6 +100,7 @@ export class IntercomHealth extends LitElement {
   private _reports: Record<string, Health> = {};
   private _busy = new Set<string>();
   private _errors: Record<string, string> = {};
+  private _fieldErrors: Record<string, string> = {};
   private _acceptance: Record<string, Acceptance> = {};
   private _selected = new Set<string>();
   private epoch = 0;
@@ -106,10 +108,12 @@ export class IntercomHealth extends LitElement {
   private activeReads = 0;
   private attempted = new Set<string>();
   private pending = new Set<AbortController>();
+  private fieldWrites = new Set<string>();
   private connection?: Hass["connection"];
   private _haConnected = true;
   private haDisconnected = () => {
     this._haConnected = false;
+    for (const id of this.fieldWrites) this.uncertainField(id);
     this.cancelPending();
   };
   private haReady = () => {
@@ -159,6 +163,7 @@ export class IntercomHealth extends LitElement {
     this.epoch++;
     for (const controller of this.pending) controller.abort();
     this.pending.clear();
+    this.fieldWrites.clear();
     this.reads = [];
     this.activeReads = 0;
     this.attempted.clear();
@@ -170,6 +175,7 @@ export class IntercomHealth extends LitElement {
     if (Object.keys(this._reports).length) this._reports = {};
     if (Object.keys(this._acceptance).length) this._acceptance = {};
     if (Object.keys(this._errors).length) this._errors = {};
+    if (Object.keys(this._fieldErrors).length) this._fieldErrors = {};
     if (this._selected.size) this._selected = new Set();
   }
   private valid(epoch: number) {
@@ -240,24 +246,44 @@ export class IntercomHealth extends LitElement {
     for (const station of this.stations)
       if (this._selected.has(station.id)) this.read(station.id, true);
   }
+  private uncertainField(id: string) {
+    const acceptance = { ...this._acceptance };
+    delete acceptance[id];
+    this._acceptance = acceptance;
+    this._fieldErrors = { ...this._fieldErrors, [id]: this.t("field_save_unknown") };
+  }
   private async field(id: string, step?: string, state?: string) {
-    if (!this.valid(this.epoch) || this._busy.has(id)) return;
+    if (!this.valid(this.epoch) || this._busy.has(id) || (step && !this._acceptance[id])) return;
     const epoch = this.epoch;
+    const hass = this.hass!;
+    const controller = new AbortController();
+    this.pending.add(controller);
+    if (step) this.fieldWrites.add(id);
     this._busy = new Set([...this._busy, id]);
     try {
-      const result = await this.hass!.callWS<Acceptance>({
-        type: `hikvision_intercom/acceptance/${step ? "update" : "get"}`,
-        station_id: id,
-        ...(step ? { step, state, revision: this._acceptance[id].revision } : {}),
-      });
-      if (this.valid(epoch)) {
+      const result = await boundedRequest(
+        () =>
+          hass.callWS<Acceptance>({
+            type: `hikvision_intercom/acceptance/${step ? "update" : "get"}`,
+            station_id: id,
+            ...(step ? { step, state, revision: this._acceptance[id].revision } : {}),
+          }),
+        step ? 30000 : 20000,
+        controller.signal,
+      );
+      if (this.valid(epoch) && hass.connection === this.hass?.connection) {
         this._acceptance = { ...this._acceptance, [id]: result };
-        this._errors = { ...this._errors, [id]: "" };
+        this._fieldErrors = { ...this._fieldErrors, [id]: "" };
       }
     } catch {
-      if (this.valid(epoch)) this._errors = { ...this._errors, [id]: this.t("failed") };
-    } finally {
       if (this.valid(epoch)) {
+        if (step) this.uncertainField(id);
+        else this._fieldErrors = { ...this._fieldErrors, [id]: this.t("failed") };
+      }
+    } finally {
+      this.pending.delete(controller);
+      if (epoch === this.epoch) {
+        this.fieldWrites.delete(id);
         this._busy.delete(id);
         this._busy = new Set(this._busy);
       }
@@ -404,6 +430,7 @@ export class IntercomHealth extends LitElement {
         .hass=${this.hass}
         .station=${station}
       ></hikvision-intercom-event-tools>
+      ${this._fieldErrors[station.id] ? html`<p class="notice error" role="alert">${this._fieldErrors[station.id]}</p>` : nothing}
       ${this.fieldView(station)}
     </article>`;
   }
