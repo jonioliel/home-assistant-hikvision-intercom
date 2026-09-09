@@ -65,17 +65,25 @@ def test_missing_disabled_slots_is_a_difference_not_equivalent():
     assert compare_resource("weekly", wanted, None)["state"] == "not_observed"
 
 
-async def test_only_explicitly_selected_rows_are_captured_without_public_leak():
-    private = {}
+@pytest.mark.parametrize("with_fingerprints", [False, True])
+async def test_only_explicitly_selected_rows_are_captured_without_public_leak(with_fingerprints):
+    private, evidence = {}, {}
     async with httpx.AsyncClient(
         transport=transport(
             total={k: 2 for k in ("template", "weekly", "holiday_group", "holiday")}
         )
     ) as session:
         result = await inspect_inventory(
-            HikvisionClient(session, SETTINGS), selected={"template": {2}}, records=private
+            HikvisionClient(session, SETTINGS),
+            selected={"template": {2}},
+            records=private,
+            evidence=evidence,
+            fingerprint=(lambda value: "a" * 64) if with_fingerprints else None,
         )
     assert set(private["template"]) == {"2"}
+    if with_fingerprints:
+        assert set(evidence["template"]["rows"]) == {"1", "2"}
+        assert set(evidence["template"]["rows"].values()) == {"a" * 64}
     assert all(not private[k] for k in ("weekly", "holiday_group", "holiday"))
     assert "PRIVATE" not in json.dumps(result)
 
@@ -83,7 +91,7 @@ async def test_only_explicitly_selected_rows_are_captured_without_public_leak():
 async def test_plan_inspection_blocks_unknown_users_and_external_dependencies():
     caps = capabilities()
 
-    async def inventory(client, *, selected, records, projected):
+    async def inventory(client, *, selected, records, projected, **kwargs):
         candidates = compile_schedule(draft(), slots(), caps)
         records.update({r["kind"]: {str(r["id"]): r["body"]} for r in candidates})
         projected.update(template=[{"id": 99, "week": 20, "references": []}])

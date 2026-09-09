@@ -158,13 +158,13 @@ async def search_records(
             raise HikvisionValidationError("Schedule search ended early")
         if fingerprints is not None and fingerprint is not None:
             try:
-                captured = {
+                page_fingerprints = {
                     str(identifier): fingerprint(row)
                     for identifier, row in zip(identifiers, rows, strict=True)
                 }
             except (ValueError, TypeError, RecursionError):
                 raise HikvisionValidationError("Invalid schedule fingerprint input") from None
-            fingerprints.update(captured)
+            fingerprints.update(page_fingerprints)
         if selected is not None and captured is not None:
             captured.update(
                 {str(i): row for i, row in zip(identifiers, rows, strict=True) if i in selected}

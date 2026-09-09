@@ -9,13 +9,19 @@ from ..access.models import utc_now
 from ..access.schedule_comparison import compare_resource
 from ..access.schedule_compiler import bindings_for, compile_schedule
 from ..access.schedules import normalize
+from ..exceptions import HikvisionValidationError
 from .client import HikvisionClient
 from .schedule_dependencies import read_user_dependencies
 from .schedule_inventory import inspect_inventory
 
 
 async def inspect_plan(
-    client: HikvisionClient, draft: Any, bindings: Any, fingerprint: Callable[[Any], str]
+    client: HikvisionClient,
+    draft: Any,
+    bindings: Any,
+    fingerprint: Callable[[Any], str],
+    *,
+    expected: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     draft = normalize(draft)
     slots = bindings_for(bindings, len(draft["holidays"]))
@@ -27,11 +33,19 @@ async def inspect_plan(
     }
     records: dict[str, dict[str, Any]] = {}
     projected: dict[str, list[dict[str, Any]]] = {}
+    evidence: dict[str, Any] = {}
     inventory = await inspect_inventory(
-        client, selected=selected, records=records, projected=projected
+        client,
+        selected=selected,
+        records=records,
+        projected=projected,
+        evidence=evidence,
+        fingerprint=fingerprint,
     )
     caps = {c["kind"]: c["capabilities"] for c in inventory["checks"]}
     candidates = compile_schedule(draft, slots, caps)
+    if expected is not None:
+        candidates = expected
     user_refs: set[int] = set()
     dependencies = await read_user_dependencies(client, inventory, projected, references=user_refs)
     states = {c["kind"]: c["state"] for c in inventory["checks"]}
@@ -59,7 +73,10 @@ async def inspect_plan(
     for resource in candidates:
         kind, identifier = resource["kind"], resource["id"]
         observed = records.get(kind, {}).get(str(identifier))
-        hashes[resource["key"]] = fingerprint(observed) if observed is not None else None
+        try:
+            hashes[resource["key"]] = fingerprint(observed) if observed is not None else None
+        except (ValueError, TypeError, RecursionError):
+            raise HikvisionValidationError("Invalid schedule fingerprint input") from None
         known = (
             dependencies["users_checked"]
             if kind == "template"
@@ -90,6 +107,9 @@ async def inspect_plan(
     if draft["holidays"]:
         blockers.append("schedule_plan_holiday_membership_unknown")
     return {
+        "capability_fingerprint": fingerprint(
+            {kind: item.get("capability") for kind, item in evidence.items()}
+        ),
         "capabilities": caps,
         "fingerprints": hashes,
         "candidates": candidates,

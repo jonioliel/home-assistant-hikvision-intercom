@@ -1,3 +1,4 @@
+import "./deployment-plans";
 import { formatTime, UTC_ZONE } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
@@ -224,6 +225,7 @@ export class IntercomSchedules extends LitElement {
   static properties = {
     hass: { attribute: false },
     stations: { attribute: false },
+    _planBusy: { state: true },
     _items: { state: true },
     _draft: { state: true },
     _busy: { state: true },
@@ -242,6 +244,7 @@ export class IntercomSchedules extends LitElement {
   };
   hass?: Hass;
   stations: Station[] = [];
+  private _planBusy = false;
   private _items: Schedule[] = [];
   private _draft?: Schedule;
   private _busy = false;
@@ -285,6 +288,7 @@ export class IntercomSchedules extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this._planBusy = false;
     this._importPreview = undefined;
     this.invalidateAssessment();
     this._assessing = false;
@@ -307,13 +311,13 @@ export class IntercomSchedules extends LitElement {
     return this.hass!.callWS<T>({ type: `hikvision_intercom/schedules/${command}`, ...data });
   }
   canLeave() {
-    return !this._busy && this.discard();
+    return !this._busy && !this._planBusy && this.discard();
   }
   private discard() {
     return !this._dirty || window.confirm(this.t("schedule_discard"));
   }
   private async load() {
-    if (this._busy || !this.discard()) return;
+    if (this._planBusy || this._busy || !this.discard()) return;
     const epoch = this._epoch;
     this._busy = true;
     this._error = "";
@@ -335,7 +339,7 @@ export class IntercomSchedules extends LitElement {
     }
   }
   private edit(item?: Schedule) {
-    if (this._busy || this._uncertain || !this.discard()) return;
+    if (this._planBusy || this._busy || this._uncertain || !this.discard()) return;
     this.invalidateAssessment();
     this._copyTargets.clear();
     this._draft = item
@@ -1078,7 +1082,7 @@ export class IntercomSchedules extends LitElement {
           ${
             d
               ? html`<form @submit=${(e: SubmitEvent) => this.save(e)}>
-                    <fieldset ?disabled=${this._busy || this._uncertain}>
+                    <fieldset ?disabled=${this._planBusy || this._busy || this._uncertain}>
                       <legend>${this.t("schedule_draft")}</legend>
                       <label
                         >${this.t("schedule_name")}<input
@@ -1203,6 +1207,14 @@ export class IntercomSchedules extends LitElement {
           }
         </section>
       </div>
+      <hikvision-deployment-plans
+        .hass=${this.hass}
+        .stations=${this.stations}
+        .source=${this._dirty ? undefined : d}
+        @plan-busy=${(e: CustomEvent<boolean>) => {
+          this._planBusy = e.detail;
+        }}
+      ></hikvision-deployment-plans>
       <section class="check">
         <h3>${this.t("schedule_readiness")}</h3>
         <p class="hint">${this.t("schedule_readiness_hint")}</p>

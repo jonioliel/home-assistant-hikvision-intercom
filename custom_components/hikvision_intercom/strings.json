@@ -331,6 +331,10 @@
     "schedule_baselines_storage_write": {
       "title": "Schedule reference save failed",
       "description": "The reference could not be saved. Check storage space and permissions, then run another assessment before retrying. No station configuration was changed by this operation."
+    },
+    "schedule_plans_storage_corrupt": {
+      "title": "Deployment proposal storage unavailable",
+      "description": "Local deployment proposals could not be loaded. The file is preserved without overwrite. Restore a valid backup and restart Home Assistant. User management and draft storage remain independent."
     }
   }
 }

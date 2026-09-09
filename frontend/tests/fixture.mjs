@@ -160,6 +160,9 @@ window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refr
 window.calls = [];
 const schedules = [];
 const scheduleBaselines = new Map();
+const deploymentPlans = [];
+window.demoPlans = deploymentPlans;
+let deploymentPreview;
 let scheduleImport;
 window.demoBaselineChange = false;
 window.demoSchedules = schedules;
@@ -189,6 +192,83 @@ const fake = {
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "stations/clock_refresh")
       return data.stations.find((s) => s.id === message.station_id).clock;
+    if (command === "schedules/plan_list")
+      return structuredClone(
+        deploymentPlans.map((p) => ({
+          ...p,
+          source_state: schedules.some((s) => s.id === p.draft_id)
+            ? schedules.find((s) => s.id === p.draft_id).revision === p.draft_revision
+              ? "current"
+              : "changed"
+            : "missing",
+        })),
+      );
+    if (command === "schedules/plan_preview") {
+      const source = schedules.find((s) => s.id === message.schedule_id);
+      deploymentPreview = {
+        id: crypto.randomUUID(),
+        revision: 1,
+        station_id: message.station_id,
+        draft_id: source.id,
+        draft_revision: source.revision,
+        name: source.name,
+        bindings: message.bindings,
+        source_state: "current",
+        drifted_resources: [],
+        token: "PRIVATE_PLAN_TOKEN",
+        report: {
+          checked_at: new Date().toISOString(),
+          can_apply: false,
+          blockers: [
+            "schedule_writes_unverified",
+            "schedule_ownership_unknown",
+            "schedule_plan_user_defaults",
+          ],
+          resources: ["weekly", "template"].map((kind) => ({
+            kind,
+            id: message.bindings[kind],
+            coverage: "complete",
+            state: "different",
+            fields: ["enable"],
+            active: false,
+            externally_referenced: kind === "weekly",
+          })),
+        },
+        candidates: [
+          {
+            kind: "weekly",
+            id: message.bindings.weekly,
+            body: { UserRightWeekPlanCfg: { enable: true, WeekPlanCfg: [] } },
+          },
+        ],
+      };
+      return structuredClone(deploymentPreview);
+    }
+    if (command === "schedules/plan_save") {
+      if (!deploymentPreview) throw { code: "schedule_plan_expired" };
+      const item = structuredClone(deploymentPreview);
+      delete item.token;
+      deploymentPlans.push(item);
+      deploymentPreview = undefined;
+      return structuredClone(item);
+    }
+    if (
+      command === "schedules/plan_recheck" ||
+      command === "schedules/plan_delete" ||
+      command === "schedules/plan_export"
+    ) {
+      const item = deploymentPlans.find((p) => p.id === message.plan_id);
+      if (!item || item.revision !== message.revision) throw { code: "revision_conflict" };
+      if (command.endsWith("delete")) {
+        deploymentPlans.splice(deploymentPlans.indexOf(item), 1);
+        return { deleted: true };
+      }
+      if (command.endsWith("recheck")) {
+        item.revision++;
+        if (window.demoPlanDrift) item.drifted_resources = ["weekly:" + item.bindings.weekly];
+      }
+      return structuredClone(item);
+    }
     if (command === "schedules/export")
       return {
         format: "hikvision_intercom.schedule_drafts",

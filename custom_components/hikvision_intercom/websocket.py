@@ -30,6 +30,7 @@ from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
 from .hardening import AdminLimiter
 from .log_filter import install_filter
+from .schedule_plan_api import dispatch_plans
 
 _LOGGER = logging.getLogger(__name__)
 USER_FIELDS = {
@@ -45,6 +46,17 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "schedules/plan_list": {},
+    "schedules/plan_preview": {
+        "station_id": str,
+        "schedule_id": str,
+        "revision": int,
+        "bindings": dict,
+    },
+    "schedules/plan_save": {"token": str},
+    "schedules/plan_recheck": {"plan_id": str, "revision": int},
+    "schedules/plan_delete": {"plan_id": str, "revision": int},
+    "schedules/plan_export": {"plan_id": str, "revision": int},
     "schedules/list": {},
     "schedules/export": {},
     "schedules/import_preview": {"document": str},
@@ -199,6 +211,8 @@ async def _dispatch(
             await enrollment.cancel(msg["session_id"], actor)
             return {"cancelled": True}
         return await enrollment.confirm(msg["session_id"], actor, msg["label"])
+    if command.startswith("schedules/plan_"):
+        return await dispatch_plans(hass, command, msg, actor)
     if command.startswith("schedules/"):
         baselines = hass.data[DOMAIN].get("schedule_baselines")
         if command in {"schedules/baseline_save", "schedules/baseline_clear"}:
