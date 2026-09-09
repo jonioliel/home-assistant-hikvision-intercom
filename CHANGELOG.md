@@ -4,6 +4,30 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.20.0-alpha.1] - 2026-09-09
+
+### Added
+- Administrator schedule operations panel connects saved proposals to durable check jobs:
+  explicit resource responsibility review, background station checks, blockers, recovery steps,
+  cancellation, archive and safe report export, in Hebrew and English with mobile support.
+- Local resource responsibility registry detects overlapping declarations and changed device
+  contents. Declarations never establish that disabled records are unused or bypass dependencies.
+- Per-station preflight queue limits concurrent fleet checks to three. Interrupted checks survive
+  restart and require explicit recheck. Stable job identifiers recover a journal committed before
+  a failed job save, without creating duplicates or replaying device requests.
+- Private Home Assistant stores, isolated Repairs, atomic journal schema migration and bounded
+  archives. Uncertain or partially applied journals cannot be cancelled or expired by retention.
+
+### Validation and limits
+- The owner confirmed user creation, synchronization to two intercoms and PIN replacement:
+  the new PIN worked and the old PIN was rejected. Removal without replacement remains untested.
+- No production schedule write adapter or Apply control is enabled. Jobs use verified read routes;
+  unknown defaults, dependencies, incomplete inventory and unverified writes remain blockers.
+- This batch made no device requests. Automatic tests exercise storage, faults and the HA/browser
+  workflows; they do not establish physical schedule enforcement. Update through HACS and restart HA.
+- See [the operations guide and task ledger](docs/SCHEDULE_OPERATIONS.md) for completed scope and
+  the next tasks. Mandatory acceptance remains 28/38; Phase 6 schedule features remain partial.
+
 ## [0.19.0-alpha.1] - 2026-09-09
 
 ### Added

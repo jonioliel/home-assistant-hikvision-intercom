@@ -606,3 +606,17 @@ not establish the cause of the earlier commissioning failure, PIN removal withou
 cleanup of the original temporary user, or nine-station acceptance. No PIN values were requested
 or recorded. DoD16 remains open only for its remaining removal/lifecycle evidence; the fixed
 mandatory count remains28/38 until that combined requirement is completed.
+
+
+## Phase 6 — installed schedule operations workspace, 0.20.0-alpha.1
+
+Local responsibility and bounded preflight jobs (`55d9a4d`), HA storage/API integration
+(`d5c8ec7`) and administrator operations/archive UI (`469933b`) connect the existing proposals
+and recovery journal. The first six proposed tasks are addressed: four local workflow tasks
+are complete, while execution-plan and queue tasks remain partial until production writes are
+verified. [The detailed task ledger](SCHEDULE_OPERATIONS.md) records all twelve tasks.
+
+The full local Python suite passed 706 tests. Browser checks cover local lifecycle, lost
+acknowledgements, admin access and Hebrew mobile layout; targeted proposal/assessment/transfer
+regressions passed. Actual HA, typing, full browser suite, HACS and Hassfest results follow
+once CI completes. No device requests occurred; physical schedule gates remain unchanged.

@@ -939,15 +939,13 @@ var ye={kind:"iana",name:"UTC"},so=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
       <p class="notice">${this.t("plan_not_applied")}</p>
       <ul>
         ${t.report.blockers.map(i=>T`<li>${this.t(i)}</li>`)}
-      </ul>`}render(){if(!this.hass?.user?.is_admin)return w;let t=this.source;return T`<section aria-label=${this.t("plan_title")}>
-        <h3>${this.t("plan_title")}</h3>
-        <p>${this.t("plan_intro")}</p>
-        ${this._error?T`<p role="alert" class="notice error">${this._error}</p>`:w}
-        ${this._notice?T`<p role="status" class="notice">${this._notice}</p>`:w}
-        <button ?disabled=${this._busy} @click=${()=>this.load()}>
-          ${this.t("plan_reload")}
-        </button>
-        ${t?.id?T`<form @submit=${s=>this.prepare(s)}>
+      </ul>`}renderPlans(){if(!this.hass?.user?.is_admin)return w;let t=this.source;return T`<section aria-label=${this.t("plan_title")}>
+      <h3>${this.t("plan_title")}</h3>
+      <p>${this.t("plan_intro")}</p>
+      ${this._error?T`<p role="alert" class="notice error">${this._error}</p>`:w}
+      ${this._notice?T`<p role="status" class="notice">${this._notice}</p>`:w}
+      <button ?disabled=${this._busy} @click=${()=>this.load()}>${this.t("plan_reload")}</button>
+      ${t?.id?T`<form @submit=${s=>this.prepare(s)}>
               <fieldset ?disabled=${this._busy||this._uncertain}>
                 <legend>${t.name}</legend>
                 <label
@@ -1010,7 +1008,7 @@ var ye={kind:"iana",name:"UTC"},so=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
                 </button>
               </fieldset>
             </form>`:T`<p>${this.t("plan_save_source")}</p>`}
-        ${this._preview?T`<section aria-label=${this.t("plan_review")}>
+      ${this._preview?T`<section aria-label=${this.t("plan_review")}>
               <h4>${this.t("plan_review")}</h4>
               ${this.report(this._preview)}<button
                 ?disabled=${this._busy||this._reading||this._uncertain}
@@ -1019,9 +1017,9 @@ var ye={kind:"iana",name:"UTC"},so=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
                 ${this.t("plan_save")}
               </button>
             </section>`:w}
-        <h4>${this.t("plan_saved_list")}</h4>
-        ${this._items.length?w:T`<p>${this.t("plan_empty")}</p>`}
-        ${this._items.map(s=>T`<details>
+      <h4>${this.t("plan_saved_list")}</h4>
+      ${this._items.length?w:T`<p>${this.t("plan_empty")}</p>`}
+      ${this._items.map(s=>T`<details>
             <summary>
               ${s.name} ·
               ${this.stations.find(i=>i.id===s.station_id)?.name??this.t("plan_station_missing")}
@@ -1046,12 +1044,14 @@ var ye={kind:"iana",name:"UTC"},so=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
               </button>
             </div>
           </details>`)}
-      </section>
+    </section>`}render(){return this.hass?.user?.is_admin?T`
+      ${this.renderPlans()}
       <hikvision-schedule-operations
         .hass=${this.hass}
         .stations=${this.stations}
         .plans=${this._items}
-      ></hikvision-schedule-operations>`}};customElements.define("hikvision-deployment-plans",Rn);var ys=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];function Ln(){let r=new Date;return`${r.getFullYear()}-${String(r.getMonth()+1).padStart(2,"0")}-${String(r.getDate()).padStart(2,"0")}`}var kn=class extends Re{constructor(){super(...arguments);this.stations=[];this._planBusy=!1;this._items=[];this._busy=!1;this._reading=!1;this._uncertain=!1;this._error="";this._notice="";this._dirty=!1;this._copySource="Monday";this._copyTargets=new Set;this._batch=[];this._batchRunning=!1;this._batchSequence=0;this._batchCancelled=!1;this._batchName="";this._assessing=!1;this._assessmentSequence=0;this._assessmentStation="";this._station="";this._checkStation="";this._date=Ln();this._time="12:00";this._epoch=0;this._loaded=!1;this.t=t=>ct(this.hass?.language??"en",t)}static{this.styles=[lt,qe`
+      ></hikvision-schedule-operations>
+    `:w}};customElements.define("hikvision-deployment-plans",Rn);var ys=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];function Ln(){let r=new Date;return`${r.getFullYear()}-${String(r.getMonth()+1).padStart(2,"0")}-${String(r.getDate()).padStart(2,"0")}`}var kn=class extends Re{constructor(){super(...arguments);this.stations=[];this._planBusy=!1;this._items=[];this._busy=!1;this._reading=!1;this._uncertain=!1;this._error="";this._notice="";this._dirty=!1;this._copySource="Monday";this._copyTargets=new Set;this._batch=[];this._batchRunning=!1;this._batchSequence=0;this._batchCancelled=!1;this._batchName="";this._assessing=!1;this._assessmentSequence=0;this._assessmentStation="";this._station="";this._checkStation="";this._date=Ln();this._time="12:00";this._epoch=0;this._loaded=!1;this.t=t=>ct(this.hass?.language??"en",t)}static{this.styles=[lt,qe`
       :host {
         height: auto;
         overflow: visible;

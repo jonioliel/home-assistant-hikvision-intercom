@@ -346,18 +346,16 @@ export class DeploymentPlans extends LitElement {
         ${item.report.blockers.map((blocker) => html`<li>${this.t(blocker)}</li>`)}
       </ul>`;
   }
-  render() {
+  private renderPlans() {
     if (!this.hass?.user?.is_admin) return nothing;
     const source = this.source;
     return html`<section aria-label=${this.t("plan_title")}>
-        <h3>${this.t("plan_title")}</h3>
-        <p>${this.t("plan_intro")}</p>
-        ${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
-        ${this._notice ? html`<p role="status" class="notice">${this._notice}</p>` : nothing}
-        <button ?disabled=${this._busy} @click=${() => this.load()}>
-          ${this.t("plan_reload")}
-        </button>
-        ${
+      <h3>${this.t("plan_title")}</h3>
+      <p>${this.t("plan_intro")}</p>
+      ${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
+      ${this._notice ? html`<p role="status" class="notice">${this._notice}</p>` : nothing}
+      <button ?disabled=${this._busy} @click=${() => this.load()}>${this.t("plan_reload")}</button>
+      ${
         source?.id
           ? html`<form @submit=${(e: SubmitEvent) => this.prepare(e)}>
               <fieldset ?disabled=${this._busy || this._uncertain}>
@@ -446,7 +444,7 @@ export class DeploymentPlans extends LitElement {
             </form>`
           : html`<p>${this.t("plan_save_source")}</p>`
       }
-        ${
+      ${
         this._preview
           ? html`<section aria-label=${this.t("plan_review")}>
               <h4>${this.t("plan_review")}</h4>
@@ -459,9 +457,9 @@ export class DeploymentPlans extends LitElement {
             </section>`
           : nothing
       }
-        <h4>${this.t("plan_saved_list")}</h4>
-        ${!this._items.length ? html`<p>${this.t("plan_empty")}</p>` : nothing}
-        ${this._items.map(
+      <h4>${this.t("plan_saved_list")}</h4>
+      ${!this._items.length ? html`<p>${this.t("plan_empty")}</p>` : nothing}
+      ${this._items.map(
         (item) =>
           html`<details>
             <summary>
@@ -489,12 +487,18 @@ export class DeploymentPlans extends LitElement {
             </div>
           </details>`,
       )}
-      </section>
+    </section>`;
+  }
+  render() {
+    if (!this.hass?.user?.is_admin) return nothing;
+    return html`
+      ${this.renderPlans()}
       <hikvision-schedule-operations
         .hass=${this.hass}
         .stations=${this.stations}
         .plans=${this._items}
-      ></hikvision-schedule-operations>`;
+      ></hikvision-schedule-operations>
+    `;
   }
 }
 customElements.define("hikvision-deployment-plans", DeploymentPlans);

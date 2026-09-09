@@ -182,3 +182,7 @@ See [event behavior and recovery](docs/EVENTS.md).
 
 Device time zones and DST are followed by default from `0.14.0-alpha.1`; manual display zones
 are available in each station’s HA Options. See [time-zone setup and behavior](docs/TIME_ZONES.md).
+
+Schedule proposals now have an administrator operations workspace for responsibility review,
+background checks, restart recovery and archive. See [the operations guide](docs/SCHEDULE_OPERATIONS.md).
+Schedule writes remain unavailable until their device contract is verified.
