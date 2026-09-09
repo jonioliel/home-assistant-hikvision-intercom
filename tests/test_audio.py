@@ -230,3 +230,11 @@ async def test_cancelling_receive_does_not_consume_future_packets(audio):
     await asyncio.gather(task, return_exceptions=True)
     audio.incoming.put_nowait(b"x" * 800)
     assert await audio.receive() == b"x" * 800
+
+
+async def test_session_requires_pinned_station_identity(audio):
+    audio.control._expected_identity = None
+    with pytest.raises(AudioError) as err:
+        await audio.start()
+    assert err.value.code == "audio_identity_required"
+    audio.control._request.assert_not_called()

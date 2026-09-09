@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-09",
+  "software_commit": "fc414743cd9470b7a45e06b9cf7248b50c1230cc",
+  "method": "two concurrent independent audio sessions with status reads",
+  "physical_audibility": "not_tested",
+  "stations": [
+    {
+      "station_alias": "A",
+      "persistent_configuration_writes": 0,
+      "recording_saved": false,
+      "transmission": "G711_silence_only",
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "status_reads": 5,
+      "maximum_status_latency_ms": 94.0,
+      "received_bytes": 32000,
+      "sent_bytes": 31040,
+      "failure": null,
+      "dropped_packets": 0,
+      "close_confirmed": true,
+      "configuration_unchanged": true,
+      "after_state": "idle"
+    },
+    {
+      "station_alias": "B",
+      "persistent_configuration_writes": 0,
+      "recording_saved": false,
+      "transmission": "G711_silence_only",
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "status_reads": 5,
+      "maximum_status_latency_ms": 109.0,
+      "received_bytes": 32000,
+      "sent_bytes": 30720,
+      "failure": null,
+      "dropped_packets": 0,
+      "close_confirmed": true,
+      "configuration_unchanged": true,
+      "after_state": "idle"
+    }
+  ]
+}

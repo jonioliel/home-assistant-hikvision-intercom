@@ -41,6 +41,10 @@ HTTPX משמש להזדהות Digest ולזרם הקבלה. השידור הגו�
 [Digest authentication](https://www.python-httpx.org/advanced/authentication/),
 [HA WebSocket API](https://developers.home-assistant.io/docs/api/websocket/).
 
+בהמשך נבדקו שתי תחנות במקביל: בכל אחת התקבלו 32,000 בתים ללא כשל או השמטת מנות.
+קריאות מצב המשיכו בזמן השמע (עד 109 ms), שתי הסגירות אושרו וכל הגדרות הערוצים
+נשארו ללא שינוי. [דוח מסונן](evidence/audio_two_stations_2026-09-09.json).
+
 ## בדיקות ומדידה
 
 בדיקות פרוטוקול מכסות זהות תחנה, סירוב לפורמט לא נתמך, Digest חדש, תעבורה ללא

@@ -115,6 +115,8 @@ class AudioSession:
     async def start(self) -> None:
         if self._closed or self.session_id is not None:
             raise AudioError("audio_not_started")
+        if self.control._expected_identity is None:
+            raise AudioError("audio_identity_required")
         async with asyncio.timeout(20):
             await self.control.async_confirm_identity()
             validate_channel(

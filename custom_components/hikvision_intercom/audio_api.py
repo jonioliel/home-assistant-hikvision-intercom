@@ -149,7 +149,7 @@ class AudioBridge:
 
 
 @websocket_api.websocket_command(
-    vol.Schema({"type": f"{DOMAIN}/audio/start"}, extra=vol.ALLOW_EXTRA)
+    vol.All(vol.Schema({"type": f"{DOMAIN}/audio/start"}, extra=vol.ALLOW_EXTRA))
 )
 @websocket_api.require_admin
 @callback
@@ -198,7 +198,7 @@ def _owner(
 
 def packet_handler(operation: str) -> Any:
     @websocket_api.websocket_command(
-        vol.Schema({"type": f"{DOMAIN}/audio/{operation}"}, extra=vol.ALLOW_EXTRA)
+        vol.All(vol.Schema({"type": f"{DOMAIN}/audio/{operation}"}, extra=vol.ALLOW_EXTRA))
     )
     @websocket_api.require_admin
     @websocket_api.async_response
