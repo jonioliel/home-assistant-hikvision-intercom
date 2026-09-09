@@ -100,12 +100,16 @@ async def test_permanent_firmware_time_label_does_not_block_readback(fleet):
     assert not device.users and not manager.public()["tombstones"]
 
 
-async def test_contradictory_timed_validity_is_not_inferred_as_synced(fleet):
+@pytest.mark.parametrize("missing_time_type", [False, True])
+async def test_contradictory_timed_validity_is_not_inferred_as_synced(fleet, missing_time_type):
     manager, device, driver = fleet
 
     async def firmware_response():
         for user in device.users.values():
-            user["Valid"]["timeType"] = "local"
+            if missing_time_type:
+                user["Valid"].pop("timeType", None)
+            else:
+                user["Valid"]["timeType"] = "local"
 
     device.on_write = firmware_response
     user = await manager.async_create(
@@ -203,3 +207,26 @@ def test_parser_does_not_preserve_arbitrary_device_error_text():
         )
     assert caught.value.fields == () and caught.value.sub_status is None
     assert "PRIVATE" not in str(caught.value) and "SECRET" not in str(caught.value)
+
+
+async def test_documented_missing_time_type_defaults_to_local_for_reading(fleet):
+    _, _, driver = fleet
+    person = {
+        "employeeNo": "1001",
+        "name": "Synthetic resident",
+        "userType": "normal",
+        "Valid": {
+            "enable": True,
+            "beginTime": "2026-09-09T12:00:00",
+            "endTime": "2026-09-10T12:00:00",
+        },
+        "doorRight": "1",
+        "RightPlan": [],
+        "localUIRight": False,
+    }
+    missing = canonical(StationInventory({"1001": person}), "1001", driver.capabilities)
+    explicit = deepcopy(person)
+    explicit["Valid"]["timeType"] = "local"
+    assert missing == canonical(StationInventory({"1001": explicit}), "1001", driver.capabilities)
+    assert missing["person"]["Valid"]["timeType"] == "local"
+    assert missing["person"]["Valid"]["beginTime"] == "2026-09-09T12:00:00"

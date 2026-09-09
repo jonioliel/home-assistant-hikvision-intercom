@@ -22,7 +22,9 @@ def canonical(
         valid: dict[str, Any] = {"enable": validity["enable"]}
         if valid["enable"]:
             try:
-                time_type = validity["timeType"]
+                # Manufacturer UserInfo contract (pp. 462/466): omitted means local.
+                # An explicit offset with local time remains contradictory.
+                time_type = validity.get("timeType", "local")
                 first, last = (
                     datetime.fromisoformat(validity["beginTime"]),
                     datetime.fromisoformat(validity["endTime"]),
