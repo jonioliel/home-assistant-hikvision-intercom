@@ -280,3 +280,9 @@ The schedule inventory still has partial holiday coverage. Dependency traversal 
 This advances two partial optional Phase 6 features without closing hardware gates: mandatory
 acceptance remains 28/38; Phase 5 remains 8/9; Phase 6 has 3 implemented, 2 partial, 4 outstanding.
 See SCHEDULE_WORKFLOWS.md for operation, privacy and remaining enforcement limitations.
+
+
+0.17 final code `41f044f` passed all gates: 593 protocol/access/tool cases, 178 actual HA cases
+(ConfigFlow100%), and 92 browser cases — 863 total. Strict mypy37 modules, Ruff, TypeScript,
+format/reproducible build, HACS and Hassfest passed. Release dispatch34315935383 targets the
+same frozen main SHA. See VALIDATION.md for exact CI links. Physical gates remain unchanged.

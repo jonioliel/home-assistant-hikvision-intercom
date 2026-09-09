@@ -508,3 +508,21 @@ manufacturer-derived synthetic tests, not claimed as physically verified enforce
 Initial browser checks found a test using the wrong reload label and a source-day select without
 an explicit accessible label; both were corrected. Mobile inspection also corrected checkbox
 alignment. No failed physical test was reclassified as a software pass.
+
+
+### Exact release-code CI — `41f044fd60f67cc4b1c270157cf52b97c380a7ad`
+
+- [Python/HA/frontend checks](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34315726261): all four jobs passed.
+- Python 3.12 and 3.14: **593 protocol/access/tool tests passed** on each interpreter (counted once).
+- Actual Home Assistant 2026.9.1 / Python 3.14: **178 passed**, ConfigFlow **100%** coverage.
+- Chromium: **92 passed**; TypeScript, Prettier and reproducible frontend build passed.
+- Ruff lint/format and strict mypy: passed, **37 modules** checked.
+- [HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34315726266) and
+  [Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34315726232): passed.
+- Total unique suite cases: **863 = 593 + 178 + 92**. The four requested workflow tasks are complete;
+  this count does not represent physical test coverage or completion of the full Master Spec.
+
+Initial CI identified a class method named `list` shadowing an annotation and a reused loop variable
+with incompatible types. Commit `41f044f` corrected both; all final gates above passed afterward.
+Version metadata/changelog preparation is `ff24ccd`; the four feature commits are listed above.
+The release workflow rechecks the frozen code SHA before producing the tag and notes.
