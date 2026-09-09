@@ -7,6 +7,7 @@ Semantic Versioning is used throughout the project.
 ## [0.27.1-alpha.1] - 2026-09-10
 
 ### Fixed
+- Restore keyboard focus to the opening control when an editor or camera dialog closes, including Escape and successful saves.
 - Close an event HTTP client even when Home Assistant unloads the station while its executor is still constructing that client.
 - Recover user-management controls after a lost response, logout or panel reattachment. Discard late private inventory/review results, bound browser waits, clear sensitive drafts when a write result is uncertain, and preserve the separate uncertain-card-approval flow without automatic replay.
 - Reject new door, call and audio work as soon as a station starts unloading. Late release acknowledgements cannot recreate an optimistic pulse on the old runtime; uncertain commands are never replayed.

@@ -417,6 +417,7 @@ export class IntercomManagerPanel extends LitElement {
           this.clearCapture();
           this._review = undefined;
           this._importRows = [];
+          this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
           this._dialog = "";
         }
         this._error = this.errorText(error);
@@ -428,6 +429,9 @@ export class IntercomManagerPanel extends LitElement {
   }
   private close() {
     if (this._busy) return;
+    // Native close restores the opening control's keyboard focus before Lit
+    // removes the dialog. Removing the element alone drops focus to the page.
+    this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
     this._draft = undefined;
     this.clearCsv();
     this.clearCapture();
