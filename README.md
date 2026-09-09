@@ -15,6 +15,19 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
 
+## Bulk access and administrator history (0.23)
+
+Select up to 200 users, review their changes, then explicitly apply activation, assignment,
+removal or synchronization actions. Durable receipts resolve uncertain replies without applying
+an old change twice. Station completion remains visible in Sync. User filters and stable sorting
+support station, assignment, validity and credential presence.
+
+The **Change history** tab and per-user history show actor, action and masked before/after values,
+with filters and CSV/JSON export. Read-only permission comparison highlights station differences
+and opens the existing review workflow. See the [twenty-task delivery guide](docs/BULK_ACCESS_AUDIT_HE.md).
+Back up HA before upgrading: the private access payload migrates to schema 3; returning to 0.22
+or earlier requires restoring a matching backup.
+
 ## Core features
 
 - UI setup in English or Hebrew, reauthentication and reconfiguration.
@@ -32,8 +45,8 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 The displayed lock return is **optimistic**, based on a configurable display timer.
 The intercom controls the actual relay duration; no physical door contact is inferred.
 `onCall` means the device reports busy/in-call, and does not prove that somebody answered.
-Unknown call states remain unknown. Two-way audio and answer/reject actions are outside
-this core release.
+Unknown call states remain unknown. Capability-gated call commands are available, while
+two-way microphone audio remains unimplemented and physical call acceptance remains open.
 
 ## Schedule planning
 

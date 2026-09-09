@@ -130,12 +130,17 @@ async function users(page) {
 }
 async function choose(page) {
   await page.getByRole("checkbox", { name: "Select user Or Levy", exact: true }).check();
+  await expect(page.getByRole("combobox", { name: "Group action", exact: true })).toHaveValue(
+    "disable",
+  );
   await page.getByRole("button", { name: "Review group action", exact: true }).click();
 }
 
 test("filters combine, sorting is stable and filter changes clear selection", async ({ page }) => {
   await setup(page);
   await users(page);
+  await page.locator("details.user-filters > summary").click();
+  await expect(page.getByRole("combobox", { name: "Sort users" })).toHaveValue("employee");
   await page.getByRole("combobox", { name: "Sort users" }).selectOption("name");
   await expect(page.locator(".desktop-users tbody tr").first()).toContainText("Dana Cohen");
   await page.getByRole("combobox", { name: "Sort users" }).selectOption("employee");

@@ -270,3 +270,42 @@ async def test_saving_cancellation_retains_exactly_one_operation(batch):
     result = await batch.bulk.apply("administrator", preview["operation_id"])
     assert result["changed"] == 2 and all(u.revision == 2 for u in batch.repository.users())
     assert batch.stations["a"].pending
+
+
+@pytest.mark.parametrize("action,projected,peak", [("remove_cards", 1, 2), ("enable", 3, 3)])
+async def test_capacity_uses_cached_card_records_and_preserves_unselected(
+    batch, action, projected, peak
+):
+    from dataclasses import replace
+
+    from test_access_engine import CAP
+
+    from custom_components.hikvision_intercom.client.access import StationInventory
+
+    first, second = batch.repository.users()
+    batch.stations["a"].inventory = StationInventory(
+        users={first.employee_no: {"employeeNo": first.employee_no}},
+        cards={
+            first.cards[0].card_no.value: {
+                "cardNo": first.cards[0].card_no.value,
+                "employeeNo": first.employee_no,
+            },
+            "99998888": {"cardNo": "99998888", "employeeNo": "external"},
+        },
+    )
+    batch.stations["a"].scanned_at = "2026-09-09T10:00:00+00:00"
+    rules = batch._csv_rules()
+    rules["a"] = ("Gate", True, 1, replace(CAP, max_cards=2))
+    batch._csv_rules = lambda: rules
+    before = batch.repository.snapshot()
+    preview = await batch.bulk.preview("administrator", request(batch, action))
+    estimate = preview["capacity"][0]
+    assert estimate["source"] == "cached_inventory"
+    assert estimate["checked_at"] == batch.stations["a"].scanned_at
+    assert estimate["cards_now"] == 2
+    assert estimate["cards_projected"] == projected and estimate["cards_peak"] == peak
+    assert estimate["capacity_warning"] == (action == "enable")
+    assert estimate["users_projected"] == 2
+    assert batch.repository.snapshot() == before
+    assert first.cards[0].card_no.value not in json.dumps(preview)
+    assert second.cards[0].card_no.value not in json.dumps(preview)

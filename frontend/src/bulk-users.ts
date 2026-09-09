@@ -207,97 +207,103 @@ export class BulkUsers extends LitElement {
   }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
-    return html`<section>
-      <p>
-        <strong>${this.t("bulk_title")}: ${this.current().length}</strong> · ${this.t("bulk_hint")}
-      </p>
-      <div class="toolbar">
-        <label
-          >${this.t("bulk_action")}<select
-            aria-label=${this.t("bulk_action")}
-            .value=${this._action}
-            ?disabled=${this._busy}
-            @change=${(e: Event) => {
-              this._action = (e.target as HTMLSelectElement).value;
-              this._preview = undefined;
-              this._approved = false;
-            }}
+    return html`<details .open=${this.current().length > 0 || !!this._unknown || !!this._receipt}>
+      <summary>${this.t("bulk_title")}: ${this.current().length}</summary>
+      <section>
+        <p>
+          <strong>${this.t("bulk_title")}: ${this.current().length}</strong> ·
+          ${this.t("bulk_hint")}
+        </p>
+        <div class="toolbar">
+          <label
+            >${this.t("bulk_action")}<select
+              aria-label=${this.t("bulk_action")}
+              .value=${this._action}
+              ?disabled=${this._busy}
+              @change=${(e: Event) => {
+                this._action = (e.target as HTMLSelectElement).value;
+                this._preview = undefined;
+                this._approved = false;
+              }}
+            >
+              ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync"].map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.t("bulk_" + a)}</option>`)}
+            </select></label
           >
-            ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync"].map((a) => html`<option value=${a}>${this.t("bulk_" + a)}</option>`)}
-          </select></label
-        >
+          ${
+            ["assign", "unassign"].includes(this._action)
+              ? html`<label
+                  >${this.t("station")}<select
+                    aria-label=${this.t("station")}
+                    .value=${this._target}
+                    ?disabled=${this._busy}
+                    @change=${(e: Event) => {
+                      this._target = (e.target as HTMLSelectElement).value;
+                      this._preview = undefined;
+                      this._approved = false;
+                    }}
+                  >
+                    <option value="">—</option>
+                    ${this.stations.map((s) => html`<option value=${s.id} ?selected=${s.id === this._target} ?disabled=${this._action === "assign" && !s.lock_enabled}>${s.name}</option>`)}
+                  </select></label
+                >`
+              : nothing
+          }
+          <button
+            ?disabled=${this._busy || !this.current().length || this.current().length > 200 || (["assign", "unassign"].includes(this._action) && !this._target)}
+            @click=${() => this.perform("preview")}
+          >
+            ${this.t("bulk_preview")}
+          </button>
+          <button ?disabled=${this._busy} @click=${() => this.perform("recent")}>
+            ${this.t("bulk_recent")}
+          </button>
+        </div>
+        ${this._busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}
+        ${this._unknown ? html`<p class="notice">${this.t("bulk_unknown")} <button ?disabled=${this._busy} @click=${() => this.perform("receipt")}>${this.t("bulk_receipt")}</button><bdi>${this._unknown}</bdi></p>` : nothing}
         ${
-          ["assign", "unassign"].includes(this._action)
-            ? html`<label
-                >${this.t("station")}<select
-                  aria-label=${this.t("station")}
-                  .value=${this._target}
-                  ?disabled=${this._busy}
-                  @change=${(e: Event) => {
-                    this._target = (e.target as HTMLSelectElement).value;
-                    this._preview = undefined;
-                    this._approved = false;
-                  }}
+          this._preview
+            ? html`<section class="preview" aria-label=${this.t("bulk_preview")}>
+                <h3>${this.t("bulk_" + this._preview.action)}</h3>
+                <p>
+                  ${this.t("bulk_changed")}: ${this._preview.changed} / ${this._preview.selected}
+                </p>
+                <div class="items">
+                  ${this._preview.rows.map((row) => html`<p><strong>${row.display_name}</strong> · <bdi>${row.employee_no}</bdi><br />${row.changed ? row.changed_fields.map((f) => this.t("audit_field_" + f)).join(", ") : this.t("bulk_no_change")}<br />${row.stations.map((s) => this.stationName(s)).join(", ")}</p>`)}
+                </div>
+                <h4>${this.t("bulk_capacity")}</h4>
+                <p class="sub">${this.t("bulk_capacity_hint")}</p>
+                ${this._preview.capacity.map((c) => html`<p><strong>${this.stationName(c.station_id)}</strong>: ${this.t("users")} ${c.users_now ?? "?"} → ${c.users_projected ?? "?"} / ${c.max_users ?? "?"}; ${this.t("cards")} ${c.cards_now ?? "?"} → ${c.cards_projected ?? "?"} / ${c.max_cards ?? "?"}<br />${c.checked_at ? formatTime(c.checked_at, this.hass?.language, this.stations.find((s) => s.id === c.station_id)?.clock?.zone ?? UTC_ZONE) : this.t("not_verified")}${c.capacity_warning ? html`<strong class="error">${this.t("bulk_capacity_warning")}</strong>` : nothing}</p>`)}
+                <label class="confirm"
+                  ><input
+                    type="checkbox"
+                    .checked=${this._approved}
+                    ?disabled=${this._busy}
+                    @change=${(e: Event) => {
+                      this._approved = (e.target as HTMLInputElement).checked;
+                    }}
+                  />${this.t("bulk_approve")}</label
                 >
-                  <option value="">—</option>
-                  ${this.stations.map((s) => html`<option value=${s.id} ?disabled=${this._action === "assign" && !s.lock_enabled}>${s.name}</option>`)}
-                </select></label
-              >`
+                <button
+                  class="primary"
+                  ?disabled=${this._busy || !this._approved}
+                  @click=${() => this.perform("apply")}
+                >
+                  ${this.t("bulk_apply")}
+                </button>
+              </section>`
             : nothing
         }
-        <button
-          ?disabled=${this._busy || !this.current().length || this.current().length > 200 || (["assign", "unassign"].includes(this._action) && !this._target)}
-          @click=${() => this.perform("preview")}
-        >
-          ${this.t("bulk_preview")}
-        </button>
-        <button ?disabled=${this._busy} @click=${() => this.perform("recent")}>
-          ${this.t("bulk_recent")}
-        </button>
-      </div>
-      ${this._busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}
-      ${this._unknown ? html`<p class="notice">${this.t("bulk_unknown")} <button ?disabled=${this._busy} @click=${() => this.perform("receipt")}>${this.t("bulk_receipt")}</button><bdi>${this._unknown}</bdi></p>` : nothing}
-      ${
-        this._preview
-          ? html`<section class="preview" aria-label=${this.t("bulk_preview")}>
-              <h3>${this.t("bulk_" + this._preview.action)}</h3>
-              <p>${this.t("bulk_changed")}: ${this._preview.changed} / ${this._preview.selected}</p>
-              <div class="items">
-                ${this._preview.rows.map((row) => html`<p><strong>${row.display_name}</strong> · <bdi>${row.employee_no}</bdi><br />${row.changed ? row.changed_fields.map((f) => this.t(f)).join(", ") : this.t("bulk_no_change")}<br />${row.stations.map((s) => this.stationName(s)).join(", ")}</p>`)}
-              </div>
-              <h4>${this.t("bulk_capacity")}</h4>
-              <p class="sub">${this.t("bulk_capacity_hint")}</p>
-              ${this._preview.capacity.map((c) => html`<p><strong>${this.stationName(c.station_id)}</strong>: ${this.t("users")} ${c.users_now ?? "?"} → ${c.users_projected ?? "?"} / ${c.max_users ?? "?"}; ${this.t("cards")} ${c.cards_now ?? "?"} → ${c.cards_projected ?? "?"} / ${c.max_cards ?? "?"}<br />${c.checked_at ? formatTime(c.checked_at, this.hass?.language, this.stations.find((s) => s.id === c.station_id)?.clock?.zone ?? UTC_ZONE) : this.t("not_verified")}${c.capacity_warning ? html`<strong class="error">${this.t("bulk_capacity_warning")}</strong>` : nothing}</p>`)}
-              <label class="confirm"
-                ><input
-                  type="checkbox"
-                  .checked=${this._approved}
-                  ?disabled=${this._busy}
-                  @change=${(e: Event) => {
-                    this._approved = (e.target as HTMLInputElement).checked;
-                  }}
-                />${this.t("bulk_approve")}</label
-              >
-              <button
-                class="primary"
-                ?disabled=${this._busy || !this._approved}
-                @click=${() => this.perform("apply")}
-              >
-                ${this.t("bulk_apply")}
-              </button>
-            </section>`
-          : nothing
-      }
-      ${this._receipt ? html`<p class="notice" role="status">${this.t("bulk_saved")} · ${this._receipt.changed}<br /><bdi>${this._receipt.operation_id}</bdi></p>` : nothing}
-      ${
-        this._recent
-          ? html`<details open>
-              <summary>${this.t("bulk_recent")}</summary>
-              ${this._recent.map((r) => html`<p>${this.t(r.action.replace("/", "_"))} · ${r.changed} · ${formatTime(r.saved_at, this.hass?.language, UTC_ZONE)}<br /><bdi>${r.operation_id}</bdi></p>`)}
-            </details>`
-          : nothing
-      }
-    </section>`;
+        ${this._receipt ? html`<p class="notice" role="status">${this.t("bulk_saved")} · ${this._receipt.changed}<br /><bdi>${this._receipt.operation_id}</bdi></p>` : nothing}
+        ${
+          this._recent
+            ? html`<details open>
+                <summary>${this.t("bulk_recent")}</summary>
+                ${this._recent.map((r) => html`<p>${this.t(r.action.replace("/", "_"))} · ${r.changed} · ${formatTime(r.saved_at, this.hass?.language, UTC_ZONE)}<br /><bdi>${r.operation_id}</bdi></p>`)}
+              </details>`
+            : nothing
+        }
+      </section>
+    </details>`;
   }
 }
 customElements.define("hikvision-bulk-users", BulkUsers);

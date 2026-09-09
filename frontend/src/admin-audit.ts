@@ -302,81 +302,84 @@ export class AdminAudit extends LitElement {
     if (this._user && !retained.has(this._user)) retained.set(this._user, this._user);
     return html`<h2>${this.t("audit")}</h2>
       <p>${this.t("audit_hint")}</p>
-      <form
-        class="toolbar"
-        @submit=${(e: SubmitEvent) => {
-          e.preventDefault();
-          void this.load();
-        }}
-      >
-        <label
-          >${this.t("audit_filter_user")}<select
-            aria-label=${this.t("audit_filter_user")}
-            .value=${this._user}
-            @change=${(e: Event) => {
-              this._user = (e.target as HTMLSelectElement).value;
-            }}
-          >
-            <option value="">${this.t("filter_any")}</option>
-            ${[...retained].map(([id, name]) => html`<option value=${id}>${name}</option>`)}
-          </select></label
+      <details class="audit-filters" .open=${!!this.focusUser}>
+        <summary>${this.t("audit_filter_controls")}</summary>
+        <form
+          class="toolbar"
+          @submit=${(e: SubmitEvent) => {
+            e.preventDefault();
+            void this.load();
+          }}
         >
-        <label
-          >${this.t("user_filter_station")}<select
-            aria-label=${this.t("user_filter_station")}
-            .value=${this._station}
-            @change=${(e: Event) => {
-              this._station = (e.target as HTMLSelectElement).value;
-            }}
+          <label
+            >${this.t("audit_filter_user")}<select
+              aria-label=${this.t("audit_filter_user")}
+              .value=${this._user}
+              @change=${(e: Event) => {
+                this._user = (e.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="">${this.t("filter_any")}</option>
+              ${[...retained].map(([id, name]) => html`<option value=${id} ?selected=${id === this._user}>${name}</option>`)}
+            </select></label
           >
-            <option value="">${this.t("filter_any")}</option>
-            ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
-          </select></label
-        >
-        <label
-          >${this.t("audit_action")}<select
-            aria-label=${this.t("audit_action")}
-            .value=${this._action}
-            @change=${(e: Event) => {
-              this._action = (e.target as HTMLSelectElement).value;
-            }}
+          <label
+            >${this.t("user_filter_station")}<select
+              aria-label=${this.t("user_filter_station")}
+              .value=${this._station}
+              @change=${(e: Event) => {
+                this._station = (e.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="">${this.t("filter_any")}</option>
+              ${this.stations.map((s) => html`<option value=${s.id} ?selected=${s.id === this._station}>${s.name}</option>`)}
+            </select></label
           >
-            <option value="">${this.t("filter_any")}</option>
-            ${actions.map((a) => html`<option value=${a}>${this.actionName(a)}</option>`)}
-          </select></label
-        >
-        <label
-          >${this.t("audit_actor")}<select
-            aria-label=${this.t("audit_actor")}
-            .value=${this._actor}
-            @change=${(e: Event) => {
-              this._actor = (e.target as HTMLSelectElement).value;
-            }}
+          <label
+            >${this.t("audit_action")}<select
+              aria-label=${this.t("audit_action")}
+              .value=${this._action}
+              @change=${(e: Event) => {
+                this._action = (e.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="">${this.t("filter_any")}</option>
+              ${actions.map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.actionName(a)}</option>`)}
+            </select></label
           >
-            <option value="">${this.t("filter_any")}</option>
-            ${Object.entries(this._report?.actors ?? {}).map(([id, name]) => html`<option value=${id}>${name ?? id}</option>`)}
-          </select></label
-        >
-        <label
-          >${this.t("audit_from")}<input
-            type="datetime-local"
-            step="60"
-            .value=${this._start}
-            @input=${(e: Event) => {
-              this._start = (e.target as HTMLInputElement).value;
-            }}
-        /></label>
-        <label
-          >${this.t("audit_until")}<input
-            type="datetime-local"
-            step="60"
-            .value=${this._end}
-            @input=${(e: Event) => {
-              this._end = (e.target as HTMLInputElement).value;
-            }}
-        /></label>
-        <button class="primary" ?disabled=${this._busy}>${this.t("filter")}</button>
-      </form>
+          <label
+            >${this.t("audit_actor")}<select
+              aria-label=${this.t("audit_actor")}
+              .value=${this._actor}
+              @change=${(e: Event) => {
+                this._actor = (e.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="">${this.t("filter_any")}</option>
+              ${Object.entries(this._report?.actors ?? {}).map(([id, name]) => html`<option value=${id} ?selected=${id === this._actor}>${name ?? id}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("audit_from")}<input
+              type="datetime-local"
+              step="60"
+              .value=${this._start}
+              @input=${(e: Event) => {
+                this._start = (e.target as HTMLInputElement).value;
+              }}
+          /></label>
+          <label
+            >${this.t("audit_until")}<input
+              type="datetime-local"
+              step="60"
+              .value=${this._end}
+              @input=${(e: Event) => {
+                this._end = (e.target as HTMLInputElement).value;
+              }}
+          /></label>
+          <button class="primary" ?disabled=${this._busy}>${this.t("filter")}</button>
+        </form>
+      </details>
       <p class="sub">${this.t("audit_export_hint")}</p>
       <div class="toolbar">
         <button ?disabled=${this._busy || !this._report} @click=${() => this.export("csv")}>
@@ -396,7 +399,7 @@ export class AdminAudit extends LitElement {
                 <p>
                   ${this.t("audit_actor")}:
                   ${row.actor ? (this._report?.actors[row.actor] ?? row.actor) : this.t("audit_system")}<br />${this.t("audit_fields")}:
-                  ${row.fields.map((f) => this.t(f)).join(", ")}
+                  ${row.fields.map((f) => this.t("audit_field_" + f)).join(", ")}
                 </p>
                 <div class="comparison">
                   <div>
@@ -435,7 +438,7 @@ export class AdminAudit extends LitElement {
             }}
           >
             <option value="">—</option>
-            ${this.stations.map((s) => html`<option value=${s.id} ?disabled=${!s.online || !s.lock_enabled}>${s.name}</option>`)}</select
+            ${this.stations.map((s) => html`<option value=${s.id} ?selected=${s.id === this._auditStation} ?disabled=${!s.online || !s.lock_enabled}>${s.name}</option>`)}</select
           ><button ?disabled=${this._busy || !this._auditStation} @click=${() => this.inspect()}>
             ${this.t("permission_run")}
           </button>
@@ -461,7 +464,7 @@ export class AdminAudit extends LitElement {
                       <strong>${row.display_name ?? row.employee_no}</strong>
                       <p>
                         ${this.t("permission_" + row.status)} ·
-                        ${row.differences.map((f) => this.t(f)).join(", ")}${row.error ? html`<br />${this.t(row.error)}` : nothing}
+                        ${row.differences.map((f) => this.t("review_" + f)).join(", ")}${row.error ? html`<br />${this.t(row.error)}` : nothing}
                       </p>
                       ${row.user_id ? html`<button @click=${() => this.dispatchEvent(new CustomEvent("review-user", { bubbles: true, composed: true, detail: { user_id: row.user_id, station_id: this._permissions!.station_id } }))}>${this.t("permission_review")}</button>` : nothing}
                     </article>`,

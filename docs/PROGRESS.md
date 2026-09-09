@@ -1,18 +1,15 @@
 # Project progress
 
-Current 0.22 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Current 0.23 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, three partial, two absent. The approximate
 combined scope measure remains **77.7%**, not an effort estimate or proof of physical acceptance.
-The [current execution ledger](CALLS_AND_HISTORY_BATCH_HE.md) tracks the
-[selected twenty tasks](NEXT_CORE_BATCH_20_HE.md). This batch fixes verified local history times,
-adds call workflows and capture/history/playback diagnostics, and extends HA fleet tests.
-It does not close the physical call, card, WebRTC or nine-station acceptance gates.
+The [current execution ledger](BULK_ACCESS_AUDIT_HE.md) records all twenty implemented software
+deliverables: reviewed bulk access changes, durable receipts, administrator history and read-only
+permission comparison. Physical call, card, validity, WebRTC and nine-station gates remain open.
 
-Published [v0.22.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.22.0-alpha.1)
-from `da6259c`, implementation `8e50d15`. Release run [34352509065](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34352509065)
-passed all seven jobs: 790 Python tests per version, 227 HA tests (100% ConfigFlow coverage),
-122 browser tests, mypy53, Ruff, TypeScript, Prettier, HACS and Hassfest. Tag/manifest/bundle
-and expected source files were verified after publication; private evidence was excluded.
+Version 0.23.0-alpha.1 is prepared for the required exact-commit CI and HACS release checks.
+The access store migrates from schema 2 to 3; downgrades require a compatible HA backup.
+Publication evidence will be recorded after the release is verified.
 
 ## Historical checkpoints (earlier counts below are not current)
 

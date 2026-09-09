@@ -4,6 +4,38 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.23.0-alpha.1] - 2026-09-09
+
+### Added
+- Reviewed bulk access operations for up to 200 explicitly selected users: enable, disable,
+  station assignment/removal, deletion, PIN removal, card removal and synchronization requests.
+  Previews show per-user changes and cached capacity estimates before a separate approval.
+- Atomic operation receipts survive restart and uncertain replies. Actor-bound replay never
+  reapplies old changes; it only requeues reconciliation of current desired state.
+- Administrator change history records actor, action, revision and masked before/after summaries
+  together with user, card, import and conflict changes. It retains up to 5,000 rows / 30 days,
+  with stable pagination, filters, per-user navigation and formula-safe CSV/JSON exports.
+- Read-only permission comparison reports matched, drifted, unmanaged and unverified users,
+  with explicit completeness and a link to the existing conflict-review workflow.
+- User filters by station, assignment, activation, validity and credential presence; stable sorting,
+  result counts and responsive explicit selection in Hebrew and English.
+
+### Upgrades
+- Private access payload schema migrates from 2 to 3, preserving users, credentials, ownership
+  and pending removals. Back up HA before updating; downgrading to 0.22 or earlier requires
+  restoring its compatible backup. The HA Store envelope remains version 1.
+- Audit exports contain administrator/user identifiers and names, but no PIN values or complete
+  card numbers. An unchanged operation has a receipt without inventing a change-history row.
+
+### Evidence and limits
+- Permission inspection completed against two authorized DS-KV6124-E1 stations using 32
+  read-only requests and an empty isolated local baseline; this does not compare the owner's HA
+  database. No station credential, relay, call or schedule changes were made in this batch.
+- Capacity is an estimate from the latest available inventory, not a reservation. Saved operations
+  are central commits; station completion still follows the existing queue and readback status.
+- Mandatory v1 acceptance remains 31/38 (81.6%). The overall scope estimate remains about 78%.
+  All 20 software deliverables and remaining hardware gates are listed in docs/BULK_ACCESS_AUDIT_HE.md.
+
 ## [0.22.0-alpha.1] - 2026-09-09
 
 ### Added

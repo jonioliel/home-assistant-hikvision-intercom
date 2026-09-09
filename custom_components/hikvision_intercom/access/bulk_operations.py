@@ -212,7 +212,7 @@ class BulkOperations:
                     )
                     old_numbers = {
                         c["cardNo"]
-                        for c in observed.cards
+                        for c in observed.cards.values()
                         if c.get("employeeNo") == old.employee_no
                     }
                     new_numbers = (

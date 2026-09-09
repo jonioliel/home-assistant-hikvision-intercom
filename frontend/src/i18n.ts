@@ -1,4 +1,17 @@
 const en = {
+  user_filter_controls: "Filters and sorting",
+  audit_filter_controls: "History filters",
+  audit_field_display_name: "Name",
+  audit_field_employee_no: "Employee ID",
+  audit_field_user_type: "User type",
+  audit_field_active: "Active status",
+  audit_field_valid_from: "Validity start",
+  audit_field_valid_until: "Validity end",
+  audit_field_pin: "PIN",
+  audit_field_cards: "Cards",
+  audit_field_assignments: "Station assignments",
+  audit_field_ownership: "Ownership",
+
   audit_from: "From (HA display time)",
   audit_until: "Until (HA display time)",
   audit_export_hint:
@@ -1045,6 +1058,19 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  user_filter_controls: "סינון ומיון",
+  audit_filter_controls: "מסנני יומן",
+  audit_field_display_name: "שם",
+  audit_field_employee_no: "מזהה עובד",
+  audit_field_user_type: "סוג משתמש",
+  audit_field_active: "מצב פעילות",
+  audit_field_valid_from: "תחילת תוקף",
+  audit_field_valid_until: "סיום תוקף",
+  audit_field_pin: "קוד PIN",
+  audit_field_cards: "כרטיסים",
+  audit_field_assignments: "הרשאות תחנות",
+  audit_field_ownership: "בעלות",
+
   audit_from: "מתאריך (זמן התצוגה של HA)",
   audit_until: "עד תאריך (זמן התצוגה של HA)",
   audit_export_hint:

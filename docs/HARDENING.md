@@ -22,7 +22,11 @@ The access data schema migrates from 1 to 2 by adding private retired-PIN reserv
 users, IDs, cards, ownership bindings, pending writes and tombstones are preserved. A migration
 must save successfully before the new in-memory state is used. Downgrading to older access
 code requires restoring its matching backup; it cannot interpret the newer private data schema.
-The HA Store envelope remains version 1; the independently validated access payload is schema 2.
+Version 0.23 migrates access payload schema 2 to 3 by atomically adding administrator audit and
+operation receipts. Existing credentials, ownership and pending work are preserved. Downgrading
+to 0.22 or earlier requires restoring a compatible backup. Audit entries are bounded to 5,000 / 30
+days and operation receipts to 1,000; previous administrator history is not fabricated.
+The HA Store envelope remains version 1; the independently validated access payload is schema 3.
 
 Corrupt/oversized/duplicate-key storage is rejected and preserved. Restore a compatible backup;
 do not delete `.storage/hikvision_intercom.users` to reset it, because it owns synchronization

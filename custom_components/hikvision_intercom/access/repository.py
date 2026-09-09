@@ -460,7 +460,9 @@ class AccessRepository:
         validate: Callable[[ManagedUser], None],
     ) -> dict[str, Any]:
         def apply(state: dict[str, Any]) -> dict[str, Any]:
-            existing = state["operation_receipts"].get(receipt["operation_id"])
+            existing: dict[str, Any] | None = state["operation_receipts"].get(
+                receipt["operation_id"]
+            )
             if existing:
                 if existing["actor"] != receipt["actor"]:
                     raise AccessError("operation_not_found")

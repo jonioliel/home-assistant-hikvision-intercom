@@ -1232,54 +1232,60 @@ export class IntercomManagerPanel extends LitElement {
           + ${this.t("add_user")}
         </button>
       </div>
-      <div class="toolbar user-filters">
-        ${(
-          [
+      <details class="user-filters">
+        <summary>${this.t("user_filter_controls")}</summary>
+        <div class="toolbar">
+          ${(
             [
-              "station",
-              "user_filter_station",
-              this._data?.stations.map((st) => [st.id, st.name]) ?? [],
-            ],
-            [
-              "rights",
-              "user_filter_rights",
-              ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
-            ],
-            [
-              "state",
-              "user_filter_state",
-              ["active", "inactive", "expired", "upcoming"].map((v) => [v, this.t("filter_" + v)]),
-            ],
-            [
-              "credential",
-              "user_filter_credential",
-              ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
-            ],
-            [
-              "sort",
-              "user_sort",
-              ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
-            ],
-          ] as [keyof UserFilters, string, string[][]][]
-        ).map(
-          ([key, label, options]) =>
-            html`<label
-              >${this.t(label)}<select
-                aria-label=${this.t(label)}
-                .value=${this._userFilters[key]}
-                @change=${(e: Event) => {
-                  this._userFilters = {
-                    ...this._userFilters,
-                    [key]: (e.target as HTMLSelectElement).value,
-                  };
-                  this._selectedUsers = new Set();
-                }}
-              >
-                ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id}>${name}</option>`)}
-              </select></label
-            >`,
-        )}
-      </div>
+              [
+                "station",
+                "user_filter_station",
+                this._data?.stations.map((st) => [st.id, st.name]) ?? [],
+              ],
+              [
+                "rights",
+                "user_filter_rights",
+                ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
+              ],
+              [
+                "state",
+                "user_filter_state",
+                ["active", "inactive", "expired", "upcoming"].map((v) => [
+                  v,
+                  this.t("filter_" + v),
+                ]),
+              ],
+              [
+                "credential",
+                "user_filter_credential",
+                ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
+              ],
+              [
+                "sort",
+                "user_sort",
+                ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
+              ],
+            ] as [keyof UserFilters, string, string[][]][]
+          ).map(
+            ([key, label, options]) =>
+              html`<label
+                >${this.t(label)}<select
+                  aria-label=${this.t(label)}
+                  .value=${this._userFilters[key]}
+                  @change=${(e: Event) => {
+                    this._userFilters = {
+                      ...this._userFilters,
+                      [key]: (e.target as HTMLSelectElement).value,
+                    };
+                    this._selectedUsers = new Set();
+                  }}
+                >
+                  ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
+                </select></label
+              >`,
+          )}
+        </div>
+      </details>
       <p>${this.t("user_results")}: ${users.length} / ${this._data?.users.length ?? 0}</p>
       <div class="toolbar">
         <button
