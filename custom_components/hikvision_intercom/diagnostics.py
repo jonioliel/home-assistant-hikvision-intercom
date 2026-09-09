@@ -17,7 +17,7 @@ async def async_get_config_entry_diagnostics(
     runtime = getattr(entry, "runtime_data", None)
     result: dict[str, Any] = {
         "integration_version": VERSION,
-        "loaded": runtime is not None and not runtime.session.is_closed,
+        "loaded": runtime is not None and not runtime.is_closed,
         "config_schema": {"version": entry.version, "minor_version": entry.minor_version},
     }
     if runtime is None:
@@ -34,7 +34,7 @@ async def async_get_config_entry_diagnostics(
                 for state in runtime.profile.call_states
                 if state in {"idle", "ring", "onCall"}
             ],
-            "online": runtime.coordinator.last_update_success,
+            "online": not runtime.is_closed and runtime.coordinator.last_update_success,
             "consecutive_poll_failures": runtime.coordinator.failures,
             "requests": runtime.client.metrics.public(),
         }

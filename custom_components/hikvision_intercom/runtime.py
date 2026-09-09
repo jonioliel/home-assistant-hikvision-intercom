@@ -60,9 +60,15 @@ class IntercomRuntime:
     unlocking: bool = False
     released: bool = False
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
+    _closing: bool = field(default=False, init=False, repr=False)
+
+    @property
+    def is_closed(self) -> bool:
+        """Stop accepting work before asynchronous cleanup starts."""
+        return self._closing or self.session.is_closed
 
     async def async_unlock(self, physical_index: int) -> None:
-        if self.session.is_closed:
+        if self.is_closed:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="connection_closed"
             )
@@ -86,21 +92,34 @@ class IntercomRuntime:
                 translation_domain=DOMAIN, translation_key="release_unconfirmed"
             ) from None
         else:
+            if self.is_closed:
+                # The command may have reached the station. Never replay it or
+                # revive a pulse after this runtime started shutting down.
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN, translation_key="release_unconfirmed"
+                )
             if self._cancel_pulse:
                 self._cancel_pulse()
             self.released = True
             self._cancel_pulse = async_call_later(self.hass, self.pulse_seconds, self._finish_pulse)
         finally:
             self.unlocking = False
-            self.coordinator.async_update_listeners()
+            if not self.is_closed:
+                self.coordinator.async_update_listeners()
 
     @callback
     def _finish_pulse(self, _now: datetime) -> None:
         self.released = False
         self._cancel_pulse = None
-        self.coordinator.async_update_listeners()
+        if not self.is_closed:
+            self.coordinator.async_update_listeners()
 
     async def async_close(self) -> None:
+        self._closing = True
+        if self._cancel_pulse:
+            self._cancel_pulse()
+            self._cancel_pulse = None
+        self.released = False
         data = self.hass.data.get(DOMAIN, {})
         bridge = data.get("audio_sessions", {}).get(self.station_id)
         if bridge and bridge.runtime is self:
@@ -122,9 +141,6 @@ class IntercomRuntime:
         if self.events:
             await self.events.async_close()
         await self.access_manager.async_detach(self.station_id)
-        if self._cancel_pulse:
-            self._cancel_pulse()
-            self._cancel_pulse = None
         await self.coordinator.async_shutdown()
         await self.session.aclose()
         cache = self.hass.data.get(DOMAIN, {}).get("media_evidence", {})
@@ -280,7 +296,7 @@ def async_register_services(hass: HomeAssistant) -> None:
                     translation_domain=DOMAIN, translation_key="invalid_target"
                 )
             runtime = getattr(entry, "runtime_data", None)
-            if not isinstance(runtime, IntercomRuntime) or runtime.session.is_closed:
+            if not isinstance(runtime, IntercomRuntime) or runtime.is_closed:
                 raise ServiceValidationError(
                     translation_domain=DOMAIN, translation_key="target_unloaded"
                 )

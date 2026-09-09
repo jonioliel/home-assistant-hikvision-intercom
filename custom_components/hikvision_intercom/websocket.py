@@ -202,12 +202,10 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
         station["event_status"] = runtime.events.status() if runtime and runtime.events else None
         station.update(
             online=bool(
-                runtime
-                and not runtime.session.is_closed
-                and runtime.coordinator.last_update_success
+                runtime and not runtime.is_closed and runtime.coordinator.last_update_success
             ),
             call_state=runtime.coordinator.data.normalized
-            if runtime and not runtime.session.is_closed and runtime.coordinator.last_update_success
+            if runtime and not runtime.is_closed and runtime.coordinator.last_update_success
             else "unavailable",
             last_seen=runtime.coordinator.last_seen.isoformat()
             if runtime and runtime.coordinator.last_seen
@@ -242,7 +240,7 @@ async def _dispatch_inner(
         station = manager._station(msg["station_id"])
         entry = hass.config_entries.async_get_entry(station.id)
         runtime = getattr(entry, "runtime_data", None)
-        if runtime is None or runtime.session.is_closed:
+        if runtime is None or runtime.is_closed:
             raise AccessError("station_unloaded")
         reads = hass.data[DOMAIN].setdefault("history_inspections", set())
         if station.id in reads or len(reads) >= 3:
@@ -250,7 +248,7 @@ async def _dispatch_inner(
         reads.add(station.id)
         try:
             report = await inspect_history(runtime.client, msg["start"], msg["end"])
-            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
                 raise AccessError("station_unloaded")
             return report
         finally:
@@ -385,7 +383,7 @@ async def _dispatch_inner(
     if command == "stations/clock_refresh":
         entry = hass.config_entries.async_get_entry(msg["station_id"])
         runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
-        if runtime is None or runtime.clock is None or runtime.session.is_closed:
+        if runtime is None or runtime.clock is None or runtime.is_closed:
             raise AccessError("station_offline")
         await runtime.clock.async_refresh()
         return runtime.clock.public()

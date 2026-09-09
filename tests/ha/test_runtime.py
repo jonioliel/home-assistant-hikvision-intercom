@@ -321,3 +321,58 @@ async def test_closing_runtime_rejects_new_release_before_session_is_closed(
     assert isinstance(result, ServiceValidationError)
     assert result.translation_key == "connection_closed"
     device_io["unlock"].assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["media/call", "media/signal", "audio/start", "health/refresh", "stations/clock_refresh"],
+)
+async def test_closing_runtime_rejects_api_work_before_clock_cleanup(
+    hass, loaded_entry, hass_ws_client, device_io, command
+):
+    from unittest.mock import AsyncMock, patch
+
+    from .test_websocket import request
+
+    client = await hass_ws_client(hass)
+    runtime = loaded_entry.runtime_data
+    entered, finish = asyncio.Event(), asyncio.Event()
+    original_close = runtime.clock.async_close
+
+    async def close_clock():
+        entered.set()
+        await finish.wait()
+        await original_close()
+
+    with (
+        patch.object(runtime.clock, "async_close", close_clock),
+        patch.object(runtime.clock, "async_refresh", new=AsyncMock()) as clock_read,
+        patch(
+            "custom_components.hikvision_intercom.health_api.MediaClient.signal", new=AsyncMock()
+        ) as signal,
+        patch(
+            "custom_components.hikvision_intercom.health_api.MediaClient.call_context",
+            new=AsyncMock(),
+        ) as call,
+        patch(
+            "custom_components.hikvision_intercom.health_api.MediaClient.inspect", new=AsyncMock()
+        ) as inspect,
+        patch("custom_components.hikvision_intercom.audio_api.AudioSession") as audio,
+    ):
+        unloading = asyncio.create_task(hass.config_entries.async_unload(loaded_entry.entry_id))
+        try:
+            await entered.wait()
+            assert not runtime.session.is_closed
+            extra = {"command": "reject"} if command == "media/signal" else {}
+            response = await request(client, command, station_id=loaded_entry.entry_id, **extra)
+            assert response["success"] is False
+            assert response["error"]["code"] == (
+                "station_offline" if command == "stations/clock_refresh" else "station_unloaded"
+            )
+            diagnostic = await async_get_config_entry_diagnostics(hass, loaded_entry)
+            assert diagnostic["loaded"] is False and diagnostic["online"] is False
+            for operation in (clock_read, signal, call, inspect, audio, device_io["unlock"]):
+                operation.assert_not_called()
+        finally:
+            finish.set()
+            await unloading

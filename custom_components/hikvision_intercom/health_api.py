@@ -33,7 +33,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
             return await acceptance.update(station.id, msg["step"], msg["state"], msg["revision"])
         return acceptance.public(station.id)
     if command == "media/call":
-        if not runtime or runtime.session.is_closed:
+        if not runtime or runtime.is_closed:
             raise AccessError("station_unloaded")
         reads = data.setdefault("call_reads", set())
         if station.id in reads or len(reads) >= 3:
@@ -41,7 +41,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         reads.add(station.id)
         try:
             result = await MediaClient(runtime.client).call_context()
-            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
                 raise AccessError("station_unloaded")
             cached = data.get("call_results", {}).get(station.id)
             result["last_result"] = cached[1] if cached and cached[0] is runtime else None
@@ -50,7 +50,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         finally:
             reads.discard(station.id)
     if command == "media/signal":
-        if not runtime or runtime.session.is_closed:
+        if not runtime or runtime.is_closed:
             raise AccessError("station_unloaded")
         busy = data.setdefault("call_commands_busy", set())
         if station.id in busy:
@@ -63,11 +63,13 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
                     bridge.cancel()
                     if bridge.task:
                         await asyncio.gather(bridge.task, return_exceptions=True)
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
+                raise AccessError("station_unloaded")
             operations = data.setdefault("call_operations", {})
             task = asyncio.create_task(MediaClient(runtime.client).signal(msg["command"]))
             operations[station.id] = (runtime, task)
             result = await task
-            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
                 raise AccessError("station_unloaded")
             data.setdefault("call_results", {})[station.id] = (runtime, result)
             return result
@@ -77,7 +79,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
                 operations.pop(station.id, None)
             busy.discard(station.id)
     if command == "health/refresh":
-        if not runtime or runtime.session.is_closed:
+        if not runtime or runtime.is_closed:
             raise AccessError("station_unloaded")
         busy = data.setdefault("health_reads", set())
         if station.id in busy or len(busy) >= 3:
@@ -87,6 +89,8 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
             async with asyncio.timeout(35):
                 if runtime.clock:
                     await runtime.clock.async_refresh()
+                if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
+                    raise AccessError("station_unloaded")
                 try:
                     media = await MediaClient(runtime.client).inspect()
                 except (HikvisionError, TimeoutError):
@@ -95,10 +99,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
                         "errors": {"probe": "media_read_failed"},
                     }
                 # A reload must not attach old evidence to a replacement runtime.
-                if (
-                    getattr(entry, "runtime_data", None) is runtime
-                    and not runtime.session.is_closed
-                ):
+                if getattr(entry, "runtime_data", None) is runtime and not runtime.is_closed:
                     data.setdefault("media_evidence", {})[station.id] = (runtime, media)
         finally:
             busy.discard(station.id)

@@ -45,7 +45,7 @@ class AudioBridge:
             and self.connection.user.is_active
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
-            and not self.runtime.session.is_closed
+            and not self.runtime.is_closed
             and self.subscription in self.connection.subscriptions
         )
 
@@ -177,7 +177,7 @@ def start(
         return
     entry = hass.config_entries.async_get_entry(station)
     runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
-    if runtime is None or runtime.session.is_closed:
+    if runtime is None or runtime.is_closed:
         connection.send_error(msg["id"], "station_unloaded", "Station unavailable")
         return
     sessions = hass.data[DOMAIN].setdefault("audio_sessions", {})
