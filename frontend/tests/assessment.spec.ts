@@ -29,7 +29,12 @@ test("assessment shows partial inventory without saving or enabling assignment",
   await expect(report).toContainText("Disabled records are not free slots");
   await expect(report).toContainText("Partial search");
   const calls = await page.evaluate(() =>
-    window.calls.filter((c) => c.type.includes("schedules/") && !c.type.includes("/plan_")),
+    window.calls.filter(
+      (c) =>
+        c.type.includes("schedules/") &&
+        !c.type.includes("/plan_") &&
+        !c.type.includes("/operations_"),
+    ),
   );
   expect(calls.some((c) => /create|update|apply/.test(c.type))).toBeFalsy();
   const download = page.waitForEvent("download");
@@ -125,7 +130,12 @@ test("dependency audit explains unknown defaults and exports no user identity", 
   await expect(report).toContainText("Unknown defaults: 1");
   await expect(report).toContainText("Dependency mapping is incomplete");
   const calls = await page.evaluate(() =>
-    window.calls.filter((c) => c.type.includes("schedules/") && !c.type.includes("/plan_")),
+    window.calls.filter(
+      (c) =>
+        c.type.includes("schedules/") &&
+        !c.type.includes("/plan_") &&
+        !c.type.includes("/operations_"),
+    ),
   );
   expect(calls.map((c) => c.type.split("/").pop())).toEqual(["list", "dependencies"]);
   await page.getByLabel("Station", { exact: true }).selectOption("station-1");

@@ -44,7 +44,12 @@ test("import requires preview then appends a new draft and exports only portable
   expect(exported).toEqual(JSON.parse(document));
   expect(JSON.stringify(exported)).not.toContain("token");
   const calls = await page.evaluate(() =>
-    window.calls.filter((c) => c.type.includes("schedules/") && !c.type.includes("/plan_")),
+    window.calls.filter(
+      (c) =>
+        c.type.includes("schedules/") &&
+        !c.type.includes("/plan_") &&
+        !c.type.includes("/operations_"),
+    ),
   );
   expect(calls.map((c) => c.type.split("/").pop())).toEqual([
     "list",

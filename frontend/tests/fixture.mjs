@@ -162,6 +162,9 @@ const schedules = [];
 const scheduleBaselines = new Map();
 const deploymentPlans = [];
 window.demoPlans = deploymentPlans;
+const operations = { claims: [], jobs: [], archive: [], journal: [], writes_enabled: false };
+window.demoOperations = operations;
+let claimPreview;
 let deploymentPreview;
 let scheduleImport;
 window.demoBaselineChange = false;
@@ -192,6 +195,89 @@ const fake = {
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "stations/clock_refresh")
       return data.stations.find((s) => s.id === message.station_id).clock;
+    if (command.startsWith("schedules/operations_")) {
+      const action = command.replace("schedules/operations_", "");
+      if (action === "list" || action === "export") return structuredClone(operations);
+      const plan = deploymentPlans.find((p) => p.id === message.plan_id);
+      if (action === "claim_preview") {
+        claimPreview = {
+          token: "PRIVATE_CLAIM_TOKEN",
+          plan_id: plan.id,
+          plan_revision: plan.revision,
+          resource_keys: ["weekly:" + plan.bindings.weekly, "template:" + plan.bindings.template],
+          report: plan.report,
+        };
+        return structuredClone(claimPreview);
+      }
+      if (action === "claim_confirm") {
+        const source = deploymentPlans.find((p) => p.id === claimPreview.plan_id);
+        const claim = {
+          id: crypto.randomUUID(),
+          revision: 1,
+          plan_id: source.id,
+          station_id: source.station_id,
+          resource_keys: claimPreview.resource_keys,
+        };
+        operations.claims.push(claim);
+        claimPreview = undefined;
+        return structuredClone(claim);
+      }
+      if (action === "create") {
+        if (operations.jobs.some((j) => j.plan_id === plan.id && j.status !== "cancelled"))
+          throw { code: "schedule_operation_exists" };
+        const job = {
+          id: crypto.randomUUID(),
+          revision: 1,
+          plan_id: plan.id,
+          plan_revision: plan.revision,
+          station_id: plan.station_id,
+          name: plan.name,
+          resource_keys: ["weekly:" + plan.bindings.weekly, "template:" + plan.bindings.template],
+          status: "pending",
+          error: null,
+          blockers: ["schedule_writes_unverified"],
+          ownership: "not_checked",
+          journal_id: null,
+          report: null,
+          updated_at: new Date().toISOString(),
+        };
+        operations.jobs.push(job);
+        return structuredClone(job);
+      }
+      if (action === "claim_release") {
+        if (operations.jobs.some((j) => j.status !== "cancelled"))
+          throw { code: "schedule_claim_in_use" };
+        operations.claims.splice(
+          operations.claims.findIndex((c) => c.id === message.claim_id),
+          1,
+        );
+        return { released: true };
+      }
+      const job = operations.jobs.find((j) => j.id === message.job_id);
+      if (!job || job.revision !== message.revision) throw { code: "revision_conflict" };
+      if (action === "check") {
+        job.status = "queued";
+        job.revision++;
+        setTimeout(() => {
+          job.status = "blocked";
+          job.revision++;
+          job.ownership = operations.claims.length ? "current" : "missing";
+          job.report = structuredClone(deploymentPlans.find((p) => p.id === job.plan_id).report);
+          job.blockers = job.report.blockers.filter(
+            (b) => b !== "schedule_ownership_unknown" || job.ownership !== "current",
+          );
+        }, window.demoOperationDelay ?? 100);
+      }
+      if (action === "cancel") {
+        job.status = "cancelled";
+        job.revision++;
+      }
+      if (action === "archive") {
+        operations.archive.push(job);
+        operations.jobs.splice(operations.jobs.indexOf(job), 1);
+      }
+      return structuredClone(job);
+    }
     if (command === "schedules/plan_list")
       return structuredClone(
         deploymentPlans.map((p) => ({
