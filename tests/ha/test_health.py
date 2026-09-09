@@ -113,11 +113,31 @@ async def test_health_refresh_reads_only_and_does_not_block_snapshot(
 
 async def test_media_signal_is_explicit_and_serialized(hass, loaded_entry, hass_ws_client):
     client = await hass_ws_client(hass)
-    with patch(
-        "custom_components.hikvision_intercom.health_api.MediaClient.signal", new=AsyncMock()
-    ) as signal:
-        result = await request(
-            client, "media/signal", station_id=loaded_entry.entry_id, command="reject"
+    other = await hass_ws_client(hass)
+    entered, finish = asyncio.Event(), asyncio.Event()
+
+    async def signal(_command):
+        entered.set()
+        await finish.wait()
+
+    async def send(connection):
+        await connection.send_json_auto_id(
+            {
+                "type": f"{DOMAIN}/media/signal",
+                "station_id": loaded_entry.entry_id,
+                "command": "reject",
+            }
         )
+        return await connection.receive_json()
+
+    with patch(
+        "custom_components.hikvision_intercom.health_api.MediaClient.signal", side_effect=signal
+    ) as operation:
+        pending = asyncio.create_task(send(client))
+        await entered.wait()
+        busy = await send(other)
+        assert busy["error"]["code"] == "device_busy"
+        finish.set()
+        result = await pending
         assert result["result"] == {"acknowledged": True, "physical_result": "unverified"}
-        signal.assert_awaited_once_with("reject")
+        operation.assert_awaited_once_with("reject")

@@ -53,3 +53,7 @@ A recovery count means a successful status read after failed reads, not proof of
 reboot recovery, physical release, live video or a nine-station acceptance test.
 
 [Current 20-task evidence ledger and remaining work](CORE_MEDIA_BATCH_HE.md).
+
+The observed firmware rejects the aggregate audio-capabilities URL but accepts the enumerated
+channel1 capability URL. Health refresh tries that documented route when aggregate reading fails,
+and reports its source and allowlisted codecs. This is capability evidence, not an opened audio session.

@@ -95,3 +95,44 @@ def test_media_projection_omits_unknown_strings_and_disabled_not_enabled():
     )[0]
     assert row == {"id": 1, "enabled": False, "codec": "G.711ulaw"}
     assert audio_channels({}) == []
+
+
+async def test_media_inspection_falls_back_to_enumerated_channel_read_only():
+    c = client()
+    c.client._get.side_effect = [
+        CAPS,
+        {
+            "TwoWayAudioChannelList": {
+                "TwoWayAudioChannel": {
+                    "id": "1",
+                    "enabled": "false",
+                    "audioCompressionType": "G.711ulaw",
+                }
+            }
+        },
+        HikvisionValidationError("aggregate rejected"),
+        {
+            "TwoWayAudioChannel": {
+                "id": "1",
+                "audioCompressionType": {"@opt": "G.711ulaw,private-codec"},
+            }
+        },
+    ]
+    result = await c.inspect()
+    assert result["audio_capability_source"] == "channel"
+    assert result["audio_codecs"] == ["G.711ulaw"] and result["errors"] == {}
+    assert c.client._get.call_args.args[0] == "/ISAPI/System/TwoWayAudio/channels/1/capabilities"
+    c.client._request.assert_not_called()
+
+
+async def test_media_inspection_rejects_mismatched_channel_capability():
+    c = client()
+    c.client._get.side_effect = [
+        CAPS,
+        {"TwoWayAudioChannelList": {"TwoWayAudioChannel": {"id": "1"}}},
+        HikvisionValidationError("rejected"),
+        {"TwoWayAudioChannel": {"id": "2"}},
+    ]
+    result = await c.inspect()
+    assert result["errors"]["audio_capabilities"] == "media_read_failed"
+    assert "audio_capability_source" not in result

@@ -80,6 +80,31 @@ class MediaClient:
                         result["audio_capabilities_read"] = True
                 except HikvisionError:
                     result["errors"][kind] = "media_read_failed"
+                    # This firmware rejects the aggregate capability route but serves
+                    # the explicitly enumerated channel's documented capability route.
+                    if kind == "audio_capabilities" and result["audio_channels"]:
+                        channel = result["audio_channels"][0]["id"]
+                        try:
+                            data = await self.client._get(
+                                f"/ISAPI/System/TwoWayAudio/channels/{channel}/capabilities"
+                            )
+                            root = data.get("TwoWayAudioChannel")
+                            if not isinstance(root, dict) or str(root.get("id")) != str(channel):
+                                raise HikvisionValidationError("Mismatched audio channel")
+                            compression = root.get("audioCompressionType")
+                            opts = (
+                                compression.get("@opt") if isinstance(compression, dict) else None
+                            )
+                            result["audio_capabilities_read"] = True
+                            result["audio_capability_source"] = "channel"
+                            result["audio_codecs"] = [
+                                codec
+                                for codec in sorted(CODECS)
+                                if isinstance(opts, str) and codec in opts.split(",")
+                            ]
+                            result["errors"].pop(kind, None)
+                        except HikvisionError:
+                            pass
         return result
 
     async def signal(self, command: str) -> None:
