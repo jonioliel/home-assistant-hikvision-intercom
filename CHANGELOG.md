@@ -5,6 +5,7 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Fixed
+- Recover user-management controls after a lost response, logout or panel reattachment. Discard late private inventory/review results, bound browser waits, clear sensitive drafts when a write result is uncertain, and preserve the separate uncertain-card-approval flow without automatic replay.
 - Reject new door, call and audio work as soon as a station starts unloading. Late release acknowledgements cannot recreate an optimistic pulse on the old runtime; uncertain commands are never replayed.
 - Keep audio starts bound to the selected station across delayed browser permission/playback setup. Disable opening while HA is offline, restore connection listeners after reattachment, and never restart listening or the microphone on reconnect.
 - Restrict central-name enrichment to events after ownership was observed on that particular station. Preserve the boundary across restarts, establish it conservatively for older storage on the next verified read, and invalidate it on an ownership discrepancy. Source-provided names remain authoritative.

@@ -51,6 +51,29 @@ interface ReaderCapture {
   error?: string | null;
   label: string;
 }
+// Device inventory can wait behind other station reads and its own 120s scan.
+// These are browser wait limits; they never retry or cancel server-side changes.
+const slowManagementCommands = new Set([
+  "stations/inventory",
+  "stations/rescan",
+  "conflicts/review",
+  "conflicts/resolve",
+  "conflicts/resolve_deletion",
+  "users/adopt",
+  "users/delete_unmanaged",
+]);
+const managementWrites = new Set([
+  "users/create",
+  "users/update",
+  "users/delete",
+  "users/set_active",
+  "users/csv_apply",
+  "users/adopt",
+  "users/delete_unmanaged",
+  "users/ignore",
+  "conflicts/resolve",
+  "conflicts/resolve_deletion",
+]);
 const releaseErrors = new Set([
   "release_in_progress",
   "release_unconfirmed",
@@ -175,6 +198,11 @@ export class IntercomManagerPanel extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._epoch++;
+    this._busy = false;
+    this._notice = "";
+    this._error = "";
+    this._importRows = [];
+    this._review = undefined;
     this.cancelRequests();
     this.bindConnection(undefined);
     this._refreshFailed = false;
@@ -200,6 +228,9 @@ export class IntercomManagerPanel extends LitElement {
       if (this.hass?.user?.is_admin) {
         if (this.connection !== this.hass.connection) {
           this._epoch++;
+          this._busy = false;
+          this._notice = "";
+          this._error = "";
           this.cancelRequests();
           this._unsubscribe?.();
           this._unsubscribe = undefined;
@@ -224,6 +255,11 @@ export class IntercomManagerPanel extends LitElement {
         void this.connect();
       } else {
         this._epoch++;
+        this._busy = false;
+        this._notice = "";
+        this._error = "";
+        this._importRows = [];
+        this._review = undefined;
         this.cancelRequests();
         this.bindConnection(undefined);
         this._refreshFailed = false;
@@ -275,17 +311,44 @@ export class IntercomManagerPanel extends LitElement {
       if (epoch === this._epoch) this._connecting = false;
     }
   }
+  private currentContext(epoch: number, connection: Hass["connection"]) {
+    return (
+      epoch === this._epoch &&
+      this.isConnected &&
+      !!this.hass?.user?.is_admin &&
+      this.hass.connection === connection
+    );
+  }
   private async api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
-    if (!this._haConnected || this.hass?.connection.connected === false)
-      throw { code: "connection_lost" };
-    const hass = this.hass!;
+    if (!this.hass?.user?.is_admin || (!this.isConnected && command !== "cards/capture_cancel"))
+      throw { code: "unauthorized" };
+    if (!this._haConnected || this.hass.connection.connected === false)
+      throw { code: "panel_read_interrupted" };
+    const hass = this.hass,
+      epoch = this._epoch;
     const send = () => hass.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
-    const timeout = command === "overview" ? 20000 : command === "stations/test_unlock" ? 30000 : 0;
-    if (!timeout) return send();
+    const timeout =
+      command === "overview"
+        ? 20000
+        : command === "stations/test_unlock"
+          ? 30000
+          : slowManagementCommands.has(command)
+            ? 600000
+            : 60000;
     const controller = new AbortController();
     this.pendingRequests.add(controller);
     try {
-      return await boundedRequest(send, timeout, controller.signal);
+      const result = await boundedRequest(send, timeout, controller.signal);
+      if (!this.currentContext(epoch, hass.connection)) throw { code: "panel_read_interrupted" };
+      return result;
+    } catch (error) {
+      if ((error as { code?: string })?.code === "connection_lost")
+        throw {
+          code: managementWrites.has(command)
+            ? "panel_operation_unconfirmed"
+            : "panel_read_interrupted",
+        };
+      throw error;
     } finally {
       this.pendingRequests.delete(controller);
     }
@@ -328,19 +391,39 @@ export class IntercomManagerPanel extends LitElement {
     return key ? this.t(key) : this.t("failed");
   }
   private async run(action: () => Promise<unknown>, message = "queued") {
-    if (this._busy) return false;
+    if (this._busy || !this.isConnected || !this.hass?.user?.is_admin) return false;
+    if (!this._haConnected || this.hass.connection.connected === false) {
+      this._error = this.t("panel_read_interrupted");
+      return false;
+    }
+    const epoch = this._epoch,
+      connection = this.hass.connection;
     this._busy = true;
     this._error = "";
+    this._notice = "";
     try {
       await action();
+      if (!this.currentContext(epoch, connection)) return false;
       if (message) this._notice = this.t(message);
       await this.refresh();
-      return true;
+      return this.currentContext(epoch, connection);
     } catch (error) {
-      this._error = this.errorText(error);
+      if (this.currentContext(epoch, connection)) {
+        if ((error as { code?: string })?.code === "panel_operation_unconfirmed") {
+          // A lost create acknowledgement must not leave a reusable PIN-bearing
+          // draft that can accidentally create a second person on another click.
+          this._draft = undefined;
+          this.clearCsv();
+          this.clearCapture();
+          this._review = undefined;
+          this._importRows = [];
+          this._dialog = "";
+        }
+        this._error = this.errorText(error);
+      }
       return false;
     } finally {
-      this._busy = false;
+      if (epoch === this._epoch) this._busy = false;
     }
   }
   private close() {

@@ -1,4 +1,8 @@
 const en = {
+  panel_operation_unconfirmed:
+    "The change may have been saved, but its result did not arrive. Refresh Users and Sync before trying again. The editor was closed and entered credentials were cleared.",
+  panel_read_interrupted:
+    "The response did not arrive or Home Assistant disconnected. Refresh after the connection returns.",
   audio_title: "Two-way audio · Preview",
   audio_hint:
     "Start listening, then hold to talk. Audio stops when this window closes or goes into the background; each session lasts up to 3 minutes.",
@@ -1116,6 +1120,10 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  panel_operation_unconfirmed:
+    "ייתכן שהשינוי נשמר, אך התשובה לא התקבלה. יש לרענן את המשתמשים והסנכרון לפני ניסיון נוסף. חלון העריכה נסגר ופרטי הזיהוי שהוקלדו נוקו.",
+  panel_read_interrupted:
+    "התשובה לא התקבלה או שהחיבור ל־Home Assistant נותק. יש לרענן לאחר חידוש החיבור.",
   audio_title: "שמע דו־כיווני · גרסת ניסיון",
   audio_hint:
     "הפעל האזנה ולחץ ברצף כדי לדבר. השמע נפסק בסגירת החלון או במעבר לרקע; כל חיבור מוגבל ל־3 דקות.",
