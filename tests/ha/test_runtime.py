@@ -1,5 +1,6 @@
 """Real platform setup, services, states and cleanup."""
 
+import asyncio
 from dataclasses import replace
 from datetime import timedelta
 
@@ -253,3 +254,70 @@ async def test_lock_rename_updates_name_without_changing_entity_id_or_unlocking(
     diagnostics = await async_get_config_entry_diagnostics(hass, loaded_entry)
     assert "Garden door" not in str(diagnostics)
     device_io["unlock"].assert_not_called()
+
+
+async def test_unload_does_not_recreate_release_pulse_from_late_acknowledgement(
+    hass, loaded_entry, device_io
+):
+    from unittest.mock import patch
+
+    runtime = loaded_entry.runtime_data
+    request_entered, reply = asyncio.Event(), asyncio.Event()
+    shutdown_entered, shutdown_finish = asyncio.Event(), asyncio.Event()
+    original_shutdown = runtime.coordinator.async_shutdown
+
+    async def unlock(_door):
+        request_entered.set()
+        await reply.wait()
+
+    async def shutdown():
+        shutdown_entered.set()
+        await shutdown_finish.wait()
+        await original_shutdown()
+
+    device_io["unlock"].side_effect = unlock
+    opening = asyncio.create_task(runtime.async_unlock(1))
+    await request_entered.wait()
+    with patch.object(runtime.coordinator, "async_shutdown", shutdown):
+        unloading = asyncio.create_task(hass.config_entries.async_unload(loaded_entry.entry_id))
+        try:
+            await shutdown_entered.wait()
+            reply.set()
+            result = (await asyncio.gather(opening, return_exceptions=True))[0]
+        finally:
+            reply.set()
+            shutdown_finish.set()
+            await asyncio.gather(opening, unloading, return_exceptions=True)
+    assert runtime._cancel_pulse is None
+    assert runtime.released is False
+    assert isinstance(result, HomeAssistantError)
+    assert result.translation_key == "release_unconfirmed"
+    device_io["unlock"].assert_awaited_once_with(1)
+
+
+async def test_closing_runtime_rejects_new_release_before_session_is_closed(
+    hass, loaded_entry, device_io
+):
+    from unittest.mock import patch
+
+    runtime = loaded_entry.runtime_data
+    shutdown_entered, shutdown_finish = asyncio.Event(), asyncio.Event()
+    original_shutdown = runtime.coordinator.async_shutdown
+
+    async def shutdown():
+        shutdown_entered.set()
+        await shutdown_finish.wait()
+        await original_shutdown()
+
+    with patch.object(runtime.coordinator, "async_shutdown", shutdown):
+        unloading = asyncio.create_task(hass.config_entries.async_unload(loaded_entry.entry_id))
+        try:
+            await shutdown_entered.wait()
+            assert not runtime.session.is_closed
+            result = (await asyncio.gather(runtime.async_unlock(1), return_exceptions=True))[0]
+        finally:
+            shutdown_finish.set()
+            await unloading
+    assert isinstance(result, ServiceValidationError)
+    assert result.translation_key == "connection_closed"
+    device_io["unlock"].assert_not_awaited()
