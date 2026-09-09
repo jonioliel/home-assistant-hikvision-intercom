@@ -4,12 +4,17 @@ The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) is the curren
 plan. It prioritizes remaining acceptance gates, call/audio completion and a concurrent UI redesign.
 Its conditional 45/47 (95.7%) target does not change the current completion figures below.
 
-Current 0.26 candidate: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Current 0.26 release: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, four partial, one absent. Audio moves from
 absent to partial after the new HA bridge, hold-to-talk controls and real two-station transport
 checks. Combined scope is **78.7%**. [Audio delivery and remaining gates](AUDIO_026_HE.md).
 Audible field acceptance and physical call/card/fleet tests remain open. Access schema remains 3.
-Publication evidence will be recorded after all candidate checks pass.
+Published [v0.26.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.26.0-alpha.1)
+from `bc8ddbb9c5a69096c2287bf90861bf0b2d0e7a47`.
+[Release run 34396498451](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34396498451) passed all seven jobs: 867 Python tests per version, 254 HA tests,
+159 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+The release tag, manifest, panel bundle, audio worklet and source files were verified.
+[Publication evidence](evidence/release_0.26.0-alpha.1.json).
 
 ## Historical checkpoints (earlier counts below are not current)
 

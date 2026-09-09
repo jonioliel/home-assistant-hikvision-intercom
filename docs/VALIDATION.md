@@ -1,3 +1,14 @@
+# Current validation — 0.26 audio preview
+
+Current code: `bc8ddbb9c5a69096c2287bf90861bf0b2d0e7a47`. Candidate and release checks passed:
+867 Python tests per version (3.12/3.14), 254 Home Assistant tests, 159 browser tests,
+mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+[Audio validation and physical boundaries](AUDIO_026_HE.md) ·
+[two-station evidence](evidence/audio_two_stations_2026-09-09.json).
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34396498451) passed. The published tag, manifest, panel
+and audio worklet were verified against the tested commit.
+The Phase 0 and chronological checkpoints below retain their original context and counts.
+
 # Phase 0 validation — 2026-09-08
 
 Current branch: `phase/1-core-integration`. Phase 0 protocol baseline is complete;

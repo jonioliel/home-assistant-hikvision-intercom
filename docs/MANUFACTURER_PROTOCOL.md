@@ -151,3 +151,18 @@ A fresh read-only check returned ranges255/255/64/1024 respectively and status3 
 configuration GET. The production readiness implementation reproduced this result. No PUT,
 RightPlan association or credential/relay operation was performed. Local drafts do not claim
 firmware enforcement. See ACCESS_SCHEDULES.md and the sanitized schedule capabilities fixture.
+
+
+## Audio transport verified in 0.26
+
+The supplied guide sections 10.1 and 13.7.1 (pages 73–74 and 375–383) define
+PUT open, session-scoped GET/PUT audioData and PUT close. G.711ulaw uses 160 bytes
+per 20 ms with no additional frame header. Both tested stations accepted a session
+without a persistent channel write, despite their initial enabled=false value.
+The receiver's observed content type is `application/octem-strem`; only that explicit
+firmware spelling and `application/octet-stream` are accepted.
+The raw persistent upload follows the guide's no-Content-Length framing; HTTP chunk
+markers are not inserted. A fresh PUT Digest challenge is acquired before sending audio.
+[Sanitized concurrent two-station evidence](evidence/audio_two_stations_2026-09-09.json)
+records reception, silence-only transmission, healthy status reads and confirmed closure.
+Audible acceptance and installed browser-to-speaker testing remain open.
