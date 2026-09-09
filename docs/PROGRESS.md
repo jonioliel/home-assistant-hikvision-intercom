@@ -354,3 +354,11 @@ The full local Python suite passed 706 tests. Browser checks cover local lifecyc
 acknowledgements, admin access and Hebrew mobile layout; targeted proposal/assessment/transfer
 regressions passed. Actual HA, typing, full browser suite, HACS and Hassfest results follow
 once CI completes. No device requests occurred; physical schedule gates remain unchanged.
+
+
+0.20 final code `947a2d0` passed **1,012 tests** (709 protocol/access/tools, 203 actual HA,
+100 browser), ConfigFlow100%, strict mypy46, Ruff, TypeScript, Prettier, reproducible build,
+HACS and Hassfest. The shutdown/enqueue race fix is included. Gated release34335552283
+was dispatched once against this exact merged commit. Four local workflow tasks are complete;
+two deployment tasks remain partial and six further tasks remain as mapped in SCHEDULE_OPERATIONS.md.
+The owner's two-station PIN replacement acceptance is recorded separately from schedule validation.

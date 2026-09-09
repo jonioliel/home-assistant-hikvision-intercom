@@ -620,3 +620,22 @@ The full local Python suite passed 706 tests. Browser checks cover local lifecyc
 acknowledgements, admin access and Hebrew mobile layout; targeted proposal/assessment/transfer
 regressions passed. Actual HA, typing, full browser suite, HACS and Hassfest results follow
 once CI completes. No device requests occurred; physical schedule gates remain unchanged.
+
+
+### Verified final checks on `947a2d0`
+
+- Python 3.12 and 3.14: **709 passed** each (counted once), Ruff lint/format passed.
+- Strict mypy: **46 source files**, no issues.
+- Actual Home Assistant 2026.9.1 / Python 3.14: **203 passed**, ConfigFlow **100%** coverage.
+- Chromium: **100 passed**; TypeScript, Prettier and reproducible bundle checks passed.
+- **1,012 unique test cases = 709 + 203 + 100.** The final three regressions cover cancelled
+  enqueue, shutdown during queue persistence and cancellation before a worker's first turn.
+- [Python/HA/browser34335293122](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34335293122),
+  [HACS34335293131](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34335293131),
+  [Hassfest34335293115](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34335293115)
+  all passed. All 32 batch paths passed private-value scanning.
+
+The passed commit was fast-forwarded to main and submitted once to gated
+[release34335552283](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34335552283).
+The release workflow reruns every gate and publishes the frozen `947a2d0` commit. The user guide
+records the production-write and physical-acceptance limits; no device request was made in this batch.
