@@ -21,6 +21,7 @@ from .access.schedule_baselines import ScheduleBaselines
 from .access.schedules import ScheduleLibrary, preview
 from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
+from .client.schedule_dependencies import inspect_dependencies
 from .client.schedule_inventory import inspect_inventory
 from .client.schedules import inspect_schedules
 from .configuration import managed_locks
@@ -50,6 +51,7 @@ COMMANDS = {
     "schedules/delete": {"schedule_id": str, "revision": int},
     "schedules/preview": {"data": dict, "date": str, "time": str},
     "schedules/readiness": {"station_id": str},
+    "schedules/dependencies": {"station_id": str},
     "schedules/assess": {"station_id": str, "data": dict},
     "schedules/baseline_save": {"station_id": str, "token": str},
     "schedules/baseline_clear": {"station_id": str, "revision": int},
@@ -209,7 +211,7 @@ async def _dispatch(
                 [driver.client._expected_identity, runtime.profile.firmware if runtime else None]
             )
             return await baselines.async_save(station.id, actor, identity, msg["token"])
-        if command in {"schedules/readiness", "schedules/assess"}:
+        if command in {"schedules/readiness", "schedules/assess", "schedules/dependencies"}:
             draft = normalize_schedule(msg["data"]) if command == "schedules/assess" else None
             station = manager._station(msg["station_id"])
             driver = manager._driver(station)
@@ -219,10 +221,12 @@ async def _dispatch(
             busy.add(station.id)
             evidence: dict[str, Any] = {}
             try:
-                async with asyncio.timeout(70 if draft is not None else 40):
+                async with asyncio.timeout(130 if command == "schedules/dependencies" else 70):
                     async with manager._read_slots:
                         result = (
-                            await inspect_inventory(
+                            await inspect_dependencies(driver.client)
+                            if command == "schedules/dependencies"
+                            else await inspect_inventory(
                                 driver.client,
                                 evidence=evidence,
                                 fingerprint=baselines.fingerprint

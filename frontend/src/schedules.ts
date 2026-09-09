@@ -64,6 +64,28 @@ interface Baseline {
     capability_changed: boolean;
   }[];
 }
+interface Dependencies {
+  checked_at: string;
+  mapping_complete: boolean;
+  users: {
+    state: string;
+    error: string | null;
+    read: number | null;
+    explicit: number;
+    implicit: number;
+    malformed: number;
+  };
+  checks: {
+    kind: string;
+    coverage: string;
+    referenced: number;
+    observed: number;
+    not_observed: number;
+    disabled: number;
+    ids: number[];
+    not_observed_ids: number[];
+  }[];
+}
 interface Assessment {
   baseline?: Baseline;
   checked_at: string;
@@ -187,6 +209,7 @@ export class IntercomSchedules extends LitElement {
     _notice: { state: true },
     _preview: { state: true },
     _readiness: { state: true },
+    _dependencies: { state: true },
     _assessment: { state: true },
     _assessing: { state: true },
     _uncertain: { state: true },
@@ -203,6 +226,7 @@ export class IntercomSchedules extends LitElement {
   private _dirty = false;
   private _preview?: Preview;
   private _readiness?: Readiness;
+  private _dependencies?: Dependencies;
   private _assessment?: Assessment;
   private _assessing = false;
   private _assessmentSequence = 0;
@@ -429,6 +453,7 @@ export class IntercomSchedules extends LitElement {
   private invalidateAssessment() {
     this._assessmentSequence++;
     this._assessment = undefined;
+    this._dependencies = undefined;
   }
   private async assessDraft() {
     if (
@@ -465,6 +490,78 @@ export class IntercomSchedules extends LitElement {
     } finally {
       if (this.current(epoch)) this._assessing = false;
     }
+  }
+  private async dependencies() {
+    if (this._busy || this._reading || this._assessing || !this._station) return;
+    this.invalidateAssessment();
+    const epoch = this._epoch,
+      sequence = this._assessmentSequence,
+      station = this._station;
+    this._assessing = true;
+    this._error = "";
+    try {
+      const result = await this.api<Dependencies>("dependencies", { station_id: station });
+      if (
+        this.current(epoch) &&
+        sequence === this._assessmentSequence &&
+        station === this._station
+      ) {
+        this._assessmentStation = station;
+        this._dependencies = result;
+      }
+    } catch (e) {
+      if (this.current(epoch) && sequence === this._assessmentSequence)
+        this._error = this.errorText(e);
+    } finally {
+      if (this.current(epoch)) this._assessing = false;
+    }
+  }
+  private dependenciesView() {
+    const report = this._dependencies;
+    if (!report) return nothing;
+    const station = this.stations.find((s) => s.id === this._assessmentStation);
+    return html`<section aria-label=${this.t("schedule_dependencies")}>
+      <h3>${this.t("schedule_dependencies")}</h3>
+      <p>
+        ${station?.name} ·
+        <bdi
+          >${formatTime(report.checked_at, this.hass?.language, station?.clock?.zone ?? UTC_ZONE)}</bdi
+        >
+      </p>
+      <p class="hint">${this.t("schedule_dependencies_hint")}</p>
+      <p role="status">
+        ${this.t(report.mapping_complete ? "schedule_dependencies_complete" : "schedule_dependencies_partial")}
+      </p>
+      <p>
+        ${this.t("schedule_dependency_users")}: ${report.users.read ?? "—"} ·
+        ${this.t("schedule_dependency_explicit")}: ${report.users.explicit} ·
+        ${this.t("schedule_dependency_implicit")}: ${report.users.implicit} ·
+        ${this.t("schedule_dependency_malformed")}: ${report.users.malformed}
+      </p>
+      ${report.users.error ? html`<p class="danger">${this.t(report.users.error)}</p>` : nothing}
+      ${report.checks.map(
+        (c) =>
+          html`<div class="check-row">
+            <strong>${this.t("schedule_kind_" + c.kind)}</strong> ·
+            ${this.t("schedule_inventory_" + c.coverage)}
+            <p>
+              ${this.t("schedule_dependency_refs")}:
+              ${report.users.state === "complete" ? c.referenced : "—"} ·
+              ${this.t("schedule_dependency_observed")}:
+              ${report.users.state === "complete" ? c.observed : "—"} ·
+              ${this.t("schedule_dependency_missing")}:
+              ${report.users.state === "complete" ? c.not_observed : "—"}
+            </p>
+            ${c.ids.length ? html`<p>${this.t("schedule_ids")}: <bdi>${c.ids.join(", ")}${c.referenced > 20 ? "…" : ""}</bdi></p>` : nothing}
+            ${c.not_observed_ids.length ? html`<p>${this.t("schedule_dependency_missing")}: <bdi>${c.not_observed_ids.join(", ")}${c.not_observed > 20 ? "…" : ""}</bdi></p>` : nothing}
+          </div>`,
+      )}
+      <button
+        @click=${() => downloadText(JSON.stringify(report, null, 2), "hikvision-schedule-dependencies.json", "application/json")}
+      >
+        ${this.t("schedule_dependencies_export")}
+      </button>
+    </section>`;
   }
   private async baselineAction(action: "save" | "clear") {
     const report = this._assessment,
@@ -841,7 +938,13 @@ export class IntercomSchedules extends LitElement {
                 </button>`
             : nothing
         }
-        ${this.assessmentView()}
+        <button
+          ?disabled=${this._busy || this._reading || this._assessing || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+          @click=${() => this.dependencies()}
+        >
+          ${this.t("schedule_dependencies")}
+        </button>
+        ${this.dependenciesView()} ${this.assessmentView()}
         <p class="hint">${this.t("schedule_apply_blocked")}</p>
       </section>`;
   }

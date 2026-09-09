@@ -239,6 +239,23 @@ const fake = {
       scheduleBaselines.delete(message.station_id);
       return { revision: 0, checked_at: null };
     }
+    if (command === "schedules/dependencies")
+      return {
+        checked_at: new Date().toISOString(),
+        mapping_complete: false,
+        can_apply: false,
+        users: { state: "complete", error: null, read: 2, explicit: 1, implicit: 1, malformed: 0 },
+        checks: ["template", "weekly", "holiday_group", "holiday"].map((kind) => ({
+          kind,
+          coverage: kind === "holiday" ? "partial" : "complete",
+          referenced: 1,
+          observed: 1,
+          not_observed: 0,
+          disabled: 1,
+          ids: [1],
+          not_observed_ids: [],
+        })),
+      };
     if (command === "schedules/assess") {
       const prior = scheduleBaselines.get(message.station_id);
       return {

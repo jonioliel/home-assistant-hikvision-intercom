@@ -351,3 +351,24 @@ async def test_baseline_corruption_during_setup_preserves_core(hass, device_io):
     assert ir.async_get(hass).async_get_issue(DOMAIN, "schedule_baselines_storage_corrupt")
     await hass.config_entries.async_unload(config_entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_dependency_audit_uses_read_lane_and_preserves_stores(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    before = hass.data[DOMAIN]["schedules"].list()
+    with patch(
+        "custom_components.hikvision_intercom.websocket.inspect_dependencies",
+        AsyncMock(return_value={"can_apply": False, "users_checked": True}),
+    ) as read:
+        response = await request(client, "schedules/dependencies", station_id=loaded_entry.entry_id)
+        assert response["success"] and not response["result"]["can_apply"]
+        assert read.await_count == 1 and not hass.data[DOMAIN]["schedule_reads"]
+        hass.data[DOMAIN]["schedule_reads"] = {loaded_entry.entry_id}
+        busy = await request(client, "schedules/dependencies", station_id=loaded_entry.entry_id)
+        assert busy["error"]["code"] == "schedule_read_busy" and read.await_count == 1
+        hass.data[DOMAIN]["schedule_reads"] = set()
+    assert hass.data[DOMAIN]["schedules"].list() == before
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()

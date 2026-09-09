@@ -112,3 +112,22 @@ test("Hebrew mobile assessment keeps warnings and resource counts readable", asy
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/assessment-he-mobile.png" });
 });
+
+test("dependency audit explains unknown defaults and exports no user identity", async ({
+  page,
+}) => {
+  await prepare(page);
+  await page.getByRole("button", { name: "Audit user schedule dependencies", exact: true }).click();
+  const report = page.getByRole("region", {
+    name: "Audit user schedule dependencies",
+    exact: true,
+  });
+  await expect(report).toContainText("Unknown defaults: 1");
+  await expect(report).toContainText("Dependency mapping is incomplete");
+  const calls = await page.evaluate(() =>
+    window.calls.filter((c) => c.type.includes("schedules/")),
+  );
+  expect(calls.map((c) => c.type.split("/").pop())).toEqual(["list", "dependencies"]);
+  await page.getByLabel("Station", { exact: true }).selectOption("station-1");
+  await expect(report).toHaveCount(0);
+});

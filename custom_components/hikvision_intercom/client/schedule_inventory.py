@@ -177,6 +177,7 @@ async def search_records(
 async def inspect_inventory(
     client: HikvisionClient,
     *,
+    projected: dict[str, list[dict[str, Any]]] | None = None,
     evidence: dict[str, Any] | None = None,
     fingerprint: Callable[[Any], str] | None = None,
 ) -> dict[str, Any]:
@@ -290,6 +291,9 @@ async def inspect_inventory(
                     state="failed",
                     error="connection_failed" if isinstance(err, TimeoutError) else error_code(err),
                 )
+    if projected is not None:
+        projected.clear()
+        projected.update(inventories)
     if evidence is not None:
         evidence.clear()
         evidence.update(

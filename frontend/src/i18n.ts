@@ -1,4 +1,19 @@
 const en = {
+  schedule_dependencies: "Audit user schedule dependencies",
+  schedule_dependencies_hint:
+    "Only explicit user references are traced. Empty or missing RightPlan has unknown semantics. IDs not observed may be outside search coverage. Disabled records remain dependencies. This report does not establish ownership or permission to overwrite.",
+  schedule_dependencies_complete:
+    "Explicit references traced across complete inventories. Enforcement remains unverified.",
+  schedule_dependencies_partial:
+    "Dependency mapping is incomplete or includes unknown user defaults.",
+  schedule_dependency_users: "Users read",
+  schedule_dependency_explicit: "Explicit assignments",
+  schedule_dependency_implicit: "Unknown defaults",
+  schedule_dependency_malformed: "Unrecognized assignments",
+  schedule_dependency_refs: "Referenced IDs",
+  schedule_dependency_observed: "Observed",
+  schedule_dependency_missing: "Not observed",
+  schedule_dependencies_export: "Download dependency report",
   schedule_assess: "Assess selected draft",
   schedule_baseline_title: "Changes since reference",
   schedule_baseline_hint:
@@ -617,6 +632,20 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  schedule_dependencies: "בדיקת תלויות משתמשים בתוכניות",
+  schedule_dependencies_hint:
+    "נבדקות רק הפניות מפורשות של משתמשים. המשמעות של RightPlan ריק או חסר אינה ידועה. מזהים שלא נצפו עשויים להיות מחוץ לכיסוי החיפוש. גם תוכניות כבויות נספרות כתלויות. הדוח אינו מוכיח בעלות או הרשאה לדרוס תוכניות.",
+  schedule_dependencies_complete:
+    "ההפניות המפורשות נבדקו במלאי מלא. אכיפה במכשיר עדיין אינה מאומתת.",
+  schedule_dependencies_partial: "מיפוי התלויות חלקי או כולל ברירות מחדל לא ידועות.",
+  schedule_dependency_users: "משתמשים שנקראו",
+  schedule_dependency_explicit: "שיוכים מפורשים",
+  schedule_dependency_implicit: "ברירות מחדל לא ידועות",
+  schedule_dependency_malformed: "שיוכים שלא זוהו",
+  schedule_dependency_refs: "מזהים שאליהם מפנים",
+  schedule_dependency_observed: "נצפו",
+  schedule_dependency_missing: "לא נצפו",
+  schedule_dependencies_export: "הורדת דוח תלויות",
   schedule_assess: "בדיקת התאמת הטיוטה",
   schedule_baseline_title: "שינויים מנקודת הייחוס",
   schedule_baseline_hint:
