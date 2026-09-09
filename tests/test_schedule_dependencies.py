@@ -105,4 +105,6 @@ async def test_reads_only_user_search_and_redacts_failed_read():
             result = await inspect_dependencies(client)
             assert not result["users_checked"] and result["users"]["read"] is None
             assert result["users"]["error"] == "authentication_failed"
+            assert result["users"]["explicit"] is None
+            assert all(c["referenced"] is None for c in result["checks"])
             assert "PRIVATE" not in json.dumps(result)

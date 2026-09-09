@@ -20,13 +20,11 @@ async function open(page) {
   await page.getByRole("button", { name: "Access schedules", exact: true }).click();
 }
 async function upload(page, content = document) {
-  await page
-    .getByLabel("Import draft file", { exact: true })
-    .setInputFiles({
-      name: "drafts.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(content),
-    });
+  await page.getByLabel("Import draft file", { exact: true }).setInputFiles({
+    name: "drafts.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(content),
+  });
 }
 
 test("import requires preview then appends a new draft and exports only portable fields", async ({

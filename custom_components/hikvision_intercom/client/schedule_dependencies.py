@@ -61,13 +61,13 @@ def user_references(users: list[dict[str, Any]]) -> dict[str, Any]:
 def summarize(
     users: dict[str, Any], inventory: dict[str, Any], rows: dict[str, list[dict[str, Any]]]
 ) -> dict[str, Any]:
-    needed = {
+    needed: dict[str, set[int]] = {
         "template": set(users["references"]),
         "weekly": set(),
         "holiday_group": set(),
         "holiday": set(),
     }
-    checks = []
+    checks: list[dict[str, Any]] = []
     for kind in needed:
         observed = {r["id"]: r for r in rows.get(kind, [])}
         refs = needed[kind]
@@ -99,6 +99,11 @@ def summarize(
         and not users["malformed"]
         and all(c["coverage"] == "complete" and not c["not_observed"] for c in checks)
     )
+    if not checked:
+        for item in checks:
+            for key in ("referenced", "observed", "not_observed", "disabled"):
+                item[key] = None
+        users = {**users, "explicit": None, "implicit": None, "malformed": None}
     return {
         "checked_at": utc_now(),
         "users_checked": checked,

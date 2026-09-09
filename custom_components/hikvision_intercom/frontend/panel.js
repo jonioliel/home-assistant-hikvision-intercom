@@ -876,9 +876,9 @@ var Ie={kind:"iana",name:"UTC"},eo=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
       </p>
       <p>
         ${this.t("schedule_dependency_users")}: ${t.users.read??"\u2014"} ·
-        ${this.t("schedule_dependency_explicit")}: ${t.users.explicit} ·
-        ${this.t("schedule_dependency_implicit")}: ${t.users.implicit} ·
-        ${this.t("schedule_dependency_malformed")}: ${t.users.malformed}
+        ${this.t("schedule_dependency_explicit")}: ${t.users.explicit??"\u2014"} ·
+        ${this.t("schedule_dependency_implicit")}: ${t.users.implicit??"\u2014"} ·
+        ${this.t("schedule_dependency_malformed")}: ${t.users.malformed??"\u2014"}
       </p>
       ${t.users.error?A`<p class="danger">${this.t(t.users.error)}</p>`:$}
       ${t.checks.map(i=>A`<div class="check-row">
@@ -892,8 +892,8 @@ var Ie={kind:"iana",name:"UTC"},eo=new Map;function pn(r,e,t){let[s,i,n,a]=e,o=n
               ${this.t("schedule_dependency_missing")}:
               ${t.users.state==="complete"?i.not_observed:"\u2014"}
             </p>
-            ${i.ids.length?A`<p>${this.t("schedule_ids")}: <bdi>${i.ids.join(", ")}${i.referenced>20?"\u2026":""}</bdi></p>`:$}
-            ${i.not_observed_ids.length?A`<p>${this.t("schedule_dependency_missing")}: <bdi>${i.not_observed_ids.join(", ")}${i.not_observed>20?"\u2026":""}</bdi></p>`:$}
+            ${i.ids.length?A`<p>${this.t("schedule_ids")}: <bdi>${i.ids.join(", ")}${(i.referenced??0)>20?"\u2026":""}</bdi></p>`:$}
+            ${i.not_observed_ids.length?A`<p>${this.t("schedule_dependency_missing")}: <bdi>${i.not_observed_ids.join(", ")}${(i.not_observed??0)>20?"\u2026":""}</bdi></p>`:$}
           </div>`)}
       <button
         @click=${()=>et(JSON.stringify(t,null,2),"hikvision-schedule-dependencies.json","application/json")}

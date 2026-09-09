@@ -85,17 +85,17 @@ interface Dependencies {
     state: string;
     error: string | null;
     read: number | null;
-    explicit: number;
-    implicit: number;
-    malformed: number;
+    explicit: number | null;
+    implicit: number | null;
+    malformed: number | null;
   };
   checks: {
     kind: string;
     coverage: string;
-    referenced: number;
-    observed: number;
-    not_observed: number;
-    disabled: number;
+    referenced: number | null;
+    observed: number | null;
+    not_observed: number | null;
+    disabled: number | null;
     ids: number[];
     not_observed_ids: number[];
   }[];
@@ -838,9 +838,9 @@ export class IntercomSchedules extends LitElement {
       </p>
       <p>
         ${this.t("schedule_dependency_users")}: ${report.users.read ?? "—"} ·
-        ${this.t("schedule_dependency_explicit")}: ${report.users.explicit} ·
-        ${this.t("schedule_dependency_implicit")}: ${report.users.implicit} ·
-        ${this.t("schedule_dependency_malformed")}: ${report.users.malformed}
+        ${this.t("schedule_dependency_explicit")}: ${report.users.explicit ?? "—"} ·
+        ${this.t("schedule_dependency_implicit")}: ${report.users.implicit ?? "—"} ·
+        ${this.t("schedule_dependency_malformed")}: ${report.users.malformed ?? "—"}
       </p>
       ${report.users.error ? html`<p class="danger">${this.t(report.users.error)}</p>` : nothing}
       ${report.checks.map(
@@ -856,8 +856,8 @@ export class IntercomSchedules extends LitElement {
               ${this.t("schedule_dependency_missing")}:
               ${report.users.state === "complete" ? c.not_observed : "—"}
             </p>
-            ${c.ids.length ? html`<p>${this.t("schedule_ids")}: <bdi>${c.ids.join(", ")}${c.referenced > 20 ? "…" : ""}</bdi></p>` : nothing}
-            ${c.not_observed_ids.length ? html`<p>${this.t("schedule_dependency_missing")}: <bdi>${c.not_observed_ids.join(", ")}${c.not_observed > 20 ? "…" : ""}</bdi></p>` : nothing}
+            ${c.ids.length ? html`<p>${this.t("schedule_ids")}: <bdi>${c.ids.join(", ")}${(c.referenced ?? 0) > 20 ? "…" : ""}</bdi></p>` : nothing}
+            ${c.not_observed_ids.length ? html`<p>${this.t("schedule_dependency_missing")}: <bdi>${c.not_observed_ids.join(", ")}${(c.not_observed ?? 0) > 20 ? "…" : ""}</bdi></p>` : nothing}
           </div>`,
       )}
       <button

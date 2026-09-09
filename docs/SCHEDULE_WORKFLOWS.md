@@ -62,3 +62,15 @@ confirmation naming the affected days. A closed source day clears targets. Each 
 an independent copy, so editing one day cannot change another. Copy invalidates stale previews
 and assessment queues, and does not write storage until Save draft is selected. Server validation
 still rejects overlapping, reversed or excessive windows.
+
+## Observed evidence and acceptance
+
+A production-client read at 2026-09-09T05:28:38Z returned three users, all with empty/missing
+RightPlan references, classified as unknown defaults. No raw identities or credentials are
+published. Templates, weekly plans and groups completed their searches; holidays remain partial.
+No station writes occurred. Non-empty RightPlan parsing is covered by manufacturer schemas and
+synthetic tests; it is not a claim of physically verified assignment/enforcement.
+
+User-read failures export null dependency counts, not zero assignments. Searches across resources
+and users are not an atomic snapshot; devices may change between reads. Physical commissioning,
+resource ownership/allocation, schedule writing/readback and user assignment remain open.

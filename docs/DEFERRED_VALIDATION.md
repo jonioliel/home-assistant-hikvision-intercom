@@ -90,3 +90,18 @@ HW-VALIDITY נשאר פתוח: תיקון תצוגה אינו מאמת קבלת 
 את שרידותה אחרי אתחול HA. אין צורך לשנות תוכניות פעילות. כשלי אחסון, שינוי תוכן,
 זהות ותגובות שהתיישנו נבדקו בתוכנה; אכיפה פיזית וכתיבה נשארות להמשך.
 [מדריך](SCHEDULE_BASELINES.md). ראיה פרטית מקומית: `.tools/schedule-baseline-production.json`.
+
+
+## 0.17 schedule workflows — installed acceptance to run
+
+- On the installed panel, create a draft; copy days; clone with holidays; export and import a new
+  copy. Confirm originals and unsaved edits survive, repeated names are distinct, and reload works.
+- Run the station assessment queue; inspect one offline station and cancel remaining queued work.
+  Compare report labels and partial counts with each selected station. This is not a fleet soak.
+- Run the dependency audit. Empty/missing RightPlan stays unknown. Compare explicit template
+  assignments when a station with known configured schedules is available; do not infer enforcement.
+- Verify all reads leave user credentials, relay state and station schedules unchanged.
+
+The 2026-09-09 production audit read three users with unknown defaults and sent zero writes.
+PIN/card lifecycle, validity timezone contradiction, real bell sequence, media acceptance and
+nine-station hardware/reconnect/reboot tests remain pending as documented above.

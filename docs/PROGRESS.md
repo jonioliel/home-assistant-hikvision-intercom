@@ -14,7 +14,7 @@ These use distinct denominators and are not effort estimates or interchangeable 
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 and read-only assessment in 0.15 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
+| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 and read-only assessment in 0.15, comparison references in 0.16 and schedule workflows in 0.17 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -264,3 +264,19 @@ feature tally and mandatory 28/38 acceptance tally are unchanged.
 0.16 code `c7f776a` passed 821 tests (567 protocol/access, 172 actual HA, 82 browser), strict
 mypy for 36 modules, Ruff, TypeScript, HACS and Hassfest. ConfigFlow coverage is 100%.
 The checked code was merged to main and dispatched through the gated release workflow.
+
+
+## Phase 6 — schedule workflow batch, 0.17.0-alpha.1
+
+Four sequential tasks: dependency audit `a4c0212`, multi-station queue `1960979`, portable
+atomic import/export `1007914`, and clone/copy editing `0ea93bd`. Each received targeted
+checks and its own commit. Integration validation and release evidence are recorded in VALIDATION.md.
+
+Live read-only dependency audit at 2026-09-09T05:28:38Z returned three users, all without explicit
+RightPlan references. They remain unknown defaults; no schedule, credential or relay write occurred.
+Counts are not identities, and no raw user records were retained in publication artifacts.
+The schedule inventory still has partial holiday coverage. Dependency traversal is non-atomic.
+
+This advances two partial optional Phase 6 features without closing hardware gates: mandatory
+acceptance remains 28/38; Phase 5 remains 8/9; Phase 6 has 3 implemented, 2 partial, 4 outstanding.
+See SCHEDULE_WORKFLOWS.md for operation, privacy and remaining enforcement limitations.

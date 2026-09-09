@@ -482,3 +482,29 @@ Verified totals: **567 protocol/access + 172 actual HA + 82 browser = 821 tests*
 passed for 36 modules; ConfigFlow coverage remains 100%. Both Python versions passed. The exact
 code was merged to main and submitted to the gated 0.16.0-alpha.1 release workflow; publication
 is verified separately after its gates complete.
+
+
+## 0.17 schedule workflows — local validation (2026-09-09)
+
+Four sequential feature commits:
+
+| Task | Commit | Targeted checks |
+| --- | --- | --- |
+| Explicit user dependency audit | `a4c0212` | 45 protocol/inventory cases; 6 assessment browser cases |
+| Multi-station assessment queue | `1960979` | 14 queue/assessment/baseline browser cases |
+| Atomic portable draft transfer | `1007914` | 63 draft/transfer protocol cases; 10 transfer/draft browser cases |
+| Clone and copy windows | `0ea93bd` | 10 editing/draft browser cases; Hebrew mobile screenshot inspected |
+
+Full local Python 3.12 suite: **593 passed**; full Chromium suite: **92 passed**.
+TypeScript, Prettier and Ruff lint/format passed; versioned release metadata
+validated as 0.17.0-alpha.1. Strict mypy and actual Home Assistant adapters run on Linux CI;
+the local Windows mypy DLL remains blocked by host application control.
+
+The production-client dependency audit at 2026-09-09T05:28:38Z returned three users, all classified
+as unknown defaults (no explicit RightPlan references), with no malformed assignments. Holiday
+inventory coverage remains partial. Zero station writes. Non-empty references are validated with
+manufacturer-derived synthetic tests, not claimed as physically verified enforcement.
+
+Initial browser checks found a test using the wrong reload label and a source-day select without
+an explicit accessible label; both were corrected. Mobile inspection also corrected checkbox
+alignment. No failed physical test was reclassified as a software pass.

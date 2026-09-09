@@ -4,6 +4,29 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.17.0-alpha.1] - 2026-09-09
+
+### Added
+- User schedule dependency audit traces explicit RightPlan references through observed templates,
+  weekly plans and holiday resources. Unknown defaults, malformed assignments, failed user reads
+  and partial inventory coverage stay explicit. Reports exclude user identities and credentials.
+- Multi-station assessment queue checks one immutable draft across stations, with two concurrent
+  reads, independent results, skipped unavailable stations and cancellation of remaining checks.
+  Editing or navigation discards stale work. Combined downloads omit baseline approval tokens.
+- Portable draft import/export with a versioned JSON format and a reviewed, atomic append of new
+  copies. Single-use administrator-bound previews expire after five minutes or a library change;
+  invalid batch members reject the entire file. Unknown save responses require inspection.
+- Clone the current draft, including unsaved edits and holidays, and copy windows between weekdays.
+  Replacing non-empty target days requires confirmation. Copies stay local until explicitly saved.
+
+### Evidence and limits
+- A live read returned three users with no explicit RightPlan references; all three remain classified
+  as unknown defaults. Schedule holiday inventory remains partial. Zero station writes were sent.
+- Dependency observations are non-atomic and do not establish ownership, safe allocation or effective
+  enforcement. Applying schedules and assigning them to users are still unavailable.
+- Mandatory acceptance remains 28/38 (73.7%). These four workflow improvements advance the two partial
+  Phase 6 schedule features; they do not close physical commissioning gates.
+
 ## [0.16.0-alpha.1] - 2026-09-09
 
 ### Added

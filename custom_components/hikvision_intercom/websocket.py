@@ -224,7 +224,9 @@ async def _dispatch(
             busy.add(station.id)
             evidence: dict[str, Any] = {}
             try:
-                async with asyncio.timeout(130 if command == "schedules/dependencies" else 70):
+                async with asyncio.timeout(
+                    130 if command == "schedules/dependencies" else 70 if draft is not None else 40
+                ):
                     async with manager._read_slots:
                         result = (
                             await inspect_dependencies(driver.client)
