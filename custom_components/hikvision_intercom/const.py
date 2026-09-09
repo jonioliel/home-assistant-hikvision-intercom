@@ -1,7 +1,7 @@
 """Shared integration constants."""
 
 DOMAIN = "hikvision_intercom"
-VERSION = "0.24.0-alpha.1"
+VERSION = "0.25.0-alpha.1"
 PLATFORMS = ("binary_sensor", "sensor", "camera", "lock", "event")
 DEFAULT_IDLE_INTERVAL = 2.0
 DEFAULT_ACTIVE_INTERVAL = 0.75

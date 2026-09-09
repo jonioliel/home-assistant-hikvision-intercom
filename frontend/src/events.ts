@@ -1,6 +1,7 @@
 import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
+import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
 import type { Hass, Station } from "./types";
@@ -82,12 +83,14 @@ export class IntercomEvents extends LitElement {
         }
       }
     `,
+    adminStyles,
   ];
   static properties = {
     hass: { attribute: false },
     stations: { attribute: false },
     defaultZone: { attribute: false },
     _data: { state: true },
+    _filterDirty: { state: true },
     _busy: { state: true },
     _error: { state: true },
     _report: { state: true },
@@ -97,6 +100,7 @@ export class IntercomEvents extends LitElement {
   stations: Station[] = [];
   defaultZone: DisplayZone = UTC_ZONE;
   private _filterStation = "";
+  private _filterDirty = false;
   private _data?: AuditPage;
   private _busy = false;
   private _error = "";
@@ -167,6 +171,15 @@ export class IntercomEvents extends LitElement {
       return;
     }
     this._filters = filters;
+    this._filterDirty = false;
+    this.clearReport();
+    void this.load();
+  }
+  private resetFilters() {
+    this.renderRoot.querySelector<HTMLFormElement>("form")?.reset();
+    this._filterStation = "";
+    this._filterDirty = false;
+    this._filters = {};
     this.clearReport();
     void this.load();
   }
@@ -322,9 +335,23 @@ export class IntercomEvents extends LitElement {
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
     return html`<section aria-label=${this.t("events")}>
-      <h2>${this.t("events")}</h2>
-      <p class="muted">${this.t("audit_retention")}</p>
-      <form @submit=${this.apply} class="form-grid">
+      <div class="page-heading">
+        <div>
+          <h2>${this.t("events")}</h2>
+          <p>${this.t("events_intro")}</p>
+        </div>
+        <button ?disabled=${this._busy} @click=${() => this.load()}>${this.t("refresh")}</button>
+      </div>
+      <form
+        @submit=${this.apply}
+        @input=${() => {
+          this._filterDirty = true;
+        }}
+        @change=${() => {
+          this._filterDirty = true;
+        }}
+        class="form-grid filter-panel"
+      >
         <label
           >${this.t("station")}<select
             name="station_id"
@@ -364,7 +391,9 @@ export class IntercomEvents extends LitElement {
         <label>${this.t("until_time")}<input type="datetime-local" name="end" /></label>
         <button class="primary" type="submit">${this.t("filter")}</button>
       </form>
+      ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
       <div class="toolbar">
+        <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
         <button ?disabled=${this._reportBusy} @click=${() => this.report()}>
           ${this.t("report_generate")}</button
         ><button ?disabled=${this._reportBusy} @click=${() => this.report(true)}>
@@ -377,7 +406,11 @@ export class IntercomEvents extends LitElement {
           >${this._filterStation ? (this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? UTC_ZONE).name : this.defaultZone.name}</bdi
         >
       </p>
-      <p class="sub">${this.t("report_filter_hint")}</p>
+      <details class="report-help">
+        <summary>${this.t("report_help")}</summary>
+        <p class="sub">${this.t("report_filter_hint")}</p>
+        <p class="record-meta">${this.t("audit_retention")}</p>
+      </details>
       ${this.reportView()}
       ${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
       ${this._data?.storage_failed ? html`<p role="alert" class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
@@ -389,21 +422,27 @@ export class IntercomEvents extends LitElement {
               ${this.stations.find((s) => s.id === id)?.name ?? id}: ${this.t("history_incomplete")}
             </p>`,
         )}
+      <div class="result-summary" role="status">
+        ${this._busy ? this.t("loading") : this.t("loaded_records") + ": " + (this._data?.records.length ?? 0)}
+      </div>
       <div class="audit-list" aria-busy=${this._busy}>
         ${(this._data?.records ?? []).map(
           (row) =>
             html`<article class="card audit-row">
-              <div>
+              <div class="record-heading">
+                <h3>${this.t(row.event_type)}</h3>
+                <time datetime=${row.timestamp}
+                  ><bdi
+                    >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</bdi
+                  ></time
+                >
+              </div>
+              <div class="record-meta">
                 <strong
                   >${this.stations.find((s) => s.id === row.station_id)?.name ?? this.t("removed_station")}</strong
                 >
-                ·
-                <time datetime=${row.timestamp}
-                  >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</time
-                >
               </div>
-              <h3>${this.t(row.event_type)}</h3>
-              <p>
+              <p class="record-person">
                 ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
                 · ${this.t("door")}: ${row.door ?? this.t("unknown")}
               </p>
@@ -419,7 +458,7 @@ export class IntercomEvents extends LitElement {
             </article>`,
         )}
       </div>
-      ${!this._data?.records.length && !this._busy ? html`<p class="empty">${this.t("no_events")}</p>` : nothing}
+      ${!this._data?.records.length && !this._busy && !this._error ? html`<p class="empty">${this.t("no_events")}</p>` : nothing}
       ${this._data?.next ? html`<button ?disabled=${this._busy} @click=${() => this.load(true)}>${this.t("load_more")}</button>` : nothing}
     </section>`;
   }

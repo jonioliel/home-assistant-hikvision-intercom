@@ -15,6 +15,13 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
 
+## Administrator workflows (0.25)
+
+Users, Events, Sync and Change history now share the updated interface. Sync can be filtered
+locally by person, station and pending/problem state, with person cards on mobile. Event filters
+show when edits have not been applied, and history keeps before/after details available on demand.
+See the [delivery and screenshots](docs/ADMIN_UI_025_HE.md). Physical acceptance gates remain open.
+
 ## Daily interface and event identity (0.24)
 
 The daily sidebar groups Overview, Users and Events; management tools remain accessible.

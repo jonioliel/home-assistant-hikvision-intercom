@@ -4,6 +4,37 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.25.0-alpha.1] - 2026-09-09
+
+### Added
+- Local sync filters by person, station and items needing attention, retaining pending removals
+  below the filtered matrix. Mobile sync displays station-labelled rows within person cards;
+  desktop retains a scrollable matrix with sticky headers and names.
+- Events distinguish edited filters from applied results, reset search/filters in one action,
+  show loaded-record counts and provide explicit refresh. Reset invalidates pending reports.
+- Shared administrator view styles and compact change-history cards with person/action/time,
+  keyboard-accessible before/after details and loaded-versus-total counts.
+
+### Changed
+- User-list hierarchy gives Add user a primary position and groups search/management tools.
+  Row actions wrap; mobile cards, filters and light/dark Hebrew/English layouts use the new style.
+- Permanent user summaries omit an irrelevant timezone prefix. Limited validity still shows
+  its display zone and boundaries. Event/history timestamps keep their direction in RTL text.
+- Event retention/export explanations remain available in an expandable help section.
+
+### Fixed
+- Empty filtered user results no longer claim the central database is empty. Clearing filters
+  restores the list, preserves sorting and clears bulk selection.
+- Scope edge-to-edge card spacing to Overview; station management cards retain their padding.
+
+### Evidence and limits
+- Existing imports, credential actions, bulk review, uncertain-result recovery and applied-filter
+  exports retain their behavior. No access schema, ISAPI route or device settings changed.
+- This advances C3/C5/C6 of the completion/UI plan. Owner usability feedback and physical call,
+  audio, timed-validity, card and nine-station acceptance remain open. MSE/NAT status is unchanged.
+- Mandatory acceptance remains 31/38 (81.6%); combined scope remains 77.7%.
+  See docs/ADMIN_UI_025_HE.md for delivery evidence and screenshots.
+
 ## [0.24.0-alpha.1] - 2026-09-09
 
 ### Changed

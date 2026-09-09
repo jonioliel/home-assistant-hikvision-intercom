@@ -168,11 +168,14 @@ export const interfaceStyles = css`
     align-items: start;
   }
   .station {
-    padding: 0;
+    padding: 22px;
     border-radius: var(--panel-radius);
     background: var(--surface);
     overflow: hidden;
     box-shadow: 0 3px 12px #00000004;
+  }
+  .overview-station {
+    padding: 0;
   }
   .station.ringing {
     outline: 2px solid var(--accent);
@@ -365,6 +368,189 @@ export const interfaceStyles = css`
   }
   .editor-summary + #user-form {
     margin-top: 0;
+  }
+  .users-heading .primary {
+    flex-shrink: 0;
+  }
+  .users-tools {
+    padding: 16px;
+    border: 1px solid var(--divider-color);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .users-tools input[type="search"] {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .users-tools button {
+    font-size: 12px;
+  }
+  .user-filters {
+    margin: 14px 0 0;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--divider-color);
+    border-radius: 12px;
+  }
+  .user-filters summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .user-filters[open] summary {
+    margin-bottom: 14px;
+  }
+  .user-filters .toolbar {
+    margin: 0;
+  }
+  .user-result-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .user-result-bar p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .user-result-bar button {
+    font-size: 12px;
+  }
+  .desktop-users th,
+  .desktop-users td {
+    padding: 12px 10px;
+  }
+  .desktop-users td .row {
+    flex-wrap: wrap;
+    min-width: 200px;
+    max-width: 250px;
+    gap: 6px;
+  }
+  .desktop-users td button {
+    font-size: 11px;
+  }
+  .desktop-users tbody tr:hover {
+    background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+  }
+  .mobile-users .person {
+    padding: 18px;
+    border-radius: 14px;
+  }
+  .mobile-users .actions {
+    border-top: 1px solid var(--divider-color);
+    padding-top: 12px;
+  }
+  @media (max-width: 600px) {
+    .users-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .users-heading .primary {
+      width: 100%;
+    }
+    .users-tools {
+      padding: 12px;
+    }
+    .users-tools button {
+      flex: 1 1 40%;
+    }
+    .user-result-bar {
+      flex-wrap: wrap;
+      gap: 0;
+    }
+  }
+  .sync-filters {
+    background: var(--surface);
+    padding: 16px;
+    border: 1px solid var(--divider-color);
+    border-radius: 14px;
+    align-items: end;
+  }
+  .sync-filters > label {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  .sync-filters input,
+  .sync-filters select {
+    width: 100%;
+  }
+  .sync-filters .check input {
+    width: auto;
+  }
+  .matrix {
+    max-height: 65vh;
+  }
+  .matrix th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  .matrix td:first-child,
+  .matrix th:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    background: var(--surface);
+    min-width: 150px;
+  }
+  .matrix th:first-child {
+    z-index: 2;
+  }
+  .sync-cell-station {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .page-heading {
+      flex-wrap: wrap;
+    }
+    .matrix {
+      border: 0;
+      overflow: visible;
+      max-height: none;
+      background: transparent;
+    }
+    .matrix table,
+    .matrix tbody {
+      display: block;
+    }
+    .matrix thead {
+      display: none;
+    }
+    .matrix tr {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      padding: 14px;
+      margin: 0 0 12px;
+    }
+    .matrix td {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(100px, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 10px 0;
+      min-width: 0;
+    }
+    .matrix td:first-child {
+      position: static;
+      display: block;
+      padding: 0 0 12px;
+      min-width: 0;
+    }
+    .matrix .sync-unassigned {
+      display: none;
+    }
+    .matrix .sync-error {
+      grid-column: 1/-1;
+      margin: 0;
+      font-size: 12px;
+    }
+    .sync-cell-station {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
   }
   @media (min-width: 1600px) {
     .grid {

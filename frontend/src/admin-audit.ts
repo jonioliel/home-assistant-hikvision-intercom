@@ -1,5 +1,6 @@
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
+import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
 import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
@@ -115,6 +116,7 @@ export class AdminAudit extends LitElement {
         color: var(--error-color, #a20);
       }
     `,
+    adminStyles,
   ];
   static properties = {
     hass: { attribute: false },
@@ -300,9 +302,13 @@ export class AdminAudit extends LitElement {
       retained.set(row.user_id, String((row.after ?? row.before)?.display_name ?? row.user_id));
     for (const u of this.users) retained.set(u.id, u.display_name);
     if (this._user && !retained.has(this._user)) retained.set(this._user, this._user);
-    return html`<h2>${this.t("audit")}</h2>
-      <p>${this.t("audit_hint")}</p>
-      <details class="audit-filters" .open=${!!this.focusUser}>
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("audit")}</h2>
+          <p>${this.t("audit_hint")}</p>
+        </div>
+      </div>
+      <details class="audit-filters filter-panel" .open=${!!this.focusUser}>
         <summary>${this.t("audit_filter_controls")}</summary>
         <form
           class="toolbar"
@@ -389,29 +395,41 @@ export class AdminAudit extends LitElement {
         </button>
       </div>
       ${this._busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
+      ${this._report ? html`<p class="result-summary" role="status">${this.t("loaded_records")}: <bdi dir="ltr">${this._report.records.length} / ${this._report.total}</bdi></p>` : nothing}
       <section class="history">
         ${
           this._report?.records.map(
             (row) =>
               html`<article>
-                <strong>${this.actionName(row.action)}</strong> ·
-                ${formatTime(row.time, this.hass?.language, this.zone)}
-                <p>
+                <div class="record-heading">
+                  <h3>${this.actionName(row.action)}</h3>
+                  <time datetime=${row.time}
+                    ><bdi>${formatTime(row.time, this.hass?.language, this.zone)}</bdi></time
+                  >
+                </div>
+                <p class="record-person">
+                  ${String((row.after ?? row.before)?.display_name ?? row.user_id)}
+                </p>
+                <p class="record-meta">
                   ${this.t("audit_actor")}:
                   ${row.actor ? (this._report?.actors[row.actor] ?? row.actor) : this.t("audit_system")}<br />${this.t("audit_fields")}:
                   ${row.fields.map((f) => this.t("audit_field_" + f)).join(", ")}
                 </p>
-                <div class="comparison">
-                  <div>
-                    <strong>${this.t("audit_before")} · ${row.revision_before ?? "—"}</strong
-                    >${this.snapshot(row.before)}
+                <details class="audit-diff">
+                  <summary>${this.t("audit_change_details")}</summary>
+                  <div class="comparison">
+                    <div>
+                      <strong>${this.t("audit_before")} · ${row.revision_before ?? "—"}</strong
+                      >${this.snapshot(row.before)}
+                    </div>
+                    <div>
+                      <strong>${this.t("audit_after")} · ${row.revision_after ?? "—"}</strong
+                      >${this.snapshot(row.after)}
+                    </div>
                   </div>
-                  <div>
-                    <strong>${this.t("audit_after")} · ${row.revision_after ?? "—"}</strong
-                    >${this.snapshot(row.after)}
-                  </div>
-                </div>
+                </details>
                 <button
+                  class="history-action"
                   @click=${() => {
                     this._user = row.user_id;
                     void this.load();

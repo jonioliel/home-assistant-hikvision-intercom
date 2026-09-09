@@ -69,6 +69,9 @@ export class IntercomManagerPanel extends LitElement {
     _data: { state: true },
     _tab: { state: true },
     _query: { state: true },
+    _syncQuery: { state: true },
+    _syncStation: { state: true },
+    _syncAttention: { state: true },
     _userFilters: { state: true },
     _selectedUsers: { state: true },
     _auditUser: { state: true },
@@ -94,6 +97,9 @@ export class IntercomManagerPanel extends LitElement {
   private _validityUntil = "";
   private _clockReads = new Set<string>();
   private _query = "";
+  private _syncQuery = "";
+  private _syncStation = "";
+  private _syncAttention = false;
   private _userFilters: UserFilters = defaultFilters();
   private _selectedUsers = new Set<string>();
   private _auditUser = "";
@@ -319,9 +325,7 @@ export class IntercomManagerPanel extends LitElement {
               ? "validity_expired"
               : "validity_current";
     return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
-      <span class="sub"
-        >${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span
-      >
+      ${state !== "permanent" ? html`<span class="sub">${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span>` : nothing}
       <span>${this.t(state)}</span>
       ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
       ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
@@ -1170,7 +1174,7 @@ export class IntercomManagerPanel extends LitElement {
                 (s) => s.id,
                 (station) =>
                   html`<article
-                    class="station ${station.call_state === "ringing" ? "ringing" : ""}"
+                    class="station overview-station ${station.call_state === "ringing" ? "ringing" : ""}"
                   >
                     <div class="row between station-head">
                       <h3>${station.name}</h3>
@@ -1256,7 +1260,19 @@ export class IntercomManagerPanel extends LitElement {
   }
   private usersView() {
     const users = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
-    return html`<div class="toolbar">
+    const filtered =
+      !!this._query.trim() ||
+      Object.entries(this._userFilters).some(([key, value]) => key !== "sort" && !!value);
+    return html`<div class="page-heading users-heading">
+        <div>
+          <h2>${this.t("users")}</h2>
+          <p class="sub">${this.t("users_intro")}</p>
+        </div>
+        <button class="primary" @click=${() => this.edit()} ?disabled=${this._busy}>
+          + ${this.t("add_user")}
+        </button>
+      </div>
+      <div class="toolbar users-tools">
         <input
           type="search"
           .value=${this._query}
@@ -1273,9 +1289,7 @@ export class IntercomManagerPanel extends LitElement {
         ><button @click=${() => this.openImport()} ?disabled=${this._busy}>
           ${this.t("import_existing")}</button
         ><button @click=${() => this.run(() => this.api("sync/all"))} ?disabled=${this._busy}>
-          ${this.t("sync_all")}</button
-        ><button class="primary" @click=${() => this.edit()} ?disabled=${this._busy}>
-          + ${this.t("add_user")}
+          ${this.t("sync_all")}
         </button>
       </div>
       <details class="user-filters">
@@ -1332,7 +1346,31 @@ export class IntercomManagerPanel extends LitElement {
           )}
         </div>
       </details>
-      <p>${this.t("user_results")}: ${users.length} / ${this._data?.users.length ?? 0}</p>
+      <div class="user-result-bar">
+        <p role="status">
+          ${this.t("user_results")}:
+          <bdi dir="ltr">${users.length} / ${this._data?.users.length ?? 0}</bdi>
+        </p>
+        ${
+          filtered
+            ? html`<button
+                @click=${() => {
+                  this._query = "";
+                  this._userFilters = {
+                    ...this._userFilters,
+                    station: "",
+                    rights: "",
+                    state: "",
+                    credential: "",
+                  };
+                  this._selectedUsers = new Set();
+                }}
+              >
+                ${this.t("clear_user_filters")}
+              </button>`
+            : nothing
+        }
+      </div>
       <div class="toolbar">
         <button
           ?disabled=${!users.length}
@@ -1360,8 +1398,8 @@ export class IntercomManagerPanel extends LitElement {
       ${
         !users.length
           ? html`<div class="empty">
-              <h2>${this.t(this._query ? "no_results" : "no_users")}</h2>
-              ${!this._query ? html`<p>${this.t("no_users_detail")}</p>` : nothing}
+              <h2>${this.t(filtered ? "no_results" : "no_users")}</h2>
+              ${!filtered ? html`<p>${this.t("no_users_detail")}</p>` : nothing}
             </div>`
           : html`<div class="table-wrap desktop-users">
                 <table>
@@ -1556,29 +1594,85 @@ export class IntercomManagerPanel extends LitElement {
   }
   private syncView() {
     const data = this._data!;
-    return html`<div class="toolbar">
-        <h2>${this.t("sync")}</h2>
-        <button @click=${() => this.downloadSyncDiagnostics()} ?disabled=${this._busy}>
-          ${this.t("download_sync_diagnostics")}
-        </button>
-        <button
-          class="primary"
-          @click=${() => this.run(() => this.api("sync/all"))}
-          ?disabled=${this._busy}
-        >
-          ${this.t("sync_all")}
-        </button>
+    const stations = data.stations.filter(
+      (st) => !this._syncStation || st.id === this._syncStation,
+    );
+    const query = this._syncQuery.trim().toLocaleLowerCase();
+    const users = data.users.filter(
+      (user) =>
+        (!query ||
+          `${user.display_name} ${user.employee_no}`.toLocaleLowerCase().includes(query)) &&
+        (!this._syncAttention ||
+          stations.some((st) => {
+            const assignment = user.assignments[st.id];
+            return (
+              assignment &&
+              ((assignment.sync_state ?? "pending") !== "synced" || !!assignment.last_error)
+            );
+          })),
+    );
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("sync")}</h2>
+          <p class="sub">${this.t("sync_intro")}</p>
+        </div>
+        <div class="row">
+          <button @click=${() => this.downloadSyncDiagnostics()} ?disabled=${this._busy}>
+            ${this.t("download_sync_diagnostics")}
+          </button>
+          <button
+            class="primary"
+            @click=${() => this.run(() => this.api("sync/all"))}
+            ?disabled=${this._busy}
+          >
+            ${this.t("sync_all")}
+          </button>
+        </div>
       </div>
+      <div class="toolbar sync-filters">
+        <label
+          >${this.t("sync_search")}<input
+            type="search"
+            .value=${this._syncQuery}
+            @input=${(e: Event) => {
+              this._syncQuery = value(e);
+            }}
+        /></label>
+        <label
+          >${this.t("sync_filter_station")}<select
+            .value=${this._syncStation}
+            @change=${(e: Event) => {
+              this._syncStation = value(e);
+            }}
+          >
+            <option value="">${this.t("all")}</option>
+            ${data.stations.map((st) => html`<option value=${st.id}>${st.name}</option>`)}
+          </select></label
+        >
+        <label class="check"
+          ><input
+            type="checkbox"
+            .checked=${this._syncAttention}
+            @change=${(e: Event) => {
+              this._syncAttention = checked(e);
+            }}
+          />${this.t("sync_attention_only")}</label
+        >
+      </div>
+      <p class="sub" role="status">
+        ${this.t("user_results")}: <bdi dir="ltr">${users.length} / ${data.users.length}</bdi> ·
+        ${this.t("devices")}: ${stations.length}
+      </p>
       ${
-        data.users.length && data.stations.length
+        users.length && stations.length
           ? html`<div class="table-wrap matrix">
               <table>
                 <thead>
                   <tr>
-                    <th>${this.t("name")}</th>
-                    ${data.stations.map(
+                    <th scope="col">${this.t("name")}</th>
+                    ${stations.map(
                       (station) =>
-                        html`<th>
+                        html`<th scope="col">
                           ${station.name}
                           ${station.sync_reference ? html`<small class="sub"><bdi>${station.sync_reference}</bdi></small>` : nothing}
                           ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
@@ -1587,15 +1681,17 @@ export class IntercomManagerPanel extends LitElement {
                   </tr>
                 </thead>
                 <tbody>
-                  ${data.users.map(
+                  ${users.map(
                     (user) =>
                       html`<tr>
-                        <td>
-                          ${user.display_name}${user.sync_reference ? html`<p class="sub"><bdi>${user.sync_reference}</bdi></p>` : nothing}
+                        <td class="sync-person">
+                          <strong>${user.display_name}</strong
+                          >${user.sync_reference ? html`<p class="sub"><bdi>${user.sync_reference}</bdi></p>` : nothing}
                         </td>
-                        ${data.stations.map((station) => {
+                        ${stations.map((station) => {
                           const assignment = user.assignments[station.id];
-                          return html`<td>
+                          return html`<td class=${assignment ? "sync-assigned" : "sync-unassigned"}>
+                            <span class="sync-cell-station">${station.name}</span>
                             ${assignment ? html`<button @click=${() => this.inspect(user.id, station.id)} ?disabled=${this._busy || !station.online}>${this.badge(assignment.sync_state ?? "pending")}</button>${assignment.last_error ? html`<p class="danger sync-error">${this.t(assignment.last_error)}</p>` : nothing}` : html`<span class="sub">—</span>`}
                           </td>`;
                         })}
@@ -1604,7 +1700,11 @@ export class IntercomManagerPanel extends LitElement {
                 </tbody>
               </table>
             </div>`
-          : html`<div class="empty"><p>${this.t("no_sync")}</p></div>`
+          : html`<div class="empty">
+              <p>
+                ${this.t(data.users.length && data.stations.length ? "sync_no_matches" : "no_sync")}
+              </p>
+            </div>`
       }
       <h2 class="section-title">${this.t("pending_removals")}</h2>
       <div class="box">
