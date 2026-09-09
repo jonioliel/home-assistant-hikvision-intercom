@@ -43,6 +43,18 @@ def capability(payload: dict[str, Any], root: str, selector: str) -> dict[str, A
     if not isinstance(value, dict):
         raise HikvisionValidationError("Missing schedule capability")
     result: dict[str, Any] = {"ids": bounds(value.get(selector))}
+    for source, target in (
+        ("weekPlanNo", "week_ids"),
+        ("holidayGroupNo", "group_ids"),
+        ("holidayPlanNo", "holiday_ids"),
+    ):
+        if source in value:
+            result[target] = bounds(value[source])
+    name = value.get("templateName" if root == "UserRightPlanTemplate" else "groupName")
+    if isinstance(name, dict):
+        low, high = name.get("@min"), name.get("@max")
+        if type(low) is int and type(high) is int and 0 <= low <= high <= 64:
+            result["name_length"] = [low, high]
     segment = value.get("WeekPlanCfg" if root == "UserRightWeekPlanCfg" else "HolidayPlanCfg")
     if root in {"UserRightWeekPlanCfg", "UserRightHolidayPlanCfg"}:
         if not isinstance(segment, dict):
