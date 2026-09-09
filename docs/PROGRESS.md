@@ -9,7 +9,12 @@ Phase 6: four software features implemented, three partial, two absent. Combined
 **77.7%**. The [current delivery ledger](ADMIN_UI_025_HE.md) covers Users, Events, Sync and
 administrator history, including responsive station-labelled sync, filter recovery and grouped
 record details. Owner usability feedback and the remaining physical gates stay open.
-Release validation is in progress. Access payload schema remains 3.
+Published [v0.25.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.25.0-alpha.1)
+from `10f9d43311661a81124cd20bc8e49b9581729a98`.
+[Release run 34390267958](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34390267958)
+passed all seven jobs: 838 Python tests per version, 238 HA tests, 145 browser tests, mypy56,
+Ruff, TypeScript, Prettier, reproducible bundle, HACS and Hassfest. The tag, manifest, bundle
+and expected sources were verified after publication. Access payload schema remains 3.
 
 ## Historical checkpoints (earlier counts below are not current)
 
