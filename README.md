@@ -48,6 +48,8 @@ clone/copy editing](docs/SCHEDULE_WORKFLOWS.md). These remain local drafts and r
 Version 0.18 adds [candidate compilation, configuration comparison and saved local deployment
 proposals](docs/SCHEDULE_DEPLOYMENT_PLANS.md), with explicit rechecks and per-station reservations.
 Device schedule application and user assignment remain unavailable.
+Version 0.19 adds the [write journal, recovery executor and offline fault simulator](docs/SCHEDULE_RECOVERY.md)
+for future deployment. No production schedule writer or new Apply control is enabled.
 
 See [draft editing](docs/ACCESS_SCHEDULES.md) and [compatibility assessment](docs/SCHEDULE_INVENTORY.md).
 

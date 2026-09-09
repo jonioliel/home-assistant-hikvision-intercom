@@ -308,3 +308,18 @@ Phase 5 remains 8/9; Phase 6 has 3 implemented, 2 partial and 4 unimplemented ex
 188 actual HA, 96 browser), ConfigFlow100%, strict mypy41 modules, Ruff, TypeScript, Prettier,
 reproducible build, HACS and Hassfest. Release run34320132238 targets that exact merged SHA.
 Tasks `b0ce799`, `2466517` and `ace3df8` are complete; physical acceptance remains unchanged.
+
+
+## Phase 6 — schedule recovery infrastructure, 0.19.0-alpha.1
+
+Three implementation tasks are complete: durable write intent journal (`3803db8`), guarded executor
+and readback-driven recovery (`d838f7f`), repeatable offline fault simulator (`787b912`). The executor
+handles dependency order, preflight changes, ambiguous outcomes, cancellation and restart without
+resending a persisted intent. Public reports omit private state. Fifty-five new regression cases
+include nine synthetic stations and nine CLI scenarios. See [the contract](SCHEDULE_RECOVERY.md).
+
+No production transport, HA write service/worker/store or Apply control is registered. Ownership,
+complete relevant inventory, target-firmware write verification, operator recovery/retention and
+user assignment remain required integration work. No device requests occurred in this batch.
+Mandatory acceptance remains 28/38; Phase 5 remains 8/9; Phase 6 remains 3 implemented, 2 partial,
+4 absent. Simulator success is not physical enforcement or a nine-station hardware soak.

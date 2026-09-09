@@ -4,6 +4,30 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.19.0-alpha.1] - 2026-09-09
+
+### Added
+- Durable schedule write journal validates immutable candidates, private before/after fingerprints,
+  ordered state transitions, source/device/ownership context and per-station exclusivity. Intent is
+  committed before a request; ambiguous or partially applied transactions cannot be discarded.
+- Guarded schedule recovery executor checks context and all controlled resources before each step,
+  saves intent, checks again, writes once and verifies readback. Lost acknowledgements and restarts
+  trigger read-only recovery; unchanged original contents remain uncertain instead of being retried.
+  External changes stop progress; partial writes are retained without automatic rollback.
+- Repeatable offline commissioning simulator covers nine deterministic fault scenarios using committed
+  JSON restart snapshots. Reports explicitly distinguish synthetic evidence from physical acceptance.
+- Regression coverage includes cancellation, failed saves, no-change acknowledgements, changing
+  transport gates, shared execution locks, nine concurrent synthetic stations and bounded retention.
+
+### Scope and limits
+- This is backend infrastructure for future schedule application. No production write adapter, HA
+  write service, background worker, private journal store or Apply button is registered.
+- Existing proposals do not establish resource ownership or verified write support. Production
+  ownership/adoption, complete relevant inventory, HA integration, operator recovery and RightPlan
+  assignment remain open. Physical weekly/holiday/DST enforcement has not been verified.
+- No device requests were made for this batch. Mandatory acceptance remains 28/38 (73.7%); weekly
+  schedules and holidays remain partial Phase 6 features. Update through HACS and restart HA.
+
 ## [0.18.0-alpha.1] - 2026-09-09
 
 ### Added

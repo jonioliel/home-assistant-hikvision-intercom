@@ -562,3 +562,20 @@ version preparation. Ruff lint/format passed. Total local cases: **727 = 631 + 9
 The exact passed code was merged to main and submitted once to gated release run
 [34320132238](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34320132238).
 The release workflow reruns all gates before creating the tag. Physical gates remain unverified.
+
+
+## 0.19 schedule recovery infrastructure — 2026-09-09
+
+55 targeted cases pass for journal validation, atomic failed/cancelled saves, persisted intent,
+unknown acknowledgements, readback, context/resource conflicts, nine independent synthetic stations,
+transport gate revocation, bounded retention and CLI simulation/restart. The standalone simulator
+completed all nine scenarios with zero network requests and zero recovery writes. No station was
+contacted and no physical acceptance result changed. The production adapter remains unregistered.
+
+The simulator report was saved privately as `.tools/schedule-recovery-simulation.json`; reproduce
+it with `python -m tools.simulate_schedule_recovery`. Its output is explicitly synthetic.
+Full-suite and GitHub validation results are recorded after completion below.
+
+Full local Python 3.12 suite: **686 passed**. Ruff lint/format, TypeScript, Prettier,
+frontend build and version metadata validation passed. Strict mypy and actual HA/frontend tests
+run in Linux CI. The blocked local mypy native module was not bypassed.

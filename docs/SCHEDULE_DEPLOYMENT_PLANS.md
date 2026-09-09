@@ -79,3 +79,11 @@ Device ownership/adoption, complete relevant inventory, verified PUT/readback an
 assignment, durable device-write recovery and physical weekly/holiday/DST enforcement remain open.
 The candidate compiler and comparator are implemented building blocks for that work; their local
 proposal status must never be used to bypass those gates. Mandatory acceptance remains 28/38.
+
+
+## Recovery engine checkpoint — 0.19
+
+The [write-ahead journal, executor and fault simulator](SCHEDULE_RECOVERY.md) are implemented and
+unit-tested. They have no production adapter or HA runtime registration. Proposals still cannot
+be applied; observed fingerprints and local reservations are not accepted as ownership evidence.
+Production mapping, adoption, operator recovery, retention and physical enforcement remain open.
