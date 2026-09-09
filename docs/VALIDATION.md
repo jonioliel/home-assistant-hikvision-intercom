@@ -639,3 +639,15 @@ The passed commit was fast-forwarded to main and submitted once to gated
 [release34335552283](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34335552283).
 The release workflow reruns every gate and publishes the frozen `947a2d0` commit. The user guide
 records the production-write and physical-acceptance limits; no device request was made in this batch.
+
+
+## Owner-reported user deletion acceptance — 2026-09-09
+
+The owner reports that user deletion works well. Station targets, credential rejection after
+removal and offline behavior were not specified; those observations are not inferred. The
+existing DoD22 closure receives additional installed-system evidence, without changing28/38.
+PIN-only removal while retaining the user remains separate. Card lifecycle and enrollment
+checks are deferred until next week; there is no scheduled automation or confirmed test date.
+The current pending-test table now reflects the already-confirmed two-station PIN replacement,
+while retaining the earlier failed commissioning session as historical evidence. No device
+requests or code changes were made for this documentation update.

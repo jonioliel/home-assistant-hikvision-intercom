@@ -72,9 +72,12 @@ HTTP sessions and optimistic release timers stop on unload or HA shutdown.
 
 ## Acceptance still needed
 
-- Retry the previously repaired temporary PIN while the owner is at the station; capture the
-  result before further changes. Validate old-PIN rejection, removal and targeted test-user cleanup.
-- Complete test-card add/remove and readback/physical acceptance without modifying the owner's card.
+- The owner confirmed user creation/sync on two stations and PIN replacement: new accepted,
+  old rejected. User deletion was subsequently reported working. Still validate PIN-only removal
+  while retaining the user, offline revocation/restart recovery and original test-user cleanup.
+  The latest deletion report does not specify those separate scenarios.
+- Test-card lifecycle and reader enrollment are deferred to next week at the owner's request.
+  Add/remove and readback/physical acceptance remain open without modifying the owner's card.
 - Obtain a reproducible actual bell status sequence. Busy-tone/idle observations do not prove ringing.
 - Finish installed camera/live video and administrator acceptance; HACS install/upgrade are owner-confirmed.
 - Run the multi-station hardware soak and reconnect/reboot acceptance with the owner. Only one active

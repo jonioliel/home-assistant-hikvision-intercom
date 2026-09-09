@@ -362,3 +362,15 @@ HACS and Hassfest. The shutdown/enqueue race fix is included. Gated release34335
 was dispatched once against this exact merged commit. Four local workflow tasks are complete;
 two deployment tasks remain partial and six further tasks remain as mapped in SCHEDULE_OPERATIONS.md.
 The owner's two-station PIN replacement acceptance is recorded separately from schedule validation.
+
+
+## Owner-reported user deletion acceptance — 2026-09-09
+
+The owner reports that user deletion works well. Station targets, credential rejection after
+removal and offline behavior were not specified; those observations are not inferred. The
+existing DoD22 closure receives additional installed-system evidence, without changing28/38.
+PIN-only removal while retaining the user remains separate. Card lifecycle and enrollment
+checks are deferred until next week; there is no scheduled automation or confirmed test date.
+The current pending-test table now reflects the already-confirmed two-station PIN replacement,
+while retaining the earlier failed commissioning session as historical evidence. No device
+requests or code changes were made for this documentation update.
