@@ -18,3 +18,16 @@ have a 60-second deadline, with a 130-second API deadline including the read que
 per-station/fleet read limits apply. No baseline, central user or schedule draft is changed.
 
 Physical enforcement, allocation/ownership and safe schedule writes remain deferred.
+
+## Multi-station compatibility queue
+
+The current draft can be assessed across all configured stations with two concurrent reads.
+Unavailable/unloaded stations or stations without a managed lock are explicitly skipped.
+Each station keeps an independent result or failure; no automatic retry, device write or baseline
+save occurs. The existing API enforces its per-station and fleet limits on the server as well.
+
+Cancel stops queued reads while in-flight reads finish. Editing/reloading the draft, changing
+the selected station, leaving the screen or losing administrator access invalidates the queue
+and prevents late responses from restoring it. The report download includes the draft name,
+station labels/status and sanitized results, with baseline approval tokens removed. It describes
+software compatibility and search coverage, not physical enforcement or a nine-station soak test.

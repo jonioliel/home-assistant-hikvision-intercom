@@ -64,6 +64,13 @@ interface Baseline {
     capability_changed: boolean;
   }[];
 }
+interface BatchRow {
+  id: string;
+  name: string;
+  state: "queued" | "running" | "done" | "failed" | "skipped" | "cancelled";
+  report?: Assessment;
+  error?: string;
+}
 interface Dependencies {
   checked_at: string;
   mapping_complete: boolean;
@@ -209,6 +216,8 @@ export class IntercomSchedules extends LitElement {
     _notice: { state: true },
     _preview: { state: true },
     _readiness: { state: true },
+    _batch: { state: true },
+    _batchRunning: { state: true },
     _dependencies: { state: true },
     _assessment: { state: true },
     _assessing: { state: true },
@@ -226,6 +235,11 @@ export class IntercomSchedules extends LitElement {
   private _dirty = false;
   private _preview?: Preview;
   private _readiness?: Readiness;
+  private _batch: BatchRow[] = [];
+  private _batchRunning = false;
+  private _batchSequence = 0;
+  private _batchCancelled = false;
+  private _batchName = "";
   private _dependencies?: Dependencies;
   private _assessment?: Assessment;
   private _assessing = false;
@@ -432,7 +446,7 @@ export class IntercomSchedules extends LitElement {
     }
   }
   private async readiness() {
-    if (this._assessing || this._reading || !this._station) return;
+    if (this._batchRunning || this._assessing || this._reading || !this._station) return;
     const epoch = this._epoch,
       station = this._station;
     this._reading = true;
@@ -451,12 +465,16 @@ export class IntercomSchedules extends LitElement {
     }
   }
   private invalidateAssessment() {
+    this._batchSequence++;
+    this._batch = [];
+    this._batchRunning = false;
     this._assessmentSequence++;
     this._assessment = undefined;
     this._dependencies = undefined;
   }
   private async assessDraft() {
     if (
+      this._batchRunning ||
       this._assessing ||
       this._reading ||
       this._busy ||
@@ -491,8 +509,111 @@ export class IntercomSchedules extends LitElement {
       if (this.current(epoch)) this._assessing = false;
     }
   }
+  private async assessStations() {
+    if (
+      this._busy ||
+      this._uncertain ||
+      this._batchRunning ||
+      this._reading ||
+      this._assessing ||
+      !this._draft
+    )
+      return;
+    this.invalidateAssessment();
+    const epoch = this._epoch,
+      sequence = this._batchSequence,
+      data = this.data();
+    this._batchName = data.name;
+    this._batchCancelled = false;
+    this._batch = this.stations.map((s) => ({
+      id: s.id,
+      name: s.name,
+      state: s.online && s.loaded && s.lock_enabled ? "queued" : "skipped",
+    }));
+    this._batchRunning = true;
+    this._error = "";
+    const active = () => this.current(epoch) && sequence === this._batchSequence;
+    const worker = async () => {
+      while (active() && !this._batchCancelled) {
+        const row = this._batch.find((r) => r.state === "queued");
+        if (!row) return;
+        row.state = "running";
+        this.requestUpdate();
+        try {
+          const report = await this.api<Assessment>("assess", {
+            station_id: row.id,
+            data: structuredClone(data),
+          });
+          if (!active()) return;
+          row.report = report;
+          row.state = "done";
+        } catch (e) {
+          if (!active()) return;
+          row.state = "failed";
+          row.error = this.errorText(e);
+        }
+        this.requestUpdate();
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    if (active()) this._batchRunning = false;
+  }
+  private cancelBatch() {
+    this._batchCancelled = true;
+    for (const row of this._batch) if (row.state === "queued") row.state = "cancelled";
+    this.requestUpdate();
+  }
+  private batchView() {
+    if (!this._batch.length) return nothing;
+    const complete = this._batch.filter((r) => !["running", "queued"].includes(r.state)).length;
+    return html`<section aria-label=${this.t("schedule_batch_title")}>
+      <h3>${this.t("schedule_batch_title")} · ${this._batchName}</h3>
+      <p role="status">${this.t("schedule_batch_progress")}: ${complete} / ${this._batch.length}</p>
+      <p class="hint">${this.t("schedule_batch_hint")}</p>
+      ${this._batch.map(
+        (row) =>
+          html`<div class="check-row" aria-label=${row.name}>
+            <strong>${row.name}</strong> · ${this.t("schedule_batch_" + row.state)}
+            ${row.error ? html`<p class="danger">${row.error}</p>` : nothing}
+            ${
+          row.report
+            ? html`<p>${this.t("schedule_assessment_" + row.report.assessment.state)}</p>
+                <button
+                  ?disabled=${this._busy || this._batchRunning}
+                  @click=${() => {
+                    this._assessment = row.report;
+                    this._assessmentStation = row.id;
+                    this._station = row.id;
+                    this._dependencies = undefined;
+                  }}
+                >
+                  ${this.t("schedule_batch_details")}
+                </button>`
+            : nothing
+        }
+          </div>`,
+      )}
+      ${this._batchRunning ? html`<button @click=${() => this.cancelBatch()}>${this.t("schedule_batch_cancel")}</button>` : nothing}
+      <button
+        ?disabled=${this._batchRunning}
+        @click=${() =>
+        downloadText(
+          JSON.stringify(
+            { draft_name: this._batchName, can_apply: false, stations: this._batch },
+            (key, value) => (key === "token" ? undefined : value),
+            2,
+          ),
+          "hikvision-schedule-stations.json",
+          "application/json",
+        )}
+      >
+        ${this.t("schedule_batch_export")}
+      </button>
+    </section>`;
+  }
   private async dependencies() {
-    if (this._busy || this._reading || this._assessing || !this._station) return;
+    if (this._batchRunning || this._busy || this._reading || this._assessing || !this._station)
+      return;
     this.invalidateAssessment();
     const epoch = this._epoch,
       sequence = this._assessmentSequence,
@@ -566,7 +687,7 @@ export class IntercomSchedules extends LitElement {
   private async baselineAction(action: "save" | "clear") {
     const report = this._assessment,
       baseline = report?.baseline;
-    if (this._busy || this._reading || this._assessing || !baseline) return;
+    if (this._batchRunning || this._busy || this._reading || this._assessing || !baseline) return;
     if (action === "save" && !baseline.token) return;
     if (
       !window.confirm(
@@ -631,12 +752,12 @@ export class IntercomSchedules extends LitElement {
       )}
       <div class="toolbar">
         <button
-          ?disabled=${this._busy || this._assessing || this._reading || !baseline.token}
+          ?disabled=${this._batchRunning || this._busy || this._assessing || this._reading || !baseline.token}
           @click=${() => this.baselineAction("save")}
         >
           ${this.t(baseline.revision ? "schedule_baseline_replace" : "schedule_baseline_save")}
         </button>
-        ${baseline.revision ? html`<button ?disabled=${this._busy || this._assessing || this._reading} @click=${() => this.baselineAction("clear")}>${this.t("schedule_baseline_clear")}</button>` : nothing}
+        ${baseline.revision ? html`<button ?disabled=${this._batchRunning || this._busy || this._assessing || this._reading} @click=${() => this.baselineAction("clear")}>${this.t("schedule_baseline_clear")}</button>` : nothing}
       </div>
     </section>`;
   }
@@ -902,13 +1023,13 @@ export class IntercomSchedules extends LitElement {
             </select></label
           >
           <button
-            ?disabled=${this._assessing || this._reading || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+            ?disabled=${this._batchRunning || this._assessing || this._reading || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
             @click=${() => this.readiness()}
           >
             ${this.t(this._reading ? "loading" : "schedule_check")}
           </button>
           <button
-            ?disabled=${this._reading || this._assessing || this._busy || this._uncertain || !d || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+            ?disabled=${this._batchRunning || this._reading || this._assessing || this._busy || this._uncertain || !d || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
             @click=${() => this.assessDraft()}
           >
             ${this.t(this._assessing ? "loading" : "schedule_assess")}
@@ -939,12 +1060,18 @@ export class IntercomSchedules extends LitElement {
             : nothing
         }
         <button
-          ?disabled=${this._busy || this._reading || this._assessing || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
+          ?disabled=${this._batchRunning || this._busy || this._reading || this._assessing || !this.stations.some((s) => s.id === this._station && s.online && s.lock_enabled)}
           @click=${() => this.dependencies()}
         >
           ${this.t("schedule_dependencies")}
         </button>
-        ${this.dependenciesView()} ${this.assessmentView()}
+        <button
+          ?disabled=${this._busy || this._uncertain || this._reading || this._assessing || this._batchRunning || !d || !this.stations.length}
+          @click=${() => this.assessStations()}
+        >
+          ${this.t("schedule_batch_start")}
+        </button>
+        ${this.batchView()} ${this.dependenciesView()} ${this.assessmentView()}
         <p class="hint">${this.t("schedule_apply_blocked")}</p>
       </section>`;
   }
