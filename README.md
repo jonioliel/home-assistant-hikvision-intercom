@@ -15,6 +15,15 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
 
+## Daily interface and event identity (0.24)
+
+The daily sidebar groups Overview, Users and Events; management tools remain accessible.
+Station cards prioritize the camera and independent door action. The user editor has grouped
+fields and a fixed save/cancel footer, with responsive Hebrew/English and light/dark layouts.
+Event identity now preserves string identifiers and scopes name lookup to observed station
+ownership. The original unidentified event still needs exact correlation.
+See the [delivery and visual previews](docs/CORE_UI_024_HE.md).
+
 ## Bulk access and administrator history (0.23)
 
 Select up to 200 users, review their changes, then explicitly apply activation, assignment,

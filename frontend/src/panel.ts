@@ -2,6 +2,8 @@ import { formatTime, localInput, fromLocalInput, UTC_ZONE } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { styles } from "./styles";
+import { interfaceStyles } from "./interface-styles";
+import { icon } from "./icons";
 import { translate } from "./i18n";
 import type {
   Hass,
@@ -60,7 +62,7 @@ const releaseErrors = new Set([
 ]);
 
 export class IntercomManagerPanel extends LitElement {
-  static styles = styles;
+  static styles = [styles, interfaceStyles];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -457,6 +459,7 @@ export class IntercomManagerPanel extends LitElement {
   }
   private patchDraft(key: string, newValue: unknown) {
     if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
+    if (key === "display_name") this.requestUpdate();
   }
   private selectStations(all: boolean) {
     if (!this._draft || this._busy) return;
@@ -1024,7 +1027,7 @@ export class IntercomManagerPanel extends LitElement {
       ?disabled=${!station.online || !station.lock_enabled || this.releasing(station)}
       @click=${() => this.unlock(station)}
     >
-      ${this.releasing(station) ? this.t("releasing") : this.unlockLabel(station)}
+      ${icon("lock")}${this.releasing(station) ? this.t("releasing") : this.unlockLabel(station)}
     </button>`;
   }
   private releaseFeedback(station: Station) {
@@ -1128,19 +1131,30 @@ export class IntercomManagerPanel extends LitElement {
     const stations = [...(this._data?.stations ?? [])].sort(
       (a, b) => Number(b.call_state === "ringing") - Number(a.call_state === "ringing"),
     );
-    return html`<section class="metrics" aria-label=${this.t("overview")}>
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("overview_heading")}</h2>
+          <p class="sub">${this.t("overview_intro")}</p>
+        </div>
+      </div>
+      <section class="metrics" aria-label=${this.t("overview")}>
         ${[
           [
-            `${stations.filter((item) => item.online).length} / ${stations.length}`,
+            `${stations.filter((s) => s.online).length} / ${stations.length}`,
             "online_stations",
+            "devices",
           ],
-          [stations.filter((item) => item.call_state === "ringing").length, "ringing_now"],
-          [this._data?.users.length ?? 0, "total_users"],
-          [this.pendingCount(), "pending_sync"],
+          [stations.filter((s) => s.call_state === "ringing").length, "ringing_now", "health"],
+          [this._data?.users.length ?? 0, "total_users", "users"],
+          [this.pendingCount(), "pending_sync", "sync"],
         ].map(
-          ([count, label]) =>
+          ([count, label, glyph]) =>
             html`<div class="metric">
-              <strong>${count}</strong><span>${this.t(String(label))}</span>
+              <span class="metric-icon">${icon(String(glyph))}</span>
+              <div>
+                <strong><bdi dir="ltr">${count}</bdi></strong
+                ><span>${this.t(String(label))}</span>
+              </div>
             </div>`,
         )}
       </section>
@@ -1153,16 +1167,16 @@ export class IntercomManagerPanel extends LitElement {
           : html`<div class="grid">
               ${repeat(
                 stations,
-                (station) => station.id,
+                (s) => s.id,
                 (station) =>
                   html`<article
                     class="station ${station.call_state === "ringing" ? "ringing" : ""}"
                   >
-                    <div class="row between">
+                    <div class="row between station-head">
                       <h3>${station.name}</h3>
                       ${this.badge(station.online ? "online" : "offline")}
                     </div>
-                    ${station.call_state === "ringing" ? html`<div class="ring-banner" role="status">◉ ${this.t("ringing")}</div>` : nothing}
+                    ${station.call_state === "ringing" ? html`<div class="ring-banner" role="status">${icon("health")} ${this.t("ringing")}</div>` : nothing}
                     <div class="camera-wrap">
                       ${this.camera(station)}<button
                         @click=${() => {
@@ -1171,28 +1185,60 @@ export class IntercomManagerPanel extends LitElement {
                         }}
                         ?disabled=${!station.entities.camera}
                       >
-                        ${this.t("enlarge")}
+                        ${icon("camera")}${this.t("enlarge")}
                       </button>
                     </div>
-                    <div class="row between">
-                      <span class="sub">${this.t(station.call_state)}</span
-                      >${this.badge(station.sync_state)}
+                    <div class="station-content">
+                      ${
+                        station.lock_enabled
+                          ? html`<div class="door-action">${this.releaseButton(station, true)}</div>
+                              ${this.releaseFeedback(station)}`
+                          : html`<p class="sub">${this.t("camera_only")}</p>`
+                      }
+                      <div class="row between station-state">
+                        <span class="sub">${this.t(station.call_state)}</span
+                        ><span title=${this.t("sync_status_hint")}
+                          >${this.badge(station.sync_state)}</span
+                        >
+                      </div>
+                      ${this.callControls(station, true)}${this.lastAccess(station)}
+                      <p class="sub pending-users">
+                        ${this.t("pending_users")}: ${station.pending_user_count}
+                      </p>
+                      ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen, station)}</bdi></p>` : nothing}
                     </div>
-                    ${this.callControls(station, true)} ${this.lastAccess(station)}
-                    <p class="sub pending-users">
-                      ${this.t("pending_users")}: ${station.pending_user_count}
-                    </p>
-                    ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen, station)}</bdi></p>` : nothing}
-                    ${
-                      station.lock_enabled
-                        ? html`<div class="row actions">${this.releaseButton(station, true)}</div>
-                            ${this.releaseFeedback(station)}`
-                        : html`<p class="sub">${this.t("camera_only")}</p>`
-                    }
                   </article>`,
               )}
             </div>`
       }`;
+  }
+  private navigation() {
+    const groups = [
+      ["daily_navigation", ["overview", "users", "events"]],
+      ["management_navigation", ["devices", "sync", "audit", "health", "schedules"]],
+    ] as const;
+    return html`<nav class="nav" aria-label=${this.t("title")}>
+      ${groups.map(
+        ([label, tabs], index) =>
+          html`<div class="nav-group ${index ? "nav-secondary" : "nav-primary"}">
+            <span class="nav-label">${this.t(label)}</span>${tabs.map(
+              (tab) =>
+                html`<button
+                  aria-current=${this._tab === tab ? "page" : nothing}
+                  @click=${() => {
+                    const schedules = this.renderRoot.querySelector(
+                      "hikvision-intercom-schedules",
+                    ) as (HTMLElement & { canLeave(): boolean }) | null;
+                    if (tab !== this._tab && schedules && !schedules.canLeave()) return;
+                    this._tab = tab;
+                  }}
+                >
+                  ${icon(tab)}<span>${this.t(tab)}</span>
+                </button>`,
+            )}
+          </div>`,
+      )}
+    </nav>`;
   }
   private userSelection(user: Person) {
     return html`<input
@@ -1587,262 +1633,275 @@ export class IntercomManagerPanel extends LitElement {
   private editorBody() {
     const draft = this._draft!;
     const blocked = this.pinBlocked();
-    return html`<form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
-      <p class="field-note">${this.t("save_hint")}</p>
-      <fieldset>
-        <legend>${this.t("users")}</legend>
-        <div class="fields">
-          <label
-            >${this.t("name")}<input
-              autofocus
-              required
-              maxlength="32"
-              .value=${draft.display_name}
-              @input=${(event: Event) => this.patchDraft("display_name", value(event))} /></label
-          ><label
-            >${this.t("employee_id")}<input
-              required
-              pattern="[A-Za-z0-9_-]{1,32}"
-              maxlength="32"
-              dir="ltr"
-              .value=${draft.employee_no}
-              ?disabled=${draft.identity_locked}
-              @input=${(event: Event) => this.patchDraft("employee_no", value(event))}
-          /></label>
+    return html`<div class="editor-summary">
+        <span class="avatar">${icon("users")}</span>
+        <div>
+          <strong>${draft.display_name || this.t("new_person_heading")}</strong>
+          <p class="sub">${this.t("editor_intro")}</p>
         </div>
-        ${draft.identity_locked ? html`<p class="field-note">${this.t("employee_locked")}</p>` : nothing}
-        <p>
+      </div>
+      <form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
+        <p class="field-note">${this.t("save_hint")}</p>
+        <fieldset>
+          <legend>${icon("users")}${this.t("person_details")}</legend>
+          <div class="fields">
+            <label
+              >${this.t("name")}<input
+                autofocus
+                required
+                maxlength="32"
+                .value=${draft.display_name}
+                @input=${(event: Event) => this.patchDraft("display_name", value(event))} /></label
+            ><label
+              >${this.t("employee_id")}<input
+                required
+                pattern="[A-Za-z0-9_-]{1,32}"
+                maxlength="32"
+                dir="ltr"
+                .value=${draft.employee_no}
+                ?disabled=${draft.identity_locked}
+                @input=${(event: Event) => this.patchDraft("employee_no", value(event))}
+            /></label>
+          </div>
+          ${draft.identity_locked ? html`<p class="field-note">${this.t("employee_locked")}</p>` : nothing}
+          <p>
+            <label class="check"
+              ><input
+                type="checkbox"
+                .checked=${draft.active}
+                @change=${(event: Event) => this.patchDraft("active", checked(event))}
+              />${this.t("active")}</label
+            >
+          </p>
+        </fieldset>
+        <fieldset>
+          <legend>${icon("schedules")}${this.t("validity")}</legend>
           <label class="check"
             ><input
               type="checkbox"
-              .checked=${draft.active}
-              @change=${(event: Event) => this.patchDraft("active", checked(event))}
-            />${this.t("active")}</label
-          >
-        </p>
-      </fieldset>
-      <fieldset>
-        <legend>${this.t("validity")}</legend>
-        <label class="check"
-          ><input
-            type="checkbox"
-            .checked=${draft.timed}
-            @change=${(event: Event) => {
-              draft.timed = checked(event);
-              this.requestUpdate();
-            }}
-          />${this.t("period")}</label
-        >${
-          draft.timed
-            ? html`<label
-                  >${this.t("clock_validity_basis")}<select
-                    aria-label=${this.t("clock_validity_basis")}
-                    @change=${(e: Event) => {
-                      this.changeValidityZone(value(e));
-                      (e.target as HTMLSelectElement).value = this._validityStation;
-                    }}
-                  >
-                    <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
-                      UTC
-                    </option>
-                    <option value="" ?selected=${this._validityStation === ""}>
-                      ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
-                    </option>
-                    ${this._data?.stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
-                  </select></label
-                >
-                <div class="fields" style="margin-top:14px">
-                  <label
-                    >${this.t("valid_from")}<input
-                      required
-                      type="datetime-local"
-                      .value=${this._validityFrom}
-                      @input=${(event: Event) => {
-                        this._validityFrom = value(event);
-                      }} /></label
-                  ><label
-                    >${this.t("valid_until")}<input
-                      required
-                      type="datetime-local"
-                      .value=${this._validityUntil}
-                      @input=${(event: Event) => {
-                        this._validityUntil = value(event);
+              .checked=${draft.timed}
+              @change=${(event: Event) => {
+                draft.timed = checked(event);
+                this.requestUpdate();
+              }}
+            />${this.t("period")}</label
+          >${
+            draft.timed
+              ? html`<label
+                    >${this.t("clock_validity_basis")}<select
+                      aria-label=${this.t("clock_validity_basis")}
+                      @change=${(e: Event) => {
+                        this.changeValidityZone(value(e));
+                        (e.target as HTMLSelectElement).value = this._validityStation;
                       }}
-                  /></label>
-                </div>
-                <p class="field-note">${this.t("validity_hint")}</p>`
-            : html`<p class="sub">${this.t("permanent")}</p>`
-        }
-      </fieldset>
-      <fieldset>
-        <legend>
-          ${this.t("pin")} · ${this.t(draft.pin_configured ? "configured" : "not_configured")}
-        </legend>
-        <p class="field-note">${this.t("pin_private")}</p>
-        ${blocked ? html`<p class="danger">${this.t("pin_mode_blocked")}</p>` : nothing}
-        <div class="fields">
-          <label
-            >${this.t("new_pin")}<input
-              type="password"
-              inputmode="numeric"
-              autocomplete="new-password"
-              pattern="[0-9]*"
-              maxlength="128"
-              .value=${draft.pin ?? ""}
-              ?disabled=${blocked || draft.pin === null}
-              @input=${(event: Event) => this.patchDraft("pin", value(event) || undefined)} /></label
-          ><label
-            >${this.t("confirm_pin")}<input
-              type="password"
-              inputmode="numeric"
-              autocomplete="new-password"
-              pattern="[0-9]*"
-              maxlength="128"
-              .value=${draft.confirm_pin}
-              ?disabled=${blocked || draft.pin === null}
-              @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
-          /></label>
-        </div>
-        <div class="row actions">
-          ${
-            draft.pin === null
-              ? html`<span class="status delete_pending">${this.t("remove_pin")}</span
-                  ><button
+                    >
+                      <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
+                        UTC
+                      </option>
+                      <option value="" ?selected=${this._validityStation === ""}>
+                        ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
+                      </option>
+                      ${this._data?.stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
+                    </select></label
+                  >
+                  <div class="fields" style="margin-top:14px">
+                    <label
+                      >${this.t("valid_from")}<input
+                        required
+                        type="datetime-local"
+                        .value=${this._validityFrom}
+                        @input=${(event: Event) => {
+                          this._validityFrom = value(event);
+                        }} /></label
+                    ><label
+                      >${this.t("valid_until")}<input
+                        required
+                        type="datetime-local"
+                        .value=${this._validityUntil}
+                        @input=${(event: Event) => {
+                          this._validityUntil = value(event);
+                        }}
+                    /></label>
+                  </div>
+                  <p class="field-note">${this.t("validity_hint")}</p>`
+              : html`<p class="sub">${this.t("permanent")}</p>`
+          }
+        </fieldset>
+        <fieldset>
+          <legend>
+            ${this.t("pin")} · ${this.t(draft.pin_configured ? "configured" : "not_configured")}
+          </legend>
+          <p class="field-note">${this.t("pin_private")}</p>
+          ${blocked ? html`<p class="danger">${this.t("pin_mode_blocked")}</p>` : nothing}
+          <div class="fields">
+            <label
+              >${this.t("new_pin")}<input
+                type="password"
+                inputmode="numeric"
+                autocomplete="new-password"
+                pattern="[0-9]*"
+                maxlength="128"
+                .value=${draft.pin ?? ""}
+                ?disabled=${blocked || draft.pin === null}
+                @input=${(event: Event) => this.patchDraft("pin", value(event) || undefined)} /></label
+            ><label
+              >${this.t("confirm_pin")}<input
+                type="password"
+                inputmode="numeric"
+                autocomplete="new-password"
+                pattern="[0-9]*"
+                maxlength="128"
+                .value=${draft.confirm_pin}
+                ?disabled=${blocked || draft.pin === null}
+                @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
+            /></label>
+          </div>
+          <div class="row actions">
+            ${
+              draft.pin === null
+                ? html`<span class="status delete_pending">${this.t("remove_pin")}</span
+                    ><button
+                      type="button"
+                      @click=${() => {
+                        draft.pin = undefined;
+                        this.requestUpdate();
+                      }}
+                    >
+                      ${this.t("keep_pin")}
+                    </button>`
+                : html`<button
                     type="button"
+                    class="danger"
+                    ?disabled=${blocked || !draft.pin_configured}
                     @click=${() => {
-                      draft.pin = undefined;
+                      draft.pin = null;
+                      draft.confirm_pin = "";
                       this.requestUpdate();
                     }}
                   >
-                    ${this.t("keep_pin")}
+                    ${this.t("remove_pin")}
                   </button>`
-              : html`<button
-                  type="button"
-                  class="danger"
-                  ?disabled=${blocked || !draft.pin_configured}
-                  @click=${() => {
-                    draft.pin = null;
-                    draft.confirm_pin = "";
-                    this.requestUpdate();
-                  }}
-                >
-                  ${this.t("remove_pin")}
-                </button>`
-          }
-        </div>
-        <p class="field-note">${this.t("pin_physical")}</p>
-      </fieldset>
-      <fieldset>
-        <legend>${this.t("cards")}</legend>
-        ${repeat(
-          draft.cards,
-          (card) => card.id ?? card,
-          (card) =>
-            html`<div class="card-edit">
-              <div class="fields">
-                <label
-                  >${this.t("card_label")}<input
-                    maxlength="64"
-                    .value=${card.label}
-                    @input=${(event: Event) => {
-                      card.label = value(event);
-                    }} /></label
-                >${
-                  card.id
-                    ? html`<label
-                        >${this.t("card_number")}<input
-                          readonly
-                          .value=${card.masked_number ?? this.t("masked")}
-                          aria-label=${this.t("masked")}
-                      /></label>`
-                    : html`<label
-                        >${this.t("card_number")}<input
-                          required
-                          pattern="[A-Za-z0-9_-]+"
-                          maxlength="32"
-                          dir="ltr"
-                          autocomplete="off"
-                          .value=${card.card_no ?? ""}
-                          @input=${(event: Event) => {
-                            card.card_no = value(event);
-                          }}
-                      /></label>`
-                }
-              </div>
-              <div class="row between">
-                <label class="check"
-                  ><input
-                    type="checkbox"
-                    .checked=${card.enabled}
-                    @change=${(event: Event) => {
-                      card.enabled = checked(event);
+            }
+          </div>
+          <p class="field-note">${this.t("pin_physical")}</p>
+        </fieldset>
+        <fieldset>
+          <legend>${this.t("cards")}</legend>
+          ${repeat(
+            draft.cards,
+            (card) => card.id ?? card,
+            (card) =>
+              html`<div class="card-edit">
+                <div class="fields">
+                  <label
+                    >${this.t("card_label")}<input
+                      maxlength="64"
+                      .value=${card.label}
+                      @input=${(event: Event) => {
+                        card.label = value(event);
+                      }} /></label
+                  >${
+                    card.id
+                      ? html`<label
+                          >${this.t("card_number")}<input
+                            readonly
+                            .value=${card.masked_number ?? this.t("masked")}
+                            aria-label=${this.t("masked")}
+                        /></label>`
+                      : html`<label
+                          >${this.t("card_number")}<input
+                            required
+                            pattern="[A-Za-z0-9_-]+"
+                            maxlength="32"
+                            dir="ltr"
+                            autocomplete="off"
+                            .value=${card.card_no ?? ""}
+                            @input=${(event: Event) => {
+                              card.card_no = value(event);
+                            }}
+                        /></label>`
+                  }
+                </div>
+                <div class="row between">
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      .checked=${card.enabled}
+                      @change=${(event: Event) => {
+                        card.enabled = checked(event);
+                      }}
+                    />${this.t("active")} · ${this.t("normal_card")}</label
+                  ><button
+                    type="button"
+                    class="danger"
+                    @click=${() => {
+                      draft.cards = draft.cards.filter((item) => item !== card);
+                      this.requestUpdate();
                     }}
-                  />${this.t("active")} · ${this.t("normal_card")}</label
-                ><button
-                  type="button"
-                  class="danger"
-                  @click=${() => {
-                    draft.cards = draft.cards.filter((item) => item !== card);
-                    this.requestUpdate();
-                  }}
-                >
-                  ${this.t("remove")}
-                </button>
-              </div>
-            </div>`,
-        )}<button
-          type="button"
-          @click=${() => {
-            draft.cards = [
-              ...draft.cards,
-              { label: "", card_no: "", card_type: "normalCard", enabled: true },
-            ];
-            this.requestUpdate();
-          }}
-        >
-          + ${this.t("add_card")}
-        </button>
-      </fieldset>
-      <fieldset>
-        <legend>${this.t("assignments")}</legend>
-        <div class="row assignment-tools">
-          <button type="button" @click=${() => this.selectStations(true)} ?disabled=${this._busy}>
-            ${this.t("select_all_stations")}
-          </button>
-          <button type="button" @click=${() => this.selectStations(false)} ?disabled=${this._busy}>
-            ${this.t("clear_stations")}
-          </button>
-          <span class="sub"
-            >${this.t("selected_stations")}:
-            ${Object.values(draft.assignments).filter((item) => item.enabled).length}</span
+                  >
+                    ${this.t("remove")}
+                  </button>
+                </div>
+              </div>`,
+          )}<button
+            type="button"
+            @click=${() => {
+              draft.cards = [
+                ...draft.cards,
+                { label: "", card_no: "", card_type: "normalCard", enabled: true },
+              ];
+              this.requestUpdate();
+            }}
           >
-        </div>
-        <p class="field-note">${this.t("selection_hint")}</p>
-        ${(this._data?.stations ?? []).map(
-          (station) =>
-            html`<div class="assignment">
-              <label class="check"
-                ><input
-                  type="checkbox"
-                  .checked=${!!draft.assignments[station.id]?.enabled}
-                  ?disabled=${!station.lock_enabled}
-                  @change=${(event: Event) => {
-                    if (checked(event))
-                      draft.assignments[station.id] = { enabled: true, allowed_locks: [1] };
-                    else delete draft.assignments[station.id];
-                    this.requestUpdate();
-                  }}
-                /><strong>${station.name}</strong
-                >${this.badge(station.online ? "online" : "offline")}</label
-              ><small
-                >${this.t(station.lock_enabled ? "station_access" : "camera_only")}${station.lock_enabled && this.lockName(station) ? html` · ${this.lockName(station)}` : nothing}</small
-              >
-              ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
-            </div>`,
-        )}
-        <p class="field-note">${this.t("unsupported_schedule")}</p>
-      </fieldset>
-    </form>`;
+            + ${this.t("add_card")}
+          </button>
+        </fieldset>
+        <fieldset class="editor-assignments">
+          <legend>${icon("devices")}${this.t("assignments")}</legend>
+          <div class="row assignment-tools">
+            <button type="button" @click=${() => this.selectStations(true)} ?disabled=${this._busy}>
+              ${this.t("select_all_stations")}
+            </button>
+            <button
+              type="button"
+              @click=${() => this.selectStations(false)}
+              ?disabled=${this._busy}
+            >
+              ${this.t("clear_stations")}
+            </button>
+            <span class="sub"
+              >${this.t("selected_stations")}:
+              ${Object.values(draft.assignments).filter((item) => item.enabled).length}</span
+            >
+          </div>
+          <p class="field-note">${this.t("selection_hint")}</p>
+          <div class="assignment-list">
+            ${(this._data?.stations ?? []).map(
+              (station) =>
+                html`<div class="assignment">
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      .checked=${!!draft.assignments[station.id]?.enabled}
+                      ?disabled=${!station.lock_enabled}
+                      @change=${(event: Event) => {
+                        if (checked(event))
+                          draft.assignments[station.id] = { enabled: true, allowed_locks: [1] };
+                        else delete draft.assignments[station.id];
+                        this.requestUpdate();
+                      }}
+                    /><strong>${station.name}</strong
+                    >${this.badge(station.online ? "online" : "offline")}</label
+                  ><small
+                    >${this.t(station.lock_enabled ? "station_access" : "camera_only")}${station.lock_enabled && this.lockName(station) ? html` · ${this.lockName(station)}` : nothing}</small
+                  >
+                  ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
+                </div>`,
+            )}
+          </div>
+          <p class="field-note">${this.t("unsupported_schedule")}</p>
+        </fieldset>
+      </form>`;
   }
   private importBody() {
     return html`<p class="field-note">${this.t("import_hint")}</p>
@@ -2120,7 +2179,7 @@ export class IntercomManagerPanel extends LitElement {
                 ? cameraStation?.name
                 : this.t("review");
     return html`<dialog
-      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : ""}
+      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : this._dialog === "editor" ? "editor-dialog" : ""}
       aria-label=${title ?? ""}
       @cancel=${(event: Event) => {
         event.preventDefault();
@@ -2152,7 +2211,7 @@ export class IntercomManagerPanel extends LitElement {
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
         <h2>${this.t("admin_only")}</h2>
       </div>`;
-    return html`<div dir=${he ? "rtl" : "ltr"}>
+    return html`<div class="app-shell" dir=${he ? "rtl" : "ltr"}>
       <header>
         <div class="head">
           <button
@@ -2160,9 +2219,9 @@ export class IntercomManagerPanel extends LitElement {
             aria-label="Menu"
             @click=${() => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }))}
           >
-            ☰
+            ${icon("menu")}
           </button>
-          <div class="brand" aria-hidden="true">◉</div>
+          <div class="brand" aria-hidden="true">${icon("devices")}</div>
           <div>
             <h1>${this.t("title")}</h1>
             <div class="version">${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi></div>
@@ -2175,26 +2234,10 @@ export class IntercomManagerPanel extends LitElement {
             }}
             ?disabled=${this._busy}
           >
-            ↻ <span class="refresh-label">${this.t("refresh")}</span>
+            ${icon("sync")} <span class="refresh-label">${this.t("refresh")}</span>
           </button>
         </div>
-        <nav class="nav" aria-label=${this.t("title")}>
-          ${["overview", "users", "devices", "events", "sync", "audit", "health", "schedules"].map(
-            (tab) =>
-              html`<button
-                aria-current=${this._tab === tab ? "page" : nothing}
-                @click=${() => {
-                  const schedules = this.renderRoot.querySelector(
-                    "hikvision-intercom-schedules",
-                  ) as (HTMLElement & { canLeave(): boolean }) | null;
-                  if (tab !== this._tab && schedules && !schedules.canLeave()) return;
-                  this._tab = tab;
-                }}
-              >
-                ${this.t(tab)}
-              </button>`,
-          )}
-        </nav>
+        ${this.navigation()}
       </header>
       <main>
         ${

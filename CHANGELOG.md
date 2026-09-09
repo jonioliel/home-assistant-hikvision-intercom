@@ -4,6 +4,41 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.24.0-alpha.1] - 2026-09-09
+
+### Changed
+- Redesigned daily navigation, station cards and the user editor. Desktop uses a sidebar;
+  mobile separates daily actions from management. Camera previews and independent door
+  controls take precedence over history and support information.
+- User editing groups personal details, validity, PIN, cards and station assignments, with
+  a fixed save/cancel footer and responsive layout. Native SVG icons and HA theme colors
+  support Hebrew RTL, English LTR and light/dark themes without external assets.
+- Compact call controls show actions relevant to the observed state and explicitly indicate
+  that two-way audio is unavailable. Full camera controls retain the existing command workflow.
+
+### Fixed
+- Preserve string employee identifiers, including leading zeros, when an event supplies
+  employeeNo instead of employeeNoString. Explicit string identifiers still take precedence.
+- Resolve a missing event name only through an observed ownership binding for that station,
+  an exact identifier match and an event not predating the central user. Unbound users,
+  unverified creation intents and another station's ownership cannot supply the name.
+  Names explicitly reported by the device remain authoritative.
+
+### Evidence and limits
+- Two authorized stations returned 123 history records through 78 read-only requests,
+  including three successful PIN events with names and employee identifiers. No station writes
+  or physical commands were sent. The owner's original unidentified event is not conclusively
+  correlated, so that investigation remains open.
+- The owner reports working MSE playback and a provider NAT issue awaiting repair. HA HTTP
+  reachability was verified; authenticated installed-panel and WebRTC acceptance remain open.
+- Audio channel discovery still reports disabled G.711ulaw; no audio session is enabled.
+  Timed-validity readback remains unresolved. Calls, cards and the nine-station physical soak
+  retain their existing acceptance gates. Screenshots use synthetic data.
+- Mandatory v1 acceptance remains 31/38 (81.6%); combined scope remains 77.7%.
+  See docs/CORE_UI_024_HE.md for progress against the 95% plan and interface previews.
+- Upgrading from 0.23 keeps access payload schema 3 and HA Store envelope version 1.
+  Back up HA before upgrading; returning to 0.22 or earlier requires a compatible backup.
+
 ## [0.23.0-alpha.1] - 2026-09-09
 
 ### Added

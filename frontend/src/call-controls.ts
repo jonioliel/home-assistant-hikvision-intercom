@@ -31,6 +31,27 @@ export class IntercomCallControls extends LitElement {
   static styles = [
     styles,
     css`
+      .call-controls.compact {
+        padding: 0;
+        margin: 0 0 10px;
+        border: 0;
+        background: transparent;
+      }
+      .compact p {
+        margin: 5px 0 10px;
+        font-size: 11px;
+        color: var(--secondary-text-color);
+      }
+      .compact .toolbar {
+        margin: 0;
+        gap: 6px;
+      }
+      .compact button {
+        padding: 7px 10px;
+        min-height: 34px;
+        font-size: 12px;
+      }
+
       :host {
         display: block;
         height: auto;
@@ -197,10 +218,13 @@ export class IntercomCallControls extends LitElement {
         !this._error)
     )
       return nothing;
-    return html`<section class="call-controls" aria-label=${this.t("media_signals")}>
-      <p>${this.t("media_signal_hint")}</p>
+    return html`<section
+      class="call-controls ${this.compact ? "compact" : ""}"
+      aria-label=${this.t("media_signals")}
+    >
+      <p>${this.t(this.compact ? "call_compact_hint" : "media_signal_hint")}</p>
       <div class="toolbar">
-        ${["answer", "reject", "hangUp"].filter((command) => this._context?.call_commands.includes(command)).map((command) => html`<button ?disabled=${!this.allowed(command)} @click=${() => this.signal(command)}>${this.t("media_" + command)}</button>`)}
+        ${["answer", "reject", "hangUp"].filter((command) => this._context?.call_commands.includes(command) && (!this.compact || (command === "hangUp" ? s.call_state === "in_call" : s.call_state === "ringing"))).map((command) => html`<button aria-label=${this.t("media_" + command)} ?disabled=${!this.allowed(command)} @click=${() => this.signal(command)}>${this.t(this.compact ? "call_action_" + command : "media_" + command)}</button>`)}
         <button ?disabled=${this._busy || !s.online} @click=${() => this.refresh()}>
           ${this.t("call_refresh")}
         </button>

@@ -4,6 +4,16 @@ The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) is the curren
 plan. It prioritizes remaining acceptance gates, call/audio completion and a concurrent UI redesign.
 Its conditional 45/47 (95.7%) target does not change the current completion figures below.
 
+Current 0.24 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Phase 6: four software features implemented, three partial, two absent. The combined scope
+measure remains **77.7%**, not an effort estimate or proof of physical acceptance.
+The [current delivery ledger](CORE_UI_024_HE.md) records the redesigned overview/navigation/user
+editor, station-scoped event identity fixes, two-station read-only evidence and the remaining
+95% plan gates. The owner reports MSE playback; WebRTC awaits provider NAT repair and acceptance.
+Access payload schema remains 3. Release evidence will be added after candidate validation.
+
+## Historical checkpoints (earlier counts below are not current)
+
 Current 0.23 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, three partial, two absent. The approximate
 combined scope measure remains **77.7%**, not an effort estimate or proof of physical acceptance.
@@ -18,7 +28,6 @@ passed all seven jobs: 822 Python tests per version, 237 HA tests (100% ConfigFl
 and expected source files were verified after publication; private evidence was excluded.
 The access store migrates from schema 2 to 3; downgrades require a compatible HA backup.
 
-## Historical checkpoints (earlier counts below are not current)
 
 
 Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
