@@ -45,9 +45,10 @@ class ScheduleJournal:
     def __init__(self, save: Save) -> None:
         self._save = save
         self._state: dict[str, Any] = {
-            "schema": 1,
+            "schema": 2,
             "key": secrets.token_hex(32),
             "transactions": {},
+            "archive": [],
         }
         self._lock = asyncio.Lock()
         self._running: set[str] = set()
@@ -159,19 +160,35 @@ class ScheduleJournal:
                 await self._persist(deepcopy(self._state))
                 return
             previous = self._state
+            migrated = (
+                isinstance(data, dict)
+                and type(data.get("schema")) is int
+                and data["schema"] == 1
+                and set(data) == {"schema", "key", "transactions"}
+            )
+            if migrated:
+                data = {**deepcopy(data), "schema": 2, "archive": []}
             try:
                 if (
                     not isinstance(data, dict)
-                    or set(data) != {"schema", "key", "transactions"}
+                    or set(data) != {"schema", "key", "transactions", "archive"}
                     or type(data["schema"]) is not int
-                    or data["schema"] != 1
+                    or data["schema"] != 2
                     or not valid_hash(data["key"])
                     or not isinstance(data["transactions"], dict)
                     or len(data["transactions"]) > MAX_TRANSACTIONS
+                    or not isinstance(data["archive"], list)
+                    or len(data["archive"]) > 128
                 ):
                     raise AccessError("invalid_storage")
                 # Candidate hashes must be checked using the persisted installation key.
                 self._state = deepcopy(data)
+                ids = set(data["transactions"])
+                for archived in data["archive"]:
+                    self._validate(archived)
+                    if archived["status"] != "verified" or archived["id"] in ids:
+                        raise AccessError("invalid_storage")
+                    ids.add(archived["id"])
                 stations: set[str] = set()
                 for key, item in data["transactions"].items():
                     self._validate(item)
@@ -184,6 +201,10 @@ class ScheduleJournal:
             except (AccessError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
                 self._state = previous
                 raise AccessError("invalid_storage") from None
+            if migrated:
+                normalized = self._state
+                self._state = previous
+                await self._persist(normalized)
 
     def get(self, identifier: str, revision: int | None = None) -> dict[str, Any]:
         item = self._state["transactions"].get(identifier)
@@ -212,6 +233,8 @@ class ScheduleJournal:
         context: Any,
         observed: dict[str, Any],
         owned: set[str],
+        *,
+        identifier: str | None = None,
     ) -> dict[str, Any]:
         """Require a caller-verified owned resource set; never adopt or allocate here."""
         async with self._lock:
@@ -229,7 +252,7 @@ class ScheduleJournal:
                 raise AccessError("schedule_deployment_busy")
             now = utc_now()
             item: dict[str, Any] = {
-                "id": str(uuid4()),
+                "id": identifier or str(uuid4()),
                 "revision": 1,
                 "station_id": station,
                 "context": deepcopy(context),
@@ -253,6 +276,10 @@ class ScheduleJournal:
                 for r in candidates
             ]
             self._validate(item)
+            if item["id"] in self._state["transactions"] or any(
+                r["id"] == item["id"] for r in self._state["archive"]
+            ):
+                raise AccessError("schedule_deployment_busy")
             state = deepcopy(self._state)
             state["transactions"][item["id"]] = item
             await self._persist(state)
@@ -328,3 +355,21 @@ class ScheduleJournal:
             state = deepcopy(self._state)
             del state["transactions"][identifier]
             await self._persist(state)
+
+    def all(self) -> list[dict[str, Any]]:
+        return [self.public(identifier) for identifier in self._state["transactions"]]
+
+    async def async_archive_verified(self, identifier: str, revision: int) -> None:
+        async with self._lock:
+            item = self.get(identifier, revision)
+            if item["status"] != "verified" or item["station_id"] in self._running:
+                raise AccessError("schedule_deployment_retained")
+            state = deepcopy(self._state)
+            state["archive"] = [*state["archive"], item][-128:]
+            del state["transactions"][identifier]
+            await self._persist(state)
+
+    def archived(self, identifier: str) -> dict[str, Any] | None:
+        return deepcopy(
+            next((item for item in self._state["archive"] if item["id"] == identifier), None)
+        )

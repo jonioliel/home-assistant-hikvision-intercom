@@ -174,3 +174,56 @@ async def test_journal_limit_stops_preparation_without_discarding_older_transact
     with pytest.raises(AccessError, match="schedule_deployment_limit"):
         await store.async_prepare(**{**inputs(), "station": "overflow"})
     assert store.public(first)["status"] == "ready"
+
+
+async def test_schema_one_migration_is_atomic_and_preserves_unknown_outcome():
+    save = AsyncMock()
+    store, identifier = await prepared(save)
+    await store.async_record(identifier, 1, index=0, step_state="intent")
+    old = deepcopy(save.call_args.args[0])
+    old["schema"] = 1
+    del old["archive"]
+    sink = AsyncMock()
+    restored = ScheduleJournal(sink)
+    await restored.async_load(old)
+    assert restored.get(identifier) == store.get(identifier)
+    assert sink.call_args.args[0]["schema"] == 2
+    failing = ScheduleJournal(AsyncMock(side_effect=AccessError("storage_write_failed")))
+    with pytest.raises(AccessError, match="storage_write_failed"):
+        await failing.async_load(old)
+    assert failing.all() == []
+
+
+async def test_verified_archive_is_bounded_and_stable_ids_prevent_recreation():
+    save = AsyncMock()
+    store = ScheduleJournal(save)
+    first = None
+    for _ in range(130):
+        item = await store.async_prepare(**inputs())
+        first = first or item["id"]
+        for index in range(len(item["steps"])):
+            item = await store.async_record(
+                item["id"], item["revision"], index=index, step_state="intent"
+            )
+            item = await store.async_record(
+                item["id"], item["revision"], index=index, step_state="verified"
+            )
+        await store.async_archive_verified(item["id"], item["revision"])
+    assert len(save.call_args.args[0]["archive"]) == 128 and not store.all()
+    assert store.archived(first) is None and store.archived(item["id"]) is not None
+    with pytest.raises(AccessError):
+        await store.async_prepare(**inputs(), identifier=item["id"])
+    restored = ScheduleJournal(AsyncMock())
+    await restored.async_load(save.call_args.args[0])
+    assert restored.archived(item["id"]) == store.archived(item["id"])
+
+
+async def test_unresolved_journal_cannot_be_archived_even_after_reload():
+    save = AsyncMock()
+    store, identifier = await prepared(save)
+    await store.async_record(identifier, 1, index=0, step_state="intent")
+    restored = ScheduleJournal(AsyncMock())
+    await restored.async_load(save.call_args.args[0])
+    with pytest.raises(AccessError, match="schedule_deployment_retained"):
+        await restored.async_archive_verified(identifier, 2)
+    assert restored.get(identifier)["status"] == "recovery_required"
