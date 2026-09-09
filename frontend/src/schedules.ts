@@ -64,6 +64,13 @@ interface Baseline {
     capability_changed: boolean;
   }[];
 }
+interface ImportPreview {
+  token: string;
+  count: number;
+  name_collisions: number;
+  expires_in: number;
+  items: { name: string; weekly_periods: number; holidays: number }[];
+}
 interface BatchRow {
   id: string;
   name: string;
@@ -216,6 +223,7 @@ export class IntercomSchedules extends LitElement {
     _notice: { state: true },
     _preview: { state: true },
     _readiness: { state: true },
+    _importPreview: { state: true },
     _batch: { state: true },
     _batchRunning: { state: true },
     _dependencies: { state: true },
@@ -235,6 +243,7 @@ export class IntercomSchedules extends LitElement {
   private _dirty = false;
   private _preview?: Preview;
   private _readiness?: Readiness;
+  private _importPreview?: ImportPreview;
   private _batch: BatchRow[] = [];
   private _batchRunning = false;
   private _batchSequence = 0;
@@ -265,6 +274,7 @@ export class IntercomSchedules extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this._importPreview = undefined;
     this.invalidateAssessment();
     this._assessing = false;
     this._items = [];
@@ -300,6 +310,7 @@ export class IntercomSchedules extends LitElement {
       const items = await this.api<Schedule[]>("list");
       if (this.current(epoch)) {
         this._items = items;
+        this._importPreview = undefined;
         this.invalidateAssessment();
         this._draft = undefined;
         this._dirty = false;
@@ -335,6 +346,89 @@ export class IntercomSchedules extends LitElement {
     const d = this._draft!;
     return structuredClone({ name: d.name, weekly: d.weekly, holidays: d.holidays });
   }
+  private async exportDrafts() {
+    if (this._busy || this._uncertain || !this._items.length) return;
+    const epoch = this._epoch;
+    this._busy = true;
+    this._error = "";
+    try {
+      const data = await this.api("export");
+      if (this.current(epoch))
+        downloadText(
+          JSON.stringify(data, null, 2),
+          "hikvision-schedule-drafts.json",
+          "application/json",
+        );
+    } catch (e) {
+      if (this.current(epoch)) this._error = this.errorText(e);
+    } finally {
+      if (this.current(epoch)) this._busy = false;
+    }
+  }
+  private async importFile(event: Event) {
+    const input = event.target as HTMLInputElement,
+      file = input.files?.[0];
+    input.value = "";
+    if (this._busy || this._uncertain || !file) return;
+    const epoch = this._epoch;
+    this._importPreview = undefined;
+    this._busy = true;
+    this._error = "";
+    try {
+      if (file.size > 8 * 1024 * 1024) throw { code: "schedule_transfer_invalid" };
+      const document = await file.text();
+      if (!this.current(epoch)) return;
+      const preview = await this.api<ImportPreview>("import_preview", { document });
+      if (this.current(epoch)) this._importPreview = preview;
+    } catch (e) {
+      if (this.current(epoch)) this._error = this.errorText(e);
+    } finally {
+      if (this.current(epoch)) this._busy = false;
+    }
+  }
+  private async applyImport() {
+    if (this._busy || this._uncertain || !this._importPreview) return;
+    const epoch = this._epoch,
+      token = this._importPreview.token;
+    this._busy = true;
+    this._error = "";
+    this._importPreview = undefined;
+    try {
+      const items = await this.api<Schedule[]>("import_apply", { token });
+      if (this.current(epoch)) {
+        this._items = [...this._items, ...items];
+        this._notice = this.t("schedule_imported");
+      }
+    } catch (e) {
+      if (this.current(epoch)) this.mutationError(e);
+    } finally {
+      if (this.current(epoch)) this._busy = false;
+    }
+  }
+  private importView() {
+    const preview = this._importPreview;
+    if (!preview) return nothing;
+    return html`<section class="check" aria-label=${this.t("schedule_import_preview")}>
+      <h3>${this.t("schedule_import_preview")}</h3>
+      <p>
+        ${this.t("schedule_import_count")}: ${preview.count} ·
+        ${this.t("schedule_import_collisions")}: ${preview.name_collisions}
+      </p>
+      <p class="hint">${this.t("schedule_import_hint")}</p>
+      ${preview.items.map((item) => html`<div class="check-row"><strong>${item.name}</strong> · ${this.t("schedule_import_windows")}: ${item.weekly_periods} · ${this.t("schedule_holidays")}: ${item.holidays}</div>`)}
+      <button ?disabled=${this._busy || this._uncertain} @click=${() => this.applyImport()}>
+        ${this.t("schedule_import_apply")} (${preview.count})
+      </button>
+      <button
+        ?disabled=${this._busy}
+        @click=${() => {
+        this._importPreview = undefined;
+      }}
+      >
+        ${this.t("cancel")}
+      </button>
+    </section>`;
+  }
   private async save(event: SubmitEvent) {
     event.preventDefault();
     if (this._busy || this._uncertain || !this._draft) return;
@@ -348,6 +442,7 @@ export class IntercomSchedules extends LitElement {
         ...(d.id ? { schedule_id: d.id, revision: d.revision } : {}),
       });
       if (this.current(epoch)) {
+        this._importPreview = undefined;
         this._items = [...this._items.filter((s) => s.id !== item.id), item];
         this.invalidateAssessment();
         this._draft = structuredClone(item);
@@ -376,6 +471,8 @@ export class IntercomSchedules extends LitElement {
       "revision_conflict",
       "schedule_not_found",
       "schedule_limit",
+      "schedule_import_expired",
+      "schedule_transfer_invalid",
       "invalid_fields",
       "invalid_text",
       "invalid_id",
@@ -413,6 +510,7 @@ export class IntercomSchedules extends LitElement {
     try {
       await this.api("delete", { schedule_id: d.id, revision: d.revision });
       if (this.current(epoch)) {
+        this._importPreview = undefined;
         this._items = this._items.filter((s) => s.id !== d.id);
         this.invalidateAssessment();
         this._draft = undefined;
@@ -576,36 +674,36 @@ export class IntercomSchedules extends LitElement {
             <strong>${row.name}</strong> · ${this.t("schedule_batch_" + row.state)}
             ${row.error ? html`<p class="danger">${row.error}</p>` : nothing}
             ${
-          row.report
-            ? html`<p>${this.t("schedule_assessment_" + row.report.assessment.state)}</p>
-                <button
-                  ?disabled=${this._busy || this._batchRunning}
-                  @click=${() => {
+              row.report
+                ? html`<p>${this.t("schedule_assessment_" + row.report.assessment.state)}</p>
+                    <button
+                      ?disabled=${this._busy || this._batchRunning}
+                      @click=${() => {
                     this._assessment = row.report;
                     this._assessmentStation = row.id;
                     this._station = row.id;
                     this._dependencies = undefined;
                   }}
-                >
-                  ${this.t("schedule_batch_details")}
-                </button>`
-            : nothing
-        }
+                    >
+                      ${this.t("schedule_batch_details")}
+                    </button>`
+                : nothing
+            }
           </div>`,
       )}
       ${this._batchRunning ? html`<button @click=${() => this.cancelBatch()}>${this.t("schedule_batch_cancel")}</button>` : nothing}
       <button
         ?disabled=${this._batchRunning}
         @click=${() =>
-        downloadText(
-          JSON.stringify(
-            { draft_name: this._batchName, can_apply: false, stations: this._batch },
-            (key, value) => (key === "token" ? undefined : value),
-            2,
-          ),
-          "hikvision-schedule-stations.json",
-          "application/json",
-        )}
+          downloadText(
+            JSON.stringify(
+              { draft_name: this._batchName, can_apply: false, stations: this._batch },
+              (key, value) => (key === "token" ? undefined : value),
+              2,
+            ),
+            "hikvision-schedule-stations.json",
+            "application/json",
+          )}
       >
         ${this.t("schedule_batch_export")}
       </button>
@@ -861,6 +959,7 @@ export class IntercomSchedules extends LitElement {
       <p class="hint">${this.t("schedule_intro")}</p>
       ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}
       ${this._notice ? html`<p class="notice" role="status">${this._notice}</p>` : nothing}
+      ${this.importView()}
       <div class="layout">
         <aside class="library">
           <h3>${this.t("schedule_library")}</h3>
@@ -874,6 +973,19 @@ export class IntercomSchedules extends LitElement {
           >
             ${this.t("schedule_new")}
           </button>
+          <button
+            ?disabled=${this._busy || this._uncertain || !this._items.length}
+            @click=${() => this.exportDrafts()}
+          >
+            ${this.t("schedule_export_drafts")}
+          </button>
+          <label
+            >${this.t("schedule_import_file")}<input
+              type="file"
+              accept="application/json,.json"
+              ?disabled=${this._busy || this._uncertain}
+              @change=${(e: Event) => this.importFile(e)}
+          /></label>
           ${this._items.map((item) => html`<button ?disabled=${this._busy || this._uncertain} aria-current=${d?.id === item.id ? "true" : nothing} @click=${() => this.edit(item)}>${item.name}</button>`)}
           ${!this._items.length ? html`<p>${this.t("schedule_empty")}</p>` : nothing}
         </aside>

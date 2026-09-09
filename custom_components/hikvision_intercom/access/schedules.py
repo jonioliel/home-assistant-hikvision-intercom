@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import date, datetime
+from time import monotonic
 from typing import Any
 from uuid import uuid4
 
@@ -16,6 +18,38 @@ from .repository import Save
 DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 MAX_SCHEDULES = 100
 MAX_HOLIDAYS = 64
+TRANSFER_FORMAT = "hikvision_intercom.schedule_drafts"
+MAX_TRANSFER_BYTES = 8 * 1024 * 1024
+
+
+def transfer_document(document: str) -> list[dict[str, Any]]:
+    """Strict portable format; metadata, unknown fields and duplicate JSON keys rejected."""
+
+    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise AccessError("schedule_transfer_invalid")
+            result[key] = value
+        return result
+
+    try:
+        if not isinstance(document, str) or len(document.encode("utf-8")) > MAX_TRANSFER_BYTES:
+            raise AccessError("schedule_transfer_invalid")
+        data = json.loads(document, object_pairs_hook=unique)
+        if (
+            not isinstance(data, dict)
+            or set(data) != {"format", "version", "schedules"}
+            or data["format"] != TRANSFER_FORMAT
+            or type(data["version"]) is not int
+            or data["version"] != 1
+            or not isinstance(data["schedules"], list)
+            or not 1 <= len(data["schedules"]) <= MAX_SCHEDULES
+        ):
+            raise AccessError("schedule_transfer_invalid")
+        return [normalize(item) for item in data["schedules"]]
+    except (ValueError, TypeError, RecursionError, UnicodeError):
+        raise AccessError("schedule_transfer_invalid") from None
 
 
 def minute(value: Any, *, end: bool = False) -> int:
@@ -119,6 +153,7 @@ class ScheduleLibrary:
         self._save, self._changed = save, changed or (lambda: None)
         self._state: dict[str, Any] = {"schema": 1, "schedules": {}}
         self._lock = asyncio.Lock()
+        self._imports: dict[str, dict[str, Any]] = {}
 
     async def async_load(self, data: Any) -> None:
         async with self._lock:
@@ -197,6 +232,80 @@ class ScheduleLibrary:
             state["schedules"][key] = item
             await self._persist(state)
             return deepcopy(item)
+
+    def export(self) -> dict[str, Any]:
+        return {
+            "format": TRANSFER_FORMAT,
+            "version": 1,
+            "schedules": [
+                {k: item[k] for k in ("name", "weekly", "holidays")} for item in self.list()
+            ],
+        }
+
+    def _versions(self) -> dict[str, int]:
+        return {key: item["revision"] for key, item in self._state["schedules"].items()}
+
+    def preview_import(self, document: str, actor: str) -> dict[str, Any]:
+        drafts = transfer_document(document)
+        if len(drafts) + len(self._state["schedules"]) > MAX_SCHEDULES:
+            raise AccessError("schedule_limit")
+        # One pending preview per administrator, bounded across the installation.
+        self._imports = {
+            k: v
+            for k, v in self._imports.items()
+            if v["actor"] != actor and v["expires"] > monotonic()
+        }
+        if len(self._imports) >= 16:
+            del self._imports[next(iter(self._imports))]
+        token = uuid4().hex
+        self._imports[token] = {
+            "actor": actor,
+            "expires": monotonic() + 300,
+            "versions": self._versions(),
+            "drafts": drafts,
+        }
+        names = {item["name"].casefold() for item in self.list()}
+        collisions = 0
+        for draft in drafts:
+            name = draft["name"].casefold()
+            collisions += name in names
+            names.add(name)
+        return {
+            "token": token,
+            "count": len(drafts),
+            "name_collisions": collisions,
+            "expires_in": 300,
+            "mode": "append",
+            "items": [
+                {
+                    "name": d["name"],
+                    "weekly_periods": sum(map(len, d["weekly"].values())),
+                    "holidays": len(d["holidays"]),
+                }
+                for d in drafts
+            ],
+        }
+
+    async def async_import(self, token: str, actor: str) -> list[dict[str, Any]]:
+        async with self._lock:
+            pending = self._imports.get(token)
+            if not pending or pending["actor"] != actor or pending["expires"] <= monotonic():
+                raise AccessError("schedule_import_expired")
+            del self._imports[token]
+            if pending["versions"] != self._versions():
+                raise AccessError("revision_conflict")
+            drafts = pending["drafts"]
+            if len(drafts) + len(self._state["schedules"]) > MAX_SCHEDULES:
+                raise AccessError("schedule_limit")
+            state = deepcopy(self._state)
+            imported = []
+            for draft in drafts:
+                key = str(uuid4())
+                item = {**deepcopy(draft), "id": key, "revision": 1, "updated_at": utc_now()}
+                state["schedules"][key] = item
+                imported.append(item)
+            await self._persist(state)
+            return deepcopy(imported)
 
     def _require(self, schedule_id: str, revision: int | None) -> None:
         uuid_text(schedule_id)

@@ -31,3 +31,22 @@ the selected station, leaving the screen or losing administrator access invalida
 and prevents late responses from restoring it. The report download includes the draft name,
 station labels/status and sanitized results, with baseline approval tokens removed. It describes
 software compatibility and search coverage, not physical enforcement or a nine-station soak test.
+
+## Portable draft import/export
+
+Export saved drafts from the library as JSON format `hikvision_intercom.schedule_drafts`,
+version 1. Only names, weekly windows and holiday exceptions are included. Database IDs,
+revisions, station configuration, users, credentials and baseline fingerprints/tokens are excluded.
+Unsaved editor changes are not exported. Keep exported names and attendance schedules private.
+
+Import accepts at most 8 MiB and 100 drafts, subject to the library's total limit of 100.
+Duplicate JSON keys, unknown fields, invalid times/dates and any invalid batch member reject
+the entire file. A preview shows each name, window/holiday counts and repeated-name counts.
+Explicit confirmation appends fresh UUID copies in one durable save; no existing draft is replaced.
+Repeated names are allowed and remain separate drafts. The current unsaved editor is preserved.
+
+The single-use preview belongs to its administrator, expires in five minutes, and is invalidated
+by any library change or a newer preview by that administrator. Pending previews are memory-only
+and capped at 16. A failed save publishes none of the batch. Cancellation waits for an atomic
+save to finish. An unknown response requires library reload; no automatic import retry is made.
+These files transfer local drafts only; they do not deploy schedules or assign user permissions.

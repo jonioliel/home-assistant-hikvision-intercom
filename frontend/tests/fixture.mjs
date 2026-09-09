@@ -160,6 +160,7 @@ window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refr
 window.calls = [];
 const schedules = [];
 const scheduleBaselines = new Map();
+let scheduleImport;
 window.demoBaselineChange = false;
 window.demoSchedules = schedules;
 window.demoData = data;
@@ -188,6 +189,54 @@ const fake = {
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "stations/clock_refresh")
       return data.stations.find((s) => s.id === message.station_id).clock;
+    if (command === "schedules/export")
+      return {
+        format: "hikvision_intercom.schedule_drafts",
+        version: 1,
+        schedules: schedules.map(({ name, weekly, holidays }) =>
+          structuredClone({ name, weekly, holidays }),
+        ),
+      };
+    if (command === "schedules/import_preview") {
+      let document;
+      try {
+        document = JSON.parse(message.document);
+      } catch {
+        throw { code: "schedule_transfer_invalid" };
+      }
+      if (
+        document.format !== "hikvision_intercom.schedule_drafts" ||
+        document.version !== 1 ||
+        !Array.isArray(document.schedules) ||
+        !document.schedules.length
+      )
+        throw { code: "schedule_transfer_invalid" };
+      scheduleImport = structuredClone(document.schedules);
+      return {
+        token: "PRIVATE_IMPORT_TOKEN",
+        count: scheduleImport.length,
+        name_collisions: scheduleImport.filter((d) => schedules.some((s) => s.name === d.name))
+          .length,
+        expires_in: 300,
+        items: scheduleImport.map((d) => ({
+          name: d.name,
+          weekly_periods: Object.values(d.weekly).reduce((n, p) => n + p.length, 0),
+          holidays: d.holidays.length,
+        })),
+      };
+    }
+    if (command === "schedules/import_apply") {
+      if (!scheduleImport) throw { code: "schedule_import_expired" };
+      const items = scheduleImport.map((d) => ({
+        ...d,
+        id: crypto.randomUUID(),
+        revision: 1,
+        updated_at: new Date().toISOString(),
+      }));
+      scheduleImport = undefined;
+      schedules.push(...items);
+      return structuredClone(items);
+    }
     if (command === "schedules/list") return structuredClone(schedules);
     if (command === "schedules/create" || command === "schedules/update") {
       const current = schedules.find((s) => s.id === message.schedule_id);

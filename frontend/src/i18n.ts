@@ -28,6 +28,20 @@ const en = {
   schedule_batch_details: "Show station report",
   schedule_batch_cancel: "Cancel remaining checks",
   schedule_batch_export: "Download station reports",
+  schedule_export_drafts: "Export saved drafts",
+  schedule_import_file: "Import draft file",
+  schedule_import_preview: "Review draft import",
+  schedule_import_count: "New drafts",
+  schedule_import_collisions: "Repeated names",
+  schedule_import_windows: "Weekly windows",
+  schedule_import_hint:
+    "All drafts will be added as new copies in one save. Repeated names are retained; existing drafts and devices are unchanged. Review expires after 5 minutes or a library change. Select the file again if needed.",
+  schedule_import_apply: "Import new drafts",
+  schedule_imported:
+    "Draft copies imported into the local library. Nothing was applied to devices.",
+  schedule_import_expired: "Import review expired or was already used. Select the file again.",
+  schedule_transfer_invalid:
+    "Invalid draft file. Use format version 1, up to 100 drafts and 8 MiB. Unknown fields or duplicate JSON keys are rejected.",
   schedule_assess: "Assess selected draft",
   schedule_baseline_title: "Changes since reference",
   schedule_baseline_hint:
@@ -674,6 +688,19 @@ const he: Record<keyof typeof en, string> = {
   schedule_batch_details: "הצגת דוח התחנה",
   schedule_batch_cancel: "ביטול הבדיקות שנותרו",
   schedule_batch_export: "הורדת דוחות התחנות",
+  schedule_export_drafts: "ייצוא טיוטות שמורות",
+  schedule_import_file: "ייבוא קובץ טיוטות",
+  schedule_import_preview: "בדיקת הייבוא לפני שמירה",
+  schedule_import_count: "טיוטות חדשות",
+  schedule_import_collisions: "שמות חוזרים",
+  schedule_import_windows: "חלונות שבועיים",
+  schedule_import_hint:
+    "כל הטיוטות יתווספו כעותקים חדשים בשמירה אחת. שמות חוזרים נשמרים; הטיוטות הקיימות והמכשירים לא ישתנו. האישור תקף לחמש דקות או עד שינוי בספרייה. בעת הצורך בחרו שוב בקובץ.",
+  schedule_import_apply: "ייבוא טיוטות חדשות",
+  schedule_imported: "עותקי הטיוטות יובאו לספרייה המקומית. דבר לא הוחל על המכשירים.",
+  schedule_import_expired: "תוקף בדיקת הייבוא פג או שכבר נוצלה. בחרו שוב בקובץ.",
+  schedule_transfer_invalid:
+    "קובץ טיוטות לא תקין. נדרשת גרסת פורמט 1, עד 100 טיוטות ו־8 MiB. שדות לא מוכרים ומפתחות JSON כפולים נדחים.",
   schedule_assess: "בדיקת התאמת הטיוטה",
   schedule_baseline_title: "שינויים מנקודת הייחוס",
   schedule_baseline_hint:

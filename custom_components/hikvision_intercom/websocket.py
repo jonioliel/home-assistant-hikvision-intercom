@@ -46,6 +46,9 @@ USER_FIELDS = {
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
     "schedules/list": {},
+    "schedules/export": {},
+    "schedules/import_preview": {"document": str},
+    "schedules/import_apply": {"token": str},
     "schedules/create": {"data": dict},
     "schedules/update": {"schedule_id": str, "revision": int, "data": dict},
     "schedules/delete": {"schedule_id": str, "revision": int},
@@ -267,6 +270,12 @@ async def _dispatch(
         library = hass.data[DOMAIN].get("schedules")
         if not isinstance(library, ScheduleLibrary):
             raise AccessError("invalid_storage")
+        if command == "schedules/export":
+            return library.export()
+        if command == "schedules/import_preview":
+            return library.preview_import(msg["document"], actor)
+        if command == "schedules/import_apply":
+            return await library.async_import(msg["token"], actor)
         if command == "schedules/list":
             return library.list()
         if command == "schedules/create":

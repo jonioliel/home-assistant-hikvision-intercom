@@ -372,3 +372,27 @@ async def test_dependency_audit_uses_read_lane_and_preserves_stores(
     assert hass.data[DOMAIN]["schedules"].list() == before
     device_io["unlock"].assert_not_called()
     device_io["write_person"].assert_not_called()
+
+
+async def test_transfer_preview_then_atomic_apply_has_no_device_writes(
+    hass, loaded_entry, hass_ws_client, device_io, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="homeassistant.components.websocket_api.http.connection")
+    client = await hass_ws_client(hass)
+    data = {
+        "format": "hikvision_intercom.schedule_drafts",
+        "version": 1,
+        "schedules": [draft(), draft()],
+    }
+    result = await request(client, "schedules/import_preview", document=json.dumps(data))
+    assert result["success"] and result["result"]["count"] == 2
+    assert (await request(client, "schedules/list"))["result"] == []
+    applied = await request(client, "schedules/import_apply", token=result["result"]["token"])
+    assert applied["success"] and len(applied["result"]) == 2
+    exported = await request(client, "schedules/export")
+    assert exported["result"] == data
+    rejected = await request(client, "schedules/import_preview", document="PRIVATE_IMPORT_CONTENT")
+    assert rejected["error"]["code"] == "schedule_transfer_invalid"
+    assert "PRIVATE_IMPORT_CONTENT" not in caplog.text + json.dumps(rejected)
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
