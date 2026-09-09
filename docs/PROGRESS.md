@@ -10,7 +10,14 @@ measure remains **77.7%**, not an effort estimate or proof of physical acceptanc
 The [current delivery ledger](CORE_UI_024_HE.md) records the redesigned overview/navigation/user
 editor, station-scoped event identity fixes, two-station read-only evidence and the remaining
 95% plan gates. The owner reports MSE playback; WebRTC awaits provider NAT repair and acceptance.
-Access payload schema remains 3. Release evidence will be added after candidate validation.
+Access payload schema remains 3.
+
+Published [v0.24.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.24.0-alpha.1)
+from `124abaa`, UI `e546099`, event identity `a5d0a14`.
+[Release run 34387022883](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34387022883)
+passed all seven jobs: 838 Python tests per version, 238 HA tests (100% ConfigFlow coverage),
+134 browser tests, mypy56, Ruff, TypeScript, Prettier, reproducible bundle, HACS and Hassfest.
+The published tag, manifest, bundle and expected sources were verified; private evidence was excluded.
 
 ## Historical checkpoints (earlier counts below are not current)
 
