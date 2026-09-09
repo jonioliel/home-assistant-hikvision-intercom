@@ -199,6 +199,10 @@ const en = {
   health_export: "Export compatibility report",
   field_save_unknown:
     "Saving the field result could not be confirmed. Open Record field tests again to read the stored result before saving another change.",
+  event_trace_unknown:
+    "The capture change could not be confirmed. Refresh capture status before starting or stopping another capture.",
+  event_tools_zone_reset:
+    "The station display time zone changed. Enter the history range again because its previous local time could not be converted safely.",
   event_filters: "Event filters",
   event_filters_active: "Applied",
   event_filters_all: "All events",
@@ -1329,6 +1333,10 @@ const he: Record<keyof typeof en, string> = {
   health_export: "הורדת דוח תאימות",
   field_save_unknown:
     "לא ניתן לאשר ששמירת בדיקת השטח הושלמה. פתח שוב את רישום בדיקות השטח כדי לקרוא את התוצאה השמורה לפני שינוי נוסף.",
+  event_trace_unknown:
+    "לא ניתן לאשר את השינוי בלכידה. יש לרענן את מצב הלכידה לפני התחלה או עצירה נוספת.",
+  event_tools_zone_reset:
+    "אזור הזמן לתצוגת התחנה השתנה. יש להזין שוב את טווח ההיסטוריה, משום שלא ניתן היה להמיר את הזמן המקומי הקודם באופן חד־משמעי.",
   event_filters: "סינון אירועים",
   event_filters_active: "מסננים שהוחלו",
   event_filters_all: "כל האירועים",
