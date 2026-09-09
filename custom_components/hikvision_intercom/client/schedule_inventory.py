@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -99,6 +100,8 @@ async def search_records(
     cap: dict[str, Any],
     search: dict[str, Any],
     progress: dict[str, Any],
+    fingerprints: dict[str, str] | None = None,
+    fingerprint: Callable[[Any], str] | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     seen: set[int] = set()
@@ -151,6 +154,15 @@ async def search_records(
             raise HikvisionValidationError("Invalid empty schedule search")
         if status == "OK" and final != total:
             raise HikvisionValidationError("Schedule search ended early")
+        if fingerprints is not None and fingerprint is not None:
+            try:
+                captured = {
+                    str(identifier): fingerprint(row)
+                    for identifier, row in zip(identifiers, rows, strict=True)
+                }
+            except (ValueError, TypeError, RecursionError):
+                raise HikvisionValidationError("Invalid schedule fingerprint input") from None
+            fingerprints.update(captured)
         records.extend(projected)
         seen.update(identifiers)
         progress.update(total=total, read=final, pages=progress["pages"] + 1)
@@ -162,7 +174,12 @@ async def search_records(
     return records
 
 
-async def inspect_inventory(client: HikvisionClient) -> dict[str, Any]:
+async def inspect_inventory(
+    client: HikvisionClient,
+    *,
+    evidence: dict[str, Any] | None = None,
+    fingerprint: Callable[[Any], str] | None = None,
+) -> dict[str, Any]:
     """Return an allowlisted summary, isolated from the normal call/release I/O lock."""
     reader = HikvisionClient(
         client._session, client.settings, expected_identity=client._expected_identity
@@ -184,6 +201,8 @@ async def inspect_inventory(client: HikvisionClient) -> dict[str, Any]:
         for kind, *_ in ROUTES
     ]
     inventories: dict[str, list[dict[str, Any]]] = {}
+    captured_rows: dict[str, dict[str, str]] = {kind: {} for kind, *_ in ROUTES}
+    captured_capabilities: dict[str, str] = {}
     try:
         async with asyncio.timeout(60):
             await reader.async_confirm_identity()
@@ -208,13 +227,21 @@ async def inspect_inventory(client: HikvisionClient) -> dict[str, Any]:
                         if not isinstance(weekdays, list) or not all(d in DAYS for d in weekdays):
                             raise HikvisionValidationError("Missing supported weekdays")
                         cap["weekdays"] = weekdays
-                    search = search_capability(
-                        await reader._get(
-                            f"/ISAPI/AccessControl/{root}/Search/capabilities?format=json"
-                        )
+                    raw_search = await reader._get(
+                        f"/ISAPI/AccessControl/{root}/Search/capabilities?format=json"
                     )
+                    search = search_capability(raw_search)
+                    if fingerprint is not None:
+                        try:
+                            captured_capabilities[kind] = fingerprint([raw_cap, raw_search])
+                        except (ValueError, TypeError, RecursionError):
+                            raise HikvisionValidationError(
+                                "Invalid schedule fingerprint input"
+                            ) from None
                     item.update(capabilities=cap, search=search)
-                    rows = await search_records(reader, root, kind, cap, search, item)
+                    rows = await search_records(
+                        reader, root, kind, cap, search, item, captured_rows[kind], fingerprint
+                    )
                     inventories[kind] = rows
                     item.update(
                         enabled=sum(r["enabled"] for r in rows),
@@ -263,6 +290,21 @@ async def inspect_inventory(client: HikvisionClient) -> dict[str, Any]:
                     state="failed",
                     error="connection_failed" if isinstance(err, TimeoutError) else error_code(err),
                 )
+    if evidence is not None:
+        evidence.clear()
+        evidence.update(
+            {
+                item["kind"]: {
+                    "state": item["state"],
+                    "total": item["total"],
+                    "rows": captured_rows[item["kind"]]
+                    if item["state"] in {"complete", "partial"}
+                    else {},
+                    "capability": captured_capabilities.get(item["kind"]),
+                }
+                for item in checks
+            }
+        )
     return {
         "checked_at": utc_now(),
         "checks": checks,

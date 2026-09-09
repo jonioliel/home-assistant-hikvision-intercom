@@ -44,7 +44,28 @@ interface Readiness {
     error: string | null;
   }[];
 }
+interface Baseline {
+  state: string;
+  revision: number;
+  checked_at: string | null;
+  token: string | null;
+  checks: {
+    kind: string;
+    state: string;
+    modified: number;
+    added: number;
+    removed: number;
+    modified_ids: number[];
+    added_ids: number[];
+    removed_ids: number[];
+    unverified_new: number;
+    unverified_missing: number;
+    coverage_complete: boolean;
+    capability_changed: boolean;
+  }[];
+}
 interface Assessment {
+  baseline?: Baseline;
   checked_at: string;
   complete: boolean;
   can_apply: false;
@@ -445,6 +466,83 @@ export class IntercomSchedules extends LitElement {
       if (this.current(epoch)) this._assessing = false;
     }
   }
+  private async baselineAction(action: "save" | "clear") {
+    const report = this._assessment,
+      baseline = report?.baseline;
+    if (this._busy || this._reading || this._assessing || !baseline) return;
+    if (action === "save" && !baseline.token) return;
+    if (
+      !window.confirm(
+        this.t(
+          action === "clear" ? "schedule_baseline_clear_confirm" : "schedule_baseline_save_confirm",
+        ),
+      )
+    )
+      return;
+    const epoch = this._epoch;
+    this._busy = true;
+    this._error = "";
+    try {
+      await this.api(`baseline_${action}`, {
+        station_id: this._assessmentStation,
+        ...(action === "save" ? { token: baseline.token } : { revision: baseline.revision }),
+      });
+      if (this.current(epoch)) {
+        this.invalidateAssessment();
+        this._notice = this.t(
+          action === "save" ? "schedule_baseline_saved" : "schedule_baseline_cleared",
+        );
+      }
+    } catch (e) {
+      if (this.current(epoch)) {
+        this.invalidateAssessment();
+        const code = (e as { code?: string })?.code;
+        const known = [
+          "schedule_baseline_expired",
+          "schedule_baseline_limit",
+          "schedule_baseline_unavailable",
+          "revision_conflict",
+          "station_offline",
+          "station_unloaded",
+          "storage_write_failed",
+          "storage_stopping",
+        ];
+        this._error =
+          code && known.includes(code) ? this.errorText(e) : this.t("schedule_baseline_unknown");
+      }
+    } finally {
+      if (this.current(epoch)) this._busy = false;
+    }
+  }
+  private baselineView(baseline?: Baseline) {
+    if (!baseline) return nothing;
+    const station = this.stations.find((s) => s.id === this._assessmentStation);
+    return html`<section aria-label=${this.t("schedule_baseline_title")}>
+      <h3>${this.t("schedule_baseline_title")}</h3>
+      <p class="notice" role="status">${this.t("schedule_baseline_state_" + baseline.state)}</p>
+      <p class="hint">${this.t("schedule_baseline_hint")}</p>
+      ${baseline.checked_at ? html`<p>${this.t("schedule_baseline_date")}: <bdi>${formatTime(baseline.checked_at, this.hass?.language, station?.clock?.zone ?? UTC_ZONE)}</bdi> · ${this.t("schedule_baseline_revision")}: ${baseline.revision}</p>` : nothing}
+      ${baseline.checks.map(
+        (c) =>
+          html`<div class="check-row">
+            <strong>${this.t("schedule_kind_" + c.kind)}</strong> ·
+            ${this.t("schedule_baseline_state_" + c.state)}
+            ${(["modified", "added", "removed"] as const).map((key) => html`<p>${this.t("schedule_baseline_" + key)}: ${c[key]} ${c[key] ? html`<bdi>(${c[(key + "_ids") as "modified_ids" | "added_ids" | "removed_ids"].join(", ")}${c[key] > 20 ? "…" : ""})</bdi>` : nothing}</p>`)}
+            ${c.capability_changed ? html`<p>${this.t("schedule_baseline_capability_changed")}</p>` : nothing}
+            ${!c.coverage_complete ? html`<p class="hint">${this.t("schedule_baseline_partial")} ${this.t("schedule_baseline_unverified_new")}: ${c.unverified_new} · ${this.t("schedule_baseline_unverified_missing")}: ${c.unverified_missing}</p>` : nothing}
+          </div>`,
+      )}
+      <div class="toolbar">
+        <button
+          ?disabled=${this._busy || this._assessing || this._reading || !baseline.token}
+          @click=${() => this.baselineAction("save")}
+        >
+          ${this.t(baseline.revision ? "schedule_baseline_replace" : "schedule_baseline_save")}
+        </button>
+        ${baseline.revision ? html`<button ?disabled=${this._busy || this._assessing || this._reading} @click=${() => this.baselineAction("clear")}>${this.t("schedule_baseline_clear")}</button>` : nothing}
+      </div>
+    </section>`;
+  }
   private assessmentView() {
     const report = this._assessment;
     if (!report) return nothing;
@@ -487,9 +585,15 @@ export class IntercomSchedules extends LitElement {
             ${item.error ? html`<p class="danger">${this.t(item.error)}</p>` : nothing}
           </div>`,
       )}
+      ${this.baselineView(report.baseline)}
       <p class="hint">${report.assessment.blockers.map((key) => this.t(key)).join(" ")}</p>
       <button
-        @click=${() => downloadText(JSON.stringify(report, null, 2), "hikvision-schedule-assessment.json", "application/json")}
+        @click=${() =>
+          downloadText(
+            JSON.stringify(report, (key, value) => (key === "token" ? undefined : value), 2),
+            "hikvision-schedule-assessment.json",
+            "application/json",
+          )}
       >
         ${this.t("schedule_export_assessment")}
       </button>
@@ -688,7 +792,7 @@ export class IntercomSchedules extends LitElement {
             >${this.t("station")}<select
               aria-label=${this.t("station")}
               .value=${this._station}
-              ?disabled=${this._reading}
+              ?disabled=${this._reading || this._busy}
               @change=${(e: Event) => {
                 this._station = (e.target as HTMLSelectElement).value;
                 this._readiness = undefined;

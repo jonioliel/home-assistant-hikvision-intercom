@@ -444,3 +444,31 @@ Verified CI totals: **533 protocol/access + 165 actual HA + 77 browser = 775 tes
 Both Python versions passed; strict mypy checked 35 modules; ConfigFlow coverage remains 100%.
 The exact code was fast-forwarded to main, and the gated 0.15.0-alpha.1 release was dispatched
 against that frozen SHA. This paragraph records CI success; publication is verified separately.
+
+
+## 0.16 — persistent schedule references, 2026-09-09
+
+Local Windows checks passed with 567 protocol/access cases, Ruff lint/format and TypeScript.
+The new browser cases cover explicit save/cancel, reference comparison, token-free report export,
+local clear, unknown save outcomes, station isolation and Hebrew mobile layout. The mobile
+comparison screenshot was visually reviewed; modified documentation links and the unchanged
+Master Spec were verified. The full browser run passed all 82 cases; Prettier and the production frontend build passed.
+Required Linux CI results are recorded below when complete.
+Local strict mypy still uses the required Linux CI gate because Windows blocks a dependency DLL.
+
+Reference tests cover independent private storage, per-installation keyed fingerprints, restart,
+failed and cancelled persistence, stale/expired/cross-actor/cross-station tokens, bounded state,
+identity/firmware changes, corrupt input, same-count content changes and partial-search uncertainty.
+HA cases exercise real private Store roundtrips, administrator API/privacy, no device mutations,
+unavailable reference storage, stale observation rejection and core setup after reference corruption.
+
+Two production reads at 2026-09-09T04:43:50Z and 04:43:59Z used the same verified Search contract,
+with a local reference save and reload between them. Each captured 255 templates, 255 weekly
+plans, 64 holiday groups and 300 holiday plans. No content or capability differences were observed;
+three resource searches were complete and holiday coverage remained partial. No station schedule,
+credential, clock or relay write was performed. Changing a real active schedule was not part of
+this check. Private evidence remains local; see [reference behavior and limits](SCHEDULE_BASELINES.md).
+
+References establish neither resource ownership nor an editable backup. The write/allocation/user
+association pipeline is still pending; mandatory acceptance remains 28/38 and both Phase 6 schedule
+extensions remain partial.

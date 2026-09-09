@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .access.models import AccessError
 from .access.schedule_assessment import assess
+from .access.schedule_baselines import ScheduleBaselines
 from .access.schedules import ScheduleLibrary, preview
 from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
@@ -50,6 +51,8 @@ COMMANDS = {
     "schedules/preview": {"data": dict, "date": str, "time": str},
     "schedules/readiness": {"station_id": str},
     "schedules/assess": {"station_id": str, "data": dict},
+    "schedules/baseline_save": {"station_id": str, "token": str},
+    "schedules/baseline_clear": {"station_id": str, "revision": int},
     "cards/reader_capabilities": {"station_id": str},
     "cards/capture_start": {"station_id": str, "user_id": str, "revision": int, "reader_id": int},
     "cards/capture_status": {"session_id": str},
@@ -192,6 +195,20 @@ async def _dispatch(
             return {"cancelled": True}
         return await enrollment.confirm(msg["session_id"], actor, msg["label"])
     if command.startswith("schedules/"):
+        baselines = hass.data[DOMAIN].get("schedule_baselines")
+        if command in {"schedules/baseline_save", "schedules/baseline_clear"}:
+            if not isinstance(baselines, ScheduleBaselines):
+                raise AccessError("schedule_baseline_unavailable")
+            station = manager._station(msg["station_id"])
+            if command == "schedules/baseline_clear":
+                return await baselines.async_clear(station.id, msg["revision"])
+            driver = manager._driver(station)
+            entry = hass.config_entries.async_get_entry(station.id)
+            runtime = getattr(entry, "runtime_data", None)
+            identity = baselines.fingerprint(
+                [driver.client._expected_identity, runtime.profile.firmware if runtime else None]
+            )
+            return await baselines.async_save(station.id, actor, identity, msg["token"])
         if command in {"schedules/readiness", "schedules/assess"}:
             draft = normalize_schedule(msg["data"]) if command == "schedules/assess" else None
             station = manager._station(msg["station_id"])
@@ -200,11 +217,18 @@ async def _dispatch(
             if station.id in busy or len(busy) >= 3:
                 raise AccessError("schedule_read_busy")
             busy.add(station.id)
+            evidence: dict[str, Any] = {}
             try:
                 async with asyncio.timeout(70 if draft is not None else 40):
                     async with manager._read_slots:
                         result = (
-                            await inspect_inventory(driver.client)
+                            await inspect_inventory(
+                                driver.client,
+                                evidence=evidence,
+                                fingerprint=baselines.fingerprint
+                                if isinstance(baselines, ScheduleBaselines)
+                                else None,
+                            )
                             if draft is not None
                             else await inspect_schedules(driver.client)
                         )
@@ -212,6 +236,25 @@ async def _dispatch(
                     raise AccessError("station_unloaded")
                 if draft is not None:
                     result["assessment"] = assess(draft, result)
+                    result["baseline"] = {
+                        "state": "unavailable",
+                        "revision": 0,
+                        "checked_at": None,
+                        "token": None,
+                        "checks": [],
+                    }
+                    if isinstance(baselines, ScheduleBaselines) and evidence:
+                        entry = hass.config_entries.async_get_entry(station.id)
+                        runtime = getattr(entry, "runtime_data", None)
+                        identity = baselines.fingerprint(
+                            [
+                                driver.client._expected_identity,
+                                runtime.profile.firmware if runtime else None,
+                            ]
+                        )
+                        result["baseline"] = baselines.observe(
+                            station.id, actor, identity, result["checked_at"], evidence
+                        )
                 return result
             except TimeoutError:
                 raise AccessError("connection_failed") from None

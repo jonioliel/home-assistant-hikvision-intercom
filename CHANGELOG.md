@@ -4,6 +4,30 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.16.0-alpha.1] - 2026-09-09
+
+### Added
+- Persistent schedule references: explicitly save a station's observed configuration fingerprints,
+  compare later assessments, replace the reference or clear it. References survive Home Assistant
+  restarts in an independent private store; failed persistence preserves the previous reference.
+- Detect changed record contents and advertised capabilities even when counts match. Show bounded
+  resource-ID lists for observed changes, and distinguish unseen records from proven presence changes
+  in completed searches. Partial searches never establish deletion or previously absent records.
+- Administrator-only, station/actor/identity-bound observation tokens expire after five minutes and
+  become invalid after another assessment, save or clear. Identity/firmware changes require a new
+  reference; uncertain save responses require inspection without an automatic retry.
+- Per-installation keyed fingerprints exclude raw configuration contents from storage and reports.
+  Downloaded reports omit observation tokens. Independent Repairs report reference-storage failures
+  without disabling inventory assessment, schedule drafts or existing access management.
+
+### Scope and limits
+- References record observations, not resource ownership or editable configuration backups. Searches
+  remain non-atomic and holiday coverage remains partial on the commissioned firmware. Applying
+  schedules, allocating device resources and assigning users are still unavailable.
+- Comparisons run on requested assessments, not as background monitoring. No station schedule,
+  credential, clock or relay writes are introduced. Mandatory acceptance remains 28/38 (73.7%);
+  weekly schedules and holidays remain partially implemented Phase 6 extensions.
+
 ## [0.15.0-alpha.1] - 2026-09-09
 
 ### Added

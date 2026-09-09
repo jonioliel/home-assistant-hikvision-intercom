@@ -41,6 +41,8 @@ The administrator **Access schedules** tab saves named weekly/holiday drafts loc
 window membership and checks the selected draft against advertised station limits. Version 0.15
 adds a verified read-only Search inventory, with explicit partial results and unknown constraints.
 Drafts are not assigned to users or enforced at doors; disabled records do not mean free slots.
+Version 0.16 adds explicit, persistent [comparison references](docs/SCHEDULE_BASELINES.md) to detect
+record-content and capability changes while preserving partial-search uncertainty.
 See [draft editing](docs/ACCESS_SCHEDULES.md) and [compatibility assessment](docs/SCHEDULE_INVENTORY.md).
 
 ## Central access backend

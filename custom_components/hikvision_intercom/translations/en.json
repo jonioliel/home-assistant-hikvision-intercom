@@ -323,6 +323,14 @@
     "schedules_storage_write": {
       "title": "Schedule storage write failed",
       "description": "Check free disk space and write permissions, then save again. The change was not acknowledged as saved."
+    },
+    "schedule_baselines_storage_corrupt": {
+      "title": "Schedule references unavailable",
+      "description": "The schedule reference file could not be loaded. Preserve it and restore a valid backup, then restart Home Assistant. Schedule assessments and existing access remain available."
+    },
+    "schedule_baselines_storage_write": {
+      "title": "Schedule reference save failed",
+      "description": "The reference could not be saved. Check storage space and permissions, then run another assessment before retrying. No station configuration was changed by this operation."
     }
   }
 }

@@ -12,6 +12,7 @@ from homeassistant.helpers.service import async_register_admin_service
 from .access.manager import AccessManager
 from .access.models import AccessError
 from .access.repository import AccessRepository
+from .access.schedule_baselines import ScheduleBaselines
 from .access.schedules import ScheduleLibrary
 from .configuration import managed_locks
 from .const import DOMAIN
@@ -52,6 +53,17 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     else:
         issue(hass, "schedules_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["schedules"] = schedules
+
+    baseline_store = AccessStore(hass, key=f"{DOMAIN}.schedule_baselines")
+    baselines = ScheduleBaselines(baseline_store.async_save)
+    try:
+        await baselines.async_load(await baseline_store.async_load())
+    except AccessError:
+        issue(hass, "schedule_baselines_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["schedule_baselines"] = None
+    else:
+        issue(hass, "schedule_baselines_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["schedule_baselines"] = baselines
 
     manager = AccessManager(
         repository,

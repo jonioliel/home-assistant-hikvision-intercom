@@ -1,5 +1,43 @@
 const en = {
   schedule_assess: "Assess selected draft",
+  schedule_baseline_title: "Changes since reference",
+  schedule_baseline_hint:
+    "The reference stores private fingerprints of observed records in Home Assistant. It does not claim ownership, back up editable configurations or authorize writes. Comparisons run only when you request an assessment.",
+  schedule_baseline_state_missing: "No reference has been saved for this station.",
+  schedule_baseline_state_unavailable:
+    "Reference comparison is unavailable. The inventory assessment remains available.",
+  schedule_baseline_state_changed: "Changes observed",
+  schedule_baseline_state_unchanged: "No changes in the completed searches",
+  schedule_baseline_state_incomplete:
+    "No changes detected in the compared records; coverage is incomplete.",
+  schedule_baseline_state_identity_changed:
+    "The device identity or firmware differs from the saved reference. Records were not compared.",
+  schedule_baseline_date: "Reference observed at",
+  schedule_baseline_revision: "Reference revision",
+  schedule_baseline_modified: "Changed records",
+  schedule_baseline_added: "Newly observed IDs after a complete reference search",
+  schedule_baseline_removed: "Previously observed IDs absent from the completed current search",
+  schedule_baseline_capability_changed: "Advertised capabilities changed.",
+  schedule_baseline_partial:
+    "Unread records remain unknown. Missing results in a partial scan do not prove deletion.",
+  schedule_baseline_unverified_new: "Current-only IDs with unknown earlier presence",
+  schedule_baseline_unverified_missing: "Earlier IDs not verified in the current scan",
+  schedule_baseline_save: "Save reference",
+  schedule_baseline_replace: "Replace reference",
+  schedule_baseline_clear: "Clear reference",
+  schedule_baseline_save_confirm:
+    "Save these observed records as the station reference in Home Assistant? This replaces any previous reference, including with partial coverage. No station configuration will be changed.",
+  schedule_baseline_clear_confirm:
+    "Remove the saved reference from Home Assistant? No station records or access rights will be changed.",
+  schedule_baseline_saved: "Reference saved. Run another assessment to compare new observations.",
+  schedule_baseline_cleared:
+    "Reference cleared. Run another assessment before saving a new reference.",
+  schedule_baseline_unknown:
+    "The reference operation outcome is uncertain. Run another assessment to inspect the saved reference before trying again.",
+  schedule_baseline_expired: "This observation expired or was replaced. Run another assessment.",
+  schedule_baseline_limit:
+    "The reference store has reached its station limit. Clear an unused reference first.",
+  schedule_baseline_unavailable: "Reference storage is unavailable. Check Home Assistant Repairs.",
   schedule_assessment: "Draft and station compatibility",
   schedule_assessment_fits: "No excess found in the checked limits. Applying remains unavailable.",
   schedule_assessment_unknown: "Some draft limits could not be verified.",
@@ -580,6 +618,41 @@ const en = {
 };
 const he: Record<keyof typeof en, string> = {
   schedule_assess: "בדיקת התאמת הטיוטה",
+  schedule_baseline_title: "שינויים מנקודת הייחוס",
+  schedule_baseline_hint:
+    "נקודת הייחוס שומרת ב־Home Assistant טביעות של הרשומות שנקראו. היא אינה קובעת בעלות, אינה גיבוי תצורה לשחזור ואינה מאשרת כתיבה. ההשוואה רצה רק בעת בדיקת התאמה שתבקשו.",
+  schedule_baseline_state_missing: "לא נשמרה נקודת ייחוס לתחנה זו.",
+  schedule_baseline_state_unavailable: "השוואת נקודת ייחוס אינה זמינה. בדיקת ההתאמה נשארת זמינה.",
+  schedule_baseline_state_changed: "זוהו שינויים",
+  schedule_baseline_state_unchanged: "לא זוהו שינויים בחיפושים שהושלמו",
+  schedule_baseline_state_incomplete: "לא זוהו שינויים ברשומות שהושוו; הכיסוי חלקי.",
+  schedule_baseline_state_identity_changed:
+    "זהות המכשיר או הקושחה שונות מנקודת הייחוס. הרשומות לא הושוו.",
+  schedule_baseline_date: "מועד הקריאה בנקודת הייחוס",
+  schedule_baseline_revision: "גרסת נקודת הייחוס",
+  schedule_baseline_modified: "רשומות ששונו",
+  schedule_baseline_added: "מזהים חדשים לעומת חיפוש מלא בנקודת הייחוס",
+  schedule_baseline_removed: "מזהים קודמים שלא נמצאו בחיפוש הנוכחי שהושלם",
+  schedule_baseline_capability_changed: "היכולות שפורסמו השתנו.",
+  schedule_baseline_partial:
+    "רשומות שלא נקראו נשארות לא ידועות. היעדר תוצאה בסריקה חלקית אינו מוכיח מחיקה.",
+  schedule_baseline_unverified_new: "מזהים נוכחיים שנוכחותם הקודמת אינה ידועה",
+  schedule_baseline_unverified_missing: "מזהים קודמים שלא אומתו בסריקה הנוכחית",
+  schedule_baseline_save: "שמור נקודת ייחוס",
+  schedule_baseline_replace: "החלף נקודת ייחוס",
+  schedule_baseline_clear: "מחק נקודת ייחוס",
+  schedule_baseline_save_confirm:
+    "לשמור את הרשומות שנקראו כנקודת הייחוס לתחנה ב־Home Assistant? נקודה קודמת תוחלף גם אם הקריאה חלקית. תצורת התחנה לא תשתנה.",
+  schedule_baseline_clear_confirm:
+    "למחוק את נקודת הייחוס מ־Home Assistant? רשומות התחנה והרשאות הגישה לא ישתנו.",
+  schedule_baseline_saved: "נקודת הייחוס נשמרה. הריצו בדיקת התאמה נוספת להשוואת קריאה חדשה.",
+  schedule_baseline_cleared: "נקודת הייחוס נמחקה. הריצו בדיקת התאמה נוספת לפני שמירת נקודה חדשה.",
+  schedule_baseline_unknown:
+    "תוצאת הפעולה בנקודת הייחוס אינה ודאית. הריצו בדיקת התאמה נוספת ובדקו את הנקודה שנשמרה לפני ניסיון נוסף.",
+  schedule_baseline_expired: "תוקף הקריאה פג או שהיא הוחלפה. הריצו בדיקת התאמה נוספת.",
+  schedule_baseline_limit: "אחסון נקודות הייחוס הגיע למגבלת התחנות. מחקו קודם נקודה שאינה בשימוש.",
+  schedule_baseline_unavailable:
+    "אחסון נקודות הייחוס אינו זמין. בדקו את מסך התיקונים ב־Home Assistant.",
   schedule_assessment: "התאמת הטיוטה לתחנה",
   schedule_assessment_fits: "לא נמצאה חריגה במגבלות שנבדקו. החלה על התחנה עדיין אינה זמינה.",
   schedule_assessment_unknown: "חלק ממגבלות הטיוטה לא ניתנות לאימות.",

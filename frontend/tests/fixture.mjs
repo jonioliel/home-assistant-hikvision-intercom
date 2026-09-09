@@ -27,7 +27,7 @@ const names = hebrew
     ];
 const data = {
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.15.0-alpha.1",
+  version: "0.16.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -159,6 +159,8 @@ const callbacks = new Set();
 window.demoNotify = () => callbacks.forEach((callback) => callback({ kind: "refresh" }));
 window.calls = [];
 const schedules = [];
+const scheduleBaselines = new Map();
+window.demoBaselineChange = false;
 window.demoSchedules = schedules;
 window.demoData = data;
 const fake = {
@@ -225,8 +227,48 @@ const fake = {
         time: message.time,
       };
     }
+    if (command === "schedules/baseline_save") {
+      const prior = scheduleBaselines.get(message.station_id);
+      scheduleBaselines.set(message.station_id, {
+        revision: (prior?.revision ?? 0) + 1,
+        checked_at: "2026-09-09T00:00:00Z",
+      });
+      return scheduleBaselines.get(message.station_id);
+    }
+    if (command === "schedules/baseline_clear") {
+      scheduleBaselines.delete(message.station_id);
+      return { revision: 0, checked_at: null };
+    }
     if (command === "schedules/assess") {
+      const prior = scheduleBaselines.get(message.station_id);
       return {
+        baseline: {
+          state: prior ? (window.demoBaselineChange ? "changed" : "incomplete") : "missing",
+          revision: prior?.revision ?? 0,
+          checked_at: prior?.checked_at ?? null,
+          token: "PRIVATE_BASELINE_TOKEN",
+          checks: prior
+            ? ["template", "weekly", "holiday_group", "holiday"].map((kind) => ({
+                kind,
+                state:
+                  kind === "weekly" && window.demoBaselineChange
+                    ? "changed"
+                    : kind === "holiday"
+                      ? "incomplete"
+                      : "unchanged",
+                modified: kind === "weekly" && window.demoBaselineChange ? 1 : 0,
+                added: 0,
+                removed: 0,
+                modified_ids: kind === "weekly" && window.demoBaselineChange ? [10] : [],
+                added_ids: [],
+                removed_ids: [],
+                unverified_new: 0,
+                unverified_missing: kind === "holiday" ? 5 : 0,
+                coverage_complete: kind !== "holiday",
+                capability_changed: false,
+              }))
+            : [],
+        },
         checked_at: "2026-09-09T00:00:00Z",
         complete: false,
         can_apply: false,

@@ -244,3 +244,18 @@ historical scope audit; the evidence above updates its schedule-reading limitati
 0.15 code checkpoint `a6c4c25`: all required branch checks passed with 775 tests (533 protocol/access,
 165 actual HA, 77 browser), strict typing for 35 modules and ConfigFlow coverage 100%. HACS and
 Hassfest passed. The code was merged to main and submitted to the gated release workflow.
+
+
+## 0.16 — persistent schedule references and observed-change detection
+
+Administrators can explicitly save a station observation, compare fresh assessments, replace or
+clear a reference. Private keyed fingerprints survive restart without storing raw configurations.
+Full and partial coverage have distinct presence-change rules; uncertain save replies and stale
+approvals require fresh inspection. Device identity/firmware changes suppress comparison.
+Two real read-only scans with an intervening reference reload showed no observed changes and
+retained partial holiday coverage. No station resources were created or changed.
+[Usage and limitations](SCHEDULE_BASELINES.md).
+
+This implements observed-change detection but does not establish resource ownership, a write
+journal, allocation or user association. Both schedule extensions remain partial; the Phase 6
+feature tally and mandatory 28/38 acceptance tally are unchanged.
