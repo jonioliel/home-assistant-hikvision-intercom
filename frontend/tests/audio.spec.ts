@@ -7,11 +7,23 @@ async function setup(page: Page) {
     w.audio = { unsubscribed: 0, microphones: 0, stopped: 0, sent: [], delay: false };
     const base = w.demoHass.callWS.bind(w.demoHass),
       subscribe = w.demoHass.connection.subscribeMessage.bind(w.demoHass.connection);
-    w.demoHass.connection.addEventListener = (_event: any, callback: any) => {
-      w.audio.disconnected = callback;
+    const listeners = new Map<string, Set<() => void>>();
+    w.demoHass.connection.connected = true;
+    w.demoHass.connection.addEventListener = (event: string, callback: () => void) => {
+      const group = listeners.get(event) ?? new Set();
+      group.add(callback);
+      listeners.set(event, group);
     };
-    w.demoHass.connection.removeEventListener = () => {
-      w.audio.disconnected = undefined;
+    w.demoHass.connection.removeEventListener = (event: string, callback: () => void) => {
+      listeners.get(event)?.delete(callback);
+    };
+    w.audio.disconnected = () => {
+      w.demoHass.connection.connected = false;
+      for (const callback of listeners.get("disconnected") ?? []) callback();
+    };
+    w.audio.reconnected = () => {
+      w.demoHass.connection.connected = true;
+      for (const callback of listeners.get("ready") ?? []) callback();
     };
     w.demoHass.connection.subscribeMessage = async (callback: any, message: any, options: any) => {
       if (message.type !== "hikvision_intercom/audio/start") return subscribe(callback, message);
@@ -209,6 +221,8 @@ test("HA reconnect cannot automatically reopen a microphone session", async ({ p
     false,
   );
   await page.evaluate(() => (window as any).audio.disconnected());
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).audio.reconnected());
   await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => (window as any).audio.subscriptionOptions.preCheck())).toBe(
     false,
@@ -288,4 +302,67 @@ test("browser audio suspension releases active microphone and requires explicit 
   await expect.poll(() => page.evaluate(() => (window as any).audio.stopped)).toBe(1);
   expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
   await page.keyboard.up("Space");
+});
+
+test("audio cannot be started while HA is already disconnected", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.evaluate((node: any) => {
+    window.demoHass.connection.connected = false;
+    node.hass = { ...window.demoHass };
+  });
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await audio.evaluate((node: any) => node.start());
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
+    ),
+  ).toBe(0);
+});
+
+test("a delayed browser audio start cannot subscribe to a newly selected station", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    const original = AudioContext.prototype.resume;
+    AudioContext.prototype.resume = function () {
+      AudioContext.prototype.resume = original;
+      return new Promise((resolve) => (window.resumeOpeningAudio = () => resolve()));
+    };
+  });
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => typeof window.resumeOpeningAudio)).toBe("function");
+  await audio.evaluate((node: any) => {
+    // Queue resume before Lit's changed-station cleanup, then switch synchronously.
+    window.resumeOpeningAudio();
+    node.station = structuredClone(window.demoData.stations[1]);
+  });
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
+    ),
+  ).toBe(0);
+});
+
+test("reattaching idle audio restores connection listeners without starting a session", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await audio.evaluate(async (node: any) => {
+    const parent = node.parentNode;
+    node.remove();
+    await node.updateComplete;
+    parent.append(node);
+    await node.updateComplete;
+    (window as any).audio.disconnected();
+  });
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).audio.reconnected());
+  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
+    ),
+  ).toBe(0);
 });

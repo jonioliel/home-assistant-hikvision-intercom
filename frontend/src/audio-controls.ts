@@ -68,6 +68,7 @@ export class IntercomAudioControls extends LitElement {
     _error: { state: true },
     _talking: { state: true },
     _micPending: { state: true },
+    _haConnected: { state: true },
   };
   hass?: Hass;
   station?: Station;
@@ -79,8 +80,25 @@ export class IntercomAudioControls extends LitElement {
   private micEpoch = 0;
   private context?: AudioContext;
   private connection?: Hass["connection"];
+  private observedConnection?: Hass["connection"];
+  private activeStationId = "";
+  private _haConnected = true;
+  private haReady = () => {
+    this._haConnected = true;
+  };
+  private bindConnection(connection?: Hass["connection"]) {
+    this.observedConnection?.removeEventListener?.("disconnected", this.disconnected);
+    this.observedConnection?.removeEventListener?.("ready", this.haReady);
+    this.observedConnection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.disconnected);
+    connection?.addEventListener?.("ready", this.haReady);
+  }
   private openingTimeout?: ReturnType<typeof setTimeout>;
-  private disconnected = () => this.stop("audio_connection_lost");
+  private disconnected = () => {
+    this._haConnected = false;
+    this.stop("audio_connection_lost");
+  };
   private token = "";
   private unsubscribe?: () => void;
   private stream?: MediaStream;
@@ -109,6 +127,7 @@ export class IntercomAudioControls extends LitElement {
   };
   connectedCallback() {
     super.connectedCallback();
+    this.bindConnection(this.hass?.user?.is_admin ? this.hass.connection : undefined);
     document.addEventListener("visibilitychange", this.onVisibility);
     window.addEventListener("pagehide", this.onPageHide);
     document.addEventListener("hikvision-call-ending", this.onCallEnding);
@@ -116,6 +135,7 @@ export class IntercomAudioControls extends LitElement {
   }
   disconnectedCallback() {
     this.stop();
+    this.bindConnection(undefined);
     document.removeEventListener("visibilitychange", this.onVisibility);
     window.removeEventListener("pagehide", this.onPageHide);
     document.removeEventListener("hikvision-call-ending", this.onCallEnding);
@@ -123,9 +143,13 @@ export class IntercomAudioControls extends LitElement {
     super.disconnectedCallback();
   }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    if (this.observedConnection !== connection) this.bindConnection(connection);
     if (
       this._state !== "idle" &&
       (!this.hass?.user?.is_admin ||
+        !this._haConnected ||
         this.hass.connection !== this.connection ||
         !this.station?.online ||
         (changed.has("station") &&
@@ -134,15 +158,33 @@ export class IntercomAudioControls extends LitElement {
       this.stop();
   }
   private valid(epoch: number) {
-    return this.isConnected && epoch === this.epoch && !!this.hass?.user?.is_admin;
+    return (
+      this.isConnected &&
+      epoch === this.epoch &&
+      !!this.hass?.user?.is_admin &&
+      !document.hidden &&
+      this._haConnected &&
+      this.connection?.connected !== false &&
+      this.hass.connection === this.connection &&
+      !!this.station?.online &&
+      this.station.id === this.activeStationId
+    );
   }
   private async start() {
-    if (this._state !== "idle" || !this.hass?.user?.is_admin || !this.station?.online) return;
+    if (
+      this._state !== "idle" ||
+      !this.hass?.user?.is_admin ||
+      !this.station?.online ||
+      !this._haConnected ||
+      this.hass.connection.connected === false ||
+      document.hidden
+    )
+      return;
     const epoch = ++this.epoch,
       hass = this.hass;
     this._state = "opening";
     this.connection = hass.connection;
-    this.connection.addEventListener?.("disconnected", this.disconnected);
+    this.activeStationId = this.station.id;
     this.openingTimeout = setTimeout(() => {
       if (this.valid(epoch) && this._state === "opening") this.stop("audio_connection_lost");
     }, 25000);
@@ -172,7 +214,7 @@ export class IntercomAudioControls extends LitElement {
             void this.receive(epoch);
           } else this.stop("audio_unsupported");
         },
-        { type: "hikvision_intercom/audio/start", station_id: this.station!.id },
+        { type: "hikvision_intercom/audio/start", station_id: this.activeStationId },
         { resubscribe: false, preCheck: () => this.valid(epoch) && this.context === context },
       );
       if (this.valid(epoch)) this.unsubscribe = unsubscribe;
@@ -366,8 +408,8 @@ export class IntercomAudioControls extends LitElement {
     this.epoch++;
     clearTimeout(this.openingTimeout);
     this.openingTimeout = undefined;
-    this.connection?.removeEventListener?.("disconnected", this.disconnected);
     this.connection = undefined;
+    this.activeStationId = "";
     this.token = "";
     this.releaseTalk();
     const unsubscribe = this.unsubscribe;
@@ -391,7 +433,10 @@ export class IntercomAudioControls extends LitElement {
       <div class="buttons">
         ${
           this._state === "idle"
-            ? html`<button ?disabled=${!this.station.online} @click=${() => this.start()}>
+            ? html`<button
+                ?disabled=${!this.station.online || !this._haConnected || this.hass.connection.connected === false}
+                @click=${() => this.start()}
+              >
                 ${this.t("audio_start")}
               </button>`
             : html` <button

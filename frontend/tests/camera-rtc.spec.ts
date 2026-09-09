@@ -322,8 +322,8 @@ test("closing camera while HA is disconnected prevents a reconnect from opening 
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => window.rtcConnectionListeners.get("ready").size))
-    // The camera and its call controls both detach their ready listener.
-    .toBe(listeners - 2);
+    // Video, call and audio controls each detach their ready listener.
+    .toBe(listeners - 3);
   await page.evaluate(() => {
     for (const callback of window.rtcConnectionListeners.get("ready")) callback();
   });

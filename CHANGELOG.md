@@ -5,6 +5,7 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Fixed
+- Keep audio starts bound to the selected station across delayed browser permission/playback setup. Disable opening while HA is offline, restore connection listeners after reattachment, and never restart listening or the microphone on reconnect.
 - Restrict central-name enrichment to events after ownership was observed on that particular station. Preserve the boundary across restarts, establish it conservatively for older storage on the next verified read, and invalidate it on an ownership discrepancy. Source-provided names remain authoritative.
 - Recover the overview after missing responses or reattachment, show when displayed data may be stale, and stop waiting indefinitely for release acknowledgements. Pause door commands during HA disconnection and preserve an uncertain result without replaying or accepting a late acknowledgement.
 - Bound call-state reads and signaling waits in the panel, discard responses from a previous station, and release stuck station controls after an uncertain response without replaying the command. Pause call actions on HA disconnect and obtain fresh state in other views after a command completes.
