@@ -87,7 +87,7 @@ async def simulate(scenario: str) -> dict[str, Any]:
         },
         "holidays": [],
     }
-    bindings = {"template": 10, "weekly": 20, "holiday_group": None, "holidays": []}
+    bindings: dict[str, Any] = {"template": 10, "weekly": 20, "holiday_group": None, "holidays": []}
     caps = {
         "weekly": {
             "ids": [1, 255],
