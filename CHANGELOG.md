@@ -4,6 +4,8 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.1-alpha.1] - 2026-09-10
+
 ### Fixed
 - Close an event HTTP client even when Home Assistant unloads the station while its executor is still constructing that client.
 - Recover user-management controls after a lost response, logout or panel reattachment. Discard late private inventory/review results, bound browser waits, clear sensitive drafts when a write result is uncertain, and preserve the separate uncertain-card-approval flow without automatic replay.
@@ -12,6 +14,9 @@ Semantic Versioning is used throughout the project.
 - Restrict central-name enrichment to events after ownership was observed on that particular station. Preserve the boundary across restarts, establish it conservatively for older storage on the next verified read, and invalidate it on an ownership discrepancy. Source-provided names remain authoritative.
 - Recover the overview after missing responses or reattachment, show when displayed data may be stale, and stop waiting indefinitely for release acknowledgements. Pause door commands during HA disconnection and preserve an uncertain result without replaying or accepting a late acknowledgement.
 - Bound call-state reads and signaling waits in the panel, discard responses from a previous station, and release stuck station controls after an uncertain response without replaying the command. Pause call actions on HA disconnect and obtain fresh state in other views after a command completes.
+
+### Validation boundaries
+- No physical station operations were performed for this patch. Calls, audible audio, the owner's original unidentified PIN event, timed-validity boundaries, card lifecycle, WebRTC NAT and nine-station hardware acceptance remain open. See docs/OVERNIGHT_2026_09_10_HE.md.
 
 ## [0.27.0-alpha.1] - 2026-09-09
 
