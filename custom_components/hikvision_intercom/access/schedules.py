@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import json
 import re
 from collections.abc import Callable
@@ -286,7 +287,7 @@ class ScheduleLibrary:
             ],
         }
 
-    async def async_import(self, token: str, actor: str) -> list[dict[str, Any]]:
+    async def async_import(self, token: str, actor: str) -> builtins.list[dict[str, Any]]:
         async with self._lock:
             pending = self._imports.get(token)
             if not pending or pending["actor"] != actor or pending["expires"] <= monotonic():

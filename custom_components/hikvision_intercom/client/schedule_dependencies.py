@@ -101,8 +101,8 @@ def summarize(
     )
     if not checked:
         for item in checks:
-            for key in ("referenced", "observed", "not_observed", "disabled"):
-                item[key] = None
+            for field in ("referenced", "observed", "not_observed", "disabled"):
+                item[field] = None
         users = {**users, "explicit": None, "implicit": None, "malformed": None}
     return {
         "checked_at": utc_now(),
