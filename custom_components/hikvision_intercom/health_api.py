@@ -98,9 +98,11 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
                         "checked_at": datetime.now(UTC).isoformat(),
                         "errors": {"probe": "media_read_failed"},
                     }
-                # A reload must not attach old evidence to a replacement runtime.
-                if getattr(entry, "runtime_data", None) is runtime and not runtime.is_closed:
-                    data.setdefault("media_evidence", {})[station.id] = (runtime, media)
+                # Reject the whole response after unload/replacement. Returning diagnostics
+                # from a new runtime with this operation's old clock would mix evidence.
+                if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
+                    raise AccessError("station_unloaded")
+                data.setdefault("media_evidence", {})[station.id] = (runtime, media)
         finally:
             busy.discard(station.id)
     report = await async_get_config_entry_diagnostics(hass, entry)
