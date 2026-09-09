@@ -254,3 +254,46 @@ async def test_history_before_adoption_is_not_named_from_an_older_central_user(h
     assert any(row["person_name"] == "Source resident" for row in rows)
     runtime.events.ingest(live(employeeNoString="00042", serialNo=3))
     assert get_events(hass).query({})["records"][0]["person_name"] == "Current resident"
+
+
+async def test_event_session_constructed_during_unload_is_still_closed(hass, loaded_entry):
+    import threading
+
+    monitor = loaded_entry.runtime_data.events
+    entered, returned, closing = asyncio.Event(), asyncio.Event(), asyncio.Event()
+    finish = threading.Event()
+    session = AsyncMock()
+
+    def create(_settings):
+        hass.loop.call_soon_threadsafe(entered.set)
+        if not finish.wait(5):
+            raise RuntimeError("test construction was not released")
+        hass.loop.call_soon_threadsafe(returned.set)
+        return session
+
+    unsubscribe = monitor._unsubscribe
+
+    def unlisten():
+        unsubscribe()
+        closing.set()
+
+    with (
+        patch("custom_components.hikvision_intercom.event_manager.create_event_session", create),
+        patch.object(monitor, "_unsubscribe", unlisten),
+    ):
+        task = hass.async_create_background_task(
+            monitor._stream(), "delayed event construction", eager_start=False
+        )
+        monitor._tasks.append(task)
+        await entered.wait()
+        unloading = asyncio.create_task(hass.config_entries.async_unload(loaded_entry.entry_id))
+        try:
+            await asyncio.wait_for(closing.wait(), 5)
+            await asyncio.sleep(0)
+        finally:
+            finish.set()
+            await returned.wait()
+            await unloading
+        assert task.cancelled()
+        session.aclose.assert_awaited_once()
+        assert monitor._tasks == []
