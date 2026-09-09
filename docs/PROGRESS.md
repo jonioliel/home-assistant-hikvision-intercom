@@ -14,7 +14,7 @@ These use distinct denominators and are not effort estimates or interchangeable 
 | 3 — Admin panel | Main screens implemented; 0.9 completes Save controls, lock names and validity summaries | Installed-system acceptance |
 | 4 — Events | Stream/history/normalization/recovery implemented and read against station | Actual bell sequence and physical event acceptance |
 | 5 — Hardening | Diagnostics/Repairs/migrations/privacy/release automation implemented | Nine-station hardware soak and final acceptance |
-| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 and read-only assessment in 0.15, comparison references in 0.16 and schedule workflows in 0.17 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
+| 6 — Optional extensions | CSV/reporting in 0.11; reader enrollment in 0.12; local schedule planning in 0.13 and read-only assessment in 0.15, comparison references in 0.16 and schedule workflows in 0.17 and local deployment proposals in 0.18 | Other optional features require capability/media-session evidence; see DEFERRED_VALIDATION.md |
 
 The task-based audit now closes **28 of 38 applicable Definition of Done items (73.7%)**,
 with **10 open (26.3%)**. See [the complete evidence ledger](COMPLETION_HE.md).
@@ -286,3 +286,20 @@ See SCHEDULE_WORKFLOWS.md for operation, privacy and remaining enforcement limit
 (ConfigFlow100%), and 92 browser cases — 863 total. Strict mypy37 modules, Ruff, TypeScript,
 format/reproducible build, HACS and Hassfest passed. Release dispatch34315935383 targets the
 same frozen main SHA. See VALIDATION.md for exact CI links. Physical gates remain unchanged.
+
+
+## Phase 6 — deployment preparation batch, 0.18.0-alpha.1
+
+Three software tasks are implemented: capability-checked candidate compilation (`b0ce799`),
+selected-resource comparison/external dependency detection (`2466517`), and durable local proposals (`ace3df8`)
+with administrator preview/save/recheck/export/delete. See [the workflow](SCHEDULE_DEPLOYMENT_PLANS.md).
+Local reservations prevent conflicting saved proposals, but do not establish device ownership.
+Original keyed configuration/capability fingerprints survive rechecks and local restart.
+The UI invalidates changed source drafts and late responses; independent storage corruption raises
+its own Repair while existing core access and drafts continue.
+
+Production-client reads at 2026-09-09T06:29:29Z confirmed observed template/weekly differences,
+an external weekly reference, three users with unknown defaults and unchanged observations after
+local save/reload/recheck. Zero station writes occurred. Applying schedules, assigning users,
+verified write recovery and physical enforcement remain open. Mandatory acceptance stays 28/38;
+Phase 5 remains 8/9; Phase 6 has 3 implemented, 2 partial and 4 unimplemented extensions.

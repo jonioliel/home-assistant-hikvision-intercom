@@ -4,6 +4,31 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.18.0-alpha.1] - 2026-09-09
+
+### Added
+- Capability-checked schedule compiler translates local drafts and explicit resource IDs into
+  candidate weekly, holiday, holiday-group and template bodies. It validates ranges, names,
+  weekdays, period limits and time precision, and preserves local wall-clock times.
+- Selected-resource comparison reports changed fields and external references using verified
+  read-only Search routes. Unknown configuration fields, partial coverage, implicit user defaults
+  and missing observations remain explicit; disabled resources are not assumed available.
+- Saved deployment proposals retain draft snapshots, source revisions and installation-private
+  comparison fingerprints. Explicit rechecks detect configuration or capability changes without
+  replacing the original observations. Per-station local reservations prevent overlapping proposals.
+- Administrator panel for preview, local save, recheck, export and removal, in Hebrew and English.
+  Actor-bound single-use previews expire in five minutes; stale drafts/devices reject saves.
+  Independent atomic storage and Repair handling preserve core access when proposal storage fails.
+
+### Evidence and limits
+- Production-client reads, local save/reload and recheck succeeded on the commissioned station.
+  A selected weekly resource has an external template reference; three users have unknown defaults.
+  No station writes occurred. Reports omit raw station configuration, credentials and private hashes.
+- These are local proposals, not device ownership or deployment. Applying schedules, assigning users,
+  write recovery and physical weekly/holiday/DST enforcement are still unavailable or unverified.
+- Mandatory acceptance remains 28/38 (73.7%). Weekly schedules and holidays remain partial Phase 6
+  extensions; these three software tasks do not close the outstanding physical acceptance gates.
+
 ## [0.17.0-alpha.1] - 2026-09-09
 
 ### Added

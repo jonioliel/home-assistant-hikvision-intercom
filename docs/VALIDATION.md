@@ -526,3 +526,26 @@ Initial CI identified a class method named `list` shadowing an annotation and a 
 with incompatible types. Commit `41f044f` corrected both; all final gates above passed afterward.
 Version metadata/changelog preparation is `ff24ccd`; the four feature commits are listed above.
 The release workflow rechecks the frozen code SHA before producing the tag and notes.
+
+
+## 0.18 deployment proposals — local validation, 2026-09-09
+
+Compiler, comparator and proposal persistence tests cover capability bounds, every advertised
+period slot, unknown fields, dependency references, private fingerprints, source/device/actor
+binding, expiry, local reservations, atomic failed/cancelled saves and original-observation drift.
+A combined selected-record/fingerprint regression catches accidental loss of captured records;
+the corrected production-client path was verified against the commissioned device.
+
+A fresh local save/reload/recheck completed at 2026-09-09T06:29:29Z: template and weekly records
+were observed disabled and different from the proposed configuration. The weekly record was
+referenced by an external template. Three users had implicit/unknown defaults; holiday coverage
+remained partial. No observation drift occurred and zero station writes were sent. Raw device
+records and private comparison-store contents are excluded from publication.
+
+Full local Python 3.12 suite: **631 passed**. Actual HA adapters and strict mypy are validated in
+Linux CI; the local mypy native module remains blocked by host application control. Browser tests
+cover local save/export/remove, source changes during reads, unknown save responses, independent
+release controls and Hebrew mobile layout. Final CI results are recorded after their completion.
+
+Full local Chromium suite: **96 passed**. TypeScript, Prettier and frontend build passed after
+version preparation. Ruff lint/format passed. Total local cases: **727 = 631 + 96**.

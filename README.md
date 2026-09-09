@@ -45,6 +45,10 @@ Version 0.16 adds explicit, persistent [comparison references](docs/SCHEDULE_BAS
 record-content and capability changes while preserving partial-search uncertainty.
 Version 0.17 adds [dependency audits, multi-station assessment, portable draft transfer and
 clone/copy editing](docs/SCHEDULE_WORKFLOWS.md). These remain local drafts and read-only checks.
+Version 0.18 adds [candidate compilation, configuration comparison and saved local deployment
+proposals](docs/SCHEDULE_DEPLOYMENT_PLANS.md), with explicit rechecks and per-station reservations.
+Device schedule application and user assignment remain unavailable.
+
 See [draft editing](docs/ACCESS_SCHEDULES.md) and [compatibility assessment](docs/SCHEDULE_INVENTORY.md).
 
 ## Central access backend
