@@ -199,6 +199,9 @@ const en = {
   health_export: "Export compatibility report",
   field_save_unknown:
     "Saving the field result could not be confirmed. Open Record field tests again to read the stored result before saving another change.",
+  event_filters: "Event filters",
+  event_filters_active: "Applied",
+  event_filters_all: "All events",
   health_read_failed:
     "The health response did not arrive. Previous diagnostics remain visible; refresh this station to try again.",
   health_disconnected:
@@ -1326,6 +1329,9 @@ const he: Record<keyof typeof en, string> = {
   health_export: "הורדת דוח תאימות",
   field_save_unknown:
     "לא ניתן לאשר ששמירת בדיקת השטח הושלמה. פתח שוב את רישום בדיקות השטח כדי לקרוא את התוצאה השמורה לפני שינוי נוסף.",
+  event_filters: "סינון אירועים",
+  event_filters_active: "מסננים שהוחלו",
+  event_filters_all: "כל האירועים",
   health_read_failed:
     "תשובת האבחון לא התקבלה. הנתונים הקודמים נשארו מוצגים; רענן תחנה זו כדי לנסות שוב.",
   health_disconnected:

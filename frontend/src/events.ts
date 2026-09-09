@@ -92,6 +92,7 @@ export class IntercomEvents extends LitElement {
     defaultZone: { attribute: false },
     _data: { state: true },
     _filterDirty: { state: true },
+    _filtersOpen: { state: true },
     _busy: { state: true },
     _error: { state: true },
     _listError: { state: true },
@@ -103,6 +104,7 @@ export class IntercomEvents extends LitElement {
   hass?: Hass;
   stations: Station[] = [];
   defaultZone: DisplayZone = UTC_ZONE;
+  private _filtersOpen = !window.matchMedia("(max-width: 650px)").matches;
   private _filterStation = "";
   private _filterDirty = false;
   private _data?: AuditPage;
@@ -495,57 +497,69 @@ export class IntercomEvents extends LitElement {
           ${this.t("refresh")}
         </button>
       </div>
-      <form
-        @submit=${this.apply}
-        @input=${() => {
-          this._filterDirty = true;
+      <details
+        class="filter-panel event-filters"
+        .open=${this._filtersOpen}
+        @toggle=${(event: Event) => {
+          this._filtersOpen = (event.currentTarget as HTMLDetailsElement).open;
         }}
-        @change=${() => {
-          this._filterDirty = true;
-        }}
-        class="form-grid filter-panel"
       >
-        <label
-          >${this.t("station")}<select
-            name="station_id"
-            aria-label=${this.t("station")}
-            @change=${(e: Event) => {
-              this._filterStation = (e.target as HTMLSelectElement).value;
-              this.requestUpdate();
-            }}
+        <summary>
+          ${this.t("event_filters")} ·
+          ${Object.keys(this._filters).length ? this.t("event_filters_active") + ": " + Object.keys(this._filters).length : this.t("event_filters_all")}
+        </summary>
+        <form
+          @submit=${this.apply}
+          @input=${() => {
+            this._filterDirty = true;
+          }}
+          @change=${() => {
+            this._filterDirty = true;
+          }}
+          class="form-grid"
+        >
+          <label
+            >${this.t("station")}<select
+              name="station_id"
+              aria-label=${this.t("station")}
+              @change=${(e: Event) => {
+                this._filterStation = (e.target as HTMLSelectElement).value;
+                this.requestUpdate();
+              }}
+            >
+              <option value="">${this.t("all")}</option>
+              ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
+            </select></label
           >
-            <option value="">${this.t("all")}</option>
-            ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
-          </select></label
-        >
-        <label>${this.t("person")}<input name="person" maxlength="128" /></label>
-        <label
-          >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
-            <option value="">${this.t("all")}</option>
-            ${["granted", "denied", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
-          </select></label
-        >
-        <label
-          >${this.t("authentication")}<select
-            name="authentication"
-            aria-label=${this.t("authentication")}
+          <label>${this.t("person")}<input name="person" maxlength="128" /></label>
+          <label
+            >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
+              <option value="">${this.t("all")}</option>
+              ${["granted", "denied", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
+            </select></label
           >
-            <option value="">${this.t("all")}</option>
-            ${["card", "pin", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
-          </select></label
-        >
-        <label
-          >${this.t("door")}<select name="door" aria-label=${this.t("door")}>
-            <option value="">${this.t("all")}</option>
-            <option value="1">1</option>
-          </select></label
-        >
-        <label>${this.t("from_time")}<input type="datetime-local" name="start" /></label>
-        <label>${this.t("until_time")}<input type="datetime-local" name="end" /></label>
-        <button class="primary" type="submit" ?disabled=${!this._haConnected}>
-          ${this.t("filter")}
-        </button>
-      </form>
+          <label
+            >${this.t("authentication")}<select
+              name="authentication"
+              aria-label=${this.t("authentication")}
+            >
+              <option value="">${this.t("all")}</option>
+              ${["card", "pin", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("door")}<select name="door" aria-label=${this.t("door")}>
+              <option value="">${this.t("all")}</option>
+              <option value="1">1</option>
+            </select></label
+          >
+          <label>${this.t("from_time")}<input type="datetime-local" name="start" /></label>
+          <label>${this.t("until_time")}<input type="datetime-local" name="end" /></label>
+          <button class="primary" type="submit" ?disabled=${!this._haConnected}>
+            ${this.t("filter")}
+          </button>
+        </form>
+      </details>
       ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
       <div class="toolbar">
         <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
