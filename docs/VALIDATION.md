@@ -472,3 +472,13 @@ this check. Private evidence remains local; see [reference behavior and limits](
 References establish neither resource ownership nor an editable backup. The write/allocation/user
 association pipeline is still pending; mandatory acceptance remains 28/38 and both Phase 6 schedule
 extensions remain partial.
+
+
+Code `c7f776aba377f1fe506f5330c78238bf5d4aecea` passed all required branch checks:
+[Python / actual HA / frontend](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34312562587),
+[HACS](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34312562584),
+[Hassfest](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34312562589).
+Verified totals: **567 protocol/access + 172 actual HA + 82 browser = 821 tests**. Strict mypy
+passed for 36 modules; ConfigFlow coverage remains 100%. Both Python versions passed. The exact
+code was merged to main and submitted to the gated 0.16.0-alpha.1 release workflow; publication
+is verified separately after its gates complete.

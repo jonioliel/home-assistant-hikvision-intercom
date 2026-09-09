@@ -259,3 +259,8 @@ retained partial holiday coverage. No station resources were created or changed.
 This implements observed-change detection but does not establish resource ownership, a write
 journal, allocation or user association. Both schedule extensions remain partial; the Phase 6
 feature tally and mandatory 28/38 acceptance tally are unchanged.
+
+
+0.16 code `c7f776a` passed 821 tests (567 protocol/access, 172 actual HA, 82 browser), strict
+mypy for 36 modules, Ruff, TypeScript, HACS and Hassfest. ConfigFlow coverage is 100%.
+The checked code was merged to main and dispatched through the gated release workflow.
