@@ -203,3 +203,18 @@ async def test_event_report_and_csv_cover_all_filtered_pages_without_credentials
     assert result["error"]["code"] == "invalid_fields"
     result = await request(client, "events/export", filters={"limit": 1})
     assert result["error"]["code"] == "invalid_fields"
+
+
+async def test_event_name_uses_only_observed_ownership_on_its_station(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    repo = runtime.access_manager.repository
+    user = await repo.async_create({"display_name": "Bound resident", "employee_no": "00042"})
+    runtime.events.ingest(live(employeeNo="00042", serialNo=6001))
+    row = get_events(hass).query({})["records"][0]
+    assert row["employee_no"] == "00042" and row["person_name"] is None
+    await repo.async_bind(runtime.station_id, user.id, fingerprint="observed")
+    runtime.events.ingest(live(employeeNo="00042", serialNo=6002))
+    row = get_events(hass).query({})["records"][0]
+    assert row["person_name"] == "Bound resident"
+    runtime.events.ingest(live(employeeNo="00042", name="Device name", serialNo=6003))
+    assert get_events(hass).query({})["records"][0]["person_name"] == "Device name"

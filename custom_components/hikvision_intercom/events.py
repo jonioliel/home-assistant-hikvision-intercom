@@ -117,8 +117,11 @@ def normalize_event(
         )
     employee = _text(row.get("employeeNoString"), 32)
     if not employee:
-        number = _integer(row.get("employeeNo"))
-        employee = str(number) if number else _text(row.get("employeeNo"), 32)
+        # Employee IDs are identifiers, not quantities. Preserve significant zeroes.
+        employee = _text(row.get("employeeNo"), 32)
+        if employee is None and type(row.get("employeeNo")) is int:
+            number = _integer(row["employeeNo"])
+            employee = str(number) if number else None
     api_door = _integer(row.get("doorNo"))
     api_door = api_door if api_door in {1, 2} else None
     card = _text(row.get("cardNo"), 32)

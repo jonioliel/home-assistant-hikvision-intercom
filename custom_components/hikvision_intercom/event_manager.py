@@ -302,13 +302,14 @@ class StationEvents:
         )
         resolved = False
         if row:
-            # Resolve names only by an explicit employee ID. Missing identity stays unknown.
-            if row["employee_no"] and not row["person_name"]:
-                for user in self.runtime.access_manager.repository.users():
-                    if user.employee_no == row["employee_no"]:
-                        row["person_name"] = user.display_name
-                        resolved = True
-                        break
+            # A matching central ID alone does not establish ownership on this station.
+            if row["employee_no"] and not row["person_name"] and row["time_source"] == "device":
+                name = self.runtime.access_manager.repository.event_person_name(
+                    self.runtime.station_id, row["employee_no"], row["timestamp"]
+                )
+                if name:
+                    row["person_name"] = name
+                    resolved = True
             accepted = self.manager.accept(row)
             self.telemetry.observe(row, accepted)
         self.trace.event(payload, row, historical=historical, resolved=resolved)

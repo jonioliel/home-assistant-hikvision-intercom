@@ -13,6 +13,7 @@ import json
 import secrets
 from collections.abc import Awaitable, Callable, Mapping
 from copy import deepcopy
+from datetime import datetime
 from typing import Any, TypeVar
 from uuid import uuid4
 
@@ -488,6 +489,32 @@ class AccessRepository:
             return receipt
 
         return await self._commit(apply, offload=True)
+
+    def event_person_name(self, station: str, employee_no: str, occurred_at: str) -> str | None:
+        """Resolve only an observed owner on this station, never a pending ID collision.
+
+        Historic records predating central ownership remain unidentified when the source
+        supplies no name. The same employee number may have belonged to another person.
+        """
+        try:
+            when = datetime.fromisoformat(occurred_at)
+            if when.tzinfo is None:
+                return None
+        except (ValueError, TypeError):
+            return None
+        for uid, binding in self._state["bindings"].get(station, {}).items():
+            raw = self._state["users"].get(uid)
+            if (
+                raw is None
+                or binding["employee_no"] != employee_no
+                or raw["employee_no"] != employee_no
+                or not binding["fingerprint"]
+            ):
+                continue
+            created = datetime.fromisoformat(raw["created_at"])
+            if created <= when:
+                return str(raw["display_name"])
+        return None
 
     async def async_bind(
         self,

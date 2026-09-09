@@ -344,3 +344,24 @@ def test_latest_unknown_unlock_record_remains_unknown_and_marks_receipt_time():
     assert summary["event_type"] == "unlock_record" and summary["result"] == "unknown"
     assert summary["authentication"] == "pin" and summary["recovered"] is True
     assert summary["time_source"] == "received"
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("00042", "00042"),
+        ("A_42", "A_42"),
+        (42, "42"),
+        (0, None),
+        (True, None),
+        (42.0, None),
+        ("9" * 33, None),
+    ],
+)
+def test_employee_identifiers_preserve_significant_zeroes(value, expected):
+    assert normalized(payload(employeeNo=value))["employee_no"] == expected
+
+
+def test_explicit_string_employee_field_keeps_precedence():
+    assert normalized(payload(employeeNoString="00042", employeeNo=42))["employee_no"] == "00042"
+    assert normalized(payload(employeeNoString="", employeeNo="00042"))["employee_no"] == "00042"
