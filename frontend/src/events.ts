@@ -4,6 +4,7 @@ import { styles } from "./styles";
 import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
+import { boundedRequest } from "./request";
 import type { Hass, Station } from "./types";
 
 interface AuditEvent {
@@ -93,6 +94,9 @@ export class IntercomEvents extends LitElement {
     _filterDirty: { state: true },
     _busy: { state: true },
     _error: { state: true },
+    _listError: { state: true },
+    _reportError: { state: true },
+    _haConnected: { state: true },
     _report: { state: true },
     _reportBusy: { state: true },
   };
@@ -104,50 +108,173 @@ export class IntercomEvents extends LitElement {
   private _data?: AuditPage;
   private _busy = false;
   private _error = "";
+  private _listError = "";
+  private _reportError = "";
+  private _haConnected = true;
+  private connection?: Hass["connection"];
+  private _lifecycle = 0;
+  private _reloadQueued = false;
+  private requests = new Set<AbortController>();
+  private listRequest?: AbortController;
+  private reportRequest?: AbortController;
+  private haDisconnected = () => {
+    this._haConnected = false;
+    this._reloadQueued = false;
+    this.cancelRequests();
+  };
+  private haReady = () => {
+    this._haConnected = true;
+    void this.load();
+  };
+  private bindConnection(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
+    this.connection?.removeEventListener?.("ready", this.haReady);
+    this.connection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.haDisconnected);
+    connection?.addEventListener?.("ready", this.haReady);
+  }
+  private cancelRequests() {
+    for (const controller of this.requests) controller.abort();
+    this.requests.clear();
+  }
+  private invalidate() {
+    this.renderRoot.querySelector<HTMLFormElement>("form")?.reset();
+    this._lifecycle++;
+    this._generation++;
+    this._reloadQueued = false;
+    this.cancelRequests();
+    this._busy = false;
+    this._data = undefined;
+    this._error = "";
+    this._listError = "";
+    this._filters = {};
+    this._filterStation = "";
+    this._filterDirty = false;
+    this.clearReport();
+  }
+  private async request<T>(
+    command: string,
+    data: Record<string, unknown>,
+    timeout: number,
+    controller = new AbortController(),
+  ): Promise<T> {
+    if (
+      !this.isConnected ||
+      !this.hass?.user?.is_admin ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      throw new Error("disconnected");
+    const hass = this.hass,
+      lifecycle = this._lifecycle;
+    this.requests.add(controller);
+    try {
+      const result = await boundedRequest(
+        () =>
+          hass.callWS<T>({
+            type: `hikvision_intercom/events/${command}`,
+            ...data,
+          }),
+        timeout,
+        controller.signal,
+      );
+      if (
+        !this.isConnected ||
+        !this.hass?.user?.is_admin ||
+        lifecycle !== this._lifecycle ||
+        this.hass.connection !== hass.connection
+      )
+        throw new Error("discarded");
+      return result;
+    } finally {
+      this.requests.delete(controller);
+    }
+  }
   private _filters: Record<string, unknown> = {};
   private _generation = 0;
   private _report?: ActivityReport;
   private _reportBusy = false;
   private _reportEpoch = 0;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
-  protected updated(changed: PropertyValues) {
-    if (changed.has("stations") && this.hass?.user?.is_admin) void this.load();
-    if (changed.has("hass") && !this.hass?.user?.is_admin) {
-      this._generation++;
-      this._data = undefined;
-      this.clearReport();
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.hass?.user?.is_admin) {
+      this.bindConnection(this.hass.connection);
+      if (this.hasUpdated) void this.load();
     }
   }
+  protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    const replaced = this.connection !== connection;
+    if (replaced) {
+      this.invalidate();
+      this.bindConnection(connection);
+    }
+    if (!this.hass?.user?.is_admin) {
+      if (changed.has("hass") && !replaced) this.invalidate();
+      return;
+    }
+    if (replaced || changed.has("stations")) void this.load();
+  }
   disconnectedCallback() {
+    this.invalidate();
+    this.bindConnection(undefined);
     super.disconnectedCallback();
+  }
+  private cancelList() {
     this._generation++;
-    this._data = undefined;
-    this.clearReport();
+    this.listRequest?.abort();
+    this._reloadQueued = false;
+    this._busy = false;
   }
   private async load(more = false) {
-    if (!this.hass?.user?.is_admin || !this.isConnected || (more && this._busy)) return;
+    if (
+      !this.hass?.user?.is_admin ||
+      !this.isConnected ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      return;
+    if (this._busy) {
+      if (!more) this._reloadQueued = true;
+      return;
+    }
     const generation = ++this._generation;
     this._busy = true;
+    this.listRequest = new AbortController();
     try {
-      const data = await this.hass.callWS<AuditPage>({
-        type: "hikvision_intercom/events/list",
-        filters: {
-          ...this._filters,
-          limit: 100,
-          ...(more && this._data?.next ? { before: this._data.next } : {}),
+      const data = await this.request<AuditPage>(
+        "list",
+        {
+          filters: {
+            ...this._filters,
+            limit: 100,
+            ...(more && this._data?.next ? { before: this._data.next } : {}),
+          },
         },
-      });
+        20000,
+        this.listRequest,
+      );
       if (generation !== this._generation || !this.isConnected || !this.hass?.user?.is_admin)
         return;
       this._data = {
         ...data,
         records: more ? [...(this._data?.records ?? []), ...data.records] : data.records,
       };
-      this._error = "";
+      this._listError = "";
     } catch {
-      if (generation === this._generation) this._error = this.t("failed");
+      if (generation === this._generation) this._listError = this.t("events_load_failed");
     } finally {
-      if (generation === this._generation) this._busy = false;
+      if (generation === this._generation) {
+        this._busy = false;
+        this.listRequest = undefined;
+        if (this._reloadQueued) {
+          this._reloadQueued = false;
+          void this.load();
+        }
+      }
     }
   }
   private apply(event: Event) {
@@ -170,12 +297,18 @@ export class IntercomEvents extends LitElement {
       this._error = this.t((e as Error).message);
       return;
     }
+    this.cancelList();
+    this._error = "";
+    this._data = undefined;
     this._filters = filters;
     this._filterDirty = false;
     this.clearReport();
     void this.load();
   }
   private resetFilters() {
+    this.cancelList();
+    this._error = "";
+    this._data = undefined;
     this.renderRoot.querySelector<HTMLFormElement>("form")?.reset();
     this._filterStation = "";
     this._filterDirty = false;
@@ -185,27 +318,45 @@ export class IntercomEvents extends LitElement {
   }
   private clearReport() {
     this._reportEpoch++;
+    this.reportRequest?.abort();
+    this.reportRequest = undefined;
+    this._reportError = "";
     this._report = undefined;
     this._reportBusy = false;
   }
   private async report(exportCsv = false) {
-    if (this._reportBusy || !this.hass?.user?.is_admin || !this.isConnected) return;
+    if (
+      this._reportBusy ||
+      !this.hass?.user?.is_admin ||
+      !this.isConnected ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      return;
     const epoch = this._reportEpoch;
     this._reportBusy = true;
-    this._error = "";
+    this._reportError = "";
+    this.reportRequest = new AbortController();
     try {
-      const result = await this.hass.callWS<ActivityReport>({
-        type: `hikvision_intercom/events/${exportCsv ? "export" : "report"}`,
-        filters: { ...this._filters },
-      });
+      const result = await this.request<ActivityReport>(
+        exportCsv ? "export" : "report",
+        {
+          filters: { ...this._filters },
+        },
+        60000,
+        this.reportRequest,
+      );
       if (epoch !== this._reportEpoch || !this.isConnected || !this.hass?.user?.is_admin) return;
       const { csv, ...report } = result;
       this._report = report;
       if (exportCsv && csv !== undefined) downloadText(csv, "hikvision-events.csv");
     } catch {
-      if (epoch === this._reportEpoch) this._error = this.t("failed");
+      if (epoch === this._reportEpoch) this._reportError = this.t("events_report_failed");
     } finally {
-      if (epoch === this._reportEpoch) this._reportBusy = false;
+      if (epoch === this._reportEpoch) {
+        this._reportBusy = false;
+        this.reportRequest = undefined;
+      }
     }
   }
   private reportView() {
@@ -303,10 +454,7 @@ export class IntercomEvents extends LitElement {
     const epoch = this._generation;
     if (!this.hass?.user?.is_admin) return;
     try {
-      const report = await this.hass.callWS({
-        type: "hikvision_intercom/events/support",
-        event_id: id,
-      });
+      const report = await this.request("support", { event_id: id }, 20000);
       if (epoch === this._generation && this.isConnected && this.hass?.user?.is_admin)
         downloadText(JSON.stringify(report, null, 2), "hikvision-event.json", "application/json");
     } catch {
@@ -329,18 +477,23 @@ export class IntercomEvents extends LitElement {
         <p class="sub">${this.t("event_clock_hint")}</p>
         <p>ISAPI: ${row.major ?? "?"} / ${row.minor ?? "?"}</p>
         <p class="sub">${this.t("event_export_hint")}</p>
-        <button @click=${() => this.support(row.id)}>${this.t("event_support")}</button>
+        <button ?disabled=${!this._haConnected} @click=${() => this.support(row.id)}>
+          ${this.t("event_support")}
+        </button>
       </details>`;
   }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
     return html`<section aria-label=${this.t("events")}>
+      ${!this._haConnected ? html`<p class="notice" role="status">${this.t("events_connection_lost")}</p>` : nothing}
       <div class="page-heading">
         <div>
           <h2>${this.t("events")}</h2>
           <p>${this.t("events_intro")}</p>
         </div>
-        <button ?disabled=${this._busy} @click=${() => this.load()}>${this.t("refresh")}</button>
+        <button ?disabled=${this._busy || !this._haConnected} @click=${() => this.load()}>
+          ${this.t("refresh")}
+        </button>
       </div>
       <form
         @submit=${this.apply}
@@ -389,14 +542,19 @@ export class IntercomEvents extends LitElement {
         >
         <label>${this.t("from_time")}<input type="datetime-local" name="start" /></label>
         <label>${this.t("until_time")}<input type="datetime-local" name="end" /></label>
-        <button class="primary" type="submit">${this.t("filter")}</button>
+        <button class="primary" type="submit" ?disabled=${!this._haConnected}>
+          ${this.t("filter")}
+        </button>
       </form>
       ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
       <div class="toolbar">
         <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
-        <button ?disabled=${this._reportBusy} @click=${() => this.report()}>
+        <button ?disabled=${this._reportBusy || !this._haConnected} @click=${() => this.report()}>
           ${this.t("report_generate")}</button
-        ><button ?disabled=${this._reportBusy} @click=${() => this.report(true)}>
+        ><button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(true)}
+        >
           ${this.t("report_export")}
         </button>
       </div>
@@ -412,7 +570,7 @@ export class IntercomEvents extends LitElement {
         <p class="record-meta">${this.t("audit_retention")}</p>
       </details>
       ${this.reportView()}
-      ${this._error ? html`<p role="alert" class="notice error">${this._error}</p>` : nothing}
+      ${[this._error, this._listError, this._reportError].filter(Boolean).map((error) => html`<p role="alert" class="notice error">${error}</p>`)}
       ${this._data?.storage_failed ? html`<p role="alert" class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
       ${Object.entries(this._data?.stations ?? {})
         .filter(([, s]) => !["recovered", "pending"].includes(s.history))
@@ -459,7 +617,7 @@ export class IntercomEvents extends LitElement {
         )}
       </div>
       ${!this._data?.records.length && !this._busy && !this._error ? html`<p class="empty">${this.t("no_events")}</p>` : nothing}
-      ${this._data?.next ? html`<button ?disabled=${this._busy} @click=${() => this.load(true)}>${this.t("load_more")}</button>` : nothing}
+      ${this._data?.next ? html`<button ?disabled=${this._busy || !this._haConnected} @click=${() => this.load(true)}>${this.t("load_more")}</button>` : nothing}
     </section>`;
   }
 }

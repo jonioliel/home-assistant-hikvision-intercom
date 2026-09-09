@@ -1,4 +1,10 @@
 const en = {
+  events_load_failed:
+    "Events could not be refreshed. Previously loaded records may be out of date; try Refresh after the connection returns.",
+  events_report_failed:
+    "The report response did not arrive. No new report or file was delivered. Try again after the connection returns.",
+  events_connection_lost:
+    "Home Assistant is disconnected. Previously loaded events remain available to read; reports resume with a new request after reconnection.",
   panel_operation_unconfirmed:
     "The change may have been saved, but its result did not arrive. Refresh Users and Sync before trying again. The editor was closed and entered credentials were cleared.",
   panel_read_interrupted:
@@ -1120,6 +1126,12 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  events_load_failed:
+    "רענון האירועים לא הושלם. ייתכן שהרשומות שהוצגו קודם אינן מעודכנות; ניתן לרענן לאחר חידוש החיבור.",
+  events_report_failed:
+    "תשובת הדוח לא התקבלה. לא התקבלו דוח או קובץ חדשים. ניתן לנסות שוב לאחר חידוש החיבור.",
+  events_connection_lost:
+    "החיבור ל־Home Assistant נותק. אירועים שכבר נטענו זמינים לעיון; להפקת דוח נדרשת בקשה חדשה לאחר חידוש החיבור.",
   panel_operation_unconfirmed:
     "ייתכן שהשינוי נשמר, אך התשובה לא התקבלה. יש לרענן את המשתמשים והסנכרון לפני ניסיון נוסף. חלון העריכה נסגר ופרטי הזיהוי שהוקלדו נוקו.",
   panel_read_interrupted:

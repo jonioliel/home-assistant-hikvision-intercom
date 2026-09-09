@@ -4,6 +4,10 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Fixed
+- Bound event-list and report waits, preserve cached records with a visible refresh failure, and keep report failures separate from list refreshes. Abort old views and exports on HA disconnect or replacement; reconnect refreshes events without replaying an export.
+- Coalesce station updates while an event list is loading, supersede old reads immediately when applied filters change, and restore event loading after the same view is reattached.
+
 ## [0.27.1-alpha.1] - 2026-09-10
 
 ### Fixed
