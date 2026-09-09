@@ -42,6 +42,19 @@ const en = {
   schedule_import_expired: "Import review expired or was already used. Select the file again.",
   schedule_transfer_invalid:
     "Invalid draft file. Use format version 1, up to 100 drafts and 8 MiB. Unknown fields or duplicate JSON keys are rejected.",
+  schedule_clone: "Clone current draft",
+  schedule_copy_suffix: " (copy)",
+  schedule_cloned:
+    "An unsaved copy is open. Current edits and holidays were copied; save it to create a separate draft.",
+  schedule_copy_windows: "Copy daily windows",
+  schedule_copy_source: "Source day",
+  schedule_copy_targets: "Target days",
+  schedule_copy_hint:
+    "Copy replaces the selected days. A closed source day clears their windows. Changes stay in this draft until saved.",
+  schedule_copy_confirm:
+    "Replace all windows on {days}? A closed source day will clear these days.",
+  schedule_copy_apply: "Copy to selected days",
+  schedule_windows_copied: "Daily windows copied into the draft. Save to keep them.",
   schedule_assess: "Assess selected draft",
   schedule_baseline_title: "Changes since reference",
   schedule_baseline_hint:
@@ -701,6 +714,18 @@ const he: Record<keyof typeof en, string> = {
   schedule_import_expired: "תוקף בדיקת הייבוא פג או שכבר נוצלה. בחרו שוב בקובץ.",
   schedule_transfer_invalid:
     "קובץ טיוטות לא תקין. נדרשת גרסת פורמט 1, עד 100 טיוטות ו־8 MiB. שדות לא מוכרים ומפתחות JSON כפולים נדחים.",
+  schedule_clone: "שכפול הטיוטה הנוכחית",
+  schedule_copy_suffix: " (עותק)",
+  schedule_cloned:
+    "נפתח עותק שטרם נשמר. העריכות הנוכחיות והחריגים הועתקו; שמרו כדי ליצור טיוטה נפרדת.",
+  schedule_copy_windows: "העתקת חלונות יומיים",
+  schedule_copy_source: "יום מקור",
+  schedule_copy_targets: "ימי יעד",
+  schedule_copy_hint:
+    "ההעתקה מחליפה את החלונות בימים שנבחרו. יום מקור סגור ינקה אותם. השינויים נשארים בטיוטה עד לשמירה.",
+  schedule_copy_confirm: "להחליף את כל החלונות בימים {days}? יום מקור סגור ינקה אותם.",
+  schedule_copy_apply: "העתקה לימים שנבחרו",
+  schedule_windows_copied: "החלונות הועתקו לטיוטה. שמרו כדי לשמור את השינוי.",
   schedule_assess: "בדיקת התאמת הטיוטה",
   schedule_baseline_title: "שינויים מנקודת הייחוס",
   schedule_baseline_hint:

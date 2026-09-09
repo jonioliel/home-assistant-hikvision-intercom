@@ -50,3 +50,15 @@ by any library change or a newer preview by that administrator. Pending previews
 and capped at 16. A failed save publishes none of the batch. Cancellation waits for an atomic
 save to finish. An unknown response requires library reload; no automatic import retry is made.
 These files transfer local drafts only; they do not deploy schedules or assign user permissions.
+
+## Clone and copy daily windows
+
+Clone current draft opens a new unsaved copy, including current edits and holiday exceptions.
+The original stored UUID/revision are not copied; Save creates a new draft. The localized copy
+suffix respects the 32-character name limit. Navigation retains the normal unsaved-change guard.
+
+Choose a source weekday and target weekdays to replace their windows. Non-empty targets require
+confirmation naming the affected days. A closed source day clears targets. Each target receives
+an independent copy, so editing one day cannot change another. Copy invalidates stale previews
+and assessment queues, and does not write storage until Save draft is selected. Server validation
+still rejects overlapping, reversed or excessive windows.

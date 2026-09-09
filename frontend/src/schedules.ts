@@ -198,6 +198,15 @@ export class IntercomSchedules extends LitElement {
         padding-block: 10px;
         overflow-wrap: anywhere;
       }
+      .copy-target {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+      .copy-target input {
+        width: auto;
+      }
       .hint {
         line-height: 1.6;
         overflow-wrap: anywhere;
@@ -243,6 +252,8 @@ export class IntercomSchedules extends LitElement {
   private _dirty = false;
   private _preview?: Preview;
   private _readiness?: Readiness;
+  private _copySource = "Monday";
+  private _copyTargets = new Set<string>();
   private _importPreview?: ImportPreview;
   private _batch: BatchRow[] = [];
   private _batchRunning = false;
@@ -326,6 +337,7 @@ export class IntercomSchedules extends LitElement {
   private edit(item?: Schedule) {
     if (this._busy || this._uncertain || !this.discard()) return;
     this.invalidateAssessment();
+    this._copyTargets.clear();
     this._draft = item
       ? structuredClone(item)
       : { name: "", weekly: Object.fromEntries(days.map((day) => [day, []])), holidays: [] };
@@ -345,6 +357,79 @@ export class IntercomSchedules extends LitElement {
   private data() {
     const d = this._draft!;
     return structuredClone({ name: d.name, weekly: d.weekly, holidays: d.holidays });
+  }
+  private cloneDraft() {
+    if (this._busy || this._uncertain || !this._draft) return;
+    const data = this.data(),
+      suffix = this.t("schedule_copy_suffix");
+    data.name =
+      Array.from(data.name)
+        .slice(0, 32 - Array.from(suffix).length)
+        .join("") + suffix;
+    this.change(() => {
+      this._draft = data;
+    });
+    this._copyTargets.clear();
+    this._notice = this.t("schedule_cloned");
+  }
+  private copyWindows() {
+    if (this._busy || this._uncertain || !this._draft || !this._copyTargets.size) return;
+    const draft = this._draft;
+    const targets = days.filter((day) => this._copyTargets.has(day) && day !== this._copySource);
+    if (
+      targets.some((day) => draft.weekly[day].length) &&
+      !window.confirm(
+        this.t("schedule_copy_confirm").replace(
+          "{days}",
+          targets.map((day) => this.t("day_" + day)).join(", "),
+        ),
+      )
+    )
+      return;
+    const periods = structuredClone(draft.weekly[this._copySource]);
+    this.change(() => {
+      for (const day of targets) draft.weekly[day] = structuredClone(periods);
+    });
+    this._notice = this.t("schedule_windows_copied");
+  }
+  private copyWindowsView() {
+    return html`<fieldset aria-label=${this.t("schedule_copy_windows")}>
+      <legend>${this.t("schedule_copy_windows")}</legend>
+      <label
+        >${this.t("schedule_copy_source")}<select
+          aria-label=${this.t("schedule_copy_source")}
+          .value=${this._copySource}
+          @change=${(e: Event) => {
+            this._copySource = (e.target as HTMLSelectElement).value;
+            this._copyTargets.clear();
+            this.requestUpdate();
+          }}
+        >
+          ${days.map((day) => html`<option value=${day}>${this.t("day_" + day)}</option>`)}
+        </select></label
+      >
+      <p>${this.t("schedule_copy_targets")}</p>
+      ${days
+        .filter((day) => day !== this._copySource)
+        .map(
+          (day) =>
+            html`<label class="copy-target"
+              ><input
+                type="checkbox"
+                .checked=${this._copyTargets.has(day)}
+                @change=${(e: Event) => {
+                  if ((e.target as HTMLInputElement).checked) this._copyTargets.add(day);
+                  else this._copyTargets.delete(day);
+                  this.requestUpdate();
+                }}
+              />${this.t("day_" + day)}</label
+            >`,
+        )}
+      <p class="hint">${this.t("schedule_copy_hint")}</p>
+      <button type="button" ?disabled=${!this._copyTargets.size} @click=${() => this.copyWindows()}>
+        ${this.t("schedule_copy_apply")}
+      </button>
+    </fieldset>`;
   }
   private async exportDrafts() {
     if (this._busy || this._uncertain || !this._items.length) return;
@@ -422,8 +507,8 @@ export class IntercomSchedules extends LitElement {
       <button
         ?disabled=${this._busy}
         @click=${() => {
-        this._importPreview = undefined;
-      }}
+          this._importPreview = undefined;
+        }}
       >
         ${this.t("cancel")}
       </button>
@@ -679,11 +764,11 @@ export class IntercomSchedules extends LitElement {
                     <button
                       ?disabled=${this._busy || this._batchRunning}
                       @click=${() => {
-                    this._assessment = row.report;
-                    this._assessmentStation = row.id;
-                    this._station = row.id;
-                    this._dependencies = undefined;
-                  }}
+                        this._assessment = row.report;
+                        this._assessmentStation = row.id;
+                        this._station = row.id;
+                        this._dependencies = undefined;
+                      }}
                     >
                       ${this.t("schedule_batch_details")}
                     </button>`
@@ -1003,7 +1088,11 @@ export class IntercomSchedules extends LitElement {
                           @input=${(e: Event) => this.change(() => (d.name = (e.target as HTMLInputElement).value))}
                       /></label>
                       <p class="hint">${this.t("schedule_time_hint")}</p>
+                      <button type="button" @click=${() => this.cloneDraft()}>
+                        ${this.t("schedule_clone")}
+                      </button>
                       <h3>${this.t("schedule_week")}</h3>
+                      ${this.copyWindowsView()}
                       ${days.map(
                         (day) =>
                           html`<fieldset aria-label=${this.t("day_" + day)}>
