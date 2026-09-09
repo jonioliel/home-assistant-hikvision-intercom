@@ -155,6 +155,10 @@ class AccessRepository:
                     raise AccessError("invalid_storage")
                 if binding.get("fingerprint") is not None:
                     text_field(binding["fingerprint"], 128)
+                observed_at = binding.get("identity_observed_at")
+                if observed_at is not None:
+                    if datetime.fromisoformat(text_field(observed_at, 40)).tzinfo is None:
+                        raise AccessError("invalid_storage")
                 if binding.get("sync_state", "pending") not in SYNC_STATES:
                     raise AccessError("invalid_storage")
                 intent = binding.get("intent")
@@ -503,8 +507,9 @@ class AccessRepository:
     def event_person_name(self, station: str, employee_no: str, occurred_at: str) -> str | None:
         """Resolve only an observed owner on this station, never a pending ID collision.
 
-        Historic records predating central ownership remain unidentified when the source
-        supplies no name. The same employee number may have belonged to another person.
+        Historic records predating observed ownership on this station remain unidentified.
+        A central user can be older than their station binding. Legacy bindings without
+        an observation time cannot establish the owner of old, nameless events.
         """
         try:
             when = datetime.fromisoformat(occurred_at)
@@ -521,8 +526,8 @@ class AccessRepository:
                 or not binding["fingerprint"]
             ):
                 continue
-            created = datetime.fromisoformat(raw["created_at"])
-            if created <= when:
+            observed_at = binding.get("identity_observed_at")
+            if observed_at is not None and datetime.fromisoformat(observed_at) <= when:
                 return str(raw["display_name"])
         return None
 
@@ -546,6 +551,7 @@ class AccessRepository:
                 "fingerprint": fingerprint,
                 "intent": intent,
                 "adopted": adopted,
+                "identity_observed_at": utc_now() if fingerprint else None,
             }
             user["identity_locked"] = True
 
@@ -558,6 +564,10 @@ class AccessRepository:
             binding = state["bindings"].get(station, {}).get(user_id)
             if binding is None:
                 raise AccessError("ownership_missing")
+            # Optional schema-3 metadata: establish a conservative starting point for
+            # legacy ownership only after this successful read, never from user creation.
+            if binding.get("identity_observed_at") is None:
+                binding["identity_observed_at"] = utc_now()
             raw = state["users"].get(user_id)
             assignment = raw["assignments"].get(station) if raw else None
             if (
@@ -609,6 +619,15 @@ class AccessRepository:
             binding = state["bindings"].get(station, {}).get(user_id)
             if binding is not None:
                 binding["sync_state"], binding["last_error"] = status, error
+                if error in {
+                    "device_changed",
+                    "unmanaged_employee",
+                    "device_conflict",
+                    "ambiguous_write",
+                }:
+                    # A known ownership discrepancy breaks the interval of evidence.
+                    # Retrying or restarting must not silently restore the old identity.
+                    binding["identity_observed_at"] = None
             tombstone = state["tombstones"].get(user_id)
             if tombstone is not None and station in tombstone["targets"]:
                 tombstone.setdefault("stations", {})[station] = {
@@ -772,6 +791,7 @@ class AccessRepository:
                 "fingerprint": fingerprint,
                 "intent": None,
                 "adopted": True,
+                "identity_observed_at": utc_now(),
             }
             if delete:
                 state["tombstones"][user.id] = {
@@ -886,7 +906,11 @@ class AccessRepository:
                     }
             state["users"][user_id] = user.private()
             binding.update(
-                fingerprint=fingerprint, intent=None, sync_state="pending", last_error=None
+                fingerprint=fingerprint,
+                intent=None,
+                sync_state="pending",
+                last_error=None,
+                identity_observed_at=utc_now(),
             )
             return user
 

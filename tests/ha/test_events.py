@@ -218,3 +218,39 @@ async def test_event_name_uses_only_observed_ownership_on_its_station(hass, load
     assert row["person_name"] == "Bound resident"
     runtime.events.ingest(live(employeeNo="00042", name="Device name", serialNo=6003))
     assert get_events(hass).query({})["records"][0]["person_name"] == "Device name"
+
+
+async def test_history_before_adoption_is_not_named_from_an_older_central_user(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    repo = runtime.access_manager.repository
+    now = datetime.now(UTC)
+    with patch(
+        "custom_components.hikvision_intercom.access.repository.utc_now",
+        return_value=(now - timedelta(minutes=10)).isoformat(),
+    ):
+        user = await repo.async_create({"display_name": "Current resident", "employee_no": "00042"})
+    with patch(
+        "custom_components.hikvision_intercom.access.repository.utc_now",
+        return_value=(now - timedelta(minutes=1)).isoformat(),
+    ):
+        await repo.async_adopt(
+            runtime.station_id,
+            {"employee_no": "00042"},
+            fingerprint="observed",
+            existing_user_id=user.id,
+            expected_revision=user.revision,
+        )
+    historical = {
+        "major": 5,
+        "minor": 181,
+        "employeeNoString": "00042",
+        "time": (now - timedelta(minutes=5)).isoformat(),
+    }
+    runtime.events.ingest(historical, historical=True)
+    old = get_events(hass).query({})["records"][0]
+    assert old["person_name"] is None and old["recovered"]
+    runtime.events.ingest({**historical, "name": "Source resident", "serialNo": 2}, historical=True)
+    rows = get_events(hass).query({})["records"]
+    assert any(row["person_name"] == "Source resident" for row in rows)
+    runtime.events.ingest(live(employeeNoString="00042", serialNo=3))
+    assert get_events(hass).query({})["records"][0]["person_name"] == "Current resident"
