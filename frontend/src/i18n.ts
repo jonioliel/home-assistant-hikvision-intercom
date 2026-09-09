@@ -197,6 +197,10 @@ const en = {
   event_export_hint: "Diagnostic exports omit names, user IDs, cards and station addresses.",
   health_refresh: "Refresh selected stations",
   health_export: "Export compatibility report",
+  health_read_failed:
+    "The health response did not arrive. Previous diagnostics remain visible; refresh this station to try again.",
+  health_disconnected:
+    "Home Assistant is disconnected. Cached diagnostics remain visible. Reconnect to continue.",
   health_cached:
     "Current session observations. Refresh reads clock and media capabilities without changing settings.",
   health_stream: "Event stream",
@@ -1318,6 +1322,10 @@ const he: Record<keyof typeof en, string> = {
   event_export_hint: "אבחון להורדה אינו כולל שמות, מזהי משתמש, כרטיסים או כתובות תחנות.",
   health_refresh: "רענון התחנות שנבחרו",
   health_export: "הורדת דוח תאימות",
+  health_read_failed:
+    "תשובת האבחון לא התקבלה. הנתונים הקודמים נשארו מוצגים; רענן תחנה זו כדי לנסות שוב.",
+  health_disconnected:
+    "החיבור ל־Home Assistant נותק. נתוני האבחון הקודמים נשארו מוצגים. יש להתחבר מחדש כדי להמשיך.",
   health_cached: "תצפיות מההפעלה הנוכחית. הרענון קורא שעון ויכולות מדיה ללא שינוי הגדרות.",
   health_stream: "זרם אירועים",
   health_history: "השלמת היסטוריה",

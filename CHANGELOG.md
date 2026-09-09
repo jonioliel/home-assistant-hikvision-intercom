@@ -4,6 +4,9 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Fixed
+- Isolate health reads with one three-slot queue: station updates cannot overlap batches, completed peers immediately free capacity, and missing cached/live responses expire after 20/45 seconds. Discard old-connection results, stop queued reads on disconnect, and reconnect using cached diagnostics only.
+
 ## [0.27.2-alpha.1] - 2026-09-10
 
 ### Fixed
