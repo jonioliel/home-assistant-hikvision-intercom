@@ -612,8 +612,44 @@ export const styles = css`
   .camera-dialog {
     width: min(1050px, calc(100vw - 24px));
   }
+  .camera-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 24px);
+  }
+  .camera-dialog .dialog-head,
+  .camera-dialog .dialog-foot {
+    flex-shrink: 0;
+  }
   .camera-dialog .dialog-body {
-    max-height: 75vh;
+    min-height: 0;
+    max-height: none;
+  }
+  .camera-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+    gap: 20px;
+    align-items: start;
+  }
+  .camera-video,
+  .camera-controls {
+    min-width: 0;
+  }
+  .camera-video {
+    position: sticky;
+    top: 0;
+  }
+  .camera-video hikvision-intercom-camera {
+    width: 100%;
+  }
+  @media (max-width: 850px) {
+    .camera-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+    .camera-video {
+      position: static;
+    }
   }
   .loader {
     padding: 70px;

@@ -2262,6 +2262,19 @@ export class IntercomManagerPanel extends LitElement {
       </ul>
       ${[review.deletion_pending ? "delete" : "central", ...(!review.deletion_pending ? ["device"] : [])].map((action) => (review.actions[action]?.reason ? html`<p class="notice error">${this.t(action === "delete" ? "resolve_delete" : action)}: ${this.t(review.actions[action].reason!)}</p>` : nothing))} `;
   }
+  private cameraBody(station: Station) {
+    return html`<div class="camera-layout">
+      <div class="camera-video">${this.camera(station, true)}</div>
+      <div class="camera-controls">
+        ${this.callControls(station)}
+        <hikvision-intercom-audio-controls
+          .hass=${this.hass}
+          .station=${station}
+        ></hikvision-intercom-audio-controls>
+        ${this.releaseFeedback(station)}
+      </div>
+    </div>`;
+  }
   private dialogView() {
     if (!this._dialog) return nothing;
     const cameraStation = this._data?.stations.find(
@@ -2299,7 +2312,7 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}<hikvision-intercom-audio-controls .hass=${this.hass} .station=${cameraStation}></hikvision-intercom-audio-controls>${this.callControls(cameraStation)}${this.releaseFeedback(cameraStation)}` : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? this.cameraBody(cameraStation) : nothing}
       </div>
       <div class="dialog-foot">
         ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}

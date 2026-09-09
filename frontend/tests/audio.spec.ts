@@ -215,3 +215,77 @@ test("HA reconnect cannot automatically reopen a microphone session", async ({ p
   );
   expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
 });
+
+test("moving keyboard focus releases the microphone without needing keyup", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
+  await page.keyboard.down("Space");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).audio.sent.length))
+    .toBeGreaterThan(0);
+  await page.keyboard.press("Tab");
+  await expect.poll(() => page.evaluate(() => (window as any).audio.stopped)).toBe(1);
+  await expect(audio.getByRole("button", { name: "Hold to talk", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await page.keyboard.up("Space");
+});
+
+for (const operation of ["receive", "send", "mute"]) {
+  test(`a lost ${operation} response closes the session and late results cannot restart it`, async ({
+    page,
+  }) => {
+    const audio = await setup(page);
+    await page.evaluate((operation) => {
+      const base = window.demoHass.callWS.bind(window.demoHass);
+      window.demoHass.callWS = async (message: any) => {
+        if (message.type === "hikvision_intercom/audio/" + operation)
+          return await new Promise((r) => ((window as any).audio.late = r));
+        return base(message);
+      };
+    }, operation);
+    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    await expect(audio).toContainText("Audio connected");
+    if (operation !== "receive") {
+      await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
+      await page.keyboard.down("Space");
+      await expect.poll(() => page.evaluate(() => (window as any).audio.microphones)).toBe(1);
+      if (operation === "mute") await page.keyboard.up("Space");
+    }
+    await expect
+      .poll(() => page.evaluate(() => typeof (window as any).audio.late))
+      .toBe("function");
+    await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled({
+      timeout: 8000,
+    });
+    await page.evaluate(() =>
+      (window as any).audio.late({ data: btoa("\xff".repeat(800)), sequence: 1 }),
+    );
+    await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+    expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
+    if (operation !== "receive")
+      expect(await page.evaluate(() => (window as any).audio.stopped)).toBe(1);
+    await page.keyboard.up("Space");
+  });
+}
+
+test("browser audio suspension releases active microphone and requires explicit restart", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
+  await page.keyboard.down("Space");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).audio.sent.length))
+    .toBeGreaterThan(0);
+  await audio.evaluate(async (node: any) => {
+    await node.context.suspend();
+  });
+  await expect(audio).toContainText("Audio was interrupted by the browser");
+  await expect.poll(() => page.evaluate(() => (window as any).audio.stopped)).toBe(1);
+  expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
+  await page.keyboard.up("Space");
+});

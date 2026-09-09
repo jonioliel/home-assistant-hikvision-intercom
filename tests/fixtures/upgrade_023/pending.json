@@ -1,0 +1,618 @@
+{
+  "source": {
+    "version": "0.23.0-alpha.1",
+    "commit": "bb2c9a6a1bcc5234750bb87dfcfee2dfa2cae45f",
+    "synthetic": true
+  },
+  "store": {
+    "version": 1,
+    "minor_version": 1,
+    "key": "hikvision_intercom.users",
+    "data": {
+      "schema": 3,
+      "fingerprint_key": "7012c2bdad0c1f6bff3314e463ea3299a7dac95ff8cdefab04363afc306c38b6",
+      "users": {
+        "62512dc1-a312-4209-a991-df47e3307a19": {
+          "id": "62512dc1-a312-4209-a991-df47e3307a19",
+          "employee_no": "1001",
+          "display_name": "Upgrade Resident",
+          "active": true,
+          "user_type": "normal",
+          "valid_from": null,
+          "valid_until": null,
+          "pin": "654322",
+          "cards": [],
+          "assignments": {
+            "a": {
+              "config_entry_id": "a",
+              "enabled": true,
+              "allowed_locks": [
+                1
+              ],
+              "schedule_template": null,
+              "desired_revision": 2,
+              "applied_revision": 2,
+              "sync_state": "synced",
+              "last_sync_at": "2026-09-09T20:11:39+00:00",
+              "last_error": null
+            },
+            "b": {
+              "config_entry_id": "b",
+              "enabled": true,
+              "allowed_locks": [
+                1
+              ],
+              "schedule_template": null,
+              "desired_revision": 2,
+              "applied_revision": 1,
+              "sync_state": "syncing",
+              "last_sync_at": null,
+              "last_error": null
+            }
+          },
+          "revision": 2,
+          "created_at": "2026-09-09T20:11:39+00:00",
+          "updated_at": "2026-09-09T20:11:39+00:00",
+          "identity_locked": true
+        },
+        "cad64d4d-3214-4120-b13f-d0677e66cd48": {
+          "id": "cad64d4d-3214-4120-b13f-d0677e66cd48",
+          "employee_no": "1003",
+          "display_name": "Bulk resident",
+          "active": false,
+          "user_type": "normal",
+          "valid_from": null,
+          "valid_until": null,
+          "pin": null,
+          "cards": [],
+          "assignments": {},
+          "revision": 2,
+          "created_at": "2026-09-09T20:11:39+00:00",
+          "updated_at": "2026-09-09T20:11:39+00:00",
+          "identity_locked": false
+        }
+      },
+      "bindings": {
+        "a": {
+          "62512dc1-a312-4209-a991-df47e3307a19": {
+            "employee_no": "1001",
+            "fingerprint": "cf58eafc84876d4d1476c324dd780a37c59a306033252160e202c0f740375a46",
+            "intent": null,
+            "adopted": false,
+            "sync_state": "synced",
+            "last_error": null
+          }
+        },
+        "b": {
+          "62512dc1-a312-4209-a991-df47e3307a19": {
+            "employee_no": "1001",
+            "fingerprint": "5ae94d4f6cebbbc0fac235faff5d6fe4d740e117971564843b5ae574a07c1c33",
+            "intent": null,
+            "adopted": false,
+            "sync_state": "syncing",
+            "last_error": null
+          },
+          "8e371be0-600d-451c-9d65-01572d01319a": {
+            "employee_no": "1002",
+            "fingerprint": "cce9194fbccd72c59e9d7d2402cf0914e9b12ad34892443d48e941ccef81edc1",
+            "intent": null,
+            "adopted": false,
+            "sync_state": "syncing",
+            "last_error": null
+          }
+        }
+      },
+      "tombstones": {
+        "8e371be0-600d-451c-9d65-01572d01319a": {
+          "user_id": "8e371be0-600d-451c-9d65-01572d01319a",
+          "employee_no": "1002",
+          "targets": [
+            "a",
+            "b"
+          ],
+          "confirmed": [
+            "a"
+          ],
+          "created_at": "2026-09-09T20:11:39+00:00",
+          "stations": {
+            "a": {
+              "sync_state": "synced",
+              "last_error": null
+            },
+            "b": {
+              "sync_state": "syncing",
+              "last_error": null
+            }
+          },
+          "record": {
+            "id": "8e371be0-600d-451c-9d65-01572d01319a",
+            "employee_no": "1002",
+            "display_name": "Pending removal",
+            "active": true,
+            "user_type": "normal",
+            "valid_from": null,
+            "valid_until": null,
+            "pin": "771122",
+            "cards": [
+              {
+                "id": "8099f552-a920-4657-bea5-c55ada9a4932",
+                "card_no": "0000223456",
+                "label": "",
+                "card_type": "normalCard",
+                "enabled": true
+              }
+            ],
+            "assignments": {
+              "a": {
+                "config_entry_id": "a",
+                "enabled": true,
+                "allowed_locks": [
+                  1
+                ],
+                "schedule_template": null,
+                "desired_revision": 1,
+                "applied_revision": 1,
+                "sync_state": "synced",
+                "last_sync_at": "2026-09-09T20:11:39+00:00",
+                "last_error": null
+              },
+              "b": {
+                "config_entry_id": "b",
+                "enabled": true,
+                "allowed_locks": [
+                  1
+                ],
+                "schedule_template": null,
+                "desired_revision": 1,
+                "applied_revision": 1,
+                "sync_state": "synced",
+                "last_sync_at": "2026-09-09T20:11:39+00:00",
+                "last_error": null
+              }
+            },
+            "revision": 1,
+            "created_at": "2026-09-09T20:11:39+00:00",
+            "updated_at": "2026-09-09T20:11:39+00:00",
+            "identity_locked": true
+          }
+        }
+      },
+      "ignored": {},
+      "retired_cards": {
+        "45122bea-6a16-4fa2-bf14-2984dc1f3380": {
+          "user_id": "62512dc1-a312-4209-a991-df47e3307a19",
+          "card_no": "0000123456",
+          "targets": [
+            "a",
+            "b"
+          ],
+          "confirmed": [
+            "a"
+          ]
+        }
+      },
+      "retired_pins": {
+        "8d409d70-40ef-4388-b784-5f176114099e": {
+          "user_id": "62512dc1-a312-4209-a991-df47e3307a19",
+          "pin": "654321",
+          "targets": [
+            "a",
+            "b"
+          ],
+          "confirmed": [
+            "a"
+          ]
+        }
+      },
+      "admin_audit": {
+        "next": 7,
+        "records": [
+          {
+            "sequence": 1,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "users/create",
+            "user_id": "62512dc1-a312-4209-a991-df47e3307a19",
+            "stations": [
+              "a",
+              "b"
+            ],
+            "fields": [
+              "active",
+              "assignments",
+              "cards",
+              "display_name",
+              "employee_no",
+              "pin",
+              "user_type"
+            ],
+            "before": null,
+            "after": {
+              "display_name": "Upgrade Resident",
+              "employee_no": "1001",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": true,
+              "card_count": 1,
+              "enabled_cards": 1,
+              "assignments": {
+                "a": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                },
+                "b": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                }
+              }
+            },
+            "revision_before": null,
+            "revision_after": 1
+          },
+          {
+            "sequence": 2,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "users/create",
+            "user_id": "8e371be0-600d-451c-9d65-01572d01319a",
+            "stations": [
+              "a",
+              "b"
+            ],
+            "fields": [
+              "active",
+              "assignments",
+              "cards",
+              "display_name",
+              "employee_no",
+              "pin",
+              "user_type"
+            ],
+            "before": null,
+            "after": {
+              "display_name": "Pending removal",
+              "employee_no": "1002",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": true,
+              "card_count": 1,
+              "enabled_cards": 1,
+              "assignments": {
+                "a": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                },
+                "b": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                }
+              }
+            },
+            "revision_before": null,
+            "revision_after": 1
+          },
+          {
+            "sequence": 3,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "users/create",
+            "user_id": "cad64d4d-3214-4120-b13f-d0677e66cd48",
+            "stations": [],
+            "fields": [
+              "active",
+              "assignments",
+              "cards",
+              "display_name",
+              "employee_no",
+              "user_type"
+            ],
+            "before": null,
+            "after": {
+              "display_name": "Bulk resident",
+              "employee_no": "1003",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": false,
+              "card_count": 0,
+              "enabled_cards": 0,
+              "assignments": {}
+            },
+            "revision_before": null,
+            "revision_after": 1
+          },
+          {
+            "sequence": 4,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "users/update",
+            "user_id": "62512dc1-a312-4209-a991-df47e3307a19",
+            "stations": [
+              "a",
+              "b"
+            ],
+            "fields": [
+              "cards",
+              "pin"
+            ],
+            "before": {
+              "display_name": "Upgrade Resident",
+              "employee_no": "1001",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": true,
+              "card_count": 1,
+              "enabled_cards": 1,
+              "assignments": {
+                "a": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                },
+                "b": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                }
+              }
+            },
+            "after": {
+              "display_name": "Upgrade Resident",
+              "employee_no": "1001",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": true,
+              "card_count": 0,
+              "enabled_cards": 0,
+              "assignments": {
+                "a": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                },
+                "b": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                }
+              }
+            },
+            "revision_before": 1,
+            "revision_after": 2
+          },
+          {
+            "sequence": 5,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "users/delete",
+            "user_id": "8e371be0-600d-451c-9d65-01572d01319a",
+            "stations": [
+              "a",
+              "b"
+            ],
+            "fields": [
+              "active",
+              "assignments",
+              "cards",
+              "display_name",
+              "employee_no",
+              "pin",
+              "user_type"
+            ],
+            "before": {
+              "display_name": "Pending removal",
+              "employee_no": "1002",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": true,
+              "card_count": 1,
+              "enabled_cards": 1,
+              "assignments": {
+                "a": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                },
+                "b": {
+                  "enabled": true,
+                  "allowed_locks": [
+                    1
+                  ]
+                }
+              }
+            },
+            "after": null,
+            "revision_before": 1,
+            "revision_after": null
+          },
+          {
+            "sequence": 6,
+            "time": "2026-09-09T20:11:39+00:00",
+            "actor": "fixture-admin",
+            "action": "bulk/disable",
+            "user_id": "cad64d4d-3214-4120-b13f-d0677e66cd48",
+            "stations": [],
+            "fields": [
+              "active"
+            ],
+            "before": {
+              "display_name": "Bulk resident",
+              "employee_no": "1003",
+              "active": true,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": false,
+              "card_count": 0,
+              "enabled_cards": 0,
+              "assignments": {}
+            },
+            "after": {
+              "display_name": "Bulk resident",
+              "employee_no": "1003",
+              "active": false,
+              "user_type": "normal",
+              "valid_from": null,
+              "valid_until": null,
+              "pin_configured": false,
+              "card_count": 0,
+              "enabled_cards": 0,
+              "assignments": {}
+            },
+            "revision_before": 1,
+            "revision_after": 2
+          }
+        ]
+      },
+      "operation_receipts": {
+        "55ceedde4bd240679f79b08cad76e9b2": {
+          "operation_id": "55ceedde4bd240679f79b08cad76e9b2",
+          "actor": "fixture-admin",
+          "action": "bulk/disable",
+          "saved_at": "2026-09-09T20:11:39+00:00",
+          "user_ids": [
+            "cad64d4d-3214-4120-b13f-d0677e66cd48"
+          ],
+          "changed": 1,
+          "stations": []
+        }
+      }
+    }
+  },
+  "devices": {
+    "a": {
+      "users": {
+        "9999": {
+          "employeeNo": "9999",
+          "name": "Unmanaged fixture",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "1970-01-01T00:00:00",
+            "endTime": "2037-12-31T23:59:59",
+            "timeType": "local"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "localUIRight": false
+        },
+        "1001": {
+          "employeeNo": "1001",
+          "name": "Upgrade Resident",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "2000-01-01T00:00:00+00:00",
+            "endTime": "2030-01-01T00:00:00+00:00",
+            "timeType": "UTC"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "localUIRight": false,
+          "localPassword": "654322"
+        }
+      },
+      "cards": {}
+    },
+    "b": {
+      "users": {
+        "9999": {
+          "employeeNo": "9999",
+          "name": "Unmanaged fixture",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "1970-01-01T00:00:00",
+            "endTime": "2037-12-31T23:59:59",
+            "timeType": "local"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "localUIRight": false
+        },
+        "1001": {
+          "employeeNo": "1001",
+          "name": "Upgrade Resident",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "2000-01-01T00:00:00+00:00",
+            "endTime": "2030-01-01T00:00:00+00:00",
+            "timeType": "UTC"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "localUIRight": false,
+          "localPassword": "654321"
+        },
+        "1002": {
+          "employeeNo": "1002",
+          "name": "Pending removal",
+          "userType": "normal",
+          "Valid": {
+            "enable": false,
+            "beginTime": "2000-01-01T00:00:00+00:00",
+            "endTime": "2030-01-01T00:00:00+00:00",
+            "timeType": "UTC"
+          },
+          "doorRight": "1",
+          "RightPlan": [],
+          "localUIRight": false,
+          "localPassword": "771122"
+        }
+      },
+      "cards": {
+        "0000123456": {
+          "employeeNo": "1001",
+          "cardNo": "0000123456",
+          "cardType": "normalCard"
+        },
+        "0000223456": {
+          "employeeNo": "1002",
+          "cardNo": "0000223456",
+          "cardType": "normalCard"
+        }
+      }
+    }
+  },
+  "expected": {
+    "resident": "62512dc1-a312-4209-a991-df47e3307a19",
+    "departing": "8e371be0-600d-451c-9d65-01572d01319a",
+    "inactive": "cad64d4d-3214-4120-b13f-d0677e66cd48",
+    "receipt": {
+      "operation_id": "55ceedde4bd240679f79b08cad76e9b2",
+      "actor": "fixture-admin",
+      "action": "bulk/disable",
+      "saved_at": "2026-09-09T20:11:39+00:00",
+      "user_ids": [
+        "cad64d4d-3214-4120-b13f-d0677e66cd48"
+      ],
+      "changed": 1,
+      "stations": []
+    }
+  }
+}

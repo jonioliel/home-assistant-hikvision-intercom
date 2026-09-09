@@ -1,6 +1,7 @@
 """Audio framing, identity, cleanup and flow control without a physical station."""
 
 import asyncio
+import time
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -228,7 +229,7 @@ async def test_cancelling_receive_does_not_consume_future_packets(audio):
     await asyncio.sleep(0)
     task.cancel()
     await asyncio.gather(task, return_exceptions=True)
-    audio.incoming.put_nowait(b"x" * 800)
+    audio.incoming.put_nowait((time.monotonic(), b"x" * 800))
     assert await audio.receive() == b"x" * 800
 
 
@@ -257,7 +258,10 @@ async def test_transmitter_drops_stale_packets_and_mutes_the_next_frame(audio, s
             second.set()
 
     audio._writer = SimpleNamespace(
-        write=write, drain=AsyncMock(), close=lambda: None, wait_closed=AsyncMock()
+        write=write,
+        drain=AsyncMock(),
+        transport=SimpleNamespace(abort=lambda: None),
+        wait_closed=AsyncMock(),
     )
     audio.session_id = "owned"
     audio.outgoing.put_nowait((time.monotonic() - (1 if stale else 0), b"\x00" * 800))
@@ -271,3 +275,64 @@ async def test_transmitter_drops_stale_packets_and_mutes_the_next_frame(audio, s
     finally:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
+
+
+async def test_receive_discards_packets_aged_during_browser_network_pause(audio):
+    audio.session_id = "owned"
+    audio.incoming.put_nowait((time.monotonic() - 1, b"old!" * 200))
+    audio.incoming.put_nowait((time.monotonic(), b"live" * 200))
+    assert await audio.receive() == b"live" * 200
+    assert audio.dropped_packets == 1
+    assert audio.incoming.empty()
+
+
+async def test_slow_trickle_cannot_keep_an_incomplete_receive_packet_alive(audio):
+    class Trickle(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            while True:
+                yield b"x"
+                await asyncio.sleep(0.005)
+
+    await audio.http.aclose()
+    audio.http = httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda r: httpx.Response(
+                200, headers={"content-type": "application/octet-stream"}, stream=Trickle()
+            )
+        )
+    )
+    audio.session_id = "owned"
+    with patch("custom_components.hikvision_intercom.client.audio.RECEIVE_TIMEOUT", 0.04):
+        await asyncio.wait_for(audio._guard(audio._receive), 1)
+    assert audio.failure == "audio_connection_lost"
+    assert audio.incoming.empty()
+
+
+async def test_blocked_upload_stops_without_replaying_or_draining_speech_on_close(audio):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    async def blocked():
+        await asyncio.Event().wait()
+
+    writer = SimpleNamespace(write=Mock(), drain=blocked, transport=Mock(), wait_closed=AsyncMock())
+    audio._writer = writer
+    audio.session_id = "owned"
+    audio.control._request.side_effect = [CLOSE]
+    audio.send(b"x" * 800)
+    with patch("custom_components.hikvision_intercom.client.audio.WRITE_TIMEOUT", 0.03):
+        await asyncio.wait_for(audio._guard(audio._transmit), 1)
+    assert audio.failure == "audio_connection_lost"
+    assert writer.write.call_args.args == (b"x" * 160,)
+    writer.write.assert_called_once()
+    assert audio.sent_bytes == 0
+    await audio.close()
+    writer.transport.abort.assert_called_once()
+    assert audio.close_confirmed and audio.outgoing.empty()
+
+
+async def test_receive_does_not_return_queued_speech_after_transport_failure(audio):
+    audio.incoming.put_nowait((time.monotonic(), b"x" * 800))
+    audio.failure = "audio_connection_lost"
+    with pytest.raises(AudioError):
+        await audio.receive()

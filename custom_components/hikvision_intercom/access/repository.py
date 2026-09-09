@@ -107,6 +107,16 @@ class AccessRepository:
                 validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
                 self._validate_journal(normalized)
                 self._validate_collisions(normalized)
+                # No worker survives a process restart. Keep ownership/removal intent,
+                # but reset all transient views, including deleted users' station rows.
+                for bindings in normalized["bindings"].values():
+                    for binding in bindings.values():
+                        if binding.get("sync_state") == "syncing":
+                            binding["sync_state"] = "pending"
+                for tombstone in normalized["tombstones"].values():
+                    for station in tombstone.get("stations", {}).values():
+                        if station.get("sync_state") == "syncing":
+                            station["sync_state"] = "pending"
             except (KeyError, TypeError, ValueError, AttributeError):
                 raise AccessError("invalid_storage") from None
             if migrated:

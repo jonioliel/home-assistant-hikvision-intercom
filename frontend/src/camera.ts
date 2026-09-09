@@ -87,6 +87,48 @@ export class IntercomCamera extends LitElement {
       font: inherit;
       font-size: 12px;
     }
+    button {
+      font: inherit;
+      border: 1px solid #ffffff60;
+      border-radius: 8px;
+      background: #18383e;
+      color: #fff;
+      min-height: 36px;
+      cursor: pointer;
+    }
+    .player-error {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      color: #edf6f6;
+      text-align: center;
+      overflow: auto;
+    }
+    .player-error p {
+      height: auto;
+      display: block;
+      font-size: 14px;
+    }
+    .player-error small {
+      max-width: 45ch;
+    }
+    .player-error .actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .player-error button {
+      padding: 8px 12px;
+    }
+    .player-error .playback-export {
+      position: static;
+    }
     p {
       height: 100%;
       margin: 0;
@@ -309,18 +351,21 @@ export class IntercomCamera extends LitElement {
     if (this.live && !this._documentVisible) return html`<p>${this.t("player_suspended")}</p>`;
     if (this.live && !this._networkOnline) return html`<p>${this.t("player_network_offline")}</p>`;
     if (this.live && this._failed)
-      return html`<p>
-        ${this.t("player_failed")}<small>${this.t("player_reason_" + this._fallbackReason)}</small
-        ><button
-          @click=${() => {
+      return html`<div class="player-error" role="status">
+        <p>${this.t("player_failed")}</p>
+        <small>${this.t("player_reason_" + this._fallbackReason)}</small>
+        <div class="actions">
+          <button
+            @click=${() => {
             this.stop();
             this._failed = false;
             void this.start();
           }}
-        >
-          ${this.t("player_retry")}</button
-        >${this.exportButton()}
-      </p>`;
+          >
+            ${this.t("player_retry")}</button
+          >${this.exportButton()}
+        </div>
+      </div>`;
     if (!this.entity || !this._visible || this._failed) return html`<p>${this.label}</p>`;
     if (this.live)
       return html`<video

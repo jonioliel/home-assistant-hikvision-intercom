@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import re
+import socket
 import ssl
 import time
 from collections.abc import Awaitable, Callable
@@ -27,6 +28,9 @@ CHANNEL = "/ISAPI/System/TwoWayAudio/channels/1"
 SAMPLE_RATE = 8000
 FRAME_BYTES = 160
 PACKET_BYTES = 800
+MAX_PACKET_AGE = 0.3
+WRITE_TIMEOUT = 0.5
+RECEIVE_TIMEOUT = 5.0
 SILENCE = b"\xff" * FRAME_BYTES
 
 
@@ -94,7 +98,7 @@ class AudioSession:
         self.session_id: str | None = None
         self.failure: str | None = None
         self.close_confirmed: bool | None = None
-        self.incoming: asyncio.Queue[bytes] = asyncio.Queue(maxsize=3)
+        self.incoming: asyncio.Queue[tuple[float, bytes]] = asyncio.Queue(maxsize=3)
         self.outgoing: asyncio.Queue[tuple[float, bytes]] = asyncio.Queue(maxsize=3)
         self._tasks: list[asyncio.Task[None]] = []
         self._writer: asyncio.StreamWriter | None = None
@@ -177,6 +181,12 @@ class AudioSession:
                 server_hostname=settings.host if self.tls else None,
                 limit=8192,
             )
+            # Bound user-space buffering and request a small kernel send buffer.
+            # OS minimums/TCP buffering vary: this is not an end-to-end latency guarantee.
+            self._writer.transport.set_write_buffer_limits(high=1600, low=800)
+            sock = self._writer.get_extra_info("socket")
+            if sock is not None:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1600)
             # ISAPI 10.1: persistent binary upload, without Content-Length.
             # HTTP chunk framing would insert non-audio bytes in this firmware's stream.
             authority = httpx.URL(settings.base_url).netloc.decode("ascii")
@@ -228,14 +238,17 @@ class AudioSession:
                 "application/octem-strem",
             }:
                 raise AudioError("audio_connection_lost")
-            async for packet in response.aiter_bytes(PACKET_BYTES):
-                if len(packet) != PACKET_BYTES:
-                    raise AudioError("audio_connection_lost")
-                self.received_bytes += len(packet)
-                if self.incoming.full():
-                    self.incoming.get_nowait()
-                    self.dropped_packets += 1
-                self.incoming.put_nowait(packet)
+            # Limit time to a complete packet, including a peer trickling bytes.
+            async with asyncio.timeout(RECEIVE_TIMEOUT) as watchdog:
+                async for packet in response.aiter_bytes(PACKET_BYTES):
+                    if len(packet) != PACKET_BYTES:
+                        raise AudioError("audio_connection_lost")
+                    self.received_bytes += len(packet)
+                    if self.incoming.full():
+                        self.incoming.get_nowait()
+                        self.dropped_packets += 1
+                    self.incoming.put_nowait((time.monotonic(), packet))
+                    watchdog.reschedule(asyncio.get_running_loop().time() + RECEIVE_TIMEOUT)
 
     async def _transmit(self) -> None:
         pending = b""
@@ -257,7 +270,7 @@ class AudioSession:
             pending = pending[FRAME_BYTES:]
             if self._writer is None:
                 raise AudioError("audio_connection_lost")
-            async with asyncio.timeout(2):
+            async with asyncio.timeout(WRITE_TIMEOUT):
                 self._writer.write(frame)
                 await self._writer.drain()
             self.sent_bytes += len(frame)
@@ -286,7 +299,13 @@ class AudioSession:
             raise AudioError("audio_connection_lost")
         try:
             async with asyncio.timeout(2):
-                return await self.incoming.get()
+                while True:
+                    received, packet = await self.incoming.get()
+                    if self._closed or self.failure:
+                        raise AudioError("audio_connection_lost")
+                    if time.monotonic() - received <= MAX_PACKET_AGE:
+                        return packet
+                    self.dropped_packets += 1
         except TimeoutError:
             return b""
 
@@ -305,7 +324,9 @@ class AudioSession:
                 task.cancel()
             await asyncio.gather(*self._tasks, return_exceptions=True)
             if self._writer:
-                self._writer.close()
+                # Stop drops queued microphone frames instead of flushing old speech.
+                # Bytes already accepted by the peer cannot be recalled.
+                self._writer.transport.abort()
                 with contextlib.suppress(Exception):
                     async with asyncio.timeout(2):
                         await self._writer.wait_closed()

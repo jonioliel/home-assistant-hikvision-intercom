@@ -92,6 +92,11 @@ export class IntercomAudioControls extends LitElement {
   private sending = false;
   private nextPlayback = 0;
   private sources = new Set<AudioBufferSourceNode>();
+  private pendingRequests = new Set<() => void>();
+  private audioStateChanged = () => {
+    if (this._state === "listening" && this.context?.state !== "running")
+      this.stop("audio_playback_interrupted");
+  };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   private onVisibility = () => {
     if (document.hidden) this.stop();
@@ -146,6 +151,7 @@ export class IntercomAudioControls extends LitElement {
     try {
       const context = new AudioContext({ sampleRate: 8000 });
       this.context = context;
+      context.addEventListener("statechange", this.audioStateChanged);
       if (context.sampleRate !== 8000) throw new Error("unsupported");
       await context.resume();
       if (!this.valid(epoch)) return;
@@ -157,6 +163,10 @@ export class IntercomAudioControls extends LitElement {
           } else if (event.token && event.sample_rate === 8000 && event.packet_bytes === 800) {
             clearTimeout(this.openingTimeout);
             this.openingTimeout = undefined;
+            if (context.state !== "running") {
+              this.stop("audio_playback_interrupted");
+              return;
+            }
             this.token = event.token;
             this._state = "listening";
             void this.receive(epoch);
@@ -180,10 +190,28 @@ export class IntercomAudioControls extends LitElement {
       ? code
       : "audio_connection_lost";
   }
+  /** A lost RPC stops this session; it is never retried with old speech. */
+  private request<T>(message: Record<string, unknown>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const cancel = () => {
+        clearTimeout(timer);
+        this.pendingRequests.delete(cancel);
+        reject(new Error("audio_connection_lost"));
+      };
+      const timer = setTimeout(cancel, 5000);
+      this.pendingRequests.add(cancel);
+      void this.hass!.callWS<T>(message)
+        .then(resolve, reject)
+        .finally(() => {
+          clearTimeout(timer);
+          this.pendingRequests.delete(cancel);
+        });
+    });
+  }
   private async receive(epoch: number) {
     while (this.valid(epoch) && this.token) {
       try {
-        const result = await this.hass!.callWS<{ data: string }>({
+        const result = await this.request<{ data: string }>({
           type: "hikvision_intercom/audio/receive",
           token: this.token,
         });
@@ -236,6 +264,7 @@ export class IntercomAudioControls extends LitElement {
       return;
     this.pressed = true;
     this._micPending = true;
+    this._error = "";
     const epoch = this.epoch,
       micEpoch = ++this.micEpoch,
       context = this.context!;
@@ -290,7 +319,7 @@ export class IntercomAudioControls extends LitElement {
     this.sending = true;
     try {
       const data = btoa(String.fromCharCode(...packet));
-      const result = await this.hass!.callWS<{ sequence: number }>({
+      const result = await this.request<{ sequence: number }>({
         type: "hikvision_intercom/audio/send",
         token: this.token,
         sequence: this.sequence,
@@ -321,11 +350,9 @@ export class IntercomAudioControls extends LitElement {
     this.stream = undefined;
     if (this.token) {
       const epoch = this.epoch;
-      void this.hass
-        ?.callWS({ type: "hikvision_intercom/audio/mute", token: this.token })
-        .catch(() => {
-          if (this.valid(epoch)) this.stop("audio_connection_lost");
-        });
+      void this.request({ type: "hikvision_intercom/audio/mute", token: this.token }).catch(() => {
+        if (this.valid(epoch)) this.stop("audio_connection_lost");
+      });
     }
   }
   private cancelSubscription(unsubscribe: () => void) {
@@ -347,6 +374,8 @@ export class IntercomAudioControls extends LitElement {
     this.unsubscribe = undefined;
     if (unsubscribe) this.cancelSubscription(unsubscribe);
     this.clearPlayback();
+    for (const cancel of this.pendingRequests) cancel();
+    this.context?.removeEventListener("statechange", this.audioStateChanged);
     void this.context?.close().catch(() => undefined);
     this.context = undefined;
     this.workletLoaded = false;
@@ -373,6 +402,7 @@ export class IntercomAudioControls extends LitElement {
                     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                     void this.talk();
                   }}
+                  @blur=${() => this.releaseTalk()}
                   @pointerup=${() => this.releaseTalk()}
                   @pointercancel=${() => this.releaseTalk()}
                   @lostpointercapture=${() => {
