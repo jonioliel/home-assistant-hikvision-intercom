@@ -549,3 +549,16 @@ release controls and Hebrew mobile layout. Final CI results are recorded after t
 
 Full local Chromium suite: **96 passed**. TypeScript, Prettier and frontend build passed after
 version preparation. Ruff lint/format passed. Total local cases: **727 = 631 + 96**.
+
+### Verified GitHub checks on release code `2ec180c`
+
+- Python 3.12 and 3.14: **631 passed** each, counted once; Ruff lint/format passed.
+- Strict mypy: **41 source files**, no issues.
+- Home Assistant 2026.9.1 / Python 3.14: **188 passed**, ConfigFlow **100%** line coverage.
+- Chromium: **96 passed**; TypeScript, Prettier and reproducible frontend build passed.
+- [Python/HA/frontend run34319854908](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34319854908), [HACS34319854797](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34319854797), and [Hassfest34319854750](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34319854750) all succeeded.
+- Total unique suite cases: **915 = 631 + 188 + 96**.
+
+The exact passed code was merged to main and submitted once to gated release run
+[34320132238](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34320132238).
+The release workflow reruns all gates before creating the tag. Physical gates remain unverified.

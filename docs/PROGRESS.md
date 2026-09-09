@@ -303,3 +303,8 @@ an external weekly reference, three users with unknown defaults and unchanged ob
 local save/reload/recheck. Zero station writes occurred. Applying schedules, assigning users,
 verified write recovery and physical enforcement remain open. Mandatory acceptance stays 28/38;
 Phase 5 remains 8/9; Phase 6 has 3 implemented, 2 partial and 4 unimplemented extensions.
+
+0.18 release code `2ec180c` passed all branch gates: **915 tests** (631 protocol/access,
+188 actual HA, 96 browser), ConfigFlow100%, strict mypy41 modules, Ruff, TypeScript, Prettier,
+reproducible build, HACS and Hassfest. Release run34320132238 targets that exact merged SHA.
+Tasks `b0ce799`, `2466517` and `ace3df8` are complete; physical acceptance remains unchanged.
