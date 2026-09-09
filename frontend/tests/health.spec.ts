@@ -206,3 +206,82 @@ test("Hebrew health on mobile has no horizontal overflow", async ({ page }) => {
   ).toBeFalsy();
   await page.screenshot({ path: "test-results/health-he-mobile.png", fullPage: true });
 });
+
+test("a lost health call command stops waiting and requires an explicit state refresh", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      const result = await base.call(this, message);
+      if (message.type.endsWith("media/signal"))
+        return await new Promise((resolve) => (window.healthLateSignal = () => resolve(result)));
+      return result;
+    };
+  });
+  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  const card = page.locator(".health-card").first();
+  await card.getByText("Call signaling", { exact: true }).click();
+  await page.clock.install();
+  await card.getByRole("button", { name: "Reject signal", exact: true }).click();
+  await page.clock.fastForward(41000);
+  await expect(card).toContainText("Command result could not be verified");
+  await expect(card.getByRole("button", { name: "Refresh call state", exact: true })).toBeEnabled();
+  await page.evaluate(() => window.healthLateSignal());
+  await expect(card).not.toContainText("Command acknowledged");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
+  ).toBe(1);
+});
+
+test("a pending health call command remains owned by its station after switching to Overview", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      const result = await base.call(this, message);
+      if (message.type.endsWith("media/signal"))
+        return await new Promise((resolve) => (window.healthLateSignal = () => resolve(result)));
+      return result;
+    };
+  });
+  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  const card = page.locator(".health-card").first();
+  await card.getByText("Call signaling", { exact: true }).click();
+  await card.getByRole("button", { name: "Reject signal", exact: true }).click();
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  const controls = page.locator("hikvision-intercom-call-controls").first();
+  await expect(controls.getByRole("button", { name: "Answer signal", exact: true })).toBeDisabled();
+  await page.evaluate(() => window.healthLateSignal());
+  await expect(controls.getByRole("button", { name: "Answer signal", exact: true })).toBeEnabled();
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
+  ).toBe(1);
+});
+
+test("health reads call state only after opening that station's call controls", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  const health = page.locator("hikvision-intercom-health");
+  await expect(
+    health.getByRole("button", { name: "Export compatibility report", exact: true }).last(),
+  ).toBeEnabled();
+  await expect(health.locator("hikvision-intercom-call-controls")).toHaveCount(0);
+  const count = () =>
+    page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/call")).length);
+  const before = await count();
+  const first = health.locator(".health-card").first();
+  await first.getByText("Call signaling", { exact: true }).click();
+  await expect(first.getByRole("button", { name: "Reject signal", exact: true })).toBeEnabled();
+  expect(await count()).toBe(before + 1);
+  await first.getByText("Call signaling", { exact: true }).click();
+  await expect(health.locator("hikvision-intercom-call-controls")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
+  ).toBe(0);
+});

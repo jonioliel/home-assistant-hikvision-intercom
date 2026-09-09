@@ -1242,17 +1242,18 @@ export class IntercomManagerPanel extends LitElement {
       void this.refresh();
     }
   }
+  private setCallBusy = (stationId: string, busy: boolean) => {
+    const next = new Set(this._callBusy);
+    busy ? next.add(stationId) : next.delete(stationId);
+    this._callBusy = next;
+  };
   private callControls(station: Station, compact = false) {
     return html`<hikvision-intercom-call-controls
       .hass=${this.hass}
       .station=${station}
       .compact=${compact}
       .blocked=${this._callBusy.has(station.id)}
-      .onBusy=${(stationId: string, busy: boolean) => {
-        const next = new Set(this._callBusy);
-        busy ? next.add(stationId) : next.delete(stationId);
-        this._callBusy = next;
-      }}
+      .onBusy=${this.setCallBusy}
     ></hikvision-intercom-call-controls>`;
   }
   private camera(station: Station, live = false) {
@@ -2550,6 +2551,8 @@ export class IntercomManagerPanel extends LitElement {
                         ></hikvision-admin-audit>`
                       : this._tab === "health"
                         ? html`<hikvision-intercom-health
+                            .callBusy=${this._callBusy}
+                            .onCallBusy=${this.setCallBusy}
                             .hass=${this.hass}
                             .stations=${this._data.stations}
                           ></hikvision-intercom-health>`

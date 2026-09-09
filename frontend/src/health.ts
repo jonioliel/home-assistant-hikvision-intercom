@@ -5,7 +5,7 @@ import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
 import { downloadText } from "./download";
 import { boundedRequest } from "./request";
-import { callResultText, type CallResult } from "./call-controls";
+import "./call-controls";
 import type { Hass, Station } from "./types";
 
 interface HealthRead {
@@ -86,6 +86,9 @@ export class IntercomHealth extends LitElement {
   ];
   static properties = {
     hass: { attribute: false },
+    callBusy: { attribute: false },
+    onCallBusy: { attribute: false },
+    _callDetails: { state: true },
     stations: { attribute: false },
     _reports: { state: true },
     _busy: { state: true },
@@ -96,6 +99,9 @@ export class IntercomHealth extends LitElement {
     _haConnected: { state: true },
   };
   hass?: Hass;
+  callBusy: ReadonlySet<string> = new Set();
+  onCallBusy?: (station: string, busy: boolean) => void;
+  private _callDetails = new Set<string>();
   stations: Station[] = [];
   private _reports: Record<string, Health> = {};
   private _busy = new Set<string>();
@@ -173,6 +179,7 @@ export class IntercomHealth extends LitElement {
     this.cancelPending();
     // Avoid an update loop after role loss.
     if (Object.keys(this._reports).length) this._reports = {};
+    if (this._callDetails.size) this._callDetails = new Set();
     if (Object.keys(this._acceptance).length) this._acceptance = {};
     if (Object.keys(this._errors).length) this._errors = {};
     if (Object.keys(this._fieldErrors).length) this._fieldErrors = {};
@@ -289,27 +296,6 @@ export class IntercomHealth extends LitElement {
       }
     }
   }
-  private async signal(id: string, command: string) {
-    if (!this.valid(this.epoch) || this._busy.has(id)) return;
-    const epoch = this.epoch;
-    this._busy = new Set([...this._busy, id]);
-    try {
-      const result = await this.hass!.callWS<CallResult>({
-        type: "hikvision_intercom/media/signal",
-        station_id: id,
-        command,
-      });
-      if (this.valid(epoch))
-        this._errors = { ...this._errors, [id]: callResultText(result, this.t) };
-    } catch {
-      if (this.valid(epoch)) this._errors = { ...this._errors, [id]: this.t("failed") };
-    } finally {
-      if (this.valid(epoch)) {
-        this._busy.delete(id);
-        this._busy = new Set(this._busy);
-      }
-    }
-  }
   private fieldView(station: Station) {
     const data = this._acceptance[station.id];
     if (!data) return nothing;
@@ -415,10 +401,26 @@ export class IntercomHealth extends LitElement {
       ${report?.generated_at ? html`<small>${formatTime(report.generated_at, this.hass?.language, station.clock?.zone ?? UTC_ZONE)}</small>` : nothing}
       ${
         report?.media
-          ? html`<details>
+          ? html`<details
+              .open=${this._callDetails.has(station.id)}
+              @toggle=${(event: Event) => {
+                const open = (event.currentTarget as HTMLDetailsElement).open;
+                const next = new Set(this._callDetails);
+                open ? next.add(station.id) : next.delete(station.id);
+                this._callDetails = next;
+              }}
+            >
               <summary>${this.t("media_signals")}</summary>
-              <p>${this.t("media_signal_hint")}</p>
-              ${report.media.call_commands?.map((command) => html`<button ?disabled=${!this._haConnected || this._busy.has(station.id) || !station.online || (command === "hangUp" ? station.call_state !== "in_call" : station.call_state !== "ringing")} @click=${() => this.signal(station.id, command)}>${this.t("media_" + command)}</button>`)}
+              ${
+                this._callDetails.has(station.id)
+                  ? html`<hikvision-intercom-call-controls
+                      .hass=${this.hass}
+                      .station=${station}
+                      .blocked=${this.callBusy.has(station.id)}
+                      .onBusy=${this.onCallBusy}
+                    ></hikvision-intercom-call-controls>`
+                  : nothing
+              }
               <p>
                 ${report.media.audio_channels?.map((c) => `${c.id}: ${c.codec} · ${c.enabled === true ? "enabled" : c.enabled === false ? "disabled" : "unknown"}`).join(" · ")}
               </p>
