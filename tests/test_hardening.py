@@ -58,11 +58,13 @@ async def test_migration_preserves_private_users_and_requires_durable_save():
     legacy = original.snapshot()
     legacy["schema"] = 1
     del legacy["retired_pins"]
+    del legacy["admin_audit"]
+    del legacy["operation_receipts"]
     save = AsyncMock()
     repo = AccessRepository(save)
     await repo.async_load(legacy)
     assert repo.get(user.id).pin.value == "847291"
-    assert repo.snapshot()["schema"] == 2 and repo.snapshot()["retired_pins"] == {}
+    assert repo.snapshot()["schema"] == 3 and repo.snapshot()["retired_pins"] == {}
     assert save.await_count == 1 and legacy["schema"] == 1
     failed = AccessRepository(AsyncMock(side_effect=OSError("disk full")))
     with pytest.raises(OSError):

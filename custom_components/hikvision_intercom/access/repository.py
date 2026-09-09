@@ -16,6 +16,7 @@ from copy import deepcopy
 from typing import Any, TypeVar
 from uuid import uuid4
 
+from .admin_audit import append_changes, current_actor, validate_storage
 from .models import AccessError, ManagedUser, build_user, utc_now
 
 T = TypeVar("T")
@@ -27,7 +28,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 2,
+            "schema": 3,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
             "bindings": {},
@@ -35,6 +36,8 @@ class AccessRepository:
             "ignored": {},
             "retired_cards": {},
             "retired_pins": {},
+            "admin_audit": {"next": 1, "records": []},
+            "operation_receipts": {},
         }
 
     async def async_load(self, data: dict[str, Any] | None) -> None:
@@ -43,11 +46,20 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            if data.get("schema") == 1 and set(data) == set(self._state) - {"retired_pins"}:
+            legacy_keys = set(self._state) - {"admin_audit", "operation_receipts"}
+            if data.get("schema") == 1 and set(data) == legacy_keys - {"retired_pins"}:
                 data = {**deepcopy(data), "schema": 2, "retired_pins": {}}
                 migrated = True
+            if data.get("schema") == 2 and set(data) == legacy_keys:
+                data = {
+                    **deepcopy(data),
+                    "schema": 3,
+                    "admin_audit": {"next": 1, "records": []},
+                    "operation_receipts": {},
+                }
+                migrated = True
             try:
-                if data.get("schema") != 2 or set(data) != set(self._state):
+                if data.get("schema") != 3 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -91,6 +103,7 @@ class AccessRepository:
                         or not isinstance(tombstone.get("employee_no"), str)
                     ):
                         raise AccessError("invalid_storage")
+                validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
                 self._validate_journal(normalized)
                 self._validate_collisions(normalized)
             except (KeyError, TypeError, ValueError, AttributeError):
@@ -165,14 +178,21 @@ class AccessRepository:
         return copied
 
     async def _commit(self, change: Callable[[dict[str, Any]], T], *, offload: bool = False) -> T:
+        actor, action = current_actor()
         async with self._lock:
 
             def prepare() -> tuple[dict[str, Any], T]:
                 candidate = deepcopy(self._state)
                 result = change(candidate)
                 self._validate_collisions(candidate)
+                append_changes(self._state, candidate, actor, action)
                 return candidate, result
 
+            offload = (
+                offload
+                or len(self._state["users"]) > 100
+                or len(self._state["admin_audit"]["records"]) > 100
+            )
             candidate, result = await asyncio.to_thread(prepare) if offload else prepare()
             if candidate != self._state:
                 saving = asyncio.ensure_future(self._save(deepcopy(candidate)))
@@ -393,43 +413,79 @@ class AccessRepository:
         return await self._commit(apply, offload=True)
 
     async def async_delete(self, user_id: str, *, expected_revision: int) -> None:
-        def delete(state: dict[str, Any]) -> None:
-            if user_id not in state["users"]:
-                raise AccessError("user_not_found")
-            record = state["users"][user_id]
-            if type(expected_revision) is not int or record["revision"] != expected_revision:
-                raise AccessError("revision_conflict")
-            targets = set(record["assignments"]) | {
-                station for station, bindings in state["bindings"].items() if user_id in bindings
-            }
-            targets |= {
-                station
-                for card in state["retired_cards"].values()
-                if card["user_id"] == user_id
-                for station in card["targets"]
-            }
-            targets |= {
-                station
-                for item in state["retired_pins"].values()
-                if item["user_id"] == user_id
-                for station in item["targets"]
-            }
-            if targets:
-                state["tombstones"][user_id] = {
-                    "user_id": user_id,
-                    "employee_no": record["employee_no"],
-                    "targets": sorted(targets),
-                    "confirmed": [],
-                    "created_at": utc_now(),
-                    "stations": {
-                        target: {"sync_state": "delete_pending", "last_error": None}
-                        for target in targets
-                    },
-                    "record": record,
-                }
-            del state["users"][user_id]
+        await self._commit(lambda state: self._delete_user(state, user_id, expected_revision))
 
-        await self._commit(delete)
+    def _delete_user(self, state: dict[str, Any], user_id: str, expected_revision: int) -> None:
+        if user_id not in state["users"]:
+            raise AccessError("user_not_found")
+        record = state["users"][user_id]
+        if type(expected_revision) is not int or record["revision"] != expected_revision:
+            raise AccessError("revision_conflict")
+        targets = set(record["assignments"]) | {
+            station for station, bindings in state["bindings"].items() if user_id in bindings
+        }
+        targets |= {
+            station
+            for card in state["retired_cards"].values()
+            if card["user_id"] == user_id
+            for station in card["targets"]
+        }
+        targets |= {
+            station
+            for item in state["retired_pins"].values()
+            if item["user_id"] == user_id
+            for station in item["targets"]
+        }
+        if targets:
+            state["tombstones"][user_id] = {
+                "user_id": user_id,
+                "employee_no": record["employee_no"],
+                "targets": sorted(targets),
+                "confirmed": [],
+                "created_at": utc_now(),
+                "stations": {
+                    target: {"sync_state": "delete_pending", "last_error": None}
+                    for target in targets
+                },
+                "record": record,
+            }
+        del state["users"][user_id]
+
+    async def async_apply_operation(
+        self,
+        changes: list[dict[str, Any]],
+        *,
+        stamp: str,
+        receipt: dict[str, Any],
+        validate: Callable[[ManagedUser], None],
+    ) -> dict[str, Any]:
+        def apply(state: dict[str, Any]) -> dict[str, Any]:
+            existing = state["operation_receipts"].get(receipt["operation_id"])
+            if existing:
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return existing
+            if self.bulk_stamp(state) != stamp:
+                raise AccessError("bulk_review_stale")
+            for change in changes:
+                if change["delete"]:
+                    self._delete_user(state, change["user_id"], change["revision"])
+                else:
+                    user = self._update_user(
+                        state, change["user_id"], change["data"], change["revision"]
+                    )
+                    validate(user)
+            state["operation_receipts"][receipt["operation_id"]] = deepcopy(receipt)
+            # Expired receipt IDs cannot be replayed without their missing review token.
+            while len(state["operation_receipts"]) > 1000:
+                oldest = min(
+                    state["operation_receipts"],
+                    key=lambda key: state["operation_receipts"][key]["saved_at"],
+                )
+                del state["operation_receipts"][oldest]
+            return receipt
+
+        return await self._commit(apply, offload=True)
 
     async def async_bind(
         self,

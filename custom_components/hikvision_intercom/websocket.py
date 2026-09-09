@@ -15,12 +15,14 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
+from .access.admin_audit import audit_actor
 from .access.models import AccessError
 from .access.schedule_assessment import assess
 from .access.schedule_baselines import ScheduleBaselines
 from .access.schedules import ScheduleLibrary, preview
 from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
+from .admin_operations_api import dispatch_admin
 from .client.schedule_dependencies import inspect_dependencies
 from .client.schedule_inventory import inspect_inventory
 from .client.schedule_readiness import inspect_readiness as inspect_schedules
@@ -48,6 +50,13 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "users/bulk_preview": {"request": dict},
+    "users/bulk_apply": {"operation_id": str},
+    "users/bulk_receipt": {"operation_id": str},
+    "users/bulk_receipts": {},
+    "audit/list": {"filters": dict},
+    "audit/export": {"filters": dict},
+    "stations/permission_audit": {"station_id": str},
     "health/get": {"station_id": str},
     "health/refresh": {"station_id": str},
     "acceptance/get": {"station_id": str},
@@ -217,6 +226,15 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
 async def _dispatch(
     hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
 ) -> Any:
+    with audit_actor(actor, command):
+        return await _dispatch_inner(hass, command, msg, actor=actor)
+
+
+async def _dispatch_inner(
+    hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
+) -> Any:
+    if command.startswith(("users/bulk_", "audit/")) or command == "stations/permission_audit":
+        return await dispatch_admin(hass, command, msg, actor)
     manager = get_manager(hass)
     if command == "events/history_inspect":
         from .client.history_diagnostics import inspect_history

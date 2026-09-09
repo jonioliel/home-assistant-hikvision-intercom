@@ -22,6 +22,9 @@ import "./camera";
 import "./call-controls";
 import "./events";
 import "./health";
+import "./bulk-users";
+import "./admin-audit";
+import { matchingUsers, defaultFilters, type UserFilters } from "./user-filters";
 
 const settingsPath = "/config/integrations/integration/hikvision_intercom";
 const value = (event: Event) => (event.target as HTMLInputElement).value;
@@ -64,6 +67,9 @@ export class IntercomManagerPanel extends LitElement {
     _data: { state: true },
     _tab: { state: true },
     _query: { state: true },
+    _userFilters: { state: true },
+    _selectedUsers: { state: true },
+    _auditUser: { state: true },
     _dialog: { state: true },
     _callBusy: { state: true },
     _busy: { state: true },
@@ -86,6 +92,9 @@ export class IntercomManagerPanel extends LitElement {
   private _validityUntil = "";
   private _clockReads = new Set<string>();
   private _query = "";
+  private _userFilters: UserFilters = defaultFilters();
+  private _selectedUsers = new Set<string>();
+  private _auditUser = "";
   private _dialog = "";
   private _busy = false;
   private _releases = new Map<string, ReleaseState>();
@@ -167,12 +176,19 @@ export class IntercomManagerPanel extends LitElement {
         this._unsubscribe = undefined;
         this._connecting = false;
         this._draft = undefined;
+        this._selectedUsers = new Set();
+        this._auditUser = "";
         this.clearCsv();
         this.clearCapture();
         this._data = undefined;
         this._releases = new Map();
         this._dialog = "";
       }
+    }
+    if (changed.has("_data")) {
+      const ids = new Set(this._data?.users.map((u) => u.id) ?? []);
+      if ([...this._selectedUsers].some((id) => !ids.has(id)))
+        this._selectedUsers = new Set([...this._selectedUsers].filter((id) => ids.has(id)));
     }
     const dialog = this.renderRoot.querySelector("dialog");
     if (dialog && !dialog.open) dialog.showModal();
@@ -1098,7 +1114,14 @@ export class IntercomManagerPanel extends LitElement {
       >
         ${this.t("sync_now")}</button
       ><button class="danger" @click=${() => this.removeUser(user)} ?disabled=${this._busy}>
-        ${this.t("delete")}
+        ${this.t("delete")}</button
+      ><button
+        @click=${() => {
+          this._auditUser = user.id;
+          this._tab = "audit";
+        }}
+      >
+        ${this.t("audit_show_user")}
       </button>`;
   }
   private overviewView() {
@@ -1171,14 +1194,22 @@ export class IntercomManagerPanel extends LitElement {
             </div>`
       }`;
   }
+  private userSelection(user: Person) {
+    return html`<input
+      type="checkbox"
+      class="user-selection"
+      aria-label=${this.t("select_user") + " " + user.display_name}
+      .checked=${this._selectedUsers.has(user.id)}
+      ?disabled=${!this._selectedUsers.has(user.id) && this._selectedUsers.size >= 200}
+      @change=${(e: Event) => {
+        const next = new Set(this._selectedUsers);
+        (e.target as HTMLInputElement).checked ? next.add(user.id) : next.delete(user.id);
+        this._selectedUsers = next;
+      }}
+    />`;
+  }
   private usersView() {
-    const query = this._query.trim().toLocaleLowerCase();
-    const users = (this._data?.users ?? []).filter(
-      (user) =>
-        `${user.display_name} ${user.employee_no}`.toLocaleLowerCase().includes(query) ||
-        (/^[0-9]{4}$/.test(query) &&
-          user.cards.some((card) => card.masked_number?.slice(-4) === query)),
-    );
+    const users = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
     return html`<div class="toolbar">
         <input
           type="search"
@@ -1187,6 +1218,7 @@ export class IntercomManagerPanel extends LitElement {
           aria-label=${this.t("search")}
           @input=${(event: Event) => {
             this._query = value(event);
+            this._selectedUsers = new Set();
           }}
         /><button @click=${() => this.openCsv()} ?disabled=${this._busy}>
           ${this.t("csv_import")}</button
@@ -1200,6 +1232,79 @@ export class IntercomManagerPanel extends LitElement {
           + ${this.t("add_user")}
         </button>
       </div>
+      <div class="toolbar user-filters">
+        ${(
+          [
+            [
+              "station",
+              "user_filter_station",
+              this._data?.stations.map((st) => [st.id, st.name]) ?? [],
+            ],
+            [
+              "rights",
+              "user_filter_rights",
+              ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
+            ],
+            [
+              "state",
+              "user_filter_state",
+              ["active", "inactive", "expired", "upcoming"].map((v) => [v, this.t("filter_" + v)]),
+            ],
+            [
+              "credential",
+              "user_filter_credential",
+              ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
+            ],
+            [
+              "sort",
+              "user_sort",
+              ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
+            ],
+          ] as [keyof UserFilters, string, string[][]][]
+        ).map(
+          ([key, label, options]) =>
+            html`<label
+              >${this.t(label)}<select
+                aria-label=${this.t(label)}
+                .value=${this._userFilters[key]}
+                @change=${(e: Event) => {
+                  this._userFilters = {
+                    ...this._userFilters,
+                    [key]: (e.target as HTMLSelectElement).value,
+                  };
+                  this._selectedUsers = new Set();
+                }}
+              >
+                ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id}>${name}</option>`)}
+              </select></label
+            >`,
+        )}
+      </div>
+      <p>${this.t("user_results")}: ${users.length} / ${this._data?.users.length ?? 0}</p>
+      <div class="toolbar">
+        <button
+          ?disabled=${!users.length}
+          @click=${() => {
+            this._selectedUsers = new Set(users.slice(0, 200).map((u) => u.id));
+          }}
+        >
+          ${this.t("select_visible")}</button
+        ><button
+          ?disabled=${!this._selectedUsers.size}
+          @click=${() => {
+            this._selectedUsers = new Set();
+          }}
+        >
+          ${this.t("clear_selection")}
+        </button>
+      </div>
+      <hikvision-bulk-users
+        .hass=${this.hass}
+        .users=${this._data?.users ?? []}
+        .selected=${[...this._selectedUsers]}
+        .stations=${this._data?.stations ?? []}
+        @access-changed=${() => this.refresh()}
+      ></hikvision-bulk-users>
       ${
         !users.length
           ? html`<div class="empty">
@@ -1210,6 +1315,7 @@ export class IntercomManagerPanel extends LitElement {
                 <table>
                   <thead>
                     <tr>
+                      <th>${this.t("select_user")}</th>
                       ${["name", "employee_id", "pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
                     </tr>
                   </thead>
@@ -1219,6 +1325,7 @@ export class IntercomManagerPanel extends LitElement {
                       (user) => user.id,
                       (user) =>
                         html`<tr>
+                          <td>${this.userSelection(user)}</td>
                           <td><strong>${user.display_name}</strong></td>
                           <td><bdi>${user.employee_no}</bdi></td>
                           <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
@@ -1244,6 +1351,7 @@ export class IntercomManagerPanel extends LitElement {
                   (user) =>
                     html`<article class="person">
                       <div class="row between">
+                        ${this.userSelection(user)}
                         <h3>${user.display_name}</h3>
                         ${this.badge(this.personStatus(user))}
                       </div>
@@ -2065,7 +2173,7 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
         <nav class="nav" aria-label=${this.t("title")}>
-          ${["overview", "users", "devices", "events", "sync", "health", "schedules"].map(
+          ${["overview", "users", "devices", "events", "sync", "audit", "health", "schedules"].map(
             (tab) =>
               html`<button
                 aria-current=${this._tab === tab ? "page" : nothing}
@@ -2108,21 +2216,30 @@ export class IntercomManagerPanel extends LitElement {
                   ? this.devicesView()
                   : this._tab === "sync"
                     ? this.syncView()
-                    : this._tab === "health"
-                      ? html`<hikvision-intercom-health
+                    : this._tab === "audit"
+                      ? html`<hikvision-admin-audit
                           .hass=${this.hass}
+                          .users=${this._data.users}
                           .stations=${this._data.stations}
-                        ></hikvision-intercom-health>`
-                      : this._tab === "schedules"
-                        ? html`<hikvision-intercom-schedules
+                          .focusUser=${this._auditUser}
+                          .zone=${this._data.default_zone ?? UTC_ZONE}
+                          @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                        ></hikvision-admin-audit>`
+                      : this._tab === "health"
+                        ? html`<hikvision-intercom-health
                             .hass=${this.hass}
                             .stations=${this._data.stations}
-                          ></hikvision-intercom-schedules>`
-                        : html`<hikvision-intercom-events
-                            .hass=${this.hass}
-                            .stations=${this._data.stations}
-                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                          ></hikvision-intercom-events>`
+                          ></hikvision-intercom-health>`
+                        : this._tab === "schedules"
+                          ? html`<hikvision-intercom-schedules
+                              .hass=${this.hass}
+                              .stations=${this._data.stations}
+                            ></hikvision-intercom-schedules>`
+                          : html`<hikvision-intercom-events
+                              .hass=${this.hass}
+                              .stations=${this._data.stations}
+                              .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                            ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}
