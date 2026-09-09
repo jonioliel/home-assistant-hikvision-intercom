@@ -1,6 +1,16 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 const routes = new Map([
+  [
+    "/audio-worklet.js",
+    [
+      new URL(
+        "../../custom_components/hikvision_intercom/frontend/audio-worklet.js",
+        import.meta.url,
+      ),
+      "text/javascript",
+    ],
+  ],
   ["/", [new URL("./fixture.html", import.meta.url), "text/html"]],
   ["/fixture.mjs", [new URL("./fixture.mjs", import.meta.url), "text/javascript"]],
   [

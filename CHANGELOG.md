@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [0.26.0-alpha.1] - 2026-09-09
+
+- Add a two-way audio preview to the camera window: explicit listening, hold-to-talk, microphone permissions and immediate local mute on release.
+- Implement a connection-owned Home Assistant audio bridge and documented G.711ulaw ISAPI session transport, with fresh Digest authentication, bounded queues, fixed-rate raw upload and a three-minute lifetime.
+- Close audio on browser disconnect, backgrounding, station unload, permission loss and call termination. Sessions remain independent between stations, and credentials and audio packets are excluded from diagnostics and WebSocket debug logs.
+- Verify opening, receiving audio, silence-only upload and session closure against DS-KV6124-E1 firmware 3.9.0 without changing channel configuration. Audible two-way acceptance remains pending; microphone access requires HTTPS. This preview does not claim to resolve the owner's WebRTC NAT issue.
+- Keep physical call, card and nine-station acceptance open. See docs/AUDIO_026_HE.md for implementation evidence and remaining 95% gates.
+
 ## [Unreleased]
 
 ## [0.25.0-alpha.1] - 2026-09-09

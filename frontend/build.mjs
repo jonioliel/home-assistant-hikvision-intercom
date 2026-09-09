@@ -9,3 +9,13 @@ await build({
   legalComments: "external",
   sourcemap: false,
 });
+
+await build({
+  entryPoints: ["src/audio-worklet.ts"],
+  bundle: true,
+  minify: true,
+  format: "esm",
+  target: "es2022",
+  outfile: "../custom_components/hikvision_intercom/frontend/audio-worklet.js",
+  sourcemap: false,
+});

@@ -57,6 +57,12 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
             raise AccessError("device_busy")
         busy.add(station.id)
         try:
+            if msg["command"] in {"reject", "hangUp"}:
+                bridge = data.get("audio_sessions", {}).get(station.id)
+                if bridge and bridge.runtime is runtime:
+                    bridge.cancel()
+                    if bridge.task:
+                        await asyncio.gather(bridge.task, return_exceptions=True)
             operations = data.setdefault("call_operations", {})
             task = asyncio.create_task(MediaClient(runtime.client).signal(msg["command"]))
             operations[station.id] = (runtime, task)
@@ -104,6 +110,12 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
     }
     cached = data.get("media_evidence", {}).get(station.id)
     report["media"] = cached[1] if cached and cached[0] is runtime else None
+    bridge = data.get("audio_sessions", {}).get(station.id)
+    last_audio = data.get("audio_results", {}).get(station.id)
+    report["audio"] = {
+        "active": bool(bridge and bridge.runtime is runtime and not bridge.stopped),
+        "last_result": last_audio[1] if last_audio and last_audio[0] is runtime else None,
+    }
     report["generated_at"] = datetime.now(UTC).isoformat()
     report["format"] = "hikvision_intercom.compatibility"
     report["integration_version"] = VERSION

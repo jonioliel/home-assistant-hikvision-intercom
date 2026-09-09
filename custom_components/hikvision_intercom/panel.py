@@ -16,6 +16,11 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig("/hikvision_intercom_static/panel.js", str(path), True),
+            StaticPathConfig(
+                "/hikvision_intercom_static/audio-worklet.js",
+                str(path.with_name("audio-worklet.js")),
+                True,
+            ),
         ]
     )
     await panel_custom.async_register_panel(

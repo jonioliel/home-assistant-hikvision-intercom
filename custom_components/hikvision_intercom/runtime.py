@@ -102,6 +102,11 @@ class IntercomRuntime:
 
     async def async_close(self) -> None:
         data = self.hass.data.get(DOMAIN, {})
+        bridge = data.get("audio_sessions", {}).get(self.station_id)
+        if bridge and bridge.runtime is self:
+            bridge.cancel()
+            if bridge.task:
+                await asyncio.gather(bridge.task, return_exceptions=True)
         operation = data.get("call_operations", {}).get(self.station_id)
         if operation and operation[0] is self:
             operation[1].cancel()
@@ -109,6 +114,9 @@ class IntercomRuntime:
         results = data.get("call_results", {})
         if self.station_id in results and results[self.station_id][0] is self:
             results.pop(self.station_id, None)
+        audio_results = data.get("audio_results", {})
+        if self.station_id in audio_results and audio_results[self.station_id][0] is self:
+            audio_results.pop(self.station_id, None)
         if self.clock:
             await self.clock.async_close()
         if self.events:

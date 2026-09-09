@@ -13,6 +13,12 @@ class AccessWebSocketFilter(logging.Filter):
             and value["type"].startswith("hikvision_intercom/")
         ):
             return {"id": value.get("id"), "type": value["type"], "payload": "REDACTED"}
+        if isinstance(value, dict) and any(
+            isinstance(value.get(key), dict)
+            and value[key].get("format") == "hikvision_intercom.audio"
+            for key in ("event", "result")
+        ):
+            return {"id": value.get("id"), "type": value.get("type"), "payload": "REDACTED"}
         if isinstance(value, list):
             return [AccessWebSocketFilter._redact(item) for item in value]
         return value

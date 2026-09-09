@@ -177,6 +177,14 @@ export class IntercomCallControls extends LitElement {
   }
   private async signal(command: string) {
     if (!this.allowed(command) || !this.station) return;
+    if (command !== "answer")
+      this.dispatchEvent(
+        new CustomEvent("hikvision-call-ending", {
+          detail: { station: this.station.id },
+          bubbles: true,
+          composed: true,
+        }),
+      );
     const epoch = this.epoch,
       station = this.station.id;
     this._busy = true;
