@@ -112,3 +112,14 @@ records retain their supplied instant. Device settings, NTP and clock skew are n
 A second station still reports a manual UTC clock about eight hours ahead and empty inspected history;
 that separate commissioning issue remains open. All 15 inspected records from the NTP station passed
 window checks after the fix. This does not prove the root cause of the owner's unidentified-PIN screenshot.
+
+
+## Changing display zones during an investigation — 0.27.4
+
+The event investigation form now follows changes to the same station's display zone, including
+late device-clock discovery and manual zone selection. Valid entered start/end values are converted
+from the previous zone into the new one while keeping their absolute instants. For example,
+08:00–09:00 UTC on 2026-09-09 becomes 11:00–12:00 Asia/Jerusalem and submits the same UTC query.
+An ambiguous or invalid old local time clears the range and requests explicit replacement input.
+The active display-zone name is visible above the inputs. This change does not alter the station
+clock, source event interpretation, stored event timestamps or credential validity enforcement.

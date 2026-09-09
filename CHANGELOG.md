@@ -4,6 +4,17 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.4-alpha.1] - 2026-09-10
+
+### Fixed
+- Keep the first mobile activity record visible by collapsing event filters initially; desktop filters remain open. The disclosure counts applied criteria and preserves unapplied drafts through refreshes.
+- Share guarded call controls between health, Overview and camera views. Pending commands remain owned by their station across navigation, missing replies become uncertain, and call state is read only when the health controls are opened.
+- Recover event investigation after missing replies, HA disconnects or connection replacement. Bound trace waits to 20 seconds and history inspection to 60 seconds; require a status read after an uncertain capture change without replaying it.
+- Preserve the selected history instants when the station display timezone changes. Clear ambiguous draft wall times with an explanation instead of silently reinterpreting them.
+
+### Validation boundaries
+- No physical device operations were performed. These interface and diagnostic fixes do not establish audible audio, answered calls, card lifecycle, timed validity or nine-station hardware acceptance.
+
 ## [0.27.3-alpha.1] - 2026-09-10
 
 ### Fixed
