@@ -1,17 +1,17 @@
 # Project progress
 
 The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) remains the forward plan.
-Current release **0.27.3-alpha.1**: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Current release **0.27.4-alpha.1**: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, four partial, one absent. Combined scope remains
-**37/47 = 78.7%**. This patch fixes station diagnostic queues, unload races and uncertain field-result saves
-inside existing items. It does not close physical acceptance.
+**37/47 = 78.7%**. This patch improves mobile activity visibility, shares guarded call controls across views,
+and fixes event investigation lifecycle and display-zone changes inside existing items. It does not close physical acceptance.
 [Overnight delivery and open gates](OVERNIGHT_2026_09_10_HE.md). Access storage schema remains 3.
 
-Published [v0.27.3-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.3-alpha.1) from `1afe05aa7a2e6e0142d732f318b3010cad7e64c5`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34416759597) passed: 887 Python tests per version (3.12/3.14), 266 HA tests,
-207 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+Published [v0.27.4-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.4-alpha.1) from `0b075f0825a119371d410f564393323266e285c0`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34418445153) passed: 887 Python tests per version (3.12/3.14), 266 HA tests,
+221 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel bundle and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.27.3-alpha.1.json).
+[Publication evidence](evidence/release_0.27.4-alpha.1.json).
 
 ## Historical checkpoints (earlier counts below are not current)
 

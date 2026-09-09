@@ -1,10 +1,10 @@
-# Current validation — 0.27.3-alpha.1 station health recovery
+# Current validation — 0.27.4-alpha.1 mobile activity and investigation recovery
 
-Published code: `1afe05aa7a2e6e0142d732f318b3010cad7e64c5`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34416759597) passed:
-887 Python tests per version (3.12/3.14), 266 Home Assistant tests, 207 browser tests,
+Published code: `0b075f0825a119371d410f564393323266e285c0`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34418445153) passed:
+887 Python tests per version (3.12/3.14), 266 Home Assistant tests, 221 browser tests,
 mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel and audio worklet were verified against the tested commit.
-[Release evidence](evidence/release_0.27.3-alpha.1.json).
+[Release evidence](evidence/release_0.27.4-alpha.1.json).
 
 [Delivery, regression reproductions and limits](OVERNIGHT_2026_09_10_HE.md).
 No physical device operations were performed for this patch. Audible audio, calls, cards,
