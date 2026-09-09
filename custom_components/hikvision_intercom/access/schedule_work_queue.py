@@ -36,9 +36,22 @@ class ScheduleWorkQueue:
                 raise AccessError("station_unloaded")
             if job["station_id"] in self._tasks or job["status"] in ("queued", "checking"):
                 raise AccessError("schedule_read_busy")
-            queued = await self.store.async_update(
-                identifier, revision, status="queued", error=None
-            )
+            try:
+                queued = await self.store.async_update(
+                    identifier, revision, status="queued", error=None
+                )
+            except asyncio.CancelledError:
+                # The atomic save may already have committed, but no worker was created.
+                current = self.store.job(identifier)
+                if current["status"] == "queued" and current["revision"] == revision + 1:
+                    await self.store.async_update(
+                        identifier,
+                        current["revision"],
+                        status="interrupted",
+                        error="schedule_operation_interrupted",
+                    )
+                self._changed()
+                raise
             coroutine = self._run(identifier, job["station_id"])
             failed = False
             try:
@@ -107,9 +120,12 @@ class ScheduleWorkQueue:
             return result
 
     async def close(self) -> None:
-        self._closed = True
-        tasks = list(self._tasks.values())
-        for task in tasks:
-            task.cancel()
+        async with self._lock:
+            self._closed = True
+            tasks = list(self._tasks.values())
+            for task in tasks:
+                task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        # A task cancelled before its first turn never enters _run's finally block.
+        self._tasks.clear()

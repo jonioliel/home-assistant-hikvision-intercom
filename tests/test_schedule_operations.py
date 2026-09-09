@@ -251,3 +251,68 @@ async def test_task_factory_failure_leaves_retryable_job_and_cleanup_is_atomic()
     assert store.job(job["id"]) == current
     cancelled = await queue.cancel(job["id"], current["revision"], AsyncMock())
     assert cancelled["status"] == "cancelled"
+
+
+async def test_stop_during_queue_save_cannot_leave_an_untracked_worker():
+    save = AsyncMock()
+    store = ScheduleOperations(save)
+    job = await store.async_create(plan())
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def slow(data):
+        if data["jobs"][job["id"]]["status"] == "queued":
+            entered.set()
+            await release.wait()
+
+    save.side_effect = slow
+
+    async def check(job):
+        await asyncio.Event().wait()
+
+    queue = ScheduleWorkQueue(store, check, Mock(), asyncio.create_task)
+    requested = asyncio.create_task(queue.request(job["id"], 1))
+    await entered.wait()
+    stopping = asyncio.create_task(queue.close())
+    await asyncio.sleep(0)
+    assert not stopping.done()
+    release.set()
+    await requested
+    await stopping
+    assert not queue._tasks
+
+
+async def test_cancelled_enqueue_records_interruption_without_starting_io():
+    save = AsyncMock()
+    store = ScheduleOperations(save)
+    job = await store.async_create(plan())
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def slow(data):
+        if data["jobs"][job["id"]]["status"] == "queued":
+            entered.set()
+            await release.wait()
+
+    save.side_effect = slow
+    check = AsyncMock()
+    queue = ScheduleWorkQueue(store, check, Mock(), asyncio.create_task)
+    requested = asyncio.create_task(queue.request(job["id"], 1))
+    await entered.wait()
+    requested.cancel()
+    release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await requested
+    assert store.job(job["id"])["status"] == "interrupted"
+    check.assert_not_called()
+    assert not queue._tasks
+    await queue.close()
+
+
+async def test_close_before_worker_first_turn_clears_station_reservation():
+    store = ScheduleOperations(AsyncMock())
+    job = await store.async_create(plan())
+    check = AsyncMock()
+    queue = ScheduleWorkQueue(store, check, Mock(), asyncio.create_task)
+    await queue.request(job["id"], 1)
+    await queue.close()
+    assert not queue._tasks
+    check.assert_not_called()
