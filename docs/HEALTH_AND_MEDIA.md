@@ -1,6 +1,6 @@
 # Health, event evidence, WebRTC and field acceptance
 
-Since version 0.21, the integration provides **Health & field tests** to the administrator panel. Open a station's
+Since version 0.21, the integration provides **Health & field tests** in the administrator panel. Open a station's
 report to inspect event-stream/history status, sync queue/error counts, clock offset and
 media capability observations. Refresh is optional and read-only; up to three selected
 stations are read at once. Exported compatibility reports omit host, device login,

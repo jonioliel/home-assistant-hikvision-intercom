@@ -8,6 +8,12 @@ The [current execution ledger](CALLS_AND_HISTORY_BATCH_HE.md) tracks the
 adds call workflows and capture/history/playback diagnostics, and extends HA fleet tests.
 It does not close the physical call, card, WebRTC or nine-station acceptance gates.
 
+Published [v0.22.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.22.0-alpha.1)
+from `da6259c`, implementation `8e50d15`. Release run [34352509065](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34352509065)
+passed all seven jobs: 790 Python tests per version, 227 HA tests (100% ConfigFlow coverage),
+122 browser tests, mypy53, Ruff, TypeScript, Prettier, HACS and Hassfest. Tag/manifest/bundle
+and expected source files were verified after publication; private evidence was excluded.
+
 ## Historical checkpoints (earlier counts below are not current)
 
 
