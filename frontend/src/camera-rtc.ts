@@ -16,6 +16,13 @@ export class CameraRTC {
   private timer?: ReturnType<typeof setTimeout>;
   private stream = new MediaStream();
   private sequence = Promise.resolve();
+  private playing = false;
+  private loaded = () => {
+    if (this.closed || this.playing || !this.stream.getVideoTracks().length) return;
+    this.playing = true;
+    clearTimeout(this.timer);
+    this.ready();
+  };
   constructor(
     private hass: Hass,
     private entity: string,
@@ -25,6 +32,7 @@ export class CameraRTC {
   ) {}
   async start() {
     this.timer = setTimeout(() => this.fail(), 12000);
+    this.video.addEventListener("loadeddata", this.loaded);
     try {
       const config = await this.hass.callWS<{
         configuration: RTCConfiguration;
@@ -38,10 +46,6 @@ export class CameraRTC {
         this.stream.addTrack(event.track);
         this.video.srcObject = this.stream;
         void this.video.play().catch(() => {});
-        if (event.track.kind === "video") {
-          clearTimeout(this.timer);
-          this.ready();
-        }
       };
       peer.onconnectionstatechange = () => {
         if (peer.connectionState === "failed" || peer.connectionState === "disconnected")
@@ -115,6 +119,7 @@ export class CameraRTC {
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.video.removeEventListener("loadeddata", this.loaded);
     clearTimeout(this.timer);
     this.unsubscribe?.();
     this.unsubscribe = undefined;

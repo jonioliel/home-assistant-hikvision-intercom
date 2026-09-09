@@ -16,8 +16,8 @@ The camera player asks HA `camera/capabilities` for `web_rtc`, then uses HA's au
 `camera/webrtc/get_client_config`, `camera/webrtc/offer` subscription and
 `camera/webrtc/candidate`. This reuses the WebRTC provider configured in Home Assistant;
 no third-party server address or station credentials are sent by this panel to the browser.
-If HA does not advertise WebRTC, signaling fails, the peer disconnects, or setup exceeds
-12 seconds, the player falls back to HA HLS. The transport label states what was selected.
+If HA does not advertise WebRTC, signaling fails, the peer disconnects, or no decoded video arrives within
+12 seconds of RTC setup, the player falls back to HA HLS. The transport label states what was selected.
 A backend provider and compatible network/codecs are required for actual WebRTC playback.
 The browser requests receive-only tracks; microphone/two-way audio is not implemented.
 See the [HA camera signaling contract](https://github.com/home-assistant/frontend/blob/dev/src/data/camera.ts)

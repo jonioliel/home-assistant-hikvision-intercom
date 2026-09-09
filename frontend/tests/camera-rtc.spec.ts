@@ -3,6 +3,19 @@ import { test, expect } from "@playwright/test";
 async function rtc(page, mode = "success") {
   await page.goto("/");
   await page.evaluate((mode) => {
+    if (mode === "stalled") {
+      const streams = new WeakMap();
+      // Simulate a received track whose decoder never produces a video frame.
+      Object.defineProperty(HTMLMediaElement.prototype, "srcObject", {
+        configurable: true,
+        get() {
+          return streams.get(this) ?? null;
+        },
+        set(value) {
+          streams.set(this, value);
+        },
+      });
+    }
     window.rtcClosed = 0;
     window.rtcUnsubscribed = 0;
     window.rtcTracks = 0;
@@ -26,7 +39,7 @@ async function rtc(page, mode = "success") {
       }
       async setRemoteDescription(desc) {
         this.remoteDescription = desc;
-        if (mode === "success") {
+        if (mode === "success" || mode === "stalled") {
           const canvas = document.createElement("canvas");
           canvas.width = 20;
           canvas.height = 20;
@@ -127,6 +140,19 @@ test("connected RTC failure tears down once and tries HLS once", async ({ page }
     window.testPeer.connectionState = "failed";
     window.testPeer.onconnectionstatechange();
   });
+  await expect(page.getByRole("dialog")).toContainText("Video failed");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
+  ).toBe(1);
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+});
+
+test("a track without a decoded frame times out into HLS", async ({ page }) => {
+  await page.clock.install();
+  await rtc(page, "stalled");
+  await expect.poll(() => page.evaluate(() => !!window.rtcTrack)).toBeTruthy();
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("Connecting video");
+  await page.clock.fastForward(13000);
   await expect(page.getByRole("dialog")).toContainText("Video failed");
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
