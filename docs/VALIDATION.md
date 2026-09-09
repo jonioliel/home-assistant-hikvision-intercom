@@ -1,13 +1,17 @@
-# Current validation — 0.26 audio preview
+# Current validation — 0.27 recovery
 
-Current code: `bc8ddbb9c5a69096c2287bf90861bf0b2d0e7a47`. Candidate and release checks passed:
-867 Python tests per version (3.12/3.14), 254 Home Assistant tests, 159 browser tests,
+Published code: `e92425c35e5dddba1f4b96b6c6d8fe13860b5598`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34403457283) passed:
+876 Python tests per version (3.12/3.14), 255 Home Assistant tests, 170 browser tests,
 mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
-[Audio validation and physical boundaries](AUDIO_026_HE.md) ·
-[two-station evidence](evidence/audio_two_stations_2026-09-09.json).
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34396498451) passed. The published tag, manifest, panel
-and audio worklet were verified against the tested commit.
-The Phase 0 and chronological checkpoints below retain their original context and counts.
+The published tag, manifest, panel and audio worklet were verified against the tested commit.
+[Release evidence](evidence/release_0.27.0-alpha.1.json).
+
+[Delivery and validation boundaries](RECOVERY_027_HE.md),
+[608.69-second simulated soak](evidence/audio_soak_027.json),
+[two-station silent transport](evidence/audio_two_stations_027.json),
+[read-only clock/validity inspection](evidence/validity_read_027.json).
+No new physical acoustic/call/card/validity/fleet acceptance is claimed.
+Historical checkpoints below retain their original counts.
 
 # Phase 0 validation — 2026-09-08
 
