@@ -1,16 +1,15 @@
-# Current validation — 0.27 recovery
+# Current validation — 0.27.1-alpha.1 overnight recovery
 
-Published code: `e92425c35e5dddba1f4b96b6c6d8fe13860b5598`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34403457283) passed:
-876 Python tests per version (3.12/3.14), 255 Home Assistant tests, 170 browser tests,
+Published code: `b6da2b03ab8f8ffeaf14736e8886e2123c721118`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34412993869) passed:
+887 Python tests per version (3.12/3.14), 264 Home Assistant tests, 189 browser tests,
 mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel and audio worklet were verified against the tested commit.
-[Release evidence](evidence/release_0.27.0-alpha.1.json).
+[Release evidence](evidence/release_0.27.1-alpha.1.json).
 
-[Delivery and validation boundaries](RECOVERY_027_HE.md),
-[608.69-second simulated soak](evidence/audio_soak_027.json),
-[two-station silent transport](evidence/audio_two_stations_027.json),
-[read-only clock/validity inspection](evidence/validity_read_027.json).
-No new physical acoustic/call/card/validity/fleet acceptance is claimed.
+[Delivery, regression reproductions and limits](OVERNIGHT_2026_09_10_HE.md).
+No physical device operations were performed for this patch. Audible audio, calls, cards,
+timed validity, the original unidentified PIN event and nine-station hardware acceptance remain open.
+Prior [0.27 evidence](RECOVERY_027_HE.md) retains its own physical/loopback scope.
 Historical checkpoints below retain their original counts.
 
 # Phase 0 validation — 2026-09-08
