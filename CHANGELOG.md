@@ -2,6 +2,11 @@
 
 Semantic Versioning is used throughout the project.
 
+## [Unreleased]
+
+### Fixed
+- Bound call-state reads and signaling waits in the panel, discard responses from a previous station, and release stuck station controls after an uncertain response without replaying the command. Pause call actions on HA disconnect and obtain fresh state in other views after a command completes.
+
 ## [0.27.0-alpha.1] - 2026-09-09
 
 - Arrange camera video and call/audio controls side by side on desktop, retain a visible dialog header and door footer on small screens, and improve the video error/retry view.
@@ -19,8 +24,6 @@ Semantic Versioning is used throughout the project.
 - Close audio on browser disconnect, backgrounding, station unload, permission loss and call termination. Sessions remain independent between stations, and credentials and audio packets are excluded from diagnostics and WebSocket debug logs.
 - Verify opening, receiving audio, silence-only upload and session closure against DS-KV6124-E1 firmware 3.9.0 without changing channel configuration. Audible two-way acceptance remains pending; microphone access requires HTTPS. This preview does not claim to resolve the owner's WebRTC NAT issue.
 - Keep physical call, card and nine-station acceptance open. See docs/AUDIO_026_HE.md for implementation evidence and remaining 95% gates.
-
-## [Unreleased]
 
 ## [0.25.0-alpha.1] - 2026-09-09
 

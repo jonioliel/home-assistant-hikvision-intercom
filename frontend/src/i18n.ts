@@ -255,6 +255,7 @@ const en = {
   call_observation_unchanged: "Device state has not changed",
   call_observation_unavailable: "State verification is unavailable",
   call_observed_state: "Observed state",
+  call_connection_lost: "Call controls are paused until Home Assistant reconnects",
   call_read_failed: "Call capabilities or state could not be read",
   call_command_unknown:
     "Command result could not be verified. Refresh the call state before another action.",
@@ -1354,6 +1355,7 @@ const he: Record<keyof typeof en, string> = {
   call_observation_unchanged: "מצב התחנה טרם השתנה",
   call_observation_unavailable: "אימות המצב אינו זמין",
   call_observed_state: "המצב שנקרא",
+  call_connection_lost: "פקדי השיחה מושהים עד לחידוש החיבור ל־Home Assistant",
   call_read_failed: "לא ניתן לקרוא יכולות או מצב שיחה",
   call_command_unknown: "תוצאת הפקודה לא אומתה. יש לרענן את מצב השיחה לפני פעולה נוספת.",
   call_refresh: "רענון מצב שיחה",
