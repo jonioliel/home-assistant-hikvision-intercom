@@ -17,6 +17,15 @@ async function rtc(page, mode = "success") {
         },
       });
     }
+    window.rtcConnectionListeners = new Map();
+    window.demoHass.connection.addEventListener = (name, callback) => {
+      const callbacks = window.rtcConnectionListeners.get(name) ?? new Set();
+      callbacks.add(callback);
+      window.rtcConnectionListeners.set(name, callbacks);
+    };
+    window.demoHass.connection.removeEventListener = (name, callback) => {
+      window.rtcConnectionListeners.get(name)?.delete(callback);
+    };
     window.rtcClosed = 0;
     window.rtcUnsubscribed = 0;
     window.rtcTracks = 0;
@@ -76,10 +85,11 @@ async function rtc(page, mode = "success") {
       return base(message);
     };
     const subscribe = window.demoHass.connection.subscribeMessage.bind(window.demoHass.connection);
-    window.demoHass.connection.subscribeMessage = async (callback, message) => {
+    window.demoHass.connection.subscribeMessage = async (callback, message, options) => {
       if (message.type !== "camera/webrtc/offer") return subscribe(callback, message);
       window.calls.push(message);
       window.rtcCallback = callback;
+      window.rtcOptions = options;
       if (mode === "fail") callback({ type: "error" });
       else {
         callback({ type: "session", session_id: "synthetic" });
@@ -270,4 +280,54 @@ test("ending a received track closes RTC and starts one fallback", async ({ page
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
   ).toBe(1);
+});
+
+test("HA reconnect tears down old RTC and negotiates a fresh visible video session", async ({
+  page,
+}) => {
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  expect(await page.evaluate(() => window.rtcOptions.resubscribe)).toBe(false);
+  await page.evaluate(() => {
+    window.oldRTCOptions = window.rtcOptions;
+    for (const callback of window.rtcConnectionListeners.get("disconnected")) callback();
+  });
+  await expect(page.getByRole("dialog")).toContainText(
+    "Video paused until Home Assistant reconnects",
+  );
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+  expect(await page.evaluate(() => window.rtcUnsubscribed)).toBe(1);
+  expect(await page.evaluate(() => window.oldRTCOptions.preCheck())).toBe(false);
+  await page.evaluate(() => {
+    for (const callback of window.rtcConnectionListeners.get("ready")) callback();
+  });
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(2);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("/audio/start")).length),
+  ).toBe(0);
+});
+
+test("closing camera while HA is disconnected prevents a reconnect from opening video", async ({
+  page,
+}) => {
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page.evaluate(() => {
+    for (const callback of window.rtcConnectionListeners.get("disconnected")) callback();
+  });
+  const listeners = await page.evaluate(() => window.rtcConnectionListeners.get("ready").size);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.rtcConnectionListeners.get("ready").size))
+    .toBe(listeners - 1);
+  await page.evaluate(() => {
+    for (const callback of window.rtcConnectionListeners.get("ready")) callback();
+  });
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(1);
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
 });

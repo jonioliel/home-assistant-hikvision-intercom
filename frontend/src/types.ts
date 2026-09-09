@@ -181,8 +181,9 @@ export interface Hass {
   states: Record<string, { state: string; attributes: Record<string, any> }>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   connection: {
-    addEventListener?(event: "disconnected", callback: () => void): void;
-    removeEventListener?(event: "disconnected", callback: () => void): void;
+    connected?: boolean;
+    addEventListener?(event: "disconnected" | "ready", callback: () => void): void;
+    removeEventListener?(event: "disconnected" | "ready", callback: () => void): void;
     subscribeMessage<T>(
       callback: (message: T) => void,
       message: Record<string, unknown>,

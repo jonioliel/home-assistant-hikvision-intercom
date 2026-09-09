@@ -91,6 +91,7 @@ export class CameraRTC {
           this.sequence = this.sequence.then(() => this.receive(event)).catch(() => this.fail());
         },
         { type: "camera/webrtc/offer", entity_id: this.entity, offer: offer.sdp },
+        { resubscribe: false, preCheck: () => !this.closed && this.peer === peer },
       );
       if (this.closed) void Promise.resolve(unsubscribe()).catch(() => {});
       else this.unsubscribe = unsubscribe;

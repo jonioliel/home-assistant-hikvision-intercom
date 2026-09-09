@@ -20,12 +20,21 @@ export class IntercomCamera extends LitElement {
     _fallbackReason: { state: true },
     _documentVisible: { state: true },
     _networkOnline: { state: true },
+    _haConnected: { state: true },
     version: { type: String },
   };
   hass?: Hass;
   version = "";
   private _documentVisible = !document.hidden;
   private _networkOnline = navigator.onLine;
+  private _haConnected = true;
+  private haDisconnected = () => {
+    this._haConnected = false;
+    this.stop();
+  };
+  private haReady = () => {
+    this._haConnected = true;
+  };
   private _fallbackReason = "";
   private startTimer?: ReturnType<typeof setTimeout>;
   private firstFrameAt: string | null = null;
@@ -162,7 +171,16 @@ export class IntercomCamera extends LitElement {
     window.removeEventListener("online", this.online);
     window.removeEventListener("offline", this.online);
     clearInterval(this.timer);
+    this.bindConnection(undefined);
     this.stop();
+  }
+  private bindConnection(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
+    this.connection?.removeEventListener?.("ready", this.haReady);
+    this.connection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.haDisconnected);
+    connection?.addEventListener?.("ready", this.haReady);
   }
   private stop() {
     this.generation++;
@@ -180,24 +198,34 @@ export class IntercomCamera extends LitElement {
     }
   }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
     if (changed.has("_tick") && this._failed && !this.live) this._failed = false;
-    if (changed.has("hass") && !this.hass?.user?.is_admin) {
+    if (!this.hass?.user?.is_admin) {
+      this.bindConnection(undefined);
       this.stop();
       return;
     }
     const connectionChanged = this.connection !== this.hass?.connection;
-    this.connection = this.hass?.connection;
+    if (connectionChanged) this.bindConnection(this.hass?.connection);
     if (
       connectionChanged ||
       changed.has("entity") ||
       changed.has("live") ||
       changed.has("_visible") ||
       changed.has("_documentVisible") ||
-      changed.has("_networkOnline")
+      changed.has("_networkOnline") ||
+      changed.has("_haConnected")
     ) {
       this.stop();
       this._failed = false;
-      if (this.live && this._visible && this.entity && this._documentVisible && this._networkOnline)
+      if (
+        this.live &&
+        this._visible &&
+        this.entity &&
+        this._documentVisible &&
+        this._networkOnline &&
+        this._haConnected
+      )
         void this.start();
     }
   }
@@ -214,7 +242,8 @@ export class IntercomCamera extends LitElement {
       this.isConnected &&
       !!this.hass?.user?.is_admin &&
       this._documentVisible &&
-      this._networkOnline;
+      this._networkOnline &&
+      this._haConnected;
     let fallbackStarted = false;
     const fallback = (reason: string) => {
       if (current() && !fallbackStarted) {
@@ -350,6 +379,7 @@ export class IntercomCamera extends LitElement {
   render() {
     if (this.live && !this._documentVisible) return html`<p>${this.t("player_suspended")}</p>`;
     if (this.live && !this._networkOnline) return html`<p>${this.t("player_network_offline")}</p>`;
+    if (this.live && !this._haConnected) return html`<p>${this.t("player_ha_disconnected")}</p>`;
     if (this.live && this._failed)
       return html`<div class="player-error" role="status">
         <p>${this.t("player_failed")}</p>
@@ -357,10 +387,10 @@ export class IntercomCamera extends LitElement {
         <div class="actions">
           <button
             @click=${() => {
-            this.stop();
-            this._failed = false;
-            void this.start();
-          }}
+              this.stop();
+              this._failed = false;
+              void this.start();
+            }}
           >
             ${this.t("player_retry")}</button
           >${this.exportButton()}
