@@ -4,6 +4,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
 import { icon } from "./icons";
+import { boundedRequest } from "./request";
 import { translate } from "./i18n";
 import type {
   Hass,
@@ -68,6 +69,8 @@ export class IntercomManagerPanel extends LitElement {
     hass: { attribute: false },
     narrow: { type: Boolean },
     _data: { state: true },
+    _haConnected: { state: true },
+    _refreshFailed: { state: true },
     _tab: { state: true },
     _query: { state: true },
     _syncQuery: { state: true },
@@ -92,6 +95,31 @@ export class IntercomManagerPanel extends LitElement {
   hass?: Hass;
   narrow = false;
   private _data?: Overview;
+  private _haConnected = true;
+  private _refreshFailed = false;
+  private connection?: Hass["connection"];
+  private pendingRequests = new Set<AbortController>();
+  private haDisconnected = () => {
+    this._haConnected = false;
+    this.cancelRequests();
+  };
+  private haReady = () => {
+    this._haConnected = true;
+    void this.refresh();
+    void this.connect();
+  };
+  private cancelRequests() {
+    for (const controller of this.pendingRequests) controller.abort();
+    this.pendingRequests.clear();
+  }
+  private bindConnection(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
+    this.connection?.removeEventListener?.("ready", this.haReady);
+    this.connection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.haDisconnected);
+    connection?.addEventListener?.("ready", this.haReady);
+  }
   private _tab = "overview";
   private _validityStation = "";
   private _validityFrom = "";
@@ -139,11 +167,17 @@ export class IntercomManagerPanel extends LitElement {
         void this.refresh();
       }
     }, 30000);
-    if (this.hass?.user?.is_admin) void this.connect();
+    if (this.hass?.user?.is_admin) {
+      this.bindConnection(this.hass.connection);
+      void this.connect();
+    }
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this._epoch++;
+    this.cancelRequests();
+    this.bindConnection(undefined);
+    this._refreshFailed = false;
     clearInterval(this._timer);
     this._unsubscribe?.();
     this._unsubscribe = undefined;
@@ -161,8 +195,17 @@ export class IntercomManagerPanel extends LitElement {
     this._releases = new Map();
   }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
     if (changed.has("hass")) {
       if (this.hass?.user?.is_admin) {
+        if (this.connection !== this.hass.connection) {
+          this._epoch++;
+          this.cancelRequests();
+          this._unsubscribe?.();
+          this._unsubscribe = undefined;
+          this._connecting = false;
+          this.bindConnection(this.hass.connection);
+        }
         if (this._data) {
           let changedState = false;
           const stations = this._data.stations.map((station) => {
@@ -181,6 +224,9 @@ export class IntercomManagerPanel extends LitElement {
         void this.connect();
       } else {
         this._epoch++;
+        this.cancelRequests();
+        this.bindConnection(undefined);
+        this._refreshFailed = false;
         this._unsubscribe?.();
         this._unsubscribe = undefined;
         this._connecting = false;
@@ -203,7 +249,7 @@ export class IntercomManagerPanel extends LitElement {
     if (dialog && !dialog.open) dialog.showModal();
   }
   private async connect() {
-    if (this._unsubscribe || this._connecting || !this.isConnected) return;
+    if (this._unsubscribe || this._connecting || !this.isConnected || !this._haConnected) return;
     this._connecting = true;
     const epoch = this._epoch;
     try {
@@ -212,6 +258,9 @@ export class IntercomManagerPanel extends LitElement {
           void this.refresh();
         },
         { type: "hikvision_intercom/subscribe" },
+        {
+          preCheck: () => epoch === this._epoch && this.isConnected && !!this.hass?.user?.is_admin,
+        },
       );
       if (epoch !== this._epoch || !this.isConnected) {
         unsub();
@@ -226,10 +275,23 @@ export class IntercomManagerPanel extends LitElement {
       if (epoch === this._epoch) this._connecting = false;
     }
   }
-  private api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
-    return this.hass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
+  private async api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
+    if (!this._haConnected || this.hass?.connection.connected === false)
+      throw { code: "connection_lost" };
+    const hass = this.hass!;
+    const send = () => hass.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
+    const timeout = command === "overview" ? 20000 : command === "stations/test_unlock" ? 30000 : 0;
+    if (!timeout) return send();
+    const controller = new AbortController();
+    this.pendingRequests.add(controller);
+    try {
+      return await boundedRequest(send, timeout, controller.signal);
+    } finally {
+      this.pendingRequests.delete(controller);
+    }
   }
   private async refresh() {
+    if (!this.isConnected || !this.hass?.user?.is_admin || !this._haConnected) return;
     if (this._refreshing) {
       this._refreshAgain = true;
       return;
@@ -243,14 +305,20 @@ export class IntercomManagerPanel extends LitElement {
           const data = await this.api<Overview>("overview");
           if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin) {
             this._data = data;
+            this._refreshFailed = false;
             const configured = new Set(data.stations.map((station) => station.id));
             this._releases = new Map([...this._releases].filter(([id]) => configured.has(id)));
           }
         } catch {
           if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
-            this._error = this.t("failed");
+            this._refreshFailed = true;
         }
-      } while (this._refreshAgain && this.isConnected && this.hass?.user?.is_admin);
+      } while (
+        this._refreshAgain &&
+        this.isConnected &&
+        this.hass?.user?.is_admin &&
+        this._haConnected
+      );
     } finally {
       this._refreshing = false;
     }
@@ -1029,7 +1097,7 @@ export class IntercomManagerPanel extends LitElement {
       class=${primary ? "primary" : ""}
       aria-label=${this.unlockLabel(station)}
       aria-busy=${this.releasing(station) ? "true" : "false"}
-      ?disabled=${!station.online || !station.lock_enabled || this.releasing(station)}
+      ?disabled=${!this._haConnected || !station.online || !station.lock_enabled || this.releasing(station)}
       @click=${() => this.unlock(station)}
     >
       ${icon("lock")}${this.releasing(station) ? this.t("releasing") : this.unlockLabel(station)}
@@ -1054,6 +1122,8 @@ export class IntercomManagerPanel extends LitElement {
     if (
       !this.hass?.user?.is_admin ||
       !this.isConnected ||
+      !this._haConnected ||
+      this.hass.connection.connected === false ||
       !current?.online ||
       !current.lock_enabled ||
       this.releasing(current)
@@ -2354,6 +2424,7 @@ export class IntercomManagerPanel extends LitElement {
         ${this.navigation()}
       </header>
       <main>
+        ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
         ${
           this._notice
             ? html`<div class="notice" role="status">
@@ -2370,7 +2441,9 @@ export class IntercomManagerPanel extends LitElement {
             : nothing
         }${this._error && !this._dialog ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${
           !this._data
-            ? html`<p class="loader">${this.t("loading")}</p>`
+            ? html`<p class="loader">
+                ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
+              </p>`
             : this._tab === "overview"
               ? this.overviewView()
               : this._tab === "users"

@@ -927,12 +927,8 @@ test("reconnect refreshes after an old overview response and restores its subscr
     panel.remove();
     document.body.append(panel);
   });
-  // Let the new subscription queue a refresh behind the old, still-pending response.
-  await expect
-    .poll(() =>
-      page.evaluate(() => document.querySelector("hikvision-intercom-panel")._refreshAgain),
-    )
-    .toBe(true);
+  // Reattachment must recover without needing the abandoned response to settle.
+  await expect(page.locator("article.station")).toHaveCount(9);
   await page.evaluate(() => window.finishOldOverview());
   await expect(page.locator("article.station")).toHaveCount(9);
   await page.evaluate(() => {
@@ -1453,4 +1449,147 @@ test("reader approval with an uncertain response never claims nothing was saved 
       window.demoData.users[0].cards.some((card) => card.id === "captured-card"),
     ),
   ).toBeTruthy();
+});
+
+test("a lost release reply exits pending as unconfirmed and ignores late acknowledgement", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.clock.install();
+  await holdReleaseResponses(page);
+  const first = page.locator("article.station").first();
+  await first.getByRole("button", { name: "Open active lock", exact: true }).click();
+  await page.clock.fastForward(31000);
+  await expect(first.locator(".release-feedback")).toContainText("Release was not confirmed");
+  await expect(first.getByRole("button", { name: "Open active lock", exact: true })).toBeEnabled();
+  await page.evaluate(() => window.finishRelease("station-0"));
+  await expect(first.locator(".release-feedback")).toContainText("Release was not confirmed");
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("stations/test_unlock")).length,
+    ),
+  ).toBe(1);
+});
+
+test("a lost overview reply cannot block later updates and cannot replace newer data", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await page.clock.install();
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    let once = true;
+    window.demoHass.callWS = function (message) {
+      if (message.type.endsWith("overview") && once) {
+        once = false;
+        return new Promise((resolve) => (window.lateOverview = resolve));
+      }
+      return original.call(this, message);
+    };
+    void document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.clock.fastForward(21000);
+  await expect(
+    page.getByRole("status").filter({ hasText: "Displayed data may be out of date" }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    window.demoData.stations[0].name = "Recovered overview";
+    window.demoNotify();
+  });
+  await expect(page.getByRole("heading", { name: "Recovered overview" })).toBeVisible();
+  await page.evaluate(() =>
+    window.lateOverview({ ...structuredClone(window.demoData), stations: [] }),
+  );
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await expect(page.getByText("Displayed data may be out of date", { exact: false })).toHaveCount(
+    0,
+  );
+});
+
+test("HA disconnect marks an in-flight release uncertain and reconnect refreshes without replay", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await page.evaluate(() => {
+    const listeners = new Map();
+    window.panelConnectionListeners = listeners;
+    window.demoHass.connection = {
+      ...window.demoHass.connection,
+      connected: true,
+      addEventListener(name, callback) {
+        const group = listeners.get(name) ?? new Set();
+        group.add(callback);
+        listeners.set(name, group);
+      },
+      removeEventListener(name, callback) {
+        listeners.get(name)?.delete(callback);
+      },
+    };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+  });
+  await holdReleaseResponses(page);
+  await page.evaluate(() => {
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+  });
+  const first = page.locator("article.station").first();
+  await first.getByRole("button", { name: "Open active lock", exact: true }).click();
+  await page.evaluate(() => {
+    window.demoHass.connection.connected = false;
+    for (const callback of window.panelConnectionListeners.get("disconnected")) callback();
+  });
+  await expect(page.getByText("Home Assistant is disconnected.", { exact: false })).toBeVisible();
+  await expect(first.locator(".release-feedback")).toContainText("Release was not confirmed");
+  await expect(first.getByRole("button", { name: "Open active lock", exact: true })).toBeDisabled();
+  await expect(
+    page
+      .locator("article.station")
+      .nth(1)
+      .getByRole("button", { name: "Open active lock", exact: true }),
+  ).toBeDisabled();
+  await page.evaluate(async () => {
+    // Even a direct handler invocation must not queue a release for reconnect.
+    await document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[1]);
+    window.finishRelease("station-0");
+    window.demoData.stations[0].name = "Fresh after HA reconnect";
+    window.demoHass.connection.connected = true;
+    for (const callback of window.panelConnectionListeners.get("ready")) callback();
+  });
+  await expect(page.getByRole("heading", { name: "Fresh after HA reconnect" })).toBeVisible();
+  await expect(first.getByRole("button", { name: "Open active lock", exact: true })).toBeEnabled();
+  await expect(first.locator(".release-feedback")).toContainText("Release was not confirmed");
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("stations/test_unlock")).length,
+    ),
+  ).toBe(1);
+});
+
+test("initial data timeout shows a retry hint and allows loading again", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("article.station")).toHaveCount(9);
+  await page.clock.install();
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    window.demoHass.callWS = function (message) {
+      if (message.type.endsWith("overview")) {
+        window.demoHass.callWS = original;
+        return new Promise(() => {});
+      }
+      return original.call(this, message);
+    };
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.remove();
+    document.body.append(panel);
+  });
+  await page.clock.fastForward(21000);
+  await expect(
+    page.getByText("Integration data could not be loaded.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Use Refresh after the connection returns.", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(page.locator("article.station")).toHaveCount(9);
 });

@@ -5,6 +5,7 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Fixed
+- Recover the overview after missing responses or reattachment, show when displayed data may be stale, and stop waiting indefinitely for release acknowledgements. Pause door commands during HA disconnection and preserve an uncertain result without replaying or accepting a late acknowledgement.
 - Bound call-state reads and signaling waits in the panel, discard responses from a previous station, and release stuck station controls after an uncertain response without replaying the command. Pause call actions on HA disconnect and obtain fresh state in other views after a command completes.
 
 ## [0.27.0-alpha.1] - 2026-09-09

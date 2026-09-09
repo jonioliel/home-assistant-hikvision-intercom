@@ -255,6 +255,12 @@ const en = {
   call_observation_unchanged: "Device state has not changed",
   call_observation_unavailable: "State verification is unavailable",
   call_observed_state: "Observed state",
+  panel_connection_lost:
+    "Home Assistant is disconnected. Door controls are paused until the connection returns.",
+  panel_data_stale:
+    "Displayed data may be out of date. Refresh failed; you can retry with Refresh.",
+  panel_load_failed: "Integration data could not be loaded.",
+  panel_retry_hint: "Use Refresh after the connection returns.",
   call_connection_lost: "Call controls are paused until Home Assistant reconnects",
   call_read_failed: "Call capabilities or state could not be read",
   call_command_unknown:
@@ -1355,6 +1361,11 @@ const he: Record<keyof typeof en, string> = {
   call_observation_unchanged: "מצב התחנה טרם השתנה",
   call_observation_unavailable: "אימות המצב אינו זמין",
   call_observed_state: "המצב שנקרא",
+  panel_connection_lost: "החיבור ל־Home Assistant נותק. פקדי הדלתות מושהים עד לחידוש החיבור.",
+  panel_data_stale:
+    "ייתכן שהנתונים המוצגים אינם עדכניים. הרענון נכשל; ניתן לנסות שוב באמצעות רענון.",
+  panel_load_failed: "לא ניתן לטעון את נתוני האינטגרציה.",
+  panel_retry_hint: "לאחר חזרת החיבור ניתן ללחוץ על רענון.",
   call_connection_lost: "פקדי השיחה מושהים עד לחידוש החיבור ל־Home Assistant",
   call_read_failed: "לא ניתן לקרוא יכולות או מצב שיחה",
   call_command_unknown: "תוצאת הפקודה לא אומתה. יש לרענן את מצב השיחה לפני פעולה נוספת.",
