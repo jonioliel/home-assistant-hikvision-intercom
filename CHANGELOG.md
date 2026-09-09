@@ -24,6 +24,11 @@ Semantic Versioning is used throughout the project.
   unverified creation intents and another station's ownership cannot supply the name.
   Names explicitly reported by the device remain authoritative.
 
+### Build
+- Exclude the ephemeral CI runner's unused Chrome APT source before installing Playwright
+  dependencies, avoiding its observed repository hash mismatch. Chromium still comes from
+  Playwright and the full browser suite remains required for release.
+
 ### Evidence and limits
 - Two authorized stations returned 123 history records through 78 read-only requests,
   including three successful PIN events with names and employee identifiers. No station writes

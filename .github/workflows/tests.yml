@@ -51,6 +51,10 @@ jobs:
       - run: pnpm --dir frontend run format:check
       - run: pnpm --dir frontend run build
       - run: git diff --exit-code -- custom_components/hikvision_intercom/frontend
+      # Playwright downloads its own Chromium. The runner's unrelated Chrome APT
+      # index can be mid-publication and fail Ubuntu dependency installation.
+      - name: Remove unused Chrome APT source from the ephemeral runner
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: pnpm --dir frontend exec playwright install --with-deps chromium
       - run: pnpm --dir frontend run test
       - uses: actions/upload-artifact@v4
