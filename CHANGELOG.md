@@ -5,6 +5,7 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Fixed
+- Close an event HTTP client even when Home Assistant unloads the station while its executor is still constructing that client.
 - Recover user-management controls after a lost response, logout or panel reattachment. Discard late private inventory/review results, bound browser waits, clear sensitive drafts when a write result is uncertain, and preserve the separate uncertain-card-approval flow without automatic replay.
 - Reject new door, call and audio work as soon as a station starts unloading. Late release acknowledgements cannot recreate an optimistic pulse on the old runtime; uncertain commands are never replayed.
 - Keep audio starts bound to the selected station across delayed browser permission/playback setup. Disable opening while HA is offline, restore connection listeners after reattachment, and never restart listening or the microphone on reconnect.

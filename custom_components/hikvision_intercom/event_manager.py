@@ -315,11 +315,19 @@ class StationEvents:
         self.trace.event(payload, row, historical=historical, resolved=resolved)
 
     async def _stream(self) -> None:
-        session = await self.manager.hass.async_add_executor_job(
+        construction = self.manager.hass.async_add_executor_job(
             create_event_session, self.runtime.client.settings
         )
+        session = None
         delay = 2
         try:
+            try:
+                session = await asyncio.shield(construction)
+            except asyncio.CancelledError:
+                # Executor work cannot be cancelled once it starts. Retain the
+                # late client so the finally block closes it during unload.
+                session = await construction
+                raise
             while not self._closed:
                 try:
                     await self.runtime.client.async_confirm_identity()
@@ -353,7 +361,8 @@ class StationEvents:
                 )
                 delay = min(delay * 2, 300)
         finally:
-            await session.aclose()
+            if session is not None:
+                await session.aclose()
 
     async def _history(self) -> None:
         while not self._closed:
