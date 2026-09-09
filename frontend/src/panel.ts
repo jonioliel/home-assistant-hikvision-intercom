@@ -19,6 +19,7 @@ import type {
 import "./schedules";
 import { downloadText } from "./download";
 import "./camera";
+import "./call-controls";
 import "./events";
 import "./health";
 
@@ -64,6 +65,7 @@ export class IntercomManagerPanel extends LitElement {
     _tab: { state: true },
     _query: { state: true },
     _dialog: { state: true },
+    _callBusy: { state: true },
     _busy: { state: true },
     _releases: { state: true },
     _notice: { state: true },
@@ -103,6 +105,7 @@ export class IntercomManagerPanel extends LitElement {
   private _reviewUser = "";
   private _reviewStation = "";
   private _cameraStation?: Station;
+  private _callBusy = new Set<string>();
   private _unsubscribe?: () => void;
   private _connecting = false;
   private _epoch = 0;
@@ -1058,10 +1061,24 @@ export class IntercomManagerPanel extends LitElement {
       void this.refresh();
     }
   }
+  private callControls(station: Station, compact = false) {
+    return html`<hikvision-intercom-call-controls
+      .hass=${this.hass}
+      .station=${station}
+      .compact=${compact}
+      .blocked=${this._callBusy.has(station.id)}
+      .onBusy=${(stationId: string, busy: boolean) => {
+        const next = new Set(this._callBusy);
+        busy ? next.add(stationId) : next.delete(stationId);
+        this._callBusy = next;
+      }}
+    ></hikvision-intercom-call-controls>`;
+  }
   private camera(station: Station, live = false) {
     return html`<hikvision-intercom-camera
       .hass=${this.hass}
       .entity=${station.entities.camera ?? ""}
+      .version=${this._data?.version ?? ""}
       .live=${live}
       .label=${station.entities.camera ? `${this.t("camera")} · ${station.name}` : this.t("no_camera")}
     ></hikvision-intercom-camera>`;
@@ -1138,7 +1155,7 @@ export class IntercomManagerPanel extends LitElement {
                       <span class="sub">${this.t(station.call_state)}</span
                       >${this.badge(station.sync_state)}
                     </div>
-                    ${this.lastAccess(station)}
+                    ${this.callControls(station, true)} ${this.lastAccess(station)}
                     <p class="sub pending-users">
                       ${this.t("pending_users")}: ${station.pending_user_count}
                     </p>
@@ -2008,7 +2025,7 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.releaseFeedback(cameraStation)}` : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? html`${this.camera(cameraStation, true)}${this.callControls(cameraStation)}${this.releaseFeedback(cameraStation)}` : nothing}
       </div>
       <div class="dialog-foot">
         ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}

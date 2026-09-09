@@ -32,6 +32,23 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         if command == "acceptance/update":
             return await acceptance.update(station.id, msg["step"], msg["state"], msg["revision"])
         return acceptance.public(station.id)
+    if command == "media/call":
+        if not runtime or runtime.session.is_closed:
+            raise AccessError("station_unloaded")
+        reads = data.setdefault("call_reads", set())
+        if station.id in reads or len(reads) >= 3:
+            raise AccessError("device_busy")
+        reads.add(station.id)
+        try:
+            result = await MediaClient(runtime.client).call_context()
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+                raise AccessError("station_unloaded")
+            cached = data.get("call_results", {}).get(station.id)
+            result["last_result"] = cached[1] if cached and cached[0] is runtime else None
+            result["busy"] = station.id in data.get("call_commands_busy", set())
+            return result
+        finally:
+            reads.discard(station.id)
     if command == "media/signal":
         if not runtime or runtime.session.is_closed:
             raise AccessError("station_unloaded")
@@ -40,9 +57,18 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
             raise AccessError("device_busy")
         busy.add(station.id)
         try:
-            await MediaClient(runtime.client).signal(msg["command"])
-            return {"acknowledged": True, "physical_result": "unverified"}
+            operations = data.setdefault("call_operations", {})
+            task = asyncio.create_task(MediaClient(runtime.client).signal(msg["command"]))
+            operations[station.id] = (runtime, task)
+            result = await task
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+                raise AccessError("station_unloaded")
+            data.setdefault("call_results", {})[station.id] = (runtime, result)
+            return result
         finally:
+            operations = data.get("call_operations", {})
+            if station.id in operations and operations[station.id][0] is runtime:
+                operations.pop(station.id, None)
             busy.discard(station.id)
     if command == "health/refresh":
         if not runtime or runtime.session.is_closed:

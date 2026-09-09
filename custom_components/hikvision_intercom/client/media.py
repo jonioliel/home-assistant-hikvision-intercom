@@ -7,7 +7,13 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from ..exceptions import HikvisionError, HikvisionUnsupportedError, HikvisionValidationError
+from ..exceptions import (
+    HikvisionConnectionError,
+    HikvisionError,
+    HikvisionTimeoutError,
+    HikvisionUnsupportedError,
+    HikvisionValidationError,
+)
 from .client import HikvisionClient
 from .parser import find_values, parse_payload
 
@@ -107,7 +113,19 @@ class MediaClient:
                             pass
         return result
 
-    async def signal(self, command: str) -> None:
+    async def call_context(self) -> dict[str, Any]:
+        """Read capabilities and state without opening a call or audio session."""
+        async with asyncio.timeout(15):
+            await self.client.async_confirm_identity()
+            commands = call_commands(await self.client._get(CALL_CAP))
+            state = await self.client.async_call_status()
+            return {
+                "call_commands": commands,
+                "state": state.normalized,
+                "checked_at": datetime.now(UTC).isoformat(),
+            }
+
+    async def signal(self, command: str) -> dict[str, Any]:
         if command not in COMMANDS:
             raise HikvisionValidationError("Unsupported call command")
         async with asyncio.timeout(15):
@@ -119,15 +137,54 @@ class MediaClient:
                 {"ringing"} if command in {"answer", "reject"} else {"in_call"}
             ):
                 raise HikvisionValidationError("No matching active call")
-            # Exactly one attempt; a lost response must not cause an automatic retry.
-            payload = parse_payload(
-                await self.client._request(
-                    "PUT",
-                    CALL_PATH,
-                    content=json.dumps({"CallSignal": {"cmdType": command}}).encode(),
-                    content_type="application/json",
-                )
-            ).data
-            codes = find_values(payload, "statusCode")
-            if not codes or any(str(code) != "1" for code in codes):
-                raise HikvisionValidationError("Call command was not acknowledged")
+        acknowledged: bool | None = True
+        try:
+            # Exactly one attempt. A lost response never causes a write retry.
+            async with asyncio.timeout(10):
+                payload = parse_payload(
+                    await self.client._request(
+                        "PUT",
+                        CALL_PATH,
+                        content=json.dumps({"CallSignal": {"cmdType": command}}).encode(),
+                        content_type="application/json",
+                    )
+                ).data
+                codes = find_values(payload, "statusCode")
+                if not codes or any(str(code) != "1" for code in codes):
+                    raise HikvisionValidationError("Call command was not acknowledged")
+        except (HikvisionConnectionError, HikvisionTimeoutError, TimeoutError):
+            # Readback cannot recover a lost acknowledgement or prove causation.
+            acknowledged = None
+        return await self._observe(command, state.normalized, acknowledged)
+
+    async def _observe(
+        self, command: str, before: str, acknowledged: bool | None
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "command": command,
+            "acknowledged": acknowledged,
+            "physical_result": "unverified",
+            "before_state": before,
+            "observed_state": None,
+            "observation": "unavailable",
+            "checked_at": datetime.now(UTC).isoformat(),
+        }
+        try:
+            async with asyncio.timeout(5):
+                for attempt in range(3):
+                    if attempt:
+                        await asyncio.sleep(0.5)
+                    state = await self.client.async_call_status()
+                    result["observed_state"] = state.normalized
+                    result["checked_at"] = datetime.now(UTC).isoformat()
+                    if state.normalized == "unknown":
+                        result["observation"] = "unavailable"
+                    elif state.normalized != before:
+                        # onCall is busy, never proof of an answered call or audio.
+                        result["observation"] = "state_changed"
+                        break
+                    else:
+                        result["observation"] = "unchanged"
+        except (HikvisionError, TimeoutError):
+            result["observation"] = "unavailable"
+        return result

@@ -1,0 +1,79 @@
+{
+  "format": "hikvision_intercom.verified_history_time_contract",
+  "model": "DS-KV6124-E1",
+  "firmware": "V3.9.0 build 260115",
+  "source": "read-only differential queries on 2026-09-09",
+  "response_format": "YYYY-MM-DD HH:mm:ss without offset",
+  "clock_zone": {
+    "kind": "device",
+    "name": "CST-2:00:00DST01:00:00,M4.1.0/02:00:00,M10.5.0/02:00:00",
+    "standard": 7200,
+    "delta": 3600,
+    "start": [
+      4,
+      1,
+      0,
+      7200
+    ],
+    "end": [
+      10,
+      5,
+      0,
+      7200
+    ]
+  },
+  "queries": [
+    {
+      "assumed_record_offset_hours": 3,
+      "start": "2026-09-09T08:34:54+00:00",
+      "end": "2026-09-09T08:35:04+00:00",
+      "records": 5,
+      "times": [
+        "2026-09-09 11:34:59",
+        "2026-09-09 11:35:01"
+      ],
+      "codes": [
+        "5:181",
+        "5:21",
+        "5:214",
+        "5:22",
+        "5:25"
+      ]
+    },
+    {
+      "assumed_record_offset_hours": 3,
+      "start": "2026-09-09T11:34:54+03:00",
+      "end": "2026-09-09T11:35:04+03:00",
+      "records": 5,
+      "times": [
+        "2026-09-09 11:34:59",
+        "2026-09-09 11:35:01"
+      ],
+      "codes": [
+        "5:181",
+        "5:21",
+        "5:214",
+        "5:22",
+        "5:25"
+      ]
+    },
+    {
+      "assumed_record_offset_hours": 2,
+      "start": "2026-09-09T09:34:54+00:00",
+      "end": "2026-09-09T09:35:04+00:00",
+      "records": 0,
+      "times": [],
+      "codes": []
+    },
+    {
+      "assumed_record_offset_hours": 0,
+      "start": "2026-09-09T11:34:54+00:00",
+      "end": "2026-09-09T11:35:04+00:00",
+      "records": 0,
+      "times": [],
+      "codes": []
+    }
+  ],
+  "zone_unchanged": true,
+  "credential_or_relay_writes": 0
+}

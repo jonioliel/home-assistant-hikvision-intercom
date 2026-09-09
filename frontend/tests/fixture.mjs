@@ -193,6 +193,23 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "media/call")
+      return {
+        call_commands: ["answer", "reject", "hangUp"],
+        state: data.stations.find((s) => s.id === message.station_id)?.call_state ?? "unknown",
+        checked_at: new Date().toISOString(),
+        busy: false,
+        last_result: null,
+      };
+    if (command === "media/signal")
+      return {
+        command: message.command,
+        acknowledged: true,
+        physical_result: "unverified",
+        observation: "unchanged",
+        observed_state: "ringing",
+        checked_at: new Date().toISOString(),
+      };
     if (command === "stations/clock_refresh")
       return data.stations.find((s) => s.id === message.station_id).clock;
     if (command.startsWith("schedules/operations_")) {

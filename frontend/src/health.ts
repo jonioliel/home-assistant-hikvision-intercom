@@ -1,8 +1,10 @@
+import "./event-tools";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
 import { downloadText } from "./download";
+import { callResultText, type CallResult } from "./call-controls";
 import type { Hass, Station } from "./types";
 
 interface Health {
@@ -178,8 +180,13 @@ export class IntercomHealth extends LitElement {
     const epoch = this.epoch;
     this._busy = new Set([...this._busy, id]);
     try {
-      await this.hass.callWS({ type: "hikvision_intercom/media/signal", station_id: id, command });
-      if (this.valid(epoch)) this._errors = { ...this._errors, [id]: this.t("media_ack") };
+      const result = await this.hass.callWS<CallResult>({
+        type: "hikvision_intercom/media/signal",
+        station_id: id,
+        command,
+      });
+      if (this.valid(epoch))
+        this._errors = { ...this._errors, [id]: callResultText(result, this.t) };
     } catch {
       if (this.valid(epoch)) this._errors = { ...this._errors, [id]: this.t("failed") };
     } finally {
@@ -297,6 +304,10 @@ export class IntercomHealth extends LitElement {
             </details>`
           : nothing
       }
+      <hikvision-intercom-event-tools
+        .hass=${this.hass}
+        .station=${station}
+      ></hikvision-intercom-event-tools>
       ${this.fieldView(station)}
     </article>`;
   }

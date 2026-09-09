@@ -1,5 +1,6 @@
 """Own each station session, polling lifecycle and selected momentary release."""
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -100,6 +101,14 @@ class IntercomRuntime:
         self.coordinator.async_update_listeners()
 
     async def async_close(self) -> None:
+        data = self.hass.data.get(DOMAIN, {})
+        operation = data.get("call_operations", {}).get(self.station_id)
+        if operation and operation[0] is self:
+            operation[1].cancel()
+            await asyncio.gather(operation[1], return_exceptions=True)
+        results = data.get("call_results", {})
+        if self.station_id in results and results[self.station_id][0] is self:
+            results.pop(self.station_id, None)
         if self.clock:
             await self.clock.async_close()
         if self.events:

@@ -77,7 +77,14 @@ async function setup(page) {
       }
       if (message.type.endsWith("media/signal")) {
         window.calls.push(message);
-        return { acknowledged: true, physical_result: "unverified" };
+        return {
+          command: message.command,
+          acknowledged: true,
+          physical_result: "unverified",
+          observation: "unchanged",
+          observed_state: "ringing",
+          checked_at: new Date().toISOString(),
+        };
       }
       return base(message);
     };
@@ -164,7 +171,7 @@ test("call signals require explicit action and reflect current call state", asyn
   await first.getByText("Call signaling", { exact: true }).click();
   await expect(first.getByRole("button", { name: "Hang up signal" })).toBeDisabled();
   await first.getByRole("button", { name: "Reject signal" }).click();
-  await expect(first).toContainText("Command acknowledged; physical result unverified");
+  await expect(first).toContainText("Command acknowledged · Device state has not changed");
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal"))),
   ).toHaveLength(1);

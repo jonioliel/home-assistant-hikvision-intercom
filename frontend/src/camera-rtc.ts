@@ -17,9 +17,16 @@ export class CameraRTC {
   private stream = new MediaStream();
   private sequence = Promise.resolve();
   private playing = false;
+  private startedAt = new Date().toISOString();
+  private firstFrameAt: string | null = null;
+  private failureReason: string | null = null;
+  private incoming = 0;
+  private sentCandidates = 0;
+  private disconnectTimer?: ReturnType<typeof setTimeout>;
   private loaded = () => {
     if (this.closed || this.playing || !this.stream.getVideoTracks().length) return;
     this.playing = true;
+    this.firstFrameAt = new Date().toISOString();
     clearTimeout(this.timer);
     this.ready();
   };
@@ -28,10 +35,10 @@ export class CameraRTC {
     private entity: string,
     private video: HTMLVideoElement,
     private ready: () => void,
-    private failed: () => void,
+    private failed: (reason: string) => void,
   ) {}
   async start() {
-    this.timer = setTimeout(() => this.fail(), 12000);
+    this.timer = setTimeout(() => this.fail("no_frame"), 12000);
     this.video.addEventListener("loadeddata", this.loaded);
     try {
       const config = await this.hass.callWS<{
@@ -44,18 +51,22 @@ export class CameraRTC {
       peer.ontrack = (event) => {
         if (this.closed) return;
         this.stream.addTrack(event.track);
+        event.track.onended = () => this.fail("track_ended");
         this.video.srcObject = this.stream;
         void this.video.play().catch(() => {});
       };
       peer.onconnectionstatechange = () => {
-        if (peer.connectionState === "failed" || peer.connectionState === "disconnected")
-          this.fail();
+        clearTimeout(this.disconnectTimer);
+        if (peer.connectionState === "failed") this.fail("connection_failed");
+        else if (peer.connectionState === "disconnected")
+          this.disconnectTimer = setTimeout(() => this.fail("connection_lost"), 3000);
       };
       peer.onicecandidate = (event) => {
         if (!event.candidate || this.closed) return;
         const candidate = event.candidate.toJSON();
         if (this.session) void this.send(candidate);
         else if (this.candidates.length < 100) this.candidates.push(candidate);
+        else this.fail("signal_limit");
       };
       peer.addTransceiver("video", { direction: "recvonly" });
       peer.addTransceiver("audio", { direction: "recvonly" });
@@ -65,11 +76,16 @@ export class CameraRTC {
       if (this.closed) return;
       const unsubscribe = await this.hass.connection.subscribeMessage<Signal>(
         (event) => {
+          if (this.closed) return;
+          if (++this.incoming > 256) {
+            this.fail("signal_limit");
+            return;
+          }
           this.sequence = this.sequence.then(() => this.receive(event)).catch(() => this.fail());
         },
         { type: "camera/webrtc/offer", entity_id: this.entity, offer: offer.sdp },
       );
-      if (this.closed) unsubscribe();
+      if (this.closed) void Promise.resolve(unsubscribe()).catch(() => {});
       else this.unsubscribe = unsubscribe;
     } catch {
       this.fail();
@@ -77,6 +93,10 @@ export class CameraRTC {
   }
   private async send(candidate: RTCIceCandidateInit) {
     if (this.closed) return;
+    if (++this.sentCandidates > 100) {
+      this.fail("signal_limit");
+      return;
+    }
     try {
       await this.hass.callWS({
         type: "camera/webrtc/candidate",
@@ -92,10 +112,18 @@ export class CameraRTC {
     const peer = this.peer;
     if (this.closed || !peer) return;
     if (event.type === "session") {
+      if (this.session || typeof event.session_id !== "string" || event.session_id.length > 256) {
+        this.fail();
+        return;
+      }
       this.session = event.session_id;
       const queued = this.candidates.splice(0);
       for (const candidate of queued) await this.send(candidate);
     } else if (event.type === "answer") {
+      if (typeof event.answer !== "string" || event.answer.length > 262144) {
+        this.fail();
+        return;
+      }
       await peer.setRemoteDescription({ type: "answer", sdp: event.answer });
       if (this.closed) return;
       for (const candidate of this.remote.splice(0)) {
@@ -109,19 +137,73 @@ export class CameraRTC {
           : { ...event.candidate, sdpMid: "0" };
       if (peer.remoteDescription) await peer.addIceCandidate(candidate);
       else if (this.remote.length < 100) this.remote.push(candidate);
+      else this.fail("signal_limit");
     } else this.fail();
   }
-  private fail() {
+  summary(): Record<string, unknown> {
+    return {
+      started_at: this.startedAt,
+      first_frame_at: this.firstFrameAt,
+      video_decoded: this.playing,
+      closed: this.closed,
+      failure: this.failureReason,
+      signaling_messages: this.incoming,
+      local_candidates_sent: this.sentCandidates,
+    };
+  }
+  async diagnostics(): Promise<Record<string, unknown>> {
+    const result = this.summary();
+    const peer = this.peer;
+    if (!peer || this.closed || typeof peer.getStats !== "function") return result;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const stats = await Promise.race([
+        peer.getStats(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(Error()), 2000);
+        }),
+      ]);
+      const video: Record<string, unknown> = {};
+      stats.forEach((entry) => {
+        if (entry.type !== "inbound-rtp" || entry.kind !== "video") return;
+        for (const key of [
+          "bytesReceived",
+          "packetsReceived",
+          "packetsLost",
+          "framesDecoded",
+          "framesDropped",
+          "frameWidth",
+          "frameHeight",
+        ])
+          if (typeof entry[key] === "number" && Number.isFinite(entry[key]) && entry[key] >= 0)
+            video[key] = Math.round(entry[key]);
+        const codec = stats.get(entry.codecId)?.mimeType;
+        if (["video/H264", "video/VP8", "video/VP9", "video/AV1", "video/H265"].includes(codec))
+          video.codec = codec;
+      });
+      result.video = video;
+    } catch {
+      result.stats_unavailable = true;
+    } finally {
+      clearTimeout(timeout);
+    }
+    return result;
+  }
+  private fail(reason = "signaling_failed") {
     if (this.closed) return;
+    this.failureReason = reason;
     this.close();
-    this.failed();
+    this.failed(reason);
   }
   close() {
     if (this.closed) return;
     this.closed = true;
     this.video.removeEventListener("loadeddata", this.loaded);
     clearTimeout(this.timer);
-    this.unsubscribe?.();
+    clearTimeout(this.disconnectTimer);
+    try {
+      void Promise.resolve(this.unsubscribe?.()).catch(() => {});
+    } catch {}
     this.unsubscribe = undefined;
     if (this.peer) {
       this.peer.ontrack = null;
@@ -129,7 +211,10 @@ export class CameraRTC {
       this.peer.onconnectionstatechange = null;
       this.peer.close();
     }
-    this.stream.getTracks().forEach((track) => track.stop());
+    this.stream.getTracks().forEach((track) => {
+      track.onended = null;
+      track.stop();
+    });
     if (this.video.srcObject === this.stream) this.video.srcObject = null;
     this.candidates = [];
     this.remote = [];

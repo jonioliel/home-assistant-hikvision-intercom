@@ -139,3 +139,26 @@ def parse_clock(payload: dict[str, Any], now: datetime) -> dict[str, Any]:
         and mode in {"NTP", "manual", "satellite", "platform", "NONE", "GB28181"}
         else "unknown",
     }
+
+
+def resolve_device_local_time(value: str, zone: dict[str, Any]) -> datetime:
+    """Resolve the observed offset-free history format, rejecting DST folds and gaps."""
+    if not isinstance(value, str) or not re.fullmatch(
+        r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", value
+    ):
+        raise HikvisionValidationError("Unsupported device-local history time")
+    try:
+        wall = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        raise HikvisionValidationError("Invalid device-local history time") from None
+    nominal = wall.replace(tzinfo=UTC)
+    offsets = {offset_at(nominal + timedelta(days=days), zone) for days in (-2, -1, 0, 1, 2)}
+    candidates = {
+        candidate
+        for offset in offsets
+        if localize(candidate := nominal - timedelta(seconds=offset), zone).replace(tzinfo=None)
+        == wall
+    }
+    if len(candidates) != 1:
+        raise HikvisionValidationError("Ambiguous or nonexistent device-local history time")
+    return next(iter(candidates))

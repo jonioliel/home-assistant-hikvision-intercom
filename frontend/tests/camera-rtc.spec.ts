@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 async function rtc(page, mode = "success") {
   await page.goto("/");
@@ -62,6 +63,8 @@ async function rtc(page, mode = "success") {
     window.demoHass.callWS = async (message) => {
       if (message.type === "camera/capabilities") {
         window.calls.push(message);
+        if (mode === "caps_pending")
+          return await new Promise((resolve) => (window.rtcCapsResolve = resolve));
         return { frontend_stream_types: mode === "hls" ? ["hls"] : ["web_rtc", "hls"] };
       }
       if (message.type === "camera/webrtc/get_client_config") {
@@ -158,4 +161,106 @@ test("a track without a decoded frame times out into HLS", async ({ page }) => {
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
   ).toBe(1);
   expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+});
+
+test("capability timeout falls back once and ignores its late reply", async ({ page }) => {
+  await page.clock.install();
+  await rtc(page, "caps_pending");
+  await expect.poll(() => page.evaluate(() => !!window.rtcCapsResolve)).toBeTruthy();
+  await page.clock.fastForward(11000);
+  await expect(page.getByRole("dialog")).toContainText("Camera capability request timed out");
+  await page.evaluate(() => window.rtcCapsResolve({ frontend_stream_types: ["web_rtc"] }));
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
+  ).toBe(1);
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type === "camera/webrtc/offer")),
+  ).toBe(false);
+});
+
+test("backgrounding releases RTC and returning starts a fresh session", async ({ page }) => {
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page.evaluate(() => {
+    window.fakeHidden = true;
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => window.fakeHidden });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByRole("dialog")).toContainText(
+    "Video paused while this page is in the background",
+  );
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+  await page.evaluate(() => {
+    window.fakeHidden = false;
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(2);
+});
+
+test("short RTC disconnect can recover without selecting HLS", async ({ page }) => {
+  await page.clock.install();
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page.evaluate(() => {
+    window.testPeer.connectionState = "disconnected";
+    window.testPeer.onconnectionstatechange();
+  });
+  await page.clock.fastForward(2000);
+  await page.evaluate(() => {
+    window.testPeer.connectionState = "connected";
+    window.testPeer.onconnectionstatechange();
+  });
+  await page.clock.fastForward(3000);
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(0);
+  expect(await page.evaluate(() => window.calls.some((c) => c.type === "camera/stream"))).toBe(
+    false,
+  );
+});
+
+test("playback export includes decode evidence and omits SDP and network addresses", async ({
+  page,
+}) => {
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page.evaluate(() => {
+    window.testPeer.getStats = async () =>
+      new Map([
+        [
+          "v",
+          {
+            type: "inbound-rtp",
+            kind: "video",
+            bytesReceived: 1234,
+            framesDecoded: 42,
+            codecId: "c",
+            remoteAddress: "PRIVATE_IP",
+          },
+        ],
+        ["c", { type: "codec", mimeType: "video/H264", sdp: "PRIVATE_SDP" }],
+        ["address", { type: "local-candidate", address: "PRIVATE_IP" }],
+      ]);
+  });
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("dialog").getByRole("button", { name: "Playback report" }).click();
+  const text = await readFile((await (await downloaded).path())!, "utf8");
+  const report = JSON.parse(text);
+  expect(report.rtc.video.framesDecoded).toBe(42);
+  expect(report.rtc.video.codec).toBe("video/H264");
+  expect(report.rtc.video_decoded).toBe(true);
+  expect(text).not.toContain("PRIVATE");
+  expect(text).not.toContain("entity_id");
+});
+
+test("ending a received track closes RTC and starts one fallback", async ({ page }) => {
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page.evaluate(() => window.rtcTrack.dispatchEvent(new Event("ended")));
+  await expect(page.getByRole("dialog")).toContainText("The video track ended");
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
+  ).toBe(1);
 });

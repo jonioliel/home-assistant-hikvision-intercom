@@ -12,6 +12,8 @@ from uuid import uuid4
 
 import httpx
 
+from ..clock import resolve_device_local_time
+from ..events import timestamp
 from ..exceptions import (
     HikvisionAuthError,
     HikvisionConnectionError,
@@ -21,6 +23,7 @@ from ..exceptions import (
     HikvisionValidationError,
 )
 from .client import ConnectionSettings, HikvisionClient
+from .clock import ClockClient
 from .parser import parse_payload
 from .transport import LimitedTransport
 
@@ -185,6 +188,7 @@ class EventClient:
         records: list[dict[str, Any]] = []
         seen: set[str] = set()
         total: int | None = None
+        local_zone: dict[str, Any] | None = None
         async with asyncio.timeout(120):
             while len(records) <= self.position_limit:
                 body = {
@@ -234,8 +238,34 @@ class EventClient:
                 for row in rows:
                     if not isinstance(row, dict):
                         raise HikvisionValidationError("Invalid event record")
+                    raw_time = row.get("time")
+                    if isinstance(raw_time, str) and timestamp(raw_time) is None:
+                        if local_zone is None:
+                            info = await self.client.async_device_info()
+                            if (
+                                info[1] != "DS-KV6124-E1"
+                                or info[2] != "V3.9.0 build 260115"
+                                or not self.client._expected_identity
+                                or info[0] != self.client._expected_identity
+                            ):
+                                raise HikvisionUnsupportedError(
+                                    "Local history time contract is unverified"
+                                )
+                            local_zone = (await ClockClient(self.client).async_read())["zone"]
+                        when = resolve_device_local_time(raw_time, local_zone)
+                        # Copy the record; only this verified client path supplies an
+                        # explicit offset. The generic event parser never guesses it.
+                        row = {
+                            **row,
+                            "time": when.isoformat(),
+                            "_time_interpretation": "device_local",
+                        }
                     records.append(row)
                 if len(records) == total and status != "MORE":
+                    if local_zone is not None:
+                        after = await ClockClient(self.client).async_read()
+                        if after["zone"] != local_zone:
+                            raise HikvisionValidationError("Device time zone changed during search")
                     return records
                 if not count or status != "MORE":
                     raise HikvisionValidationError("Incomplete event search")

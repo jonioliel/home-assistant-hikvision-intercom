@@ -18,6 +18,7 @@ from .access_runtime import SIGNAL_ACCESS_CHANGED
 from .client.events import EventClient, HistoryWindowFull, create_event_session
 from .const import DOMAIN, VERSION
 from .event_diagnostics import EventTelemetry, event_support, explain_event
+from .event_trace import EventTrace
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
 from .issues import issue
@@ -189,6 +190,8 @@ class EventManager:
         if row is None:
             raise AccessError("event_not_found")
         report = event_support(row, VERSION)
+        station = self.stations.get(row["station_id"])
+        report["source_identity"] = station.trace.evidence.get(identifier) if station else None
         if not export:
             report["record"] = dict(row)
         return report
@@ -220,6 +223,7 @@ class StationEvents:
         self.history_state = "pending"
         self.reconnects = 0
         self.telemetry = EventTelemetry()
+        self.trace = EventTrace()
         self.last_frame_at: str | None = None
         self._tasks: list[asyncio.Task[Any]] = []
         self._closed = False
@@ -251,6 +255,7 @@ class StationEvents:
     def _call_changed(self) -> None:
         coordinator = self.runtime.coordinator
         current = coordinator.data.normalized if coordinator.last_update_success else None
+        self.trace.call(current)
         # A ring already in progress at load/reconnect is not a new button press.
         if current == "ringing" and self._previous_call in {"idle", "in_call", "ending"}:
             loop = self.manager.hass.loop
@@ -295,15 +300,18 @@ class StationEvents:
             historical=historical,
             occurrence=occurrence,
         )
+        resolved = False
         if row:
             # Resolve names only by an explicit employee ID. Missing identity stays unknown.
             if row["employee_no"] and not row["person_name"]:
                 for user in self.runtime.access_manager.repository.users():
                     if user.employee_no == row["employee_no"]:
                         row["person_name"] = user.display_name
+                        resolved = True
                         break
             accepted = self.manager.accept(row)
             self.telemetry.observe(row, accepted)
+        self.trace.event(payload, row, historical=historical, resolved=resolved)
 
     async def _stream(self) -> None:
         session = await self.manager.hass.async_add_executor_job(

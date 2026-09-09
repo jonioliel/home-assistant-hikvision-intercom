@@ -52,6 +52,11 @@ COMMANDS = {
     "health/refresh": {"station_id": str},
     "acceptance/get": {"station_id": str},
     "acceptance/update": {"station_id": str, "step": str, "state": str, "revision": int},
+    "events/history_inspect": {"station_id": str, "start": str, "end": str},
+    "events/trace_start": {"station_id": str},
+    "events/trace_get": {"station_id": str},
+    "events/trace_stop": {"station_id": str, "capture_id": str},
+    "media/call": {"station_id": str},
     "media/signal": {"station_id": str, "command": str},
     "schedules/operations_list": {},
     "schedules/operations_export": {},
@@ -213,8 +218,41 @@ async def _dispatch(
     hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
 ) -> Any:
     manager = get_manager(hass)
+    if command == "events/history_inspect":
+        from .client.history_diagnostics import inspect_history
+
+        station = manager._station(msg["station_id"])
+        entry = hass.config_entries.async_get_entry(station.id)
+        runtime = getattr(entry, "runtime_data", None)
+        if runtime is None or runtime.session.is_closed:
+            raise AccessError("station_unloaded")
+        reads = hass.data[DOMAIN].setdefault("history_inspections", set())
+        if station.id in reads or len(reads) >= 3:
+            raise AccessError("device_busy")
+        reads.add(station.id)
+        try:
+            report = await inspect_history(runtime.client, msg["start"], msg["end"])
+            if getattr(entry, "runtime_data", None) is not runtime or runtime.session.is_closed:
+                raise AccessError("station_unloaded")
+            return report
+        finally:
+            reads.discard(station.id)
     if command.startswith(("health/", "acceptance/", "media/")):
         return await dispatch_health(hass, command, msg)
+    if command.startswith("events/trace_"):
+        station_events = get_events(hass).stations.get(msg["station_id"])
+        if station_events is None or station_events._closed:
+            raise AccessError("station_unloaded")
+        trace = station_events.trace
+        if command == "events/trace_start":
+            coordinator = station_events.runtime.coordinator
+            initial = (
+                coordinator.data.normalized if coordinator.last_update_success else "unavailable"
+            )
+            return trace.start(initial)
+        if command == "events/trace_stop":
+            return trace.stop(msg["capture_id"])
+        return trace.public()
     if command in {"events/detail", "events/support"}:
         return get_events(hass).detail(msg["event_id"], export=command == "events/support")
     if command == "cards/reader_capabilities":

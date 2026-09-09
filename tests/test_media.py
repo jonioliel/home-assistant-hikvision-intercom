@@ -66,8 +66,10 @@ async def test_missing_advertisement_blocks_signal():
 async def test_uncertain_write_is_not_retried():
     c = client()
     c.client._request.side_effect = HikvisionTimeoutError("private")
-    with pytest.raises(HikvisionTimeoutError):
-        await c.signal("answer")
+    result = await c.signal("answer")
+    assert result["acknowledged"] is None
+    assert result["physical_result"] == "unverified"
+    assert result["observation"] == "unchanged"
     assert c.client._request.await_count == 1
 
 
@@ -136,3 +138,57 @@ async def test_media_inspection_rejects_mismatched_channel_capability():
     result = await c.inspect()
     assert result["errors"]["audio_capabilities"] == "media_read_failed"
     assert "audio_capability_source" not in result
+
+
+@pytest.mark.parametrize(
+    "command,before,after",
+    [
+        ("answer", "ringing", "in_call"),
+        ("reject", "ringing", "idle"),
+        ("hangUp", "in_call", "idle"),
+        ("answer", "ringing", "idle"),
+    ],
+)
+async def test_signal_reports_observed_state_without_claiming_answer(command, before, after):
+    c = client()
+    c.client.async_call_status.side_effect = [CallState(before, before), CallState(after, after)]
+    result = await c.signal(command)
+    assert result["observed_state"] == after
+    assert result["observation"] == "state_changed"
+    assert result["acknowledged"] is True and result["physical_result"] == "unverified"
+    assert c.client._request.await_count == 1
+
+
+async def test_acknowledged_command_survives_failed_readback():
+    c = client()
+    c.client.async_call_status.side_effect = [
+        CallState("ringing", "ring"),
+        HikvisionTimeoutError("private"),
+    ]
+    result = await c.signal("reject")
+    assert result["acknowledged"] is True and result["observation"] == "unavailable"
+    assert "private" not in json.dumps(result)
+    assert c.client._request.await_count == 1
+
+
+async def test_lost_ack_and_changed_state_remain_uncertain():
+    c = client()
+    c.client._request.side_effect = HikvisionTimeoutError("private")
+    c.client.async_call_status.side_effect = [
+        CallState("ringing", "ring"),
+        CallState("idle", "idle"),
+    ]
+    result = await c.signal("reject")
+    assert result["acknowledged"] is None and result["observed_state"] == "idle"
+    assert result["physical_result"] == "unverified"
+    assert c.client._request.await_count == 1
+
+
+async def test_context_is_read_only_and_never_exposes_raw_state():
+    c = client()
+    c.client.async_call_status.return_value = CallState("unknown", "private_state")
+    result = await c.call_context()
+    assert result["state"] == "unknown"
+    assert result["call_commands"] == ["answer", "reject", "hangUp"]
+    assert "private_state" not in json.dumps(result)
+    c.client._request.assert_not_called()

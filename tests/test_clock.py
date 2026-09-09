@@ -16,6 +16,7 @@ from custom_components.hikvision_intercom.clock import (
     localize,
     named_zone,
     parse_clock,
+    resolve_device_local_time,
 )
 from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
 from custom_components.hikvision_intercom.reporting import build_report
@@ -123,3 +124,29 @@ def test_report_days_and_export_follow_each_station_without_altering_utc_timesta
     assert "2026-09-09T00:30:00+03:00" in result["csv"]
     assert "2026-09-08T21:30:00+00:00" in result["csv"]
     assert row["timestamp"] == "2026-09-08T21:30:00+00:00"
+
+
+@pytest.mark.parametrize(
+    "wall,expected",
+    [
+        ("2026-09-09 11:34:59", "2026-09-09T08:34:59+00:00"),
+        ("2026-01-01 11:34:59", "2026-01-01T09:34:59+00:00"),
+    ],
+)
+def test_verified_local_history_uses_rules_for_event_date(wall, expected):
+    assert resolve_device_local_time(wall, device_zone(RULE)).isoformat() == expected
+
+
+@pytest.mark.parametrize(
+    "wall",
+    [
+        "2026-04-05 02:30:00",
+        "2026-10-25 01:30:00",
+        "2026-02-30 12:00:00",
+        "2026-09-09T12:00:00Z",
+        "not a time",
+    ],
+)
+def test_local_history_rejects_dst_gaps_folds_and_unsupported_formats(wall):
+    with pytest.raises(HikvisionValidationError):
+        resolve_device_local_time(wall, device_zone(RULE))

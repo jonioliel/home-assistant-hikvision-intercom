@@ -2,6 +2,7 @@ import { LitElement, html, css, type PropertyValues } from "lit";
 import Hls from "hls.js";
 import { CameraRTC } from "./camera-rtc";
 import { translate } from "./i18n";
+import { downloadText } from "./download";
 import type { Hass } from "./types";
 
 /** Images and HLS are obtained exclusively from authenticated Home Assistant camera APIs. */
@@ -16,8 +17,27 @@ export class IntercomCamera extends LitElement {
     _failed: { state: true },
     _mode: { state: true },
     _fallback: { state: true },
+    _fallbackReason: { state: true },
+    _documentVisible: { state: true },
+    _networkOnline: { state: true },
+    version: { type: String },
   };
   hass?: Hass;
+  version = "";
+  private _documentVisible = !document.hidden;
+  private _networkOnline = navigator.onLine;
+  private _fallbackReason = "";
+  private startTimer?: ReturnType<typeof setTimeout>;
+  private firstFrameAt: string | null = null;
+  private startedAt: string | null = null;
+  private previousRTC?: Record<string, unknown>;
+  private visibility = () => {
+    this._documentVisible = !document.hidden;
+  };
+  private online = () => {
+    this._networkOnline = navigator.onLine;
+  };
+  private connection?: Hass["connection"];
   entity = "";
   live = false;
   label = "";
@@ -57,6 +77,15 @@ export class IntercomCamera extends LitElement {
       color: white;
       font-size: 12px;
       pointer-events: none;
+      max-width: 60%;
+    }
+    .playback-export {
+      position: absolute;
+      inset-block-start: 4px;
+      inset-inline-end: 4px;
+      padding: 4px 8px;
+      font: inherit;
+      font-size: 12px;
     }
     p {
       height: 100%;
@@ -70,6 +99,11 @@ export class IntercomCamera extends LitElement {
   `;
   connectedCallback() {
     super.connectedCallback();
+    this.visibility();
+    this.online();
+    document.addEventListener("visibilitychange", this.visibility);
+    window.addEventListener("online", this.online);
+    window.addEventListener("offline", this.online);
     this.observer = new IntersectionObserver((entries) => {
       this._visible = entries.some((item) => item.isIntersecting);
       if (this._visible) this._tick = Date.now();
@@ -82,11 +116,15 @@ export class IntercomCamera extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.observer?.disconnect();
+    document.removeEventListener("visibilitychange", this.visibility);
+    window.removeEventListener("online", this.online);
+    window.removeEventListener("offline", this.online);
     clearInterval(this.timer);
     this.stop();
   }
   private stop() {
     this.generation++;
+    clearTimeout(this.startTimer);
     this.rtc?.close();
     this.rtc = undefined;
     this.player?.destroy();
@@ -105,39 +143,67 @@ export class IntercomCamera extends LitElement {
       this.stop();
       return;
     }
-    if (changed.has("entity") || changed.has("live") || changed.has("_visible")) {
+    const connectionChanged = this.connection !== this.hass?.connection;
+    this.connection = this.hass?.connection;
+    if (
+      connectionChanged ||
+      changed.has("entity") ||
+      changed.has("live") ||
+      changed.has("_visible") ||
+      changed.has("_documentVisible") ||
+      changed.has("_networkOnline")
+    ) {
       this.stop();
       this._failed = false;
-      if (this.live && this._visible && this.entity) void this.start();
+      if (this.live && this._visible && this.entity && this._documentVisible && this._networkOnline)
+        void this.start();
     }
   }
   private async start() {
     const generation = this.generation;
     this._mode = "player_connecting";
     this._fallback = false;
+    this._fallbackReason = "";
+    this.startedAt = new Date().toISOString();
+    this.firstFrameAt = null;
+    this.previousRTC = undefined;
     const current = () =>
-      generation === this.generation && this.isConnected && !!this.hass?.user?.is_admin;
-    const fallback = () => {
-      if (current()) {
+      generation === this.generation &&
+      this.isConnected &&
+      !!this.hass?.user?.is_admin &&
+      this._documentVisible &&
+      this._networkOnline;
+    let fallbackStarted = false;
+    const fallback = (reason: string) => {
+      if (current() && !fallbackStarted) {
+        fallbackStarted = true;
+        clearTimeout(this.startTimer);
+        this.previousRTC = this.rtc?.summary();
+        this.rtc?.close();
+        this.rtc = undefined;
         this._fallback = true;
+        this._fallbackReason = reason;
         void this.startHls();
       }
     };
+    this.startTimer = setTimeout(() => fallback("capabilities_timeout"), 10000);
     try {
       const caps = await this.hass!.callWS<{ frontend_stream_types: string[] }>({
         type: "camera/capabilities",
         entity_id: this.entity,
       });
-      if (!current()) return;
-      if (
-        !caps.frontend_stream_types?.includes("web_rtc") ||
-        typeof RTCPeerConnection === "undefined"
-      ) {
-        fallback();
+      if (!current() || fallbackStarted) return;
+      clearTimeout(this.startTimer);
+      if (!caps.frontend_stream_types?.includes("web_rtc")) {
+        fallback("provider_unavailable");
+        return;
+      }
+      if (typeof RTCPeerConnection === "undefined") {
+        fallback("browser_unavailable");
         return;
       }
       await this.updateComplete;
-      if (!current()) return;
+      if (!current() || fallbackStarted) return;
       const video = this.renderRoot.querySelector("video");
       if (!video) return;
       this.rtc = new CameraRTC(
@@ -145,17 +211,71 @@ export class IntercomCamera extends LitElement {
         this.entity,
         video,
         () => {
-          if (current()) this._mode = "player_webrtc";
+          if (current()) {
+            this._mode = "player_webrtc";
+            this.firstFrameAt = new Date().toISOString();
+          }
         },
         fallback,
       );
       void this.rtc.start();
     } catch {
-      fallback();
+      fallback("capabilities_failed");
     }
+  }
+  private failPlayer(reason: string) {
+    this._failed = true;
+    if (!this._fallbackReason) this._fallbackReason = reason;
+    this.stop();
+  }
+  private loaded() {
+    if (this._fallback && this.renderRoot.querySelector("video")?.videoWidth) {
+      clearTimeout(this.startTimer);
+      this._mode = "player_hls";
+      this.firstFrameAt = new Date().toISOString();
+    }
+  }
+  private async exportPlayback() {
+    if (!this.hass?.user?.is_admin) return;
+    const generation = this.generation;
+    const rtc = this.rtc ? await this.rtc.diagnostics() : (this.previousRTC ?? null);
+    if (generation !== this.generation || !this.isConnected || !this.hass?.user?.is_admin) return;
+    const video = this.renderRoot.querySelector("video");
+    downloadText(
+      JSON.stringify(
+        {
+          format: "hikvision_intercom.playback",
+          schema: 1,
+          integration_version: this.version,
+          generated_at: new Date().toISOString(),
+          started_at: this.startedAt,
+          first_frame_at: this.firstFrameAt,
+          mode: this._mode,
+          failed: this._failed,
+          fallback_reason: this._fallbackReason || null,
+          document_visible: this._documentVisible,
+          browser_online: this._networkOnline,
+          width: video?.videoWidth ?? 0,
+          height: video?.videoHeight ?? 0,
+          rtc,
+        },
+        null,
+        2,
+      ),
+      "hikvision-playback.json",
+      "application/json",
+    );
+  }
+  private exportButton() {
+    return html`<button class="playback-export" @click=${() => this.exportPlayback()}>
+      ${this.t("player_export")}
+    </button>`;
   }
   private async startHls() {
     const generation = this.generation;
+    this.startTimer = setTimeout(() => {
+      if (generation === this.generation) this.failPlayer("hls_timeout");
+    }, 16000);
     try {
       const response = await this.hass!.callWS<{ url: string }>({
         type: "camera/stream",
@@ -167,6 +287,7 @@ export class IntercomCamera extends LitElement {
       if (url.origin !== location.origin || !url.pathname.startsWith("/api/hls/"))
         throw Error("Unsupported stream endpoint");
       await this.updateComplete;
+      if (generation !== this.generation || !this.isConnected || !this.hass?.user?.is_admin) return;
       const video = this.renderRoot.querySelector("video");
       if (!video) return;
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -174,32 +295,31 @@ export class IntercomCamera extends LitElement {
       } else if (Hls.isSupported()) {
         this.player = new Hls({ lowLatencyMode: true, maxBufferLength: 12 });
         this.player.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
-            this._failed = true;
-            this.player?.destroy();
-          }
+          if (data.fatal && generation === this.generation) this.failPlayer("hls_failed");
         });
         this.player.loadSource(url.href);
         this.player.attachMedia(video);
       } else throw Error("Unsupported video");
-      this._mode = "player_hls";
       void video.play().catch(() => {});
     } catch {
-      if (generation === this.generation) this._failed = true;
+      if (generation === this.generation) this.failPlayer("hls_failed");
     }
   }
   render() {
+    if (this.live && !this._documentVisible) return html`<p>${this.t("player_suspended")}</p>`;
+    if (this.live && !this._networkOnline) return html`<p>${this.t("player_network_offline")}</p>`;
     if (this.live && this._failed)
       return html`<p>
-        ${this.t("player_failed")}<button
+        ${this.t("player_failed")}<small>${this.t("player_reason_" + this._fallbackReason)}</small
+        ><button
           @click=${() => {
             this.stop();
             this._failed = false;
             void this.start();
           }}
         >
-          ${this.t("player_retry")}
-        </button>
+          ${this.t("player_retry")}</button
+        >${this.exportButton()}
       </p>`;
     if (!this.entity || !this._visible || this._failed) return html`<p>${this.label}</p>`;
     if (this.live)
@@ -209,14 +329,12 @@ export class IntercomCamera extends LitElement {
           muted
           playsinline
           aria-label=${this.label}
-          @error=${() => {
-            this._failed = true;
-            this.stop();
-          }}
+          @loadeddata=${() => this.loaded()}
+          @error=${() => this.failPlayer("media_failed")}
         ></video
         ><span class="player-status" role="status"
           >${this.t(this._mode)}${this._fallback ? " · " + this.t("player_fallback") : ""}</span
-        >`;
+        >${this.exportButton()}`;
     const picture = this.hass?.states[this.entity]?.attributes.entity_picture;
     let source = "";
     try {
