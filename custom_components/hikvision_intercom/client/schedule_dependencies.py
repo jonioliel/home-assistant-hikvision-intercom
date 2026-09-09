@@ -119,6 +119,17 @@ async def inspect_dependencies(client: HikvisionClient) -> dict[str, Any]:
     """Use existing verified schedule and user Search contracts with separate deadlines."""
     rows: dict[str, list[dict[str, Any]]] = {}
     inventory = await inspect_inventory(client, projected=rows)
+    return await read_user_dependencies(client, inventory, rows)
+
+
+async def read_user_dependencies(
+    client: HikvisionClient,
+    inventory: dict[str, Any],
+    rows: dict[str, list[dict[str, Any]]],
+    *,
+    references: set[int] | None = None,
+) -> dict[str, Any]:
+    """Read only user assignments after a caller has already inventoried schedules."""
     users: dict[str, Any] = {
         "state": "failed",
         "error": None,
@@ -139,4 +150,7 @@ async def inspect_dependencies(client: HikvisionClient) -> dict[str, Any]:
             users.update(user_references(await access._search("UserInfo")), state="complete")
     except (HikvisionError, TimeoutError) as err:
         users["error"] = "connection_failed" if isinstance(err, TimeoutError) else error_code(err)
+    if references is not None:
+        references.clear()
+        references.update(users["references"])
     return summarize(users, inventory, rows)

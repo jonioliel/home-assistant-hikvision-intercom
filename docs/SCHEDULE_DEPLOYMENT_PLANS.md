@@ -18,3 +18,17 @@ An empty group reference is a candidate representation, not proof of effective a
 Source contracts: manufacturer IP/Pro ISAPI pages 438-447; observed capability fixture
 `tests/fixtures/schedule_capabilities_readonly.json`. This does not prove PUT acceptance,
 readback equivalence or physical enforcement. No write path is enabled by compilation.
+
+## Observed configuration comparison
+
+Explicitly selected records are captured privately from validated Search pages. Unselected raw
+records are not retained, and any failed resource search discards its captured rows. Public
+inventory reports keep their previous allowlisted schema. User references reuse the existing
+verified UserInfo Search reader, without searching cards or sending configuration requests.
+
+Comparison sorts period slots and reference lists, preserves seconds, dates and disabled slots,
+and reports changed field names without returning existing station configuration names or values.
+Missing records are not free slots. Unknown fields (including authentication-count controls) make
+comparison unsupported instead of silently dropping access restrictions. Disabled referenced
+resources still count as dependencies. A matching configuration still has ownership and write
+verification blockers; no write command or automatic resource selection is introduced.

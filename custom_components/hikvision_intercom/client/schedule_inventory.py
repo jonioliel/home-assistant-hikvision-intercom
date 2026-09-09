@@ -102,6 +102,8 @@ async def search_records(
     progress: dict[str, Any],
     fingerprints: dict[str, str] | None = None,
     fingerprint: Callable[[Any], str] | None = None,
+    selected: set[int] | None = None,
+    captured: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     seen: set[int] = set()
@@ -163,6 +165,10 @@ async def search_records(
             except (ValueError, TypeError, RecursionError):
                 raise HikvisionValidationError("Invalid schedule fingerprint input") from None
             fingerprints.update(captured)
+        if selected is not None and captured is not None:
+            captured.update(
+                {str(i): row for i, row in zip(identifiers, rows, strict=True) if i in selected}
+            )
         records.extend(projected)
         seen.update(identifiers)
         progress.update(total=total, read=final, pages=progress["pages"] + 1)
@@ -177,6 +183,8 @@ async def search_records(
 async def inspect_inventory(
     client: HikvisionClient,
     *,
+    selected: dict[str, set[int]] | None = None,
+    records: dict[str, dict[str, Any]] | None = None,
     projected: dict[str, list[dict[str, Any]]] | None = None,
     evidence: dict[str, Any] | None = None,
     fingerprint: Callable[[Any], str] | None = None,
@@ -204,6 +212,7 @@ async def inspect_inventory(
     inventories: dict[str, list[dict[str, Any]]] = {}
     captured_rows: dict[str, dict[str, str]] = {kind: {} for kind, *_ in ROUTES}
     captured_capabilities: dict[str, str] = {}
+    selected_records: dict[str, dict[str, Any]] = {kind: {} for kind, *_ in ROUTES}
     try:
         async with asyncio.timeout(60):
             await reader.async_confirm_identity()
@@ -241,7 +250,16 @@ async def inspect_inventory(
                             ) from None
                     item.update(capabilities=cap, search=search)
                     rows = await search_records(
-                        reader, root, kind, cap, search, item, captured_rows[kind], fingerprint
+                        reader,
+                        root,
+                        kind,
+                        cap,
+                        search,
+                        item,
+                        captured_rows[kind],
+                        fingerprint,
+                        selected.get(kind, set()) if selected else None,
+                        selected_records[kind],
                     )
                     inventories[kind] = rows
                     item.update(
@@ -291,6 +309,16 @@ async def inspect_inventory(
                     state="failed",
                     error="connection_failed" if isinstance(err, TimeoutError) else error_code(err),
                 )
+    if records is not None:
+        records.clear()
+        records.update(
+            {
+                item["kind"]: selected_records[item["kind"]]
+                if item["state"] in {"complete", "partial"}
+                else {}
+                for item in checks
+            }
+        )
     if projected is not None:
         projected.clear()
         projected.update(inventories)
