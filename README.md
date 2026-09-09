@@ -186,3 +186,8 @@ are available in each station’s HA Options. See [time-zone setup and behavior]
 Schedule proposals now have an administrator operations workspace for responsibility review,
 background checks, restart recovery and archive. See [the operations guide](docs/SCHEDULE_OPERATIONS.md).
 Schedule writes remain unavailable until their device contract is verified.
+
+
+Version 0.21 adds [health diagnostics, WebRTC with HLS fallback, field-test records and call signaling](docs/HEALTH_AND_MEDIA.md).
+See the [20-task development report](docs/CORE_MEDIA_BATCH_HE.md) for completed software and remaining physical checks.
+Two-way microphone audio is not implemented; call signalling acknowledgement does not prove an answered call.

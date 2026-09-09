@@ -1,5 +1,15 @@
 # Project progress
 
+Current 0.21 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase5 **8/9 (88.9%)**.
+Phase6: four software features implemented, three partial, two absent. The approximate
+combined scope measure is **77.7%**, not an effort estimate or proof of physical acceptance.
+The [current 20-task ledger](CORE_MEDIA_BATCH_HE.md) and [health/media guide](HEALTH_AND_MEDIA.md)
+supersede earlier schedule-priority plans. Seventeen tasks are implemented; identity-report
+correlation, two-way audio and physical call-control acceptance remain partial.
+
+## Historical checkpoints (earlier counts below are not current)
+
+
 Source of truth: CODEX_MASTER_SPEC.md v1.2, read completely on 2026-09-07.
 
 [Hebrew scope and phase audit — 0.14 baseline](STATUS_0_14_HE.md): mandatory v1 acceptance

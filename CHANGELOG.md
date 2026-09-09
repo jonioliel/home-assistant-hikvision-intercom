@@ -4,6 +4,35 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.21.0-alpha.1] - 2026-09-09
+
+### Added
+- Health and field tests panel with per-station sync reasons, event stream/history counters,
+  clock offset warnings, bounded independent refreshes and sanitized compatibility exports.
+- Event evidence explains identity availability, live/history origin, receipt time and delayed
+  records. Single-event support exports omit names, user IDs, cards and station addresses.
+- WebRTC through Home Assistant camera signaling and its configured provider, with HLS fallback,
+  transport/failure state, retry, bounded setup and peer/track/subscription cleanup.
+- Private atomic field-acceptance records, explicit operator results, revision conflict checks,
+  per-station checklists and export. No physical result is marked passed automatically.
+- Read-only fleet soak CLI records bounded timings, failures and recovery across up to nine stations.
+- Advertised call answer/reject/hangUp controls with identity/capability/current-state checks,
+  single-attempt writes and explicit acknowledgement; two-way microphone audio remains unavailable.
+
+### Fixed
+- Station readiness now uses the verified Search routes and reports complete/partial coverage,
+  replacing rejected by-ID GET samples. Holiday inventory remains partial; schedule writes stay disabled.
+- Same-time access records prefer a complete identified record without merging identities between events.
+  The owner's original unidentified-PIN report still requires correlation to an exact event.
+- Restored field-test selections display the saved result correctly when their options first render.
+
+### Evidence and limits
+- Two authorized stations each passed 18/18 read-only status checks during a 90-second observation.
+  A manual UTC clock on one station was about eight hours ahead; it was not changed.
+- Call/audio acceptance, actual WebRTC playback, card lifecycle and the nine-station hardware soak
+  remain open. No live call command, audio session, credential mutation or door release was performed.
+- Mandatory v1 acceptance remains 31/38 (81.6%). See docs/CORE_MEDIA_BATCH_HE.md for all 20 tasks.
+
 ## [0.20.0-alpha.1] - 2026-09-09
 
 ### Added
