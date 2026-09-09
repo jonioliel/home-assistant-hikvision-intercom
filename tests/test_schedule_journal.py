@@ -163,3 +163,14 @@ async def test_revision_checks_noop_confirmation_and_terminal_conflict():
     await store.async_record(identifier, 1, issue="context_changed")
     with pytest.raises(AccessError, match="schedule_deployment_terminal"):
         await store.async_record(identifier, 2)
+
+
+async def test_journal_limit_stops_preparation_without_discarding_older_transactions():
+    store = ScheduleJournal(AsyncMock())
+    first = None
+    for index in range(32):
+        item = await store.async_prepare(**{**inputs(), "station": f"station-{index}"})
+        first = first or item["id"]
+    with pytest.raises(AccessError, match="schedule_deployment_limit"):
+        await store.async_prepare(**{**inputs(), "station": "overflow"})
+    assert store.public(first)["status"] == "ready"
