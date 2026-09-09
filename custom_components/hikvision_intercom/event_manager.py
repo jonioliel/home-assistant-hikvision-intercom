@@ -13,9 +13,11 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
+from .access.models import AccessError
 from .access_runtime import SIGNAL_ACCESS_CHANGED
 from .client.events import EventClient, HistoryWindowFull, create_event_session
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
+from .event_diagnostics import EventTelemetry, event_support, explain_event
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
 from .issues import issue
@@ -130,6 +132,7 @@ class EventManager:
             self.changed()
         return {
             **result,
+            "records": [{**row, "evidence": explain_event(row)} for row in result["records"]],
             "storage_failed": self.storage_failed,
             "stations": {key: value.status() for key, value in self.stations.items()},
         }
@@ -177,6 +180,19 @@ class EventManager:
             self.changed()
         return result
 
+    def detail(self, identifier: str, *, export: bool = False) -> dict[str, Any]:
+        before = len(self.cache.rows)
+        self.cache.prune(datetime.now(UTC))
+        if len(self.cache.rows) != before:
+            self.changed()
+        row = self.cache.rows.get(identifier)
+        if row is None:
+            raise AccessError("event_not_found")
+        report = event_support(row, VERSION)
+        if not export:
+            report["record"] = dict(row)
+        return report
+
     def attach(self, runtime: IntercomRuntime) -> StationEvents:
         station = StationEvents(self, runtime)
         self.stations[runtime.station_id] = station
@@ -203,6 +219,8 @@ class StationEvents:
         self.stream_state = "connecting"
         self.history_state = "pending"
         self.reconnects = 0
+        self.telemetry = EventTelemetry()
+        self.last_frame_at: str | None = None
         self._tasks: list[asyncio.Task[Any]] = []
         self._closed = False
         self._previous_call = runtime.coordinator.data.normalized
@@ -224,6 +242,8 @@ class StationEvents:
             "stream": self.stream_state,
             "history": self.history_state,
             "reconnects": self.reconnects,
+            "last_frame_at": self.last_frame_at,
+            "telemetry": self.telemetry.public(),
             "recovered_until": self.manager.cursors.get(self.runtime.station_id),
         }
 
@@ -282,7 +302,8 @@ class StationEvents:
                     if user.employee_no == row["employee_no"]:
                         row["person_name"] = user.display_name
                         break
-            self.manager.accept(row)
+            accepted = self.manager.accept(row)
+            self.telemetry.observe(row, accepted)
 
     async def _stream(self) -> None:
         session = await self.manager.hass.async_add_executor_job(
@@ -299,6 +320,7 @@ class StationEvents:
                         started = self.manager.hass.loop.time()
                         async for document in self.client.async_stream(session):
                             self.stream_state = "connected"
+                            self.last_frame_at = datetime.now(UTC).isoformat()
                             delay = 2
                             frames += 1
                             if frames > 1200 and self.manager.hass.loop.time() - started < 60:

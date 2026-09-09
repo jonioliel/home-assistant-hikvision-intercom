@@ -351,6 +351,14 @@
     "schedule_operations_storage_write": {
       "title": "Schedule operations could not be saved",
       "description": "Check free space and storage directory permissions. Do not assume the action was saved; reload the list after fixing the storage problem."
+    },
+    "acceptance_storage_corrupt": {
+      "title": "Field test results cannot be loaded",
+      "description": "Existing field results were not overwritten. Restore a valid backup of the acceptance store and reload the integration."
+    },
+    "acceptance_storage_write": {
+      "title": "Field test results could not be saved",
+      "description": "The new result was not committed. Check available disk space and configuration-directory permissions, then save again."
     }
   }
 }

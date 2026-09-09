@@ -238,7 +238,7 @@ class EventCache:
     def latest_access(self, station_ids: set[str], now: datetime) -> dict[str, dict[str, Any]]:
         """Select by event time, not replay arrival; do not infer access from door motion."""
         self.prune(now)
-        latest: dict[str, tuple[datetime, dict[str, Any]]] = {}
+        latest: dict[str, tuple[tuple[datetime, bool, bool], dict[str, Any]]] = {}
         for row in self.rows.values():
             station_id = row["station_id"]
             when = timestamp(row["timestamp"])
@@ -250,8 +250,16 @@ class EventCache:
                 or when > now + timedelta(seconds=5)
             ):
                 continue
-            if station_id not in latest or when > latest[station_id][0]:
-                latest[station_id] = (when, row)
+            # Choose one complete record; never transplant a name from a nearby event.
+            # Same-second records have no provable order. Prefer explicit identity, then
+            # authentication evidence over a separate door-motion report at that instant.
+            rank = (
+                when,
+                bool(row["person_name"] or row["employee_no"]),
+                row["event_type"] in {"access_granted", "access_denied", "attempt_limit"},
+            )
+            if station_id not in latest or rank > latest[station_id][0]:
+                latest[station_id] = (rank, row)
         fields = (
             "timestamp",
             "time_source",

@@ -9,6 +9,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.service import async_register_admin_service
 
+from .access.acceptance import Acceptance
 from .access.manager import AccessManager
 from .access.models import AccessError
 from .access.repository import AccessRepository
@@ -57,6 +58,17 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     else:
         issue(hass, "schedules_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["schedules"] = schedules
+
+    acceptance_store = AccessStore(hass, key=f"{DOMAIN}.acceptance")
+    acceptance = Acceptance(acceptance_store.async_save)
+    try:
+        await acceptance.async_load(await acceptance_store.async_load())
+    except AccessError:
+        issue(hass, "acceptance_storage_corrupt", active=True)
+        hass.data[DOMAIN]["acceptance"] = None
+    else:
+        issue(hass, "acceptance_storage_corrupt", active=False)
+        hass.data[DOMAIN]["acceptance"] = acceptance
 
     baseline_store = AccessStore(hass, key=f"{DOMAIN}.schedule_baselines")
     baselines = ScheduleBaselines(baseline_store.async_save)

@@ -23,12 +23,13 @@ from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
 from .client.schedule_dependencies import inspect_dependencies
 from .client.schedule_inventory import inspect_inventory
-from .client.schedules import inspect_schedules
+from .client.schedule_readiness import inspect_readiness as inspect_schedules
 from .configuration import managed_locks
 from .const import DOMAIN, VERSION
 from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
 from .hardening import AdminLimiter
+from .health_api import dispatch_health
 from .log_filter import install_filter
 from .schedule_operations_api import dispatch_operations
 from .schedule_plan_api import dispatch_plans
@@ -47,6 +48,11 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "health/get": {"station_id": str},
+    "health/refresh": {"station_id": str},
+    "acceptance/get": {"station_id": str},
+    "acceptance/update": {"station_id": str, "step": str, "state": str, "revision": int},
+    "media/signal": {"station_id": str, "command": str},
     "schedules/operations_list": {},
     "schedules/operations_export": {},
     "schedules/operations_claim_preview": {"plan_id": str, "revision": int},
@@ -87,6 +93,8 @@ COMMANDS = {
     "cards/capture_confirm": {"session_id": str, "label": str},
     "overview": {},
     "events/list": {"filters": dict},
+    "events/detail": {"event_id": str},
+    "events/support": {"event_id": str},
     "users/list": {},
     "users/csv_export": {},
     "users/csv_preview": {"csv": str, "mode": str},
@@ -205,6 +213,10 @@ async def _dispatch(
     hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
 ) -> Any:
     manager = get_manager(hass)
+    if command.startswith(("health/", "acceptance/", "media/")):
+        return await dispatch_health(hass, command, msg)
+    if command in {"events/detail", "events/support"}:
+        return get_events(hass).detail(msg["event_id"], export=command == "events/support")
     if command == "cards/reader_capabilities":
         return await manager.enrollment.capabilities(msg["station_id"])
     if command.startswith("cards/capture_"):
@@ -250,9 +262,7 @@ async def _dispatch(
             busy.add(station.id)
             evidence: dict[str, Any] = {}
             try:
-                async with asyncio.timeout(
-                    130 if command == "schedules/dependencies" else 70 if draft is not None else 40
-                ):
+                async with asyncio.timeout(130 if command == "schedules/dependencies" else 70):
                     async with manager._read_slots:
                         result = (
                             await inspect_dependencies(driver.client)

@@ -110,6 +110,9 @@ class IntercomRuntime:
             self._cancel_pulse = None
         await self.coordinator.async_shutdown()
         await self.session.aclose()
+        cache = self.hass.data.get(DOMAIN, {}).get("media_evidence", {})
+        if self.station_id in cache and cache[self.station_id][0] is self:
+            cache.pop(self.station_id, None)
 
 
 type IntercomConfigEntry = ConfigEntry[IntercomRuntime]
