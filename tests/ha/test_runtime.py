@@ -332,8 +332,6 @@ async def test_closing_runtime_rejects_api_work_before_clock_cleanup(
 ):
     from unittest.mock import AsyncMock, patch
 
-    from .test_websocket import request
-
     client = await hass_ws_client(hass)
     runtime = loaded_entry.runtime_data
     entered, finish = asyncio.Event(), asyncio.Event()
@@ -364,7 +362,10 @@ async def test_closing_runtime_rejects_api_work_before_clock_cleanup(
             await entered.wait()
             assert not runtime.session.is_closed
             extra = {"command": "reject"} if command == "media/signal" else {}
-            response = await request(client, command, station_id=loaded_entry.entry_id, **extra)
+            await client.send_json_auto_id(
+                {"type": f"{DOMAIN}/{command}", "station_id": loaded_entry.entry_id, **extra}
+            )
+            response = await client.receive_json()
             assert response["success"] is False
             assert response["error"]["code"] == (
                 "station_offline" if command == "stations/clock_refresh" else "station_unloaded"
