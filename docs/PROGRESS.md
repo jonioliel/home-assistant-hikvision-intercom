@@ -323,3 +323,8 @@ complete relevant inventory, target-firmware write verification, operator recove
 user assignment remain required integration work. No device requests occurred in this batch.
 Mandatory acceptance remains 28/38; Phase 5 remains 8/9; Phase 6 remains 3 implemented, 2 partial,
 4 absent. Simulator success is not physical enforcement or a nine-station hardware soak.
+
+0.19 final code `a48bada` passed all checks: **970 tests** (686 protocol/access/tools,
+188 actual HA, 96 browser), ConfigFlow100%, strict mypy44, Ruff, TypeScript, Prettier,
+reproducible build, HACS and Hassfest. Release34324306989 targets this exact main commit.
+The three infrastructure tasks are complete; production deployment and physical acceptance remain open.

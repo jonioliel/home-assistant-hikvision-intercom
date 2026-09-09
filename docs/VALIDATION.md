@@ -579,3 +579,18 @@ Full-suite and GitHub validation results are recorded after completion below.
 Full local Python 3.12 suite: **686 passed**. Ruff lint/format, TypeScript, Prettier,
 frontend build and version metadata validation passed. Strict mypy and actual HA/frontend tests
 run in Linux CI. The blocked local mypy native module was not bypassed.
+
+### Verified GitHub checks on `a48bada`
+
+- Python 3.12 and 3.14: **686 passed** each (counted once); Ruff lint/format passed.
+- Strict mypy: **44 source files**, no issues. The initial missing simulator annotation was fixed.
+- Actual Home Assistant 2026.9.1 / Python 3.14: **188 passed**, ConfigFlow **100%** coverage.
+- Chromium: **96 passed**; TypeScript, Prettier and reproducible frontend build passed.
+- [Run34324017582](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34324017582),
+  [HACS34324017540](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34324017540),
+  [Hassfest34324017557](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34324017557) all succeeded.
+- **970 total unique suite cases = 686 + 188 + 96.** All 21 batch paths passed private-value scanning.
+
+The exact passed commit was merged to main and submitted once to gated release run
+[34324306989](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34324306989).
+The release reruns every gate before publishing. No production schedule transport is enabled.
