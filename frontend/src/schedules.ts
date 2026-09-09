@@ -34,6 +34,7 @@ interface Preview {
   time: string;
 }
 interface Readiness {
+  read_method?: string;
   checked_at: string;
   can_apply: false;
   checks: {
@@ -41,6 +42,9 @@ interface Readiness {
     advertised: boolean | null;
     capabilities: { ids: number[]; max_periods?: number; precision?: string } | null;
     sample_id: number | null;
+    read?: number;
+    total?: number | null;
+    coverage?: string;
     read_state: string;
     error: string | null;
   }[];
@@ -1217,7 +1221,7 @@ export class IntercomSchedules extends LitElement {
       ></hikvision-deployment-plans>
       <section class="check">
         <h3>${this.t("schedule_readiness")}</h3>
-        <p class="hint">${this.t("schedule_readiness_hint")}</p>
+        <p class="hint">${this.t("schedule_search_hint")}</p>
         <div class="toolbar">
           <label
             >${this.t("station")}<select
@@ -1261,7 +1265,7 @@ export class IntercomSchedules extends LitElement {
                     html`<div class="check-row">
                       <strong>${this.t("schedule_kind_" + c.kind)}</strong> ·
                       ${this.t("schedule_read_" + c.read_state)}
-                      ${c.capabilities ? html`<p>${this.t("schedule_ids")}: <bdi>${c.capabilities.ids.join("–")}</bdi> · ${this.t("schedule_sample")}: ${c.sample_id}</p>` : nothing}
+                      ${this._readiness?.read_method === "search" ? html`<p>${this.t("schedule_read_count")}: ${c.read ?? 0} / ${c.total ?? this.t("unknown")} · ${this.t("schedule_inventory_" + c.coverage)}</p>` : c.capabilities ? html`<p>${this.t("schedule_ids")}: <bdi>${c.capabilities.ids.join("–")}</bdi> · ${this.t("schedule_sample")}: ${c.sample_id}</p>` : nothing}
                       ${c.error ? html`<p>${this.t(c.error)}</p>` : nothing}
                     </div>`,
                 )}

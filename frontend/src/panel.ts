@@ -20,6 +20,7 @@ import "./schedules";
 import { downloadText } from "./download";
 import "./camera";
 import "./events";
+import "./health";
 
 const settingsPath = "/config/integrations/integration/hikvision_intercom";
 const value = (event: Event) => (event.target as HTMLInputElement).value;
@@ -398,6 +399,7 @@ export class IntercomManagerPanel extends LitElement {
               <div class="sub">${this.t(event.event_type)} · ${this.t(event.authentication)}</div>
               <div class="sub">
                 <bdi>${this.dateText(event.timestamp, station)}</bdi>
+                ${!event.person_name && !event.employee_no ? html`<span>${this.t("identity_unavailable")}</span>` : nothing}
                 ${event.time_source === "received" ? html` · ${this.t("receipt_time")}` : nothing}
                 ${event.recovered ? html` · ${this.t("historical_record")}` : nothing}
               </div>`
@@ -2046,7 +2048,7 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
         <nav class="nav" aria-label=${this.t("title")}>
-          ${["overview", "users", "devices", "events", "sync", "schedules"].map(
+          ${["overview", "users", "devices", "events", "sync", "health", "schedules"].map(
             (tab) =>
               html`<button
                 aria-current=${this._tab === tab ? "page" : nothing}
@@ -2089,16 +2091,21 @@ export class IntercomManagerPanel extends LitElement {
                   ? this.devicesView()
                   : this._tab === "sync"
                     ? this.syncView()
-                    : this._tab === "schedules"
-                      ? html`<hikvision-intercom-schedules
+                    : this._tab === "health"
+                      ? html`<hikvision-intercom-health
                           .hass=${this.hass}
                           .stations=${this._data.stations}
-                        ></hikvision-intercom-schedules>`
-                      : html`<hikvision-intercom-events
-                          .hass=${this.hass}
-                          .stations=${this._data.stations}
-                          .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                        ></hikvision-intercom-events>`
+                        ></hikvision-intercom-health>`
+                      : this._tab === "schedules"
+                        ? html`<hikvision-intercom-schedules
+                            .hass=${this.hass}
+                            .stations=${this._data.stations}
+                          ></hikvision-intercom-schedules>`
+                        : html`<hikvision-intercom-events
+                            .hass=${this.hass}
+                            .stations=${this._data.stations}
+                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                          ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

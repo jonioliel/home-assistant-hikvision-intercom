@@ -6,6 +6,9 @@ import { downloadText } from "./download";
 import type { Hass, Station } from "./types";
 
 interface AuditEvent {
+  received_at?: string;
+  time_source?: string;
+  evidence?: { identity_state: string; origin: string; arrival_delay_seconds: number | null };
   id: string;
   station_id: string;
   timestamp: string;
@@ -283,6 +286,39 @@ export class IntercomEvents extends LitElement {
       </details>
     </section>`;
   }
+  private async support(id: string) {
+    const epoch = this._generation;
+    if (!this.hass?.user?.is_admin) return;
+    try {
+      const report = await this.hass.callWS({
+        type: "hikvision_intercom/events/support",
+        event_id: id,
+      });
+      if (epoch === this._generation && this.isConnected && this.hass?.user?.is_admin)
+        downloadText(JSON.stringify(report, null, 2), "hikvision-event.json", "application/json");
+    } catch {
+      if (epoch === this._generation) this._error = this.t("failed");
+    }
+  }
+  private evidenceView(row: AuditEvent) {
+    const evidence = row.evidence;
+    if (!evidence) return nothing;
+    const zone = this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE;
+    return html`<p class="sub">${this.t(evidence.origin)}</p>
+      ${evidence.identity_state !== "identified" ? html`<p class="sub">${this.t(evidence.identity_state)}</p>` : nothing}
+      <details>
+        <summary>${this.t("event_detail")}</summary>
+        <p>
+          ${this.t("event_received")}:
+          ${row.received_at ? formatTime(row.received_at, this.hass?.language, zone) : this.t("unknown")}
+        </p>
+        <p>${this.t("event_delay")}: ${evidence.arrival_delay_seconds ?? this.t("unknown")}</p>
+        <p class="sub">${this.t("event_clock_hint")}</p>
+        <p>ISAPI: ${row.major ?? "?"} / ${row.minor ?? "?"}</p>
+        <p class="sub">${this.t("event_export_hint")}</p>
+        <button @click=${() => this.support(row.id)}>${this.t("event_support")}</button>
+      </details>`;
+  }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
     return html`<section aria-label=${this.t("events")}>
@@ -378,6 +414,7 @@ export class IntercomEvents extends LitElement {
                 >${row.card ? html` · <bdi>${row.card}</bdi>` : nothing}
               </p>
               ${row.recovered ? html`<small class="muted">${this.t("historical_record")}</small>` : nothing}
+              ${this.evidenceView(row)}
               ${row.event_type === "unknown" ? html`<small> · ${row.major}/${row.minor}</small>` : nothing}
             </article>`,
         )}
