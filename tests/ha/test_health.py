@@ -2,7 +2,10 @@
 
 import asyncio
 import json
+from copy import copy
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from custom_components.hikvision_intercom.access.acceptance import Acceptance
 from custom_components.hikvision_intercom.const import DOMAIN
@@ -289,3 +292,49 @@ async def test_actual_camera_exposes_registered_webrtc_provider(hass, loaded_ent
     await camera.async_refresh_providers()
     assert await capabilities() == ["hls"]
     provider.async_unregister_camera.assert_awaited_once_with(camera)
+
+
+@pytest.mark.parametrize("transition", ["closing", "replacement"])
+async def test_health_refresh_rejects_runtime_change_during_media_read(
+    hass, loaded_entry, device_io, transition
+):
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.health_api import dispatch_health
+
+    runtime = loaded_entry.runtime_data
+    entered, finish = asyncio.Event(), asyncio.Event()
+
+    async def inspect():
+        entered.set()
+        await finish.wait()
+        return {"call_commands": ["reject"], "errors": {}}
+
+    with (
+        patch(
+            "custom_components.hikvision_intercom.health_api.MediaClient.inspect",
+            side_effect=inspect,
+        ),
+        patch.object(runtime.clock, "async_refresh", new=AsyncMock()),
+    ):
+        task = asyncio.create_task(
+            dispatch_health(hass, "health/refresh", {"station_id": loaded_entry.entry_id})
+        )
+        try:
+            await entered.wait()
+            if transition == "closing":
+                runtime._closing = True
+            else:
+                loaded_entry.runtime_data = copy(runtime)
+            finish.set()
+            with pytest.raises(AccessError) as raised:
+                await task
+            assert raised.value.code == "station_unloaded"
+            assert loaded_entry.entry_id not in hass.data[DOMAIN].get("media_evidence", {})
+            assert not hass.data[DOMAIN]["health_reads"]
+        finally:
+            finish.set()
+            await asyncio.gather(task, return_exceptions=True)
+            runtime._closing = False
+            loaded_entry.runtime_data = runtime
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
