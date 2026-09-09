@@ -1,5 +1,9 @@
 # Project progress
 
+The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) is the current forward
+plan. It prioritizes remaining acceptance gates, call/audio completion and a concurrent UI redesign.
+Its conditional 45/47 (95.7%) target does not change the current completion figures below.
+
 Current 0.23 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
 Phase 6: four software features implemented, three partial, two absent. The approximate
 combined scope measure remains **77.7%**, not an effort estimate or proof of physical acceptance.
