@@ -4,6 +4,35 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.22.0-alpha.1] - 2026-09-09
+
+### Added
+- Call controls in camera and active-station views, fresh capability/state checks, per-station
+  command ownership and bounded post-command observation. Lost replies remain uncertain and
+  are never retried automatically; observed state changes do not prove answered audio.
+- Explicit 90-second event/call capture, source identity field-presence evidence, and sanitized
+  support exports. Captures are bounded, administrator-only and expire without extra station reads.
+- Read-only history inspection for explicit windows up to 24 hours, with completeness, time-filter
+  verification and anonymous event summaries. It does not advance recovery cursors or fire live events.
+- Playback reports with first-frame state, fallback reasons and allowlisted RTC video statistics;
+  bounded capability/HLS startup, track/disconnection handling and background/network cleanup.
+- Nine-station HA runtime integration tests for event isolation, independent call commands and
+  unloading a pending station. A real HA camera-provider registration test covers WebRTC advertising.
+
+### Fixed
+- Recover offset-free AcsEvent history times using verified device clock rules on DS-KV6124-E1,
+  V3.9.0 build 260115. The prior path rejected those rows. Equivalent UTC/+03:00 search windows
+  were checked against the station; ambiguous DST times and changed clock rules are rejected.
+- A video track with no decoded video dimensions cannot mark WebRTC playback as ready.
+
+### Evidence and limits
+- All 15 inspected real history records now fall within the requested window. The reporting/CSV
+  pipeline preserves their 3 authentication outcomes and 12 other records without double-counting.
+- Original unidentified-PIN correlation, live call acceptance, owner-system WebRTC, two-way audio,
+  card lifecycle and the nine-station physical soak remain open. No station settings were changed.
+- Mandatory v1 acceptance remains 31/38 (81.6%). The overall scope estimate remains about 78%.
+  See docs/CALLS_AND_HISTORY_BATCH_HE.md for exact progress across the selected 20 tasks.
+
 ## [0.21.0-alpha.1] - 2026-09-09
 
 ### Added

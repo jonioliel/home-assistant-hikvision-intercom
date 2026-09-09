@@ -152,13 +152,18 @@ def resolve_device_local_time(value: str, zone: dict[str, Any]) -> datetime:
     except ValueError:
         raise HikvisionValidationError("Invalid device-local history time") from None
     nominal = wall.replace(tzinfo=UTC)
-    offsets = {offset_at(nominal + timedelta(days=days), zone) for days in (-2, -1, 0, 1, 2)}
-    candidates = {
-        candidate
-        for offset in offsets
-        if localize(candidate := nominal - timedelta(seconds=offset), zone).replace(tzinfo=None)
-        == wall
-    }
+    try:
+        offsets = {offset_at(nominal + timedelta(days=days), zone) for days in (-2, -1, 0, 1, 2)}
+        candidates = {
+            candidate
+            for offset in offsets
+            if localize(candidate := nominal - timedelta(seconds=offset), zone).replace(tzinfo=None)
+            == wall
+        }
+    except (ValueError, OverflowError):
+        raise HikvisionValidationError(
+            "Device-local history time exceeds supported range"
+        ) from None
     if len(candidates) != 1:
         raise HikvisionValidationError("Ambiguous or nonexistent device-local history time")
     return next(iter(candidates))

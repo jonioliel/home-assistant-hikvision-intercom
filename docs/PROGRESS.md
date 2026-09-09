@@ -1,11 +1,12 @@
 # Project progress
 
-Current 0.21 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase5 **8/9 (88.9%)**.
-Phase6: four software features implemented, three partial, two absent. The approximate
-combined scope measure is **77.7%**, not an effort estimate or proof of physical acceptance.
-The [current 20-task ledger](CORE_MEDIA_BATCH_HE.md) and [health/media guide](HEALTH_AND_MEDIA.md)
-supersede earlier schedule-priority plans. Seventeen tasks are implemented; identity-report
-correlation, two-way audio and physical call-control acceptance remain partial.
+Current 0.22 checkpoint: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
+Phase 6: four software features implemented, three partial, two absent. The approximate
+combined scope measure remains **77.7%**, not an effort estimate or proof of physical acceptance.
+The [current execution ledger](CALLS_AND_HISTORY_BATCH_HE.md) tracks the
+[selected twenty tasks](NEXT_CORE_BATCH_20_HE.md). This batch fixes verified local history times,
+adds call workflows and capture/history/playback diagnostics, and extends HA fleet tests.
+It does not close the physical call, card, WebRTC or nine-station acceptance gates.
 
 ## Historical checkpoints (earlier counts below are not current)
 

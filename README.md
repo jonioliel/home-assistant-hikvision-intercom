@@ -191,3 +191,9 @@ Schedule writes remain unavailable until their device contract is verified.
 Version 0.21 adds [health diagnostics, WebRTC with HLS fallback, field-test records and call signaling](docs/HEALTH_AND_MEDIA.md).
 See the [20-task development report](docs/CORE_MEDIA_BATCH_HE.md) for completed software and remaining physical checks.
 Two-way microphone audio is not implemented; call signalling acknowledgement does not prove an answered call.
+
+
+Version 0.22 adds [call workflows, verified local-time history recovery and event/playback diagnostics](docs/CALLS_AND_HISTORY_BATCH_HE.md).
+Use **Health & field tests** for an explicit 90-second capture or a read-only history inspection;
+use **Playback report** in the camera dialog to investigate WebRTC/HLS selection.
+[Time interpretation and device-clock evidence](docs/TIME_ZONES.md) explains the history fix.

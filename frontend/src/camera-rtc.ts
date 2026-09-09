@@ -24,7 +24,14 @@ export class CameraRTC {
   private sentCandidates = 0;
   private disconnectTimer?: ReturnType<typeof setTimeout>;
   private loaded = () => {
-    if (this.closed || this.playing || !this.stream.getVideoTracks().length) return;
+    if (
+      this.closed ||
+      this.playing ||
+      !this.stream.getVideoTracks().length ||
+      !this.video.videoWidth ||
+      !this.video.videoHeight
+    )
+      return;
     this.playing = true;
     this.firstFrameAt = new Date().toISOString();
     clearTimeout(this.timer);

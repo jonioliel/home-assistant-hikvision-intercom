@@ -1,4 +1,4 @@
-# Station time zones and daylight saving — 0.14.0-alpha.1
+# Station time zones and daylight saving — updated for 0.22.0-alpha.1
 
 ## שימוש בעברית
 
@@ -65,8 +65,9 @@ browsers updated when civil timezone rules change.
 - Device reads use a separate optional request lane with a 20-second deadline, coalesced refresh
   and a 900-second timer. Unload cancels the request and timer. Clock failure does not hold the
   call/release lane. No /System/time or /timeZone PUT endpoint is used.
-- UTC storage, event identity/deduplication and access reconciliation are unchanged. Naive event
-  timestamps retain the existing receipt-time fallback; they are not silently assigned UTC.
+- UTC storage, event identity/deduplication and access reconciliation are unchanged. Generic stream
+  timestamps without offsets retain their explicit receipt-time fallback. The verified history
+  adapter described below resolves its observed local-time format before normalization.
 - Overview, event rows and station review timestamps use the station display zone. Central user
   validity and report-generation timestamps use explicitly labelled HA time. Existing known
   instants retain seconds and the selected side of a repeated DST hour when the field is unchanged.
@@ -86,3 +87,28 @@ browsers updated when civil timezone rules change.
 The observed access-record validity contradiction (timeType local with +00:00 readback after
 UTC writes) is a separate contract issue. validity_timezone_mismatch remains enforced until
 [HW-VALIDITY](DEFERRED_VALIDATION.md) verifies write/readback and physical acceptance.
+
+
+## Verified offset-free history — 0.22
+
+The commissioned DS-KV6124-E1, V3.9.0 build 260115 returns AcsEvent `time` as
+`YYYY-MM-DD HH:mm:ss` without an offset. Previously the history recovery path rejected those
+records. The supplied manufacturer history-search contract accepts absolute start/end times;
+read-only differential queries verified the returned wall-clock meaning against that contract.
+
+For the observed `2026-09-09 11:34:59` record, an 08:34:54–08:35:04 UTC window and its
+11:34:54–11:35:04 +03:00 equivalent returned the same five records. Windows assuming +02:00
+or treating that wall time as UTC returned none. Clock settings were unchanged across the probe.
+The public fixture `tests/fixtures/history_local_time_contract.json` retains only contract evidence.
+
+The history adapter checks device identity, exact model/firmware and reads device clock rules.
+It resolves each offset-free time using the rules at the event date and rechecks the rules after
+reading the complete result. Unsupported firmware, changed rules, out-of-range dates and ambiguous
+or nonexistent DST wall times are rejected. Missing source timestamps are not invented. Device
+clock rules at read time cannot establish that an operator never changed those rules in the past.
+
+Manual **display** timezone selection does not override this source interpretation. Already offset-aware
+records retain their supplied instant. Device settings, NTP and clock skew are never silently changed.
+A second station still reports a manual UTC clock about eight hours ahead and empty inspected history;
+that separate commissioning issue remains open. All 15 inspected records from the NTP station passed
+window checks after the fix. This does not prove the root cause of the owner's unidentified-PIN screenshot.

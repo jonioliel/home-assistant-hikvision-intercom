@@ -143,6 +143,8 @@ def test_verified_local_history_uses_rules_for_event_date(wall, expected):
         "2026-04-05 02:30:00",
         "2026-10-25 01:30:00",
         "2026-02-30 12:00:00",
+        "0001-01-01 00:00:00",
+        "9999-12-31 23:59:59",
         "2026-09-09T12:00:00Z",
         "not a time",
     ],

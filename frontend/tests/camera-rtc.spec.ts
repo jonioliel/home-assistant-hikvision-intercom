@@ -154,6 +154,13 @@ test("a track without a decoded frame times out into HLS", async ({ page }) => {
   await page.clock.install();
   await rtc(page, "stalled");
   await expect.poll(() => page.evaluate(() => !!window.rtcTrack)).toBeTruthy();
+  // Audio data can arrive before a video frame; it must not clear the video deadline.
+  await page
+    .getByRole("dialog")
+    .locator("video")
+    .evaluate((video) => {
+      video.dispatchEvent(new Event("loadeddata"));
+    });
   await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("Connecting video");
   await page.clock.fastForward(13000);
   await expect(page.getByRole("dialog")).toContainText("Video failed");
