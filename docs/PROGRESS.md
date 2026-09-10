@@ -1,28 +1,22 @@
 # Project progress
 
-**Alternate design implementation (2026-09-10):** the owner approved both mockups and explicitly
-requested desktop, tablet, mobile and variable-width support. Version **0.28.0-alpha.1** adds
-an optional new design, per-user browser preference, width-aware layouts and state-preserving
-appearance changes. See [delivery and validation](ALTERNATE_UI_028_HE.md) and the
-[approved C-ALT stages](design/ALTERNATE_UI_HE.md). Hardware acceptance remains unchanged.
+Current release **0.28.0-alpha.1** delivers the owner-approved alternate interface. Existing/New design
+selection is per Home Assistant user and browser; light/dark follows HA. All eight views adapt to
+panel width, including mobile, tablet, desktop, landscape and resizing while editing.
+See [delivery, screenshots and validation](ALTERNATE_UI_028_HE.md) and the
+[completed C-ALT stages](design/ALTERNATE_UI_HE.md).
 
-Previous release **0.27.7-alpha.1** closes the actionable software recovery gaps found in this review.
-The [delivery and remaining dependency report](SOFTWARE_CLOSURE_0277_HE.md) maps the outcome to
-A–F of the [95% roadmap](ROADMAP_95_AND_UI_HE.md). Mandatory acceptance remains **31/38 (81.6%)**,
-Phase 5 **8/9 (88.9%)**, and combined scope **37/47 (78.7%)**. Phase 6 still has four software
-features implemented, four partial and one absent. No physical acceptance was inferred.
-
-Published [v0.27.7-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.7-alpha.1) from `fc70d2088acb4092e078d13993b1f40c6277b138`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34443660814) passed: **887 Python tests per version (3.12/3.14),
-278 HA tests and 256 browser tests**, mypy57, Ruff, TypeScript, Prettier, reproducible bundles,
+Published [v0.28.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.28.0-alpha.1) from `3198e0f9f527e7efc096f20d99b003f99e1119a4`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34452343525) passed: **887 Python tests per version (3.12/3.14),
+278 HA tests and 275 browser tests**, Ruff, mypy, TypeScript, Prettier, reproducible bundles,
 HACS and Hassfest. The tag, manifest, panel and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.27.7-alpha.1.json). Access storage schema remains 3.
+[Publication evidence](evidence/release_0.28.0-alpha.1.json). Access storage schema remains 3.
 
-Validity and event/history date drafts preserve instants across clock changes; discarded PIN fields
-clear visibly; bulk changes recover by receipt across navigation; planning requests have bounded
-waits; storage rejects writes that would become unreadable after restart. Remaining work requires
-installed HA access, firmware evidence, owner usability feedback or coordinated hardware acceptance.
-The earlier [overnight run](OVERNIGHT_2026_09_10_HE.md) is complete; its automation stays paused.
+Mandatory acceptance remains **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**, and combined scope
+**37/47 (78.7%)**. Phase 6 still has four software features implemented, four partial and one absent.
+The new design closes the approved design request, not any hardware acceptance gate.
+[Remaining dependencies and previous recovery work](SOFTWARE_CLOSURE_0277_HE.md).
+No physical device operations were performed; the earlier overnight automation stays paused.
 
 ## Historical checkpoints (earlier counts below are not current)
 

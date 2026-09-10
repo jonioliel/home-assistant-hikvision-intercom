@@ -1,6 +1,6 @@
 # Hikvision Intercom Manager
 
-Latest delivery: [0.27 camera, audio and upgrade recovery](docs/RECOVERY_027_HE.md).
+Latest delivery: [0.28 optional responsive interface](docs/ALTERNATE_UI_028_HE.md).
 
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
@@ -16,6 +16,14 @@ publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol t
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
+
+## Choose your interface (0.28)
+
+Select **Appearance → New → Apply design** in the panel header for the blue interface.
+Choose **Existing** to return to the previous design. The preference is saved per HA user and
+browser; light/dark colors follow Home Assistant. All eight views adapt to the panel width,
+with mobile user cards and management navigation under **More**. You can switch while editing
+without losing the draft. See the [guide and screenshots](docs/ALTERNATE_UI_028_HE.md).
 
 ## Two-way audio preview (0.26)
 
