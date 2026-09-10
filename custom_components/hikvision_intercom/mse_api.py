@@ -70,7 +70,7 @@ class MSEView(HomeAssistantView):
             source = runtime.client.settings.rtsp_source()
             async with asyncio.timeout(10):
                 upstream = await session.ws_connect(
-                    url + "/api/ws", params={"src": source}, max_msg_size=MAX_MESSAGE, heartbeat=15
+                    url + "/api/ws", params={"src": source}, max_msg_size=MAX_MESSAGE
                 )
             async with upstream:
                 await upstream.send_json({"type": "mse", "value": ",".join(greeting["codecs"])})
