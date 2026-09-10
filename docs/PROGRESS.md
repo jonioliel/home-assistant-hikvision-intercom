@@ -10,6 +10,8 @@ Access storage migrates to schema 6; profile settings to schema 2. [Beta is publ
 
 [The next forty tasks](ROADMAP_AFTER_BETA_40_HE.md) retain all 23 unfinished tasks and add 17 substantive improvements tied to the original specification. Each has a completion condition and dependencies. The first proposed delivery improves user-directory scale, station health, operation tracing, concurrent edits and guided recovery. Field acceptance runs alongside independent software work; additional convenience features do not delay core v1. The plan is not an implementation claim.
 
+The owner subsequently requested forty additional tasks. [N41–N80](ROADMAP_ADDITIONAL_40_HE.md) adds forty separately scoped items, with priorities, dependencies, acceptance conditions and original-spec references. N01–N40 remain open; the combined planning backlog is 80 tasks, not 80 newly discovered v1 blockers. Core acceptance and runtime version are unchanged.
+
 The checkpoints below describe their earlier state.
 
 ## Historical planning checkpoint — original 40-task roadmap

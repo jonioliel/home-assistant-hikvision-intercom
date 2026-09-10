@@ -4,6 +4,9 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Documentation
+- Add forty further planned tasks (N41–N80), preserving the prior N01–N40 backlog. Record priorities, distinct deliverables, dependencies and specification mapping; no runtime changes or new physical acceptance.
+
 ## [0.33.0-beta.1] - 2026-09-11
 
 ### Beta scope
