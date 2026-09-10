@@ -200,9 +200,9 @@ export class ProfileSettingsPanel extends LitElement {
                 maxlength="64"
                 .value=${template.label}
                 @input=${(e: Event) => {
-                template.label = (e.target as HTMLInputElement).value;
-                this.requestUpdate();
-              }}
+                  template.label = (e.target as HTMLInputElement).value;
+                  this.requestUpdate();
+                }}
             /></label>
             <label class="check"
               ><input
@@ -216,21 +216,21 @@ export class ProfileSettingsPanel extends LitElement {
             </div>
             <div class="fields">
               ${draft.groups
-              .filter((g) => g.enabled || template.group_ids.includes(g.id))
-              .map(
-                (g) =>
-                  html`<label class="check"
-                    ><input
-                      type="checkbox"
-                      .checked=${template.group_ids.includes(g.id)}
-                      @change=${(e: Event) => {
-                  template.group_ids = (e.target as HTMLInputElement).checked
-                    ? [...template.group_ids, g.id]
-                    : template.group_ids.filter((id) => id !== g.id);
-                }}
-                    />${g.label}</label
-                  >`,
-              )}
+                .filter((g) => g.enabled || template.group_ids.includes(g.id))
+                .map(
+                  (g) =>
+                    html`<label class="check"
+                      ><input
+                        type="checkbox"
+                        .checked=${template.group_ids.includes(g.id)}
+                        @change=${(e: Event) => {
+                          template.group_ids = (e.target as HTMLInputElement).checked
+                            ? [...template.group_ids, g.id]
+                            : template.group_ids.filter((id) => id !== g.id);
+                        }}
+                      />${g.label}</label
+                    >`,
+                )}
             </div>
           </details>`,
       )}

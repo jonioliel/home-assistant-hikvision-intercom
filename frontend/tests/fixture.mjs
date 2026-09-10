@@ -51,7 +51,7 @@ const data = {
     go2rtc_url: "",
   },
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.32.1-alpha.1",
+  version: "0.33.0-beta.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -782,6 +782,14 @@ const fake = {
           (!message.filters.person || row.person_name?.includes(message.filters.person)),
       );
       return { records, next: null, storage_failed: false, stations: {} };
+    }
+    if (command === "users/csv_inspect") {
+      const headers = message.csv
+        .replace(/^\uFEFF/, "")
+        .split(/\r?\n/)[0]
+        .split(",")
+        .map((value) => value.replace(/^"|"$/g, ""));
+      return { headers, mapping: Object.fromEntries(headers.map((header) => [header, header])) };
     }
     if (command === "users/csv_preview")
       return {

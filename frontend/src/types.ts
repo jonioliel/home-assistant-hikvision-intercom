@@ -224,7 +224,7 @@ export interface Draft {
 export interface CsvPreview {
   review_token: string | null;
   counts: { create: number; update: number; unchanged: number };
-  errors: { line: number | null; code: string }[];
+  errors: { line: number | null; column?: string; code: string }[];
   rows: {
     line: number;
     employee_no: string;
@@ -236,5 +236,8 @@ export interface CsvPreview {
     card_count: number;
     stations: string[];
     access_removed: boolean;
+    profile?: Record<string, string>;
+    group_ids?: string[];
+    permission_overrides?: Record<string, "allow" | "deny">;
   }[];
 }

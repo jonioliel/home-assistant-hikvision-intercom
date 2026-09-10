@@ -4,6 +4,32 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.33.0-beta.1] - 2026-09-11
+
+### Beta scope
+- Move the next installation candidate from Alpha to Beta with sixteen software deliverables from the approved roadmap. This is a prerelease, not stable v1; physical acceptance remains 31/38. Speaker audibility, ringing, validity and fleet acceptance remain open. Publication still requires all release CI gates.
+
+### Added
+- Typed and required profile fields, per-user saved filters/sort/custom-column order, and onboarding templates containing profile/group defaults only.
+- Bulk profile updates, group membership changes and personal-exception resets with before/after review. Metadata-only updates avoid station writes; group grants preserve independent memberships and personal denials.
+- Group-policy impact review with affected users/doors, offline targets, revision binding and durable receipts. A permission directory shows policy access, group sources, exceptions and desired/applied revisions separately.
+- CSV header mapping, typed profile cells, group IDs and personal exceptions. Exports preserve inheritance instead of flattening access. Independent cell errors include row/column codes and a downloadable report without credential values. Whole-batch validation and the 500-row/256-KiB limits remain.
+- Activity filters by current group/profile membership, gated by observed station ownership at event time. Per-admin saved report queries and a sandboxed full-record print/PDF view preserve timestamps and completeness warnings; missing identities are never inferred from names.
+- A bounded four/nine-camera wall using the configured media transport, with explicit start/stop and offscreen cleanup. Enlarging a camera suspends the wall. Physical nine-stream stability is not claimed.
+- Bounded recovery when decoded video stops progressing after playback has begun, with visible HLS fallback or manual retry. No microphone or lock action is triggered.
+- Microphone selection and a local input meter that does not transmit. Device loss, backgrounding and late permission results release tracks; local testing stops after one minute.
+- Deliberate USB keyboard-reader input: Enter reviews an exact identifier; explicit confirmation adds it to the user draft. Oversized input is rejected rather than truncated. No global keyboard capture or automatic save.
+
+### Reliability and upgrade
+- Preserve and immediately queue committed group/bulk changes when a response is cancelled. Validate schema 5/6 exceptions before migration; reject corrupted state instead of reconstructing access.
+- Access storage migrates to schema **6** and profile definitions to schema **2**. Existing text fields stay optional; old clients preserve new attributes and templates. Back up HA before upgrading; rollback to older code requires restoring the pre-upgrade backup.
+- Source, browser and real-HA transport regression coverage added. Local validation and publication status are recorded in docs/BETA_DEVELOPMENT.md. No claim that the pending Linux HA/HACS gates have passed.
+
+### Capability evidence
+- Read-only checks on two DS-KV6124-E1 stations found six successful PIN history records; the production normalizer preserved all six employee IDs and names. This is not confirmation of the earlier installed-HA unidentified-user report.
+- Both channels 101/102 are advertised; primary RTSP DESCRIBE succeeds, secondary returns 401 in the bounded probe. No secondary-stream selection is enabled from capability advertising alone.
+- History advertises picture support but the sampled records contained no linked picture. Mobile NFC/Hik-Connect feasibility is documented without enabling cloud or assuming support from another device family.
+
 ## [0.32.1-alpha.1] - 2026-09-10
 
 ### Fixed

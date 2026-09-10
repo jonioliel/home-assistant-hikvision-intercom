@@ -399,3 +399,59 @@ test("add-on RTC retries normal ICE once when TCP cannot connect", async ({ page
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   expect(await page.evaluate(() => window.rtcClosed)).toBe(2);
 });
+
+test("decoded video stall retries twice then falls back without microphone access", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    HTMLVideoElement.prototype.requestVideoFrameCallback = () => 1;
+    HTMLVideoElement.prototype.cancelVideoFrameCallback = () => {};
+  });
+  await page.clock.install();
+  await rtc(page);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".player-status")).toHaveText("WebRTC");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.clock.fastForward(13000);
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+      )
+      .toBe(attempt + 2);
+    await expect(dialog.locator(".player-status")).toHaveText("WebRTC");
+  }
+  await page.clock.fastForward(13000);
+  await expect(dialog).toContainText("Video failed");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(3);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/stream").length),
+  ).toBe(1);
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.includes("/audio/")))).toBe(
+    false,
+  );
+});
+
+test("paused video and detached views do not trigger stall reconnects", async ({ page }) => {
+  await page.addInitScript(() => {
+    HTMLVideoElement.prototype.requestVideoFrameCallback = () => 1;
+    HTMLVideoElement.prototype.cancelVideoFrameCallback = () => {};
+  });
+  await page.clock.install();
+  await rtc(page);
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await page
+    .getByRole("dialog")
+    .locator("video")
+    .evaluate((video) => video.pause());
+  await page.clock.fastForward(60000);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(1);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.clock.fastForward(60000);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
+  ).toBe(1);
+});

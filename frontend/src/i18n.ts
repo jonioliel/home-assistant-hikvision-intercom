@@ -1,4 +1,93 @@
 const en = {
+  report_stored_time: "Stored timestamp",
+  report_time_source: "Timestamp source",
+  report_current_group: "Current group",
+  report_current_value: "Current exact value",
+  report_current_membership:
+    "Filtered by current group membership and profile values, only for an observed owner of the event employee ID on its station. This is not membership at the time of the event. Events with missing or unverified identity are excluded.",
+  saved_reports: "Saved report queries",
+  saved_reports_hint:
+    "Save the applied filters, including fixed date ranges, in this browser for your HA account. Up to 20 queries; event records are not stored here.",
+  new_report_query: "New report query",
+  report_query_name: "Report query name",
+  save_report_query: "Save applied query",
+  load_report_query: "Apply saved query",
+  report_query_unavailable:
+    "This query contains a removed station, group or field. Update the filters and save a new query.",
+  report_print_preview: "Prepare full print report",
+  report_print_pdf: "Print / save as PDF",
+  report_print_hint:
+    "This preview includes every matching retained record, even pages not loaded in the event list. Use the browser print dialog to save a PDF. Keep the report private.",
+
+  csv_mapping: "Match file columns",
+  csv_mapping_hint:
+    "Map each source column to one field. Ignored columns will not be imported. A field may be mapped only once. Review the result before applying.",
+  csv_ignore_column: "Ignore this column",
+  csv_profile_hint:
+    "Profile cells: plain text or a JSON string. Blank keeps the current value; CLEAR removes it. Exported JSON strings preserve literal text and leading zeros.",
+  csv_group_hint:
+    "group_ids is a JSON array of group IDs or unique names. [] removes memberships. permission_overrides uses station IDs with allow or deny; {} resets personal exceptions. Do not combine it with a non-empty stations cell.",
+  csv_download_errors: "Download row error report",
+  csv_field_group_ids: "Groups",
+  csv_field_profile: "Custom fields",
+  csv_field_permission_overrides: "Personal exceptions",
+  csv_field_stations: "Doors",
+  csv_profile_unknown:
+    "The profile field no longer exists. Map it to a current field or ignore it.",
+  csv_group_ambiguous: "The group name is ambiguous or duplicated. Use its unique ID.",
+  csv_group_unknown: "The group does not exist in this project.",
+  csv_permissions_conflict:
+    "Use personal exceptions or absolute door assignments, not both in the same row.",
+
+  views_title: "Saved user views",
+  views_hint:
+    "Save up to 20 views in this browser for your administrator account. Filters, sorting and custom-column order are retained by field ID; core identity and action columns remain visible.",
+  views_choose: "Saved view",
+  views_new: "New view",
+  views_load: "Load view",
+  views_name: "View name",
+  views_save: "Save current view",
+  views_delete: "Delete saved view",
+  views_columns: "Custom columns and order",
+  views_before: "Move earlier",
+  views_after: "Move later",
+  views_all_columns: "Show all custom columns",
+  views_changed: "Saved views changed in another tab. Select the view again before saving.",
+  views_storage_failed:
+    "This browser could not save or load views. Current filters remain available.",
+  usb_card_title: "Read from a USB keyboard reader",
+  usb_card_hint:
+    "Focus this input and scan a card. Enter reviews the identifier; only Use adds it to the draft. Save the person to apply. Leading zeros are preserved; no byte-order conversion is performed. Verify the reader’s output format before use.",
+  usb_card_input: "USB reader input",
+  usb_card_review: "Review scanned card",
+  usb_card_candidate: "Card ending / identifier length",
+  usb_card_use: "Use card in draft",
+  usb_card_invalid:
+    "Expected a 1–32 character card identifier using letters, digits, underscore or hyphen.",
+  camera_wall: "Live camera wall",
+  tools_camera_wall: "View up to four or nine selected cameras with a shared stream budget.",
+  camera_wall_hint:
+    "Choose cameras and start viewing. Streams outside the viewport or in a hidden tab stop. Opening a single camera pauses the wall. Real fleet capacity depends on the server, browser and network.",
+  camera_wall_budget: "Maximum streams",
+  camera_wall_start: "Start camera wall",
+  camera_wall_stop: "Stop camera wall",
+  camera_wall_selected: "Selected cameras",
+  camera_wall_choose: "Choose cameras in display order",
+  player_recovering: "Reconnecting frozen video",
+  player_reason_playback_stalled:
+    "Video stopped producing frames. Automatic retries were limited; you can retry manually.",
+  mic_options: "Microphone selection and local test",
+  mic_local_hint:
+    "Test the microphone locally before opening audio. The meter sends no sound to Home Assistant or the station. The test stops after one minute or when leaving the window. Device names appear after browser permission.",
+  mic_device: "Microphone",
+  mic_default: "Browser default",
+  mic_saved: "Saved selection",
+  mic_refresh: "Refresh microphones",
+  mic_test: "Test microphone locally",
+  mic_test_stop: "Stop local test",
+  mic_local_active: "Local input test — no transmission",
+  mic_selection_unavailable:
+    "The selected microphone is unavailable or needs permission. Select a microphone before talking.",
   onboarding_templates: "Onboarding templates",
   onboarding_templates_hint:
     "Reusable profile and group defaults. Templates contain no PIN, cards, photo or identity. Invalid defaults must be corrected when creating a person.",
@@ -1348,6 +1437,91 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  report_stored_time: "חותמת זמן שמורה",
+  report_time_source: "מקור חותמת הזמן",
+  report_current_group: "קבוצה נוכחית",
+  report_current_value: "ערך נוכחי מדויק",
+  report_current_membership:
+    "הסינון לפי חברות בקבוצה וערכי פרופיל נוכחיים, רק כאשר אומתה בעלות מזהה העובד בתחנה בזמן האירוע. אין כאן מידע על החברות בזמן האירוע. אירועים ללא זהות מאומתת אינם נכללים.",
+  saved_reports: "שאילתות דוח שמורות",
+  saved_reports_hint:
+    "שמירת המסננים שהוחלו, כולל טווח תאריכים קבוע, בדפדפן הזה לחשבון HA שלך. עד 20 שאילתות; רשומות האירועים אינן נשמרות כאן.",
+  new_report_query: "שאילתת דוח חדשה",
+  report_query_name: "שם שאילתת הדוח",
+  save_report_query: "שמירת השאילתה שהוחלה",
+  load_report_query: "החלת שאילתה שמורה",
+  report_query_unavailable:
+    "השאילתה כוללת תחנה, קבוצה או שדה שהוסרו. עדכן את המסננים ושמור שאילתה חדשה.",
+  report_print_preview: "הכנת דוח מלא להדפסה",
+  report_print_pdf: "הדפסה / שמירה כ־PDF",
+  report_print_hint:
+    "התצוגה כוללת את כל הרשומות השמורות המתאימות, גם עמודים שלא נטענו ברשימת האירועים. ניתן לשמור PDF בחלון ההדפסה של הדפדפן. הדוח מכיל מידע פרטי.",
+
+  csv_mapping: "התאמת עמודות הקובץ",
+  csv_mapping_hint:
+    "שייך כל עמודה לשדה אחד. עמודות שסומנו להתעלמות לא ייובאו. כל שדה ניתן למיפוי פעם אחת. בדוק את התוצאה לפני החלה.",
+  csv_ignore_column: "התעלמות מהעמודה",
+  csv_profile_hint:
+    "ערכי פרופיל: טקסט רגיל או מחרוזת JSON. תא ריק משאיר את הערך הקיים; CLEAR מסיר אותו. מחרוזות JSON בייצוא שומרות טקסט ואפסים מובילים.",
+  csv_group_hint:
+    "group_ids הוא מערך JSON של מזהי קבוצות או שמות ייחודיים. [] מסיר חברות. permission_overrides ממפה מזהי תחנות ל־allow או deny; {} מאפס חריגות אישיות. אין לשלב אותו עם תא stations מלא.",
+  csv_download_errors: "הורדת דוח שגיאות לפי שורה",
+  csv_field_group_ids: "קבוצות",
+  csv_field_profile: "שדות מותאמים",
+  csv_field_permission_overrides: "חריגות אישיות",
+  csv_field_stations: "דלתות",
+  csv_profile_unknown: "השדה המותאם אינו קיים. יש למפות לשדה נוכחי או להתעלם ממנו.",
+  csv_group_ambiguous: "שם הקבוצה אינו ייחודי או מופיע פעמיים. יש להשתמש במזהה שלה.",
+  csv_group_unknown: "הקבוצה אינה קיימת בפרויקט.",
+  csv_permissions_conflict:
+    "יש להזין חריגות אישיות או שיוכי דלתות מוחלטים, ולא את שניהם באותה שורה.",
+
+  views_title: "תצוגות משתמשים שמורות",
+  views_hint:
+    "שמור עד 20 תצוגות בדפדפן זה לחשבון המנהל שלך. מסננים, מיון וסדר השדות המותאמים נשמרים לפי מזהה השדה; עמודות הזהות והפעולות נשארות גלויות.",
+  views_choose: "תצוגה שמורה",
+  views_new: "תצוגה חדשה",
+  views_load: "טען תצוגה",
+  views_name: "שם התצוגה",
+  views_save: "שמור תצוגה נוכחית",
+  views_delete: "מחק תצוגה שמורה",
+  views_columns: "שדות מותאמים וסדרם",
+  views_before: "הזז לפני",
+  views_after: "הזז אחרי",
+  views_all_columns: "הצג את כל השדות המותאמים",
+  views_changed: "התצוגות השתנו בלשונית אחרת. בחר שוב תצוגה לפני השמירה.",
+  views_storage_failed: "הדפדפן לא הצליח לשמור או לטעון תצוגות. המסננים הנוכחיים עדיין זמינים.",
+  usb_card_title: "קריאה מקורא USB במצב מקלדת",
+  usb_card_hint:
+    "התמקד בשדה והצמד כרטיס. Enter מציג סקירה; רק אישור מוסיף לטיוטה. שמור את האדם להחלה. אפסים מובילים נשמרים ואין המרת סדר בתים. יש לוודא שפורמט הפלט של הקורא מתאים.",
+  usb_card_input: "קלט קורא USB",
+  usb_card_review: "סקירת הכרטיס שנקרא",
+  usb_card_candidate: "סיומת הכרטיס / אורך המזהה",
+  usb_card_use: "הוסף כרטיס לטיוטה",
+  usb_card_invalid: "נדרש מזהה כרטיס באורך 1–32 תווים: אותיות לטיניות, ספרות, קו תחתון או מקף.",
+  camera_wall: "קיר מצלמות חי",
+  tools_camera_wall: "צפייה בארבע או תשע מצלמות נבחרות עם הגבלה משותפת למספר הזרמים.",
+  camera_wall_hint:
+    "בחר מצלמות והפעל צפייה. זרמים מחוץ לאזור הנראה או בלשונית מוסתרת נעצרים. פתיחת מצלמה יחידה משהה את הקיר. קיבולת בפועל תלויה בשרת, בדפדפן וברשת.",
+  camera_wall_budget: "מספר זרמים מרבי",
+  camera_wall_start: "הפעל קיר מצלמות",
+  camera_wall_stop: "עצור קיר מצלמות",
+  camera_wall_selected: "מצלמות נבחרות",
+  camera_wall_choose: "בחירת מצלמות לפי סדר תצוגה",
+  player_recovering: "מחבר מחדש וידאו שקפא",
+  player_reason_playback_stalled:
+    "הווידאו הפסיק להציג תמונות חדשות. מספר הניסיונות האוטומטיים מוגבל; אפשר לנסות שוב ידנית.",
+  mic_options: "בחירת מיקרופון ובדיקת קלט",
+  mic_local_hint:
+    "בדוק את המיקרופון מקומית לפני פתיחת שמע. המד אינו שולח קול ל־Home Assistant או לתחנה. הבדיקה מסתיימת לאחר דקה או ביציאה מהחלון. שמות ההתקנים מופיעים אחרי הרשאת הדפדפן.",
+  mic_device: "מיקרופון",
+  mic_default: "ברירת המחדל של הדפדפן",
+  mic_saved: "הבחירה שנשמרה",
+  mic_refresh: "רענן מיקרופונים",
+  mic_test: "בדוק מיקרופון מקומית",
+  mic_test_stop: "עצור בדיקה מקומית",
+  mic_local_active: "בדיקת קלט מקומית — ללא שידור",
+  mic_selection_unavailable: "המיקרופון שנבחר אינו זמין או שדרושה הרשאה. בחר מיקרופון לפני דיבור.",
   onboarding_templates: "תבניות קליטה",
   onboarding_templates_hint:
     "ברירות מחדל לשדות ולקבוצות, ללא PIN, כרטיסים, תמונה או זהות. ערכים שאינם תקינים יש לתקן בעת יצירת אדם.",

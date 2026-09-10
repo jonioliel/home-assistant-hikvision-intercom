@@ -4,7 +4,7 @@ export function validProfileValue(field: ProfileField, value: string): boolean {
   if (field.type === "select") return field.options.includes(value);
   if (field.type === "number") return /^-?(?:0|[1-9][0-9]{0,14})(?:\.[0-9]{1,8})?$/.test(value);
   if (field.type === "date") {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number(value.slice(0, 4)) < 1) return false;
     const day = new Date(value + "T00:00:00Z");
     return Number.isFinite(day.getTime()) && day.toISOString().slice(0, 10) === value;
   }

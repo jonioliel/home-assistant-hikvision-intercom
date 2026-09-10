@@ -19,6 +19,7 @@ from ..exceptions import (
 )
 from .csv_transfer import (
     CsvRules,
+    column_errors,
     desired_fields,
     export_users,
     parse_csv,
@@ -332,10 +333,18 @@ class AccessManager:
                 desired_person(user, next(iter(station.driver.client.enabled_doors)), caps)
                 desired_cards(user, caps)
 
+    def _csv_profile_fields(self) -> list[str]:
+        return [
+            field["id"]
+            for field in (self.repository.profile_settings() or {})
+            .get("values", {})
+            .get("fields", [])
+        ]
+
     def export_csv(self) -> dict[str, Any]:
         users = self.repository.users()
         return {
-            "csv": export_users(users),
+            "csv": export_users(users, self._csv_profile_fields()),
             "count": len(users),
             "stations": [{"id": s.id, "name": s.name} for s in self.stations.values()],
         }
@@ -344,7 +353,7 @@ class AccessManager:
         users = self.repository.users()
         stations = [{"id": s.id, "name": s.name} for s in self.stations.values()]
         return {
-            "csv": await asyncio.to_thread(export_users, users),
+            "csv": await asyncio.to_thread(export_users, users, self._csv_profile_fields()),
             "count": len(users),
             "stations": stations,
         }
@@ -360,9 +369,16 @@ class AccessManager:
             for key, station in self.stations.items()
         }
 
-    async def async_preview_csv(self, content: str, mode: str) -> dict[str, Any]:
+    async def async_preview_csv(
+        self, content: str, mode: str, column_map: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         preview, _changes, _stamp = await asyncio.to_thread(
-            self._bulk_preview, content, mode, self.repository.preview_copy(), self._csv_rules()
+            self._bulk_preview,
+            content,
+            mode,
+            self.repository.preview_copy(),
+            self._csv_rules(),
+            column_map,
         )
         return preview
 
@@ -372,15 +388,17 @@ class AccessManager:
         mode: str,
         repository: AccessRepository | None = None,
         rules: CsvRules | None = None,
+        column_map: dict[str, str] | None = None,
     ) -> tuple[dict[str, Any], list[dict[str, Any]], str]:
         if mode not in {"create", "upsert"}:
             raise AccessError("csv_invalid_mode")
         repository = repository if repository is not None else self.repository
         rules = rules if rules is not None else self._csv_rules()
-        parsed = parse_csv(content)
+        parsed = parse_csv(content, column_map)
         existing = {user.employee_no: user for user in repository.users()}
         stations = {key: item[0] for key, item in rules.items()}
-        changes, rows, errors = [], [], []
+        changes, rows = [], []
+        errors: list[dict[str, Any]] = []
         seen: set[str] = set()
         for line, row in parsed:
             try:
@@ -391,17 +409,27 @@ class AccessManager:
                 previous = existing.get(employee)
                 if previous and mode == "create":
                     raise AccessError("employee_conflict")
-                data = row_patch(row, previous, stations)
+                issues = column_errors(row, previous, stations, repository.profile_settings())
+                if issues:
+                    errors.extend({"line": line, **issue} for issue in issues)
+                    continue
+                data = row_patch(row, previous, stations, repository.profile_settings())
                 user = build_user(
                     repository.permission_data(data, previous),
                     employee_no=employee,
                     now=utc_now(),
                     previous=previous,
                 )
-                validate_csv_targets(user, rules)
                 before = desired_fields(previous) if previous else {}
                 after = desired_fields(user)
+                if before != after:
+                    validate_csv_targets(user, rules)
                 fields = [key for key in after if before.get(key) != after[key]]
+                for key in ("profile", "group_ids", "permission_overrides"):
+                    if getattr(previous, key, None) != getattr(user, key) and (
+                        previous or getattr(user, key)
+                    ):
+                        fields.append(key)
                 operation = "create" if previous is None else "update" if fields else "unchanged"
                 if operation != "unchanged":
                     changes.append(
@@ -423,6 +451,9 @@ class AccessManager:
                         "pin_configured": user.pin is not None,
                         "card_count": len(user.cards),
                         "stations": sorted(targets),
+                        "profile": user.profile,
+                        "group_ids": user.group_ids,
+                        "permission_overrides": user.permission_overrides,
                         "access_removed": bool(
                             previous
                             and (
@@ -457,7 +488,13 @@ class AccessManager:
             for key, rule in rules.items()
         }
         token = repository.fingerprint(
-            {"content": content, "mode": mode, "stamp": stamp, "stations": captured_rules}
+            {
+                "content": content,
+                "column_map": column_map,
+                "mode": mode,
+                "stamp": stamp,
+                "stations": captured_rules,
+            }
         )
         return (
             {
@@ -477,11 +514,16 @@ class AccessManager:
         return self._bulk_preview(content, mode)[0]
 
     async def async_import_csv(
-        self, content: str, mode: str, *, review_token: str
+        self,
+        content: str,
+        mode: str,
+        *,
+        review_token: str,
+        column_map: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         rules = self._csv_rules()
         preview, changes, stamp = await asyncio.to_thread(
-            self._bulk_preview, content, mode, self.repository.preview_copy(), rules
+            self._bulk_preview, content, mode, self.repository.preview_copy(), rules, column_map
         )
         if preview["errors"]:
             raise AccessError("csv_validation_failed")
@@ -491,12 +533,40 @@ class AccessManager:
             or self._csv_rules() != rules
         ):
             raise AccessError("csv_review_stale")
+        access_employees = {
+            row["employee_no"]
+            for row in preview["rows"]
+            if set(row["changed_fields"]) - {"profile", "group_ids", "permission_overrides"}
+        }
+        device_changes = {
+            change["user_id"]
+            for change in changes
+            if change["user_id"] is not None and change["data"]["employee_no"] in access_employees
+        }
+        prior_targets = {
+            key for uid in device_changes for key in self.repository.get(uid).assignments
+        }
+        created_employees = {
+            change["data"]["employee_no"] for change in changes if change["user_id"] is None
+        }
         users = await self.repository.async_bulk_apply(
-            changes, stamp=stamp, validate=lambda user: validate_csv_targets(user, rules)
+            changes,
+            stamp=stamp,
+            validate=lambda user: (
+                validate_csv_targets(user, rules)
+                if user.id in device_changes or user.employee_no in created_employees
+                else None
+            ),
         )
-        changed_ids = {user.id for user in users}
+        changed_ids = {
+            user.id
+            for user in users
+            if user.id in device_changes or user.employee_no in created_employees
+        }
         state = self.repository.snapshot()
-        targets = {key for user in users for key in user.assignments}
+        targets = prior_targets | {
+            key for user in users if user.id in changed_ids for key in user.assignments
+        }
         targets.update(
             key for key, bindings in state["bindings"].items() if changed_ids.intersection(bindings)
         )

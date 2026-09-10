@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Latest delivery: [0.29 WisKey, management tools and live clock](docs/WISKEY_029_HE.md).
+Published runtime: **0.32.1-alpha.1**. Next local candidate: [0.33.0-beta.1 — administration, CSV and media](docs/BETA_033_HE.md), awaiting release checks and publication.
 
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:

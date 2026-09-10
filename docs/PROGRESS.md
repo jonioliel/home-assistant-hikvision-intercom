@@ -1,5 +1,11 @@
 # Project progress
 
+## Current development — local 0.33.0-beta.1 candidate
+
+Sixteen approved software items are implemented (01,02,04–11,13,14,16,17,19,37); mobile-credential feasibility (40) is documented. This is not completion of all forty tasks. [Delivery](BETA_033_HE.md), [validation](BETA_DEVELOPMENT.md), [per-item status](ROADMAP_NEXT_40_HE.md).
+
+Access storage migrates to schema 6; profile settings to schema 2. Candidate publication and Linux/HA/HACS gates are pending. Last public runtime remains 0.32.1-alpha.1. Core acceptance remains **31/38** and Phase 5 is still open. The planning checkpoint below describes the earlier, pre-implementation state.
+
 ## Current planning checkpoint — 40-task roadmap
 
 The owner confirms installed MSE video works well and plans the audio check later.

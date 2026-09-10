@@ -806,3 +806,27 @@ async def test_reader_capture_cancel_and_unsupported_capabilities_are_safe(
             "code"
         ] == "capture_not_found"
         assert not manager.repository.get(user["id"]).cards
+
+
+async def test_csv_header_mapping_and_review_are_enforced_by_real_websocket(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    raw = "Number,Name\n9401,Mapped person\n"
+    inspected = await request(client, "users/csv_inspect", csv=raw)
+    assert inspected["success"]
+    assert inspected["result"]["headers"] == ["Number", "Name"]
+    mapping = {"Number": "employee_no", "Name": "display_name"}
+    preview = await request(client, "users/csv_preview", csv=raw, mode="create", column_map=mapping)
+    assert preview["success"] and preview["result"]["counts"]["create"] == 1
+    saved = await request(
+        client,
+        "users/csv_apply",
+        csv=raw,
+        mode="create",
+        column_map=mapping,
+        review_token=preview["result"]["review_token"],
+    )
+    assert saved["success"] and get_manager(hass).repository.users()[0].employee_no == "9401"
+    device_io["write_person"].assert_not_called()
+    device_io["unlock"].assert_not_called()

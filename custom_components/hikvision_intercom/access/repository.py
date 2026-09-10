@@ -648,6 +648,30 @@ class AccessRepository:
 
         return await self._commit(apply, offload=True)
 
+    def event_audience(self) -> dict[tuple[str, str], dict[str, Any]]:
+        """Detached current membership, restricted to observed station ownership."""
+        result: dict[tuple[str, str], dict[str, Any]] = {}
+        ambiguous: set[tuple[str, str]] = set()
+        for station, bindings in self._state["bindings"].items():
+            for uid, binding in bindings.items():
+                raw = self._state["users"].get(uid)
+                if (
+                    raw is None
+                    or raw["employee_no"] != binding["employee_no"]
+                    or not binding.get("fingerprint")
+                    or not binding.get("identity_observed_at")
+                ):
+                    continue
+                key = (station, raw["employee_no"])
+                if key in result:
+                    ambiguous.add(key)
+                result[key] = {
+                    "observed_at": binding["identity_observed_at"],
+                    "group_ids": list(raw["group_ids"]),
+                    "profile": dict(raw["profile"]),
+                }
+        return {key: value for key, value in result.items() if key not in ambiguous}
+
     def event_person_name(self, station: str, employee_no: str, occurred_at: str) -> str | None:
         """Resolve only an observed owner on this station, never a pending ID collision.
 

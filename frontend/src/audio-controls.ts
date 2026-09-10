@@ -1,3 +1,5 @@
+import "./microphone-input";
+import type { MicrophoneInput } from "./microphone-input";
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { downloadText } from "./download";
 import { translate } from "./i18n";
@@ -153,6 +155,7 @@ export class IntercomAudioControls extends LitElement {
   private microphone?: MediaStreamAudioSourceNode;
   private processor?: AudioWorkletNode;
   private workletLoaded = false;
+  private selectedMicrophone = "";
   private pressed = false;
   private sequence = 0;
   private sending = false;
@@ -227,6 +230,7 @@ export class IntercomAudioControls extends LitElement {
     );
   }
   private async start() {
+    this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     if (
       this._state !== "idle" ||
       !this.hass?.user?.is_admin ||
@@ -371,6 +375,7 @@ export class IntercomAudioControls extends LitElement {
       !navigator.mediaDevices?.getUserMedia
     )
       return;
+    this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     this.pressed = true;
     this._micPending = true;
     this._error = "";
@@ -380,7 +385,12 @@ export class IntercomAudioControls extends LitElement {
     try {
       this.microphoneStage = "permission";
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        audio: {
+          deviceId: this.selectedMicrophone ? { exact: this.selectedMicrophone } : undefined,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
         video: false,
       });
       if (!this.valid(epoch) || !this.pressed || micEpoch !== this.micEpoch) {
@@ -508,6 +518,7 @@ export class IntercomAudioControls extends LitElement {
     }
   }
   private stop(reason?: string) {
+    this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     this.epoch++;
     this._diagnosticLoading = false;
     clearTimeout(this.openingTimeout);
@@ -621,6 +632,15 @@ export class IntercomAudioControls extends LitElement {
     return html`<section aria-label=${this.t("audio_title")}>
       <h3>${this.t("audio_title")}</h3>
       <p>${this.t("audio_hint")}</p>
+      <wiskey-microphone-input
+        .hass=${this.hass}
+        .locked=${this._talking || this._micPending}
+        .testingAllowed=${this._state === "idle"}
+        @microphone-selected=${(e: CustomEvent<{ deviceId: string }>) => {
+          this.releaseTalk();
+          this.selectedMicrophone = e.detail.deviceId;
+        }}
+      ></wiskey-microphone-input>
       <details
         .open=${this._diagnosticsOpen}
         @toggle=${(event: Event) => {

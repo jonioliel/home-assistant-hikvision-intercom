@@ -126,20 +126,35 @@ class EventManager:
             async_dispatcher_send(self.hass, SIGNAL_EVENT, dict(row))
         return True
 
+    def _audience(self, filters: dict[str, Any]) -> Any:
+        from .reporting import audience_filter
+
+        manager = self.hass.data[DOMAIN].get("access")
+        settings = self.hass.data[DOMAIN].get("profile_settings")
+        return audience_filter(
+            filters,
+            settings.public() if settings else {},
+            manager.repository.event_audience()
+            if manager and set(filters) & {"current_group", "current_profile"}
+            else {},
+        )
+
     def query(self, filters: dict[str, Any]) -> dict[str, Any]:
         before = len(self.cache.rows)
-        result = self.cache.query(filters, datetime.now(UTC))
+        base, match = self._audience(filters)
+        result = self.cache.query(base, datetime.now(UTC), match=match)
         if len(self.cache.rows) != before:
             self.changed()
         return {
             **result,
+            "membership_basis": "current_observed_owner" if match else None,
             "records": [{**row, "evidence": explain_event(row)} for row in result["records"]],
             "storage_failed": self.storage_failed,
             "stations": {key: value.status() for key, value in self.stations.items()},
         }
 
     async def async_report(
-        self, filters: dict[str, Any], *, export: bool = False
+        self, filters: dict[str, Any], *, export: bool = False, printable: bool = False
     ) -> dict[str, Any]:
         from .reporting import build_report
 
@@ -149,11 +164,14 @@ class EventManager:
             raise HikvisionValidationError("Reports do not accept pagination")
         before = len(self.cache.rows)
         now = datetime.now(UTC)
-        page = self.cache.query(filters, now, all_records=True)
+        base, match = self._audience(filters)
+        page = self.cache.query(base, now, all_records=True, match=match)
         if len(self.cache.rows) != before:
             self.changed()
         # Capture HA-owned metadata before running only detached records in the worker.
         metadata = {
+            "membership_basis": "current_observed_owner" if match else None,
+            "filters": dict(filters),
             "retention_days": page["retention_days"],
             "capacity": page["capacity"],
             "storage_failed": self.storage_failed,
@@ -170,7 +188,7 @@ class EventManager:
             if station.runtime.clock
         }
         result = await self.hass.async_add_executor_job(
-            build_report, page["records"], now, names, export, zones
+            build_report, page["records"], now, names, export, zones, printable
         )
         return {**result, **metadata}
 

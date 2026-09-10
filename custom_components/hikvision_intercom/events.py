@@ -8,6 +8,7 @@ import hmac
 import json
 import re
 from collections import OrderedDict
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -280,7 +281,12 @@ class EventCache:
         }
 
     def query(
-        self, filters: dict[str, Any], now: datetime, *, all_records: bool = False
+        self,
+        filters: dict[str, Any],
+        now: datetime,
+        *,
+        all_records: bool = False,
+        match: Callable[[dict[str, Any]], bool] | None = None,
     ) -> dict[str, Any]:
         allowed = {
             "station_id",
@@ -343,7 +349,8 @@ class EventCache:
                 not in f"{row['employee_no'] or ''} {row['person_name'] or ''}".casefold()
             ):
                 continue
-            matches.append(row)
+            if match is None or match(row):
+                matches.append(row)
         before = filters.get("before")
         if before:
             index = next((i for i, row in enumerate(matches) if row["id"] == before), None)

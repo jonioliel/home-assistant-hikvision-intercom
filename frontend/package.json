@@ -1,6 +1,6 @@
 {
   "name": "hikvision-intercom-panel",
-  "version": "0.32.1-alpha.1",
+  "version": "0.33.0-beta.1",
   "private": true,
   "type": "module",
   "scripts": {

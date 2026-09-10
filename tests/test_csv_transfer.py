@@ -55,7 +55,7 @@ async def test_invalid_row_blocks_entire_batch_and_does_not_echo_secret(fleet):
     manager, device, _ = fleet
     raw = content([["1001", "Good", "", "", ""], ["1002", "Bad", "PRIVATEPIN", "", ""]])
     preview = manager.preview_csv(raw, "create")
-    assert preview["errors"] == [{"line": 3, "code": "invalid_pin"}]
+    assert preview["errors"] == [{"line": 3, "column": "pin", "code": "invalid_pin"}]
     assert preview["review_token"] is None and "PRIVATEPIN" not in str(preview)
     with pytest.raises(AccessError, match="csv_validation_failed"):
         await manager.async_import_csv(raw, "create", review_token="anything")
@@ -271,6 +271,15 @@ async def test_large_batch_coalesces_once_per_station_and_preserves_all_rows(fle
     await manager.async_import_csv(raw, "create", review_token=preview["review_token"])
     assert len(manager.repository.users()) == 500
     assert manager.request.call_count == 9
+    manager.request.reset_mock()
+    revised = content(
+        [[str(1000 + i), f"Updated {i}"] for i in range(500)], ("employee_no", "display_name")
+    )
+    preview = await manager.async_preview_csv(revised, "upsert")
+    assert preview["counts"]["update"] == 500
+    await manager.async_import_csv(revised, "upsert", review_token=preview["review_token"])
+    assert manager.request.call_count == 9
+    assert all(user.display_name.startswith("Updated ") for user in manager.repository.users())
 
 
 async def test_cancelled_bulk_preparation_never_saves_or_overwrites_later_edit(fleet, monkeypatch):

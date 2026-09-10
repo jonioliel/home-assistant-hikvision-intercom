@@ -44,7 +44,7 @@ for (const [width, height, language] of [
       name: language === "he" ? "הפעל שמע" : "Start audio",
       exact: true,
     });
-    await dialog.locator("hikvision-intercom-audio-controls summary").click();
+    await dialog.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
     const exportButton = dialog.getByRole("button", {
       name: language === "he" ? "הורד קובץ אבחון" : "Download audio diagnostics",
       exact: true,

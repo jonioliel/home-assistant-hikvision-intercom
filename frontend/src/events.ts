@@ -5,6 +5,8 @@ import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
 import { boundedRequest } from "./request";
+import { printableReport, checkedReportQuery } from "./report-tools";
+import type { ProfilePolicy } from "./profile-settings";
 import type { Hass, Station } from "./types";
 
 interface AuditEvent {
@@ -46,6 +48,9 @@ interface ActivityReport {
   storage_failed: boolean;
   stations: Record<string, { history: string }>;
   csv?: string;
+  membership_basis?: string | null;
+  filters?: Record<string, unknown>;
+  print_records?: Record<string, unknown>[];
 }
 interface AuditPage {
   records: AuditEvent[];
@@ -89,6 +94,9 @@ export class IntercomEvents extends LitElement {
   static properties = {
     hass: { attribute: false },
     stations: { attribute: false },
+    policy: { attribute: false },
+    _print: { state: true },
+    _printReady: { state: true },
     defaultZone: { attribute: false },
     _data: { state: true },
     _filterDirty: { state: true },
@@ -103,6 +111,10 @@ export class IntercomEvents extends LitElement {
   };
   hass?: Hass;
   stations: Station[] = [];
+  policy?: ProfilePolicy | null;
+  private _print = "";
+  private _printReady = false;
+  private actor?: string;
   defaultZone: DisplayZone = UTC_ZONE;
   private _filtersOpen = !window.matchMedia("(max-width: 650px)").matches;
   private _inputZone: DisplayZone = UTC_ZONE;
@@ -212,7 +224,8 @@ export class IntercomEvents extends LitElement {
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
     const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
-    const replaced = this.connection !== connection;
+    const replaced = this.connection !== connection || this.actor !== this.hass?.user?.id;
+    this.actor = this.hass?.user?.id;
     if (replaced) {
       this.invalidate();
       this.bindConnection(connection);
@@ -325,6 +338,12 @@ export class IntercomEvents extends LitElement {
     try {
       for (const [key, raw] of form.entries()) {
         if (!raw) continue;
+        if (key.startsWith("profile:")) {
+          const values = (filters.current_profile ?? {}) as Record<string, string>;
+          values[key.slice(8)] = String(raw);
+          filters.current_profile = values;
+          continue;
+        }
         filters[key] =
           key === "door"
             ? Number(raw)
@@ -345,6 +364,51 @@ export class IntercomEvents extends LitElement {
     this.clearReport();
     void this.load();
   }
+  private loadQuery(value: Record<string, unknown>) {
+    try {
+      const filters = checkedReportQuery(value);
+      if (filters.station_id && !this.stations.some((s) => s.id === filters.station_id))
+        throw Error();
+      if (filters.current_group && !this.policy?.groups.some((g) => g.id === filters.current_group))
+        throw Error();
+      if (
+        Object.keys((filters.current_profile ?? {}) as object).some(
+          (id) => !this.policy?.fields.some((f) => f.id === id && f.enabled),
+        )
+      )
+        throw Error();
+      const form = this.renderRoot.querySelector<HTMLFormElement>("form");
+      if (!form) return;
+      form.reset();
+      this._filterStation = String(filters.station_id ?? "");
+      this._inputZone =
+        this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? this.defaultZone;
+      for (const [key, raw] of Object.entries(filters)) {
+        if (key === "current_profile") {
+          for (const [id, v] of Object.entries(raw as Record<string, string>)) {
+            const input = form.elements.namedItem("profile:" + id) as HTMLInputElement | null;
+            if (input) input.value = v;
+          }
+        } else {
+          const input = form.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
+          if (input)
+            input.value = ["start", "end"].includes(key)
+              ? localInput(String(raw), this._inputZone)
+              : String(raw);
+        }
+      }
+      this.cancelList();
+      this._filters = filters;
+      this._knownTimes = { start: filters.start, end: filters.end };
+      this._filterDirty = false;
+      this._data = undefined;
+      this._error = "";
+      this.clearReport();
+      void this.load();
+    } catch {
+      this._error = this.t("report_query_unavailable");
+    }
+  }
   private resetFilters() {
     this.cancelList();
     this._error = "";
@@ -358,6 +422,8 @@ export class IntercomEvents extends LitElement {
     void this.load();
   }
   private clearReport() {
+    this._print = "";
+    this._printReady = false;
     this._reportEpoch++;
     this.reportRequest?.abort();
     this.reportRequest = undefined;
@@ -365,7 +431,7 @@ export class IntercomEvents extends LitElement {
     this._report = undefined;
     this._reportBusy = false;
   }
-  private async report(exportCsv = false) {
+  private async report(exportCsv = false, print = false) {
     if (
       this._reportBusy ||
       !this.hass?.user?.is_admin ||
@@ -380,7 +446,7 @@ export class IntercomEvents extends LitElement {
     this.reportRequest = new AbortController();
     try {
       const result = await this.request<ActivityReport>(
-        exportCsv ? "export" : "report",
+        print ? "print" : exportCsv ? "export" : "report",
         {
           filters: { ...this._filters },
         },
@@ -388,8 +454,30 @@ export class IntercomEvents extends LitElement {
         this.reportRequest,
       );
       if (epoch !== this._reportEpoch || !this.isConnected || !this.hass?.user?.is_admin) return;
-      const { csv, ...report } = result;
+      const { csv, print_records, ...report } = result;
       this._report = report;
+      if (print) {
+        this._printReady = false;
+        this._print = printableReport({ ...report, print_records }, this.hass?.language ?? "en", {
+          ...(this._filters.station_id
+            ? {
+                station_id:
+                  this.stations.find((s) => s.id === this._filters.station_id)?.name ??
+                  this.t("removed_station"),
+              }
+            : {}),
+          ...(this._filters.current_group
+            ? {
+                current_group:
+                  this.policy?.groups.find((g) => g.id === this._filters.current_group)?.label ??
+                  this.t("unknown"),
+              }
+            : {}),
+          ...Object.fromEntries(
+            (this.policy?.fields ?? []).map((f) => ["profile:" + f.id, f.label]),
+          ),
+        });
+      }
       if (exportCsv && csv !== undefined) downloadText(csv, "hikvision-events.csv");
     } catch {
       if (epoch === this._reportEpoch) this._reportError = this.t("events_report_failed");
@@ -420,6 +508,7 @@ export class IntercomEvents extends LitElement {
         ${report.totals.recovered}
       </p>
       <p class="field-note">${this.t("report_scope")}</p>
+      ${report.membership_basis ? html`<p>${this.t("report_current_membership")}</p>` : nothing}
       ${report.storage_failed ? html`<p class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
       ${Object.entries(report.stations)
         .filter(([, station]) => !["recovered", "pending"].includes(station.history))
@@ -572,6 +661,20 @@ export class IntercomEvents extends LitElement {
             </select></label
           >
           <label>${this.t("person")}<input name="person" maxlength="128" /></label>
+          ${
+            this.policy?.groups.length
+              ? html`<label
+                  >${this.t("report_current_group")}<select
+                    name="current_group"
+                    aria-label=${this.t("report_current_group")}
+                  >
+                    <option value="">${this.t("all")}</option>
+                    ${this.policy.groups.map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+                  </select></label
+                >`
+              : nothing
+          }
+          ${this.policy?.fields.filter((f) => f.enabled).map((f) => html`<label>${f.label} · ${this.t("report_current_value")}<input name=${"profile:" + f.id} maxlength="100" /></label>`)}
           <label
             >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
               <option value="">${this.t("all")}</option>
@@ -600,6 +703,13 @@ export class IntercomEvents extends LitElement {
           </button>
         </form>
       </details>
+      ${this._filters.current_group || this._filters.current_profile ? html`<p class="notice">${this.t("report_current_membership")}</p>` : nothing}
+      <wiskey-saved-reports
+        .hass=${this.hass}
+        .filters=${this._filters}
+        .locked=${this._busy || this._reportBusy}
+        @report-query=${(e: CustomEvent<Record<string, unknown>>) => this.loadQuery(e.detail)}
+      ></wiskey-saved-reports>
       ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
       <div class="toolbar">
         <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
@@ -610,6 +720,12 @@ export class IntercomEvents extends LitElement {
           @click=${() => this.report(true)}
         >
           ${this.t("report_export")}
+        </button>
+        <button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(false, true)}
+        >
+          ${this.t("report_print_preview")}
         </button>
       </div>
       <p class="sub">
@@ -624,6 +740,45 @@ export class IntercomEvents extends LitElement {
         <p class="record-meta">${this.t("audit_retention")}</p>
       </details>
       ${this.reportView()}
+      ${
+        this._print
+          ? html`<section class="card print-preview" aria-label=${this.t("report_print_preview")}>
+              <div class="toolbar">
+                <button
+                  ?disabled=${!this._printReady}
+                  @click=${() => {
+                    try {
+                      const frame =
+                        this.renderRoot.querySelector<HTMLIFrameElement>("iframe.print-frame");
+                      frame?.contentWindow?.focus();
+                      frame?.contentWindow?.print();
+                    } catch {
+                      this._reportError = this.t("events_report_failed");
+                    }
+                  }}
+                >
+                  ${this.t("report_print_pdf")}</button
+                ><button
+                  @click=${() => {
+                    this._print = "";
+                    this._printReady = false;
+                  }}
+                >
+                  ${this.t("close")}
+                </button>
+              </div>
+              <p>${this.t("report_print_hint")}</p>
+              <iframe
+                class="print-frame"
+                title=${this.t("report_print_preview")}
+                sandbox="allow-same-origin allow-modals"
+                .srcdoc=${this._print}
+                style="width:100%;height:70vh;border:1px solid var(--divider-color)"
+                @load=${() => (this._printReady = true)}
+              ></iframe>
+            </section>`
+          : nothing
+      }
       ${[this._error, this._listError, this._reportError].filter(Boolean).map((error) => html`<p role="alert" class="notice error">${error}</p>`)}
       ${this._data?.storage_failed ? html`<p role="alert" class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
       ${Object.entries(this._data?.stations ?? {})

@@ -1,3 +1,7 @@
+import "./saved-user-views";
+import type { UserView } from "./saved-user-views";
+import "./usb-card-input";
+import "./camera-wall";
 import "./permission-directory";
 import { profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
@@ -112,6 +116,7 @@ export class IntercomManagerPanel extends LitElement {
     _syncStation: { state: true },
     _syncAttention: { state: true },
     _userFilters: { state: true },
+    _userColumns: { state: true },
     _selectedUsers: { state: true },
     _auditUser: { state: true },
     _dialog: { state: true },
@@ -124,6 +129,7 @@ export class IntercomManagerPanel extends LitElement {
     _review: { state: true },
     _csvPreview: { state: true },
     _csvName: { state: true },
+    _csvMapping: { state: true },
     _csvMode: { state: true },
     _capture: { state: true },
     _onboarding: { state: true },
@@ -205,6 +211,8 @@ export class IntercomManagerPanel extends LitElement {
   private _syncAttention = false;
   private _userFilters: UserFilters = defaultFilters();
   private _selectedUsers = new Set<string>();
+  private _userColumns: string[] | null = null;
+  private _viewsActor?: string;
   private _auditUser = "";
   private _dialog = "";
   private _busy = false;
@@ -220,6 +228,7 @@ export class IntercomManagerPanel extends LitElement {
   private _csvPreview?: CsvPreview;
   private _csvContent = "";
   private _csvName = "";
+  private _csvMapping: Record<string, string> = {};
   private _csvMode = "create";
   private _capture?: ReaderCapture;
   private _captureEpoch = 0;
@@ -276,6 +285,12 @@ export class IntercomManagerPanel extends LitElement {
     this._releases = new Map();
   }
   protected updated(changed: PropertyValues) {
+    if (this._viewsActor !== this.hass?.user?.id) {
+      this._viewsActor = this.hass?.user?.id;
+      this._userColumns = null;
+      this._userFilters = defaultFilters();
+      this._query = "";
+    }
     if (!this.isConnected) return;
     if (changed.has("hass")) {
       if (this.hass?.user?.is_admin) {
@@ -1049,6 +1064,7 @@ export class IntercomManagerPanel extends LitElement {
     this._csvContent = "";
     this._csvPreview = undefined;
     this._csvName = "";
+    this._csvMapping = {};
     this._csvMode = "create";
   }
   private openCsv() {
@@ -1064,6 +1080,7 @@ export class IntercomManagerPanel extends LitElement {
     this._csvContent = "";
     this._csvPreview = undefined;
     this._csvName = "";
+    this._csvMapping = {};
     this._error = "";
     if (!file) return;
     const epoch = this._epoch;
@@ -1075,12 +1092,17 @@ export class IntercomManagerPanel extends LitElement {
       } catch {
         throw { code: "csv_invalid_encoding" };
       }
+      const inspected = await this.api<{ headers: string[]; mapping: Record<string, string> }>(
+        "users/csv_inspect",
+        { csv: content },
+      );
       if (
         epoch === this._epoch &&
         this.isConnected &&
         this.hass?.user?.is_admin &&
         this._dialog === "csv"
       ) {
+        this._csvMapping = inspected.mapping;
         this._csvContent = content;
         this._csvName = file.name;
       }
@@ -1092,6 +1114,7 @@ export class IntercomManagerPanel extends LitElement {
     await this.run(async () => {
       const result = await this.api<CsvPreview>("users/csv_preview", {
         csv: this._csvContent,
+        column_map: this._csvMapping,
         mode: this._csvMode,
       });
       if (
@@ -1120,6 +1143,7 @@ export class IntercomManagerPanel extends LitElement {
       try {
         await this.api("users/csv_apply", {
           csv: this._csvContent,
+          column_map: this._csvMapping,
           mode: this._csvMode,
           review_token: preview.review_token,
         });
@@ -1137,6 +1161,29 @@ export class IntercomManagerPanel extends LitElement {
       if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
         downloadText(result.csv, "hikvision-users.csv");
     }, "");
+  }
+  private csvTargets(): string[] {
+    return [
+      "employee_no",
+      "display_name",
+      "active",
+      "valid_from",
+      "valid_until",
+      "stations",
+      "pin",
+      "cards",
+      "group_ids",
+      "permission_overrides",
+      ...(this._data?.profile_settings?.fields ?? []).map((field) => `profile:${field.id}`),
+    ];
+  }
+  private csvColumnLabel(key: string): string {
+    if (key.startsWith("profile:"))
+      return (
+        this._data?.profile_settings?.fields.find((field) => field.id === key.slice(8))?.label ??
+        key
+      );
+    return this.t(`csv_field_${key}`);
   }
   private csvBody() {
     const preview = this._csvPreview;
@@ -1163,10 +1210,37 @@ export class IntercomManagerPanel extends LitElement {
           </select></label
         >
       </div>
-      ${this._csvName ? html`<p class="sub">${this._csvName}</p>` : nothing}
+      ${
+        this._csvName
+          ? html`<p class="sub">${this._csvName}</p>
+              <details open class="csv-mapping">
+                <summary>${this.t("csv_mapping")}</summary>
+                <p>${this.t("csv_mapping_hint")}</p>
+                <div class="form-grid">
+                  ${Object.entries(this._csvMapping).map(
+                    ([header, target]) =>
+                      html`<label
+                        >${header}<select
+                          aria-label=${header}
+                          .value=${target}
+                          ?disabled=${this._busy}
+                          @change=${(event: Event) => {
+                            this._csvMapping = { ...this._csvMapping, [header]: value(event) };
+                            this._csvPreview = undefined;
+                          }}
+                        >
+                          <option value="">${this.t("csv_ignore_column")}</option>
+                          ${this.csvTargets().map((key) => html`<option value=${key}>${this.csvColumnLabel(key)} (${key})</option>`)}
+                        </select></label
+                      >`,
+                  )}
+                </div>
+              </details>`
+          : nothing
+      }
       <button
         ?disabled=${this._busy}
-        @click=${() => downloadText("\ufeffemployee_no,display_name,active,valid_from,valid_until,stations,pin,cards\r\n", "hikvision-users-template.csv")}
+        @click=${() => downloadText("\ufeff" + this.csvTargets().join(",") + "\r\n", "wiskey-users-template.csv")}
       >
         ${this.t("csv_template")}
       </button>
@@ -1175,6 +1249,11 @@ export class IntercomManagerPanel extends LitElement {
         <p>${this.t("csv_columns_hint")}</p>
         <p>${this.t("csv_clear_hint")}</p>
         <p>${this.t("csv_station_hint")}</p>
+        <p>${this.t("csv_profile_hint")}</p>
+        <p>${this.t("csv_group_hint")}</p>
+        <ul>
+          ${(this._data?.profile_settings?.groups ?? []).map((group) => html`<li>${group.label}: <code>${group.id}</code></li>`)}
+        </ul>
         <ul>
           ${(this._data?.stations ?? []).map((station) => html`<li>${station.name}: <code>${station.id}</code></li>`)}
         </ul>
@@ -1189,7 +1268,8 @@ export class IntercomManagerPanel extends LitElement {
                 ${this.t("plan_create")}: ${preview.counts.create} · ${this.t("plan_update")}:
                 ${preview.counts.update} · ${this.t("bulk_unchanged")}: ${preview.counts.unchanged}
               </p>
-              ${preview.errors.map((error) => html`<p class="notice error" role="alert">${error.line ? `${this.t("csv_line")} ${error.line}: ` : ""}${this.t(error.code)}</p>`)}
+              ${preview.errors.map((error) => html`<p class="notice error" role="alert">${error.line ? `${this.t("csv_line")} ${error.line}: ` : ""}${error.column ? `${this.csvColumnLabel(error.column)}: ` : ""}${this.t(error.code)}</p>`)}
+              ${preview.errors.length ? html`<button @click=${() => downloadText(JSON.stringify({ errors: preview.errors.map(({ line, column, code }) => ({ line, column, code })) }, null, 2), "wiskey-import-errors.json", "application/json")}>${this.t("csv_download_errors")}</button>` : nothing}
               ${preview.rows.map(
                 (row) =>
                   html`<article class="import-row">
@@ -1212,6 +1292,31 @@ export class IntercomManagerPanel extends LitElement {
                     <p>
                       ${row.stations.map((id) => this.stationName(id)).join(", ") || this.t("csv_no_stations")}
                     </p>
+                    ${row.group_ids ? html`<p>${this.t("groups")}: ${row.group_ids.map((id) => this._data?.profile_settings?.groups.find((group) => group.id === id)?.label ?? id).join(", ") || "—"}</p>` : nothing}
+                    ${
+                      row.profile
+                        ? html`<p>
+                            ${Object.entries(row.profile)
+                              .map(([id, val]) => `${this.csvColumnLabel(`profile:${id}`)}: ${val}`)
+                              .join(" · ")}
+                          </p>`
+                        : nothing
+                    }
+                    ${
+                      row.permission_overrides
+                        ? html`<p>
+                            ${this.t("csv_field_permission_overrides")}:
+                            ${
+                              Object.entries(row.permission_overrides)
+                                .map(
+                                  ([id, mode]) =>
+                                    `${this.stationName(id)}: ${this.t(mode === "allow" ? "permission_personal" : "permission_denied")}`,
+                                )
+                                .join(" · ") || "—"
+                            }
+                          </p>`
+                        : nothing
+                    }
                     ${row.access_removed ? html`<p class="danger">${this.t("csv_revocation")}</p>` : nothing}
                   </article>`,
               )} `
@@ -1431,7 +1536,10 @@ export class IntercomManagerPanel extends LitElement {
     if (user) action(user);
   }
   private visibleProfileFields() {
-    return this._data?.profile_settings?.fields.filter((f) => f.enabled) ?? [];
+    const fields = this._data?.profile_settings?.fields.filter((f) => f.enabled) ?? [];
+    return this._userColumns === null
+      ? fields
+      : this._userColumns.flatMap((id) => fields.filter((f) => f.id === id));
   }
   private userGroupNames(user: Person) {
     return (
@@ -1735,6 +1843,7 @@ export class IntercomManagerPanel extends LitElement {
           "media_options",
           "profile_options",
           "permission_directory",
+          "camera_wall",
           "users",
           "devices",
           "sync",
@@ -1813,6 +1922,18 @@ export class IntercomManagerPanel extends LitElement {
           ${this.t("sync_all")}
         </button>
       </div>
+      <wiskey-saved-user-views
+        .hass=${this.hass}
+        .fields=${this._data?.profile_settings?.fields ?? []}
+        .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
+        @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
+        @view-load=${(e: CustomEvent<UserView>) => {
+          this._query = e.detail.query;
+          this._userFilters = e.detail.filters;
+          this._userColumns = e.detail.columns;
+          this._selectedUsers = new Set();
+        }}
+      ></wiskey-saved-user-views>
       <details class="user-filters">
         <summary>${this.t("user_filter_controls")}</summary>
         <div class="toolbar">
@@ -2598,6 +2719,24 @@ export class IntercomManagerPanel extends LitElement {
             >
               + ${this.t("add_card")}
             </button>
+            <wiskey-usb-card-input
+              .hass=${this.hass}
+              .locked=${this._busy}
+              @card-reviewed=${(e: CustomEvent<{ card_no: string }>) => {
+                if (!draft.cards.some((c) => c.card_no === e.detail.card_no)) {
+                  draft.cards = [
+                    ...draft.cards,
+                    {
+                      card_no: e.detail.card_no,
+                      label: "",
+                      card_type: "normalCard",
+                      enabled: true,
+                    },
+                  ];
+                  this.requestUpdate();
+                }
+              }}
+            ></wiskey-usb-card-input>
           </fieldset>
         </div>
         <fieldset class="editor-assignments">
@@ -3037,69 +3176,82 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "permission_directory"
-              ? html`<hikvision-permission-directory
+            : this._tab === "camera_wall"
+              ? html`<wiskey-camera-wall
                   .hass=${this.hass}
                   .stations=${this._data.stations}
-                  .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
-                  @edit-person=${(e: CustomEvent<string>) => {
-                    const user = this._data?.users.find((u) => u.id === e.detail);
-                    if (user) this.edit(user);
+                  .media=${this._data.media_settings}
+                  .version=${this._data.version}
+                  .suspended=${!!this._dialog}
+                  @open-station=${(e: CustomEvent<string>) => {
+                    this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
+                    this._dialog = "camera";
                   }}
-                ></hikvision-permission-directory>`
-              : this._tab === "profile_options"
-                ? html`<hikvision-profile-settings
+                ></wiskey-camera-wall>`
+              : this._tab === "permission_directory"
+                ? html`<hikvision-permission-directory
                     .hass=${this.hass}
-                    .settings=${this._data.profile_settings}
                     .stations=${this._data.stations}
-                    @profile-saved=${(e: CustomEvent) => {
-                      if (this._data) this._data = { ...this._data, profile_settings: e.detail };
+                    .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
+                    @edit-person=${(e: CustomEvent<string>) => {
+                      const user = this._data?.users.find((u) => u.id === e.detail);
+                      if (user) this.edit(user);
                     }}
-                  ></hikvision-profile-settings>`
-                : this._tab === "media_options"
-                  ? html`<hikvision-media-settings
+                  ></hikvision-permission-directory>`
+                : this._tab === "profile_options"
+                  ? html`<hikvision-profile-settings
                       .hass=${this.hass}
-                      .settings=${this._data.media_settings}
-                      @media-saved=${(e: CustomEvent) => {
-                        if (this._data) this._data = { ...this._data, media_settings: e.detail };
+                      .settings=${this._data.profile_settings}
+                      .stations=${this._data.stations}
+                      @profile-saved=${(e: CustomEvent) => {
+                        if (this._data) this._data = { ...this._data, profile_settings: e.detail };
                       }}
-                    ></hikvision-media-settings>`
-                  : this._tab === "tools"
-                    ? this.toolsView()
-                    : this._tab === "overview"
-                      ? this.overviewView()
-                      : this._tab === "users"
-                        ? this.usersView()
-                        : this._tab === "devices"
-                          ? this.devicesView()
-                          : this._tab === "sync"
-                            ? this.syncView()
-                            : this._tab === "audit"
-                              ? html`<hikvision-admin-audit
-                                  .hass=${this.hass}
-                                  .users=${this._data.users}
-                                  .stations=${this._data.stations}
-                                  .focusUser=${this._auditUser}
-                                  .zone=${this._data.default_zone ?? UTC_ZONE}
-                                  @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                ></hikvision-admin-audit>`
-                              : this._tab === "health"
-                                ? html`<hikvision-intercom-health
-                                    .callBusy=${this._callBusy}
-                                    .onCallBusy=${this.setCallBusy}
+                    ></hikvision-profile-settings>`
+                  : this._tab === "media_options"
+                    ? html`<hikvision-media-settings
+                        .hass=${this.hass}
+                        .settings=${this._data.media_settings}
+                        @media-saved=${(e: CustomEvent) => {
+                          if (this._data) this._data = { ...this._data, media_settings: e.detail };
+                        }}
+                      ></hikvision-media-settings>`
+                    : this._tab === "tools"
+                      ? this.toolsView()
+                      : this._tab === "overview"
+                        ? this.overviewView()
+                        : this._tab === "users"
+                          ? this.usersView()
+                          : this._tab === "devices"
+                            ? this.devicesView()
+                            : this._tab === "sync"
+                              ? this.syncView()
+                              : this._tab === "audit"
+                                ? html`<hikvision-admin-audit
                                     .hass=${this.hass}
+                                    .users=${this._data.users}
                                     .stations=${this._data.stations}
-                                  ></hikvision-intercom-health>`
-                                : this._tab === "schedules"
-                                  ? html`<hikvision-intercom-schedules
+                                    .focusUser=${this._auditUser}
+                                    .zone=${this._data.default_zone ?? UTC_ZONE}
+                                    @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                  ></hikvision-admin-audit>`
+                                : this._tab === "health"
+                                  ? html`<hikvision-intercom-health
+                                      .callBusy=${this._callBusy}
+                                      .onCallBusy=${this.setCallBusy}
                                       .hass=${this.hass}
                                       .stations=${this._data.stations}
-                                    ></hikvision-intercom-schedules>`
-                                  : html`<hikvision-intercom-events
-                                      .hass=${this.hass}
-                                      .stations=${this._data.stations}
-                                      .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                    ></hikvision-intercom-events>`
+                                    ></hikvision-intercom-health>`
+                                  : this._tab === "schedules"
+                                    ? html`<hikvision-intercom-schedules
+                                        .hass=${this.hass}
+                                        .stations=${this._data.stations}
+                                      ></hikvision-intercom-schedules>`
+                                    : html`<hikvision-intercom-events
+                                        .policy=${this._data.profile_settings}
+                                        .hass=${this.hass}
+                                        .stations=${this._data.stations}
+                                        .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                      ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

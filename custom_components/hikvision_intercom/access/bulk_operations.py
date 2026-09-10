@@ -416,19 +416,24 @@ class BulkOperations:
             "changed": len(review["changes"]),
             "stations": review["stations"],
         }
-        with audit_actor(actor, receipt["action"]):
-            result = await self.manager.repository.async_apply_operation(
-                review["changes"],
-                stamp=review["stamp"],
-                receipt=receipt,
-                validate=lambda user: (
-                    validate_csv_targets(user, rules)
-                    if user.id in review["access_changed"]
-                    else None
-                ),
-            )
-        self.reviews.pop(operation_id, None)
-        for sid in set(result["stations"]).intersection(self.manager.stations):
-            self.manager.request(sid)
-        self.manager._changed()
+        try:
+            with audit_actor(actor, receipt["action"]):
+                result = await self.manager.repository.async_apply_operation(
+                    review["changes"],
+                    stamp=review["stamp"],
+                    receipt=receipt,
+                    validate=lambda user: (
+                        validate_csv_targets(user, rules)
+                        if user.id in review["access_changed"]
+                        else None
+                    ),
+                )
+        finally:
+            saved = self.manager.repository._state["operation_receipts"].get(operation_id)
+            if saved:
+                self.reviews.pop(operation_id, None)
+                if not self.manager._closed:
+                    for sid in set(saved["stations"]).intersection(self.manager.stations):
+                        self.manager.request(sid)
+                self.manager._changed()
         return result

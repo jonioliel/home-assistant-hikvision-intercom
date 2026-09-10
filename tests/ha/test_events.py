@@ -460,3 +460,50 @@ async def test_old_event_cleanup_preserves_current_monitor(hass, loaded_entry):
     await hass.async_block_till_done()
     assert state(hass, "access").attributes["event_type"] == "access_granted"
     assert len(manager.query({})["records"]) == 1
+
+
+async def test_current_membership_report_and_print_require_observed_owner(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    settings = await request(client, "profiles/settings_get")
+    values = {k: v for k, v in settings["result"].items() if k != "revision"}
+    values["fields"] = [{"id": "dept", "label": "Department", "enabled": True, "options": []}]
+    values["groups"] = [{"id": "staff", "label": "Staff", "enabled": True, "station_ids": []}]
+    saved = await request(
+        client, "profiles/settings_update", revision=settings["result"]["revision"], values=values
+    )
+    assert saved["success"]
+    repo = loaded_entry.runtime_data.access_manager.repository
+    user = await repo.async_create(
+        {
+            "display_name": "Verified",
+            "employee_no": "00042",
+            "profile": {"dept": "0007"},
+            "group_ids": ["staff"],
+        }
+    )
+    await repo.async_bind(loaded_entry.entry_id, user.id, fingerprint="observed")
+    monitor = loaded_entry.runtime_data.events
+    for i, employee in enumerate(["00042", "42", None]):
+        monitor.ingest(live(181, employeeNoString=employee, name="Verified", serialNo=7100 + i))
+    filters = {"current_group": "staff", "current_profile": {"dept": "0007"}}
+    for command in ("events/list", "events/report", "events/export", "events/print"):
+        reply = await request(client, command, filters=filters)
+        assert reply["success"]
+        result = reply["result"]
+        assert result["membership_basis"] == "current_observed_owner"
+        assert (
+            len(result["records"]) == 1
+            if command == "events/list"
+            else result["totals"]["records"] == 1
+        )
+        if command == "events/print":
+            assert len(result["print_records"]) == 1
+            assert result["print_records"][0]["employee_no"] == "00042"
+    await repo.async_update(user.id, {"group_ids": []}, expected_revision=user.revision)
+    reply = await request(client, "events/report", filters=filters)
+    assert reply["success"] and reply["result"]["totals"]["records"] == 0
+    invalid = await request(client, "events/print", filters={"current_group": "missing"})
+    assert invalid["error"]["code"] == "invalid_fields"
+    device_io["unlock"].assert_not_called()

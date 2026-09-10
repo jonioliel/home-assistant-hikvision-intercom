@@ -268,6 +268,7 @@ async def test_saving_cancellation_retains_exactly_one_operation(batch):
     with pytest.raises(asyncio.CancelledError):
         await task
     assert all(u.revision == 2 for u in batch.repository.users())
+    assert batch.stations["a"].pending
     result = await batch.bulk.apply("administrator", preview["operation_id"])
     assert result["changed"] == 2 and all(u.revision == 2 for u in batch.repository.users())
     assert batch.stations["a"].pending

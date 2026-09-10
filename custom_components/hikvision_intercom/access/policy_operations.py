@@ -121,7 +121,9 @@ class PolicyOperations:
             "offline": [
                 sid
                 for sid in result["stations"]
-                if sid not in self.manager.stations or self.manager.stations[sid].driver is None
+                if sid not in self.manager.stations
+                or self.manager.stations[sid].driver is None
+                or self.manager.stations[sid].status == "offline"
             ],
         }
 
@@ -166,7 +168,8 @@ class PolicyOperations:
             saved = self.manager.repository._state["operation_receipts"].get(operation_id)
             if saved:
                 self.reviews.pop(operation_id, None)
-                for sid in set(saved["stations"]).intersection(self.manager.stations):
-                    self.manager.request(sid)
+                if not self.manager._closed:
+                    for sid in set(saved["stations"]).intersection(self.manager.stations):
+                        self.manager.request(sid)
                 self.manager._changed()
         return self.manager.bulk.receipt(actor, operation_id)

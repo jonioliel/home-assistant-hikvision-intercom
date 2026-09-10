@@ -275,3 +275,44 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     assert restored.snapshot()["schema"] == 6
     assert restored.get(user.id).private() == manager.repository.get(user.id).private()
     save.assert_awaited_once()
+
+
+async def test_policy_receipt_for_more_than_200_members_survives_restart(managed):
+    manager, _, profiles = managed
+    repo = manager.repository
+    changes = [
+        {
+            "user_id": None,
+            "revision": None,
+            "data": {
+                "employee_no": str(70000 + i),
+                "display_name": f"Member {i}",
+                "group_ids": ["staff"],
+            },
+        }
+        for i in range(201)
+    ]
+    await repo.async_bulk_apply(changes, stamp=repo.bulk_stamp(), validate=lambda user: None)
+    values = profiles.public()
+    revision = values.pop("revision")
+    values["groups"][0]["enabled"] = False
+    review = await manager.policy.preview("admin", revision, values)
+    receipt = await manager.policy.apply("admin", review["operation_id"])
+    assert receipt["changed"] == 202
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(repo.snapshot())
+    assert restored.snapshot()["operation_receipts"][review["operation_id"]] == receipt
+    assert all(not any(a.enabled for a in user.assignments.values()) for user in restored.users())
+
+
+@pytest.mark.parametrize("schema", [5, 6])
+async def test_modern_schema_missing_explicit_exceptions_is_rejected_before_save(managed, schema):
+    manager, user, _ = managed
+    state = manager.repository.snapshot()
+    state["schema"] = schema
+    del state["users"][user.id]["permission_overrides"]
+    save = AsyncMock()
+    restored = AccessRepository(save)
+    with pytest.raises(AccessError, match="invalid_storage"):
+        await restored.async_load(state)
+    save.assert_not_awaited()

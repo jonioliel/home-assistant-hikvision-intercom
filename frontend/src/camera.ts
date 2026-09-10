@@ -1,3 +1,4 @@
+import { PlaybackWatchdog } from "./playback-watchdog";
 import { LitElement, html, css, type PropertyValues } from "lit";
 import Hls from "hls.js";
 import { CameraMSE } from "./camera-mse";
@@ -71,6 +72,9 @@ export class IntercomCamera extends LitElement {
   private _fallback = false;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   private generation = 0;
+  private watchdog?: PlaybackWatchdog;
+  private recoveries = 0;
+  private previousProgress?: Record<string, unknown>;
   static styles = css`
     :host {
       display: block;
@@ -193,6 +197,9 @@ export class IntercomCamera extends LitElement {
     connection?.addEventListener?.("ready", this.haReady);
   }
   private stop() {
+    if (this.watchdog) this.previousProgress = this.watchdog.summary();
+    this.watchdog?.stop();
+    this.watchdog = undefined;
     this.generation++;
     clearTimeout(this.startTimer);
     this.rtc?.close();
@@ -240,6 +247,8 @@ export class IntercomCamera extends LitElement {
       changed.has("_haConnected")
     ) {
       this.stop();
+      this.recoveries = 0;
+      this.previousProgress = undefined;
       this._failed = false;
       if (
         this.live &&
@@ -322,6 +331,7 @@ export class IntercomCamera extends LitElement {
             clearTimeout(this.startTimer);
             this._mode = "player_mse";
             this.firstFrameAt = new Date().toISOString();
+            this.watchProgress();
           }
         },
         fallback,
@@ -361,6 +371,7 @@ export class IntercomCamera extends LitElement {
             if (current()) {
               this._mode = "player_webrtc";
               this.firstFrameAt = new Date().toISOString();
+              this.watchProgress();
             }
           },
           fallback,
@@ -376,6 +387,39 @@ export class IntercomCamera extends LitElement {
       fallback("capabilities_failed");
     }
   }
+  private watchProgress() {
+    const video = this.renderRoot.querySelector("video");
+    if (this.watchdog || !video) return;
+    const generation = this.generation;
+    this.watchdog = new PlaybackWatchdog(
+      video,
+      () =>
+        generation === this.generation &&
+        this.isConnected &&
+        this.live &&
+        this._visible &&
+        this._documentVisible &&
+        this._networkOnline &&
+        this._haConnected &&
+        !!this.hass?.user?.is_admin,
+      () => this.recoverFrozen(),
+    );
+    this.watchdog.start();
+  }
+  private recoverFrozen() {
+    const transport = this.activeTransport;
+    this.stop();
+    this._fallbackReason = "playback_stalled";
+    if (this.recoveries < 2) {
+      this.recoveries++;
+      this._mode = "player_recovering";
+      if (transport === "hls") void this.startHls();
+      else void this.start();
+    } else if (transport !== "hls" && (this.media ?? DEFAULT_MEDIA).fallback_hls) {
+      this._fallback = true;
+      void this.startHls();
+    } else this.failPlayer("playback_stalled");
+  }
   private failPlayer(reason: string) {
     this._failed = true;
     if (!this._fallbackReason) this._fallbackReason = reason;
@@ -386,6 +430,7 @@ export class IntercomCamera extends LitElement {
       clearTimeout(this.startTimer);
       this._mode = "player_hls";
       this.firstFrameAt = new Date().toISOString();
+      this.watchProgress();
     }
   }
   private async exportPlayback() {
@@ -403,6 +448,8 @@ export class IntercomCamera extends LitElement {
           generated_at: new Date().toISOString(),
           started_at: this.startedAt,
           first_frame_at: this.firstFrameAt,
+          stall_recoveries: this.recoveries,
+          progress: this.watchdog?.summary() ?? this.previousProgress ?? null,
           mode: this._mode,
           failed: this._failed,
           fallback_reason: this._fallbackReason || null,
@@ -477,6 +524,7 @@ export class IntercomCamera extends LitElement {
             @click=${() => {
               this.stop();
               this._failed = false;
+              this.recoveries = 0;
               void this.start();
             }}
           >

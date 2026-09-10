@@ -414,7 +414,7 @@ test("audio diagnostics report actual worklet counters without sound or session 
     .poll(() => page.evaluate(() => (window as any).audio.sent.length))
     .toBeGreaterThan(2);
   await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
-  await audio.locator("summary").click();
+  await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   const download = page.waitForEvent("download");
   await audio.getByRole("button", { name: "Download audio diagnostics" }).click();
   const { readFile } = await import("node:fs/promises");
@@ -436,7 +436,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
 }) => {
   const audio = await setup(page);
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await audio.locator("summary").click();
+  await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
   await expect(audio.getByTestId("audio-written")).toHaveText("0");
   await audio
@@ -459,7 +459,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
 test("failed diagnostics retain a labelled old sample without stopping audio", async ({ page }) => {
   const audio = await setup(page);
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await audio.locator("summary").click();
+  await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
   await page.evaluate(() => {
     (window as any).audio.failDiagnostics = true;
@@ -481,7 +481,7 @@ test("late diagnostic results cannot populate a replacement audio session", asyn
     (window as any).audio.delayDiagnostics = true;
   });
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await audio.locator("summary").click();
+  await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => typeof (window as any).audio.resolveDiagnostics))
     .toBe("function");
@@ -513,7 +513,7 @@ for (const width of [390, 1440])
       document.querySelector("hikvision-intercom-panel")!.hass = { ...window.demoHass };
     });
     await audio.getByRole("button", { name: "הפעל שמע", exact: true }).click();
-    await audio.locator("summary").click();
+    await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
     await expect(audio.getByTestId("audio-upload")).toHaveText("200");
     const downloadButton = audio.getByRole("button", { name: "הורד קובץ אבחון", exact: true });
     await downloadButton.scrollIntoViewIfNeeded();
@@ -526,3 +526,65 @@ for (const width of [390, 1440])
     );
     await page.screenshot({ path: `test-results/audio-diagnostics-${width}-he.png` });
   });
+
+test("local microphone meter sends no audio and selected device is used only on press", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      window.audio.constraints = constraints;
+      return original(constraints);
+    };
+    navigator.mediaDevices.enumerateDevices = async () => [
+      { kind: "audioinput", deviceId: "mic-a", label: "Desk microphone" },
+      { kind: "audioinput", deviceId: "mic-b", label: "Headset" },
+    ];
+  });
+  const mic = audio.locator("wiskey-microphone-input");
+  await mic.locator("summary").click();
+  await mic.getByRole("button", { name: "Refresh microphones" }).click();
+  await mic.getByRole("combobox", { name: "Microphone", exact: true }).selectOption("mic-b");
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  await mic.getByRole("button", { name: "Test microphone locally" }).click();
+  await expect.poll(() => mic.locator("meter").evaluate((el) => el.value)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.audio.constraints.audio.deviceId)).toEqual({
+    exact: "mic-b",
+  });
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.includes("/audio/")).length),
+  ).toBe(0);
+  await mic.getByRole("button", { name: "Stop local test" }).click();
+  expect(await page.evaluate(() => window.audio.stopped)).toBe(1);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio
+    .getByRole("button", { name: "Hold to talk", exact: true })
+    .dispatchEvent("pointerdown", { pointerId: 1 });
+  await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.audio.constraints.audio.deviceId)).toEqual({
+    exact: "mic-b",
+  });
+  await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
+});
+
+for (const action of ["close", "change", "background"]) {
+  test(`local microphone test releases tracks on ${action}`, async ({ page }) => {
+    const audio = await setup(page);
+    const mic = audio.locator("wiskey-microphone-input");
+    await mic.locator("summary").click();
+    await mic.getByRole("button", { name: "Test microphone locally" }).click();
+    await expect.poll(() => page.evaluate(() => window.audio.microphones)).toBe(1);
+    if (action === "close")
+      await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+    if (action === "change")
+      await page.evaluate(() => navigator.mediaDevices.dispatchEvent(new Event("devicechange")));
+    if (action === "background")
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    await expect.poll(() => page.evaluate(() => window.audio.stopped)).toBe(1);
+    expect(await page.evaluate(() => window.audio.sent.length)).toBe(0);
+  });
+}

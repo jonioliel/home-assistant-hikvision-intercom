@@ -1,13 +1,13 @@
-# CSV and activity reports — introduced in 0.11, updated for 0.14
+# CSV and activity reports — updated for 0.33 Beta
 
 These Phase 6 features use the existing central database, synchronization engine and retained
-normalized event cache. They introduce no ISAPI endpoint. All five WebSocket commands require
+normalized event cache. They introduce no ISAPI endpoint. All administration WebSocket commands require
 an administrator and retain request limiting and payload redaction.
 
 ## Import a CSV file
 
 In **Users → Import CSV**, download the blank template or export the current users. Save a
-comma-separated UTF-8 file (BOM accepted), select it, choose the mode, and **Preview changes**.
+comma-separated UTF-8 file (BOM accepted), select it, map its headers, choose the mode, and **Preview changes**.
 Inspect names, changed fields, target stations, credential counts and access-removal warnings.
 Use **Apply & sync batch** and confirm only when the preview matches the intended changes.
 
@@ -17,10 +17,11 @@ Use **Apply & sync batch** and confirm only when the preview matches the intende
   require the separate inventory/review workflow.
 - Maximum 500 data rows and 256 KiB per file. Large files must be split deliberately.
 - Required headers are `employee_no,display_name`. Optional headers are below. Header spelling
-  is exact; duplicate/unknown headers, malformed quotes/JSON and duplicate IDs are rejected.
+  is exact without mapping. The mapping wizard accepts other source headers and explicit ignored columns; duplicate target fields, malformed quotes/JSON and duplicate IDs are rejected.
 - Optional missing columns and blank optional cells preserve an existing field. For a new user,
   defaults apply: active, permanent, no PIN/cards/assignments. Blank does **not** remove a credential.
-- One error blocks the entire batch. A changed file, mode, central state or captured station
+- Independent cell failures are listed by source line and canonical destination column; the downloadable error report contains no input values. Cross-row ownership conflicts still block the whole file, even if no individual column can be named.
+- One error blocks the entire batch. A changed file, column mapping, mode, central state or captured station
   configuration requires another preview. A preview is not a capacity reservation.
 
 | Column | Meaning |
@@ -32,6 +33,9 @@ Use **Apply & sync batch** and confirm only when the preview matches the intende
 | `pin` | Set digits, or `CLEAR` to remove. An empty cell preserves the current PIN. It never appears in preview/export. |
 | `cards` | JSON array of exact string card numbers, replacing the card set; `[]` removes all. Retained numbers preserve their ID, label and enabled state; new ones are normal enabled cards. |
 | `stations` | JSON object mapping station ID or unique exact name to true/false; replaces assignments. `{}` removes all. The dialog lists IDs/names. IDs win over matching names; ambiguous names/duplicate aliases are rejected. |
+| `group_ids` | JSON array of group IDs or unique exact names. `[]` removes memberships. Existing other fields are preserved; personal exceptions continue to override group grants. |
+| `permission_overrides` | JSON object of station ID/unique name to `allow` or `deny`. `{}` resets exceptions to group inheritance. Rejects a simultaneously non-empty `stations` cell. |
+| `profile:FIELD_ID` | Current stable profile field ID; mapping uses the displayed label. Accepts plain text or a JSON string. Blank preserves the current value; unquoted `CLEAR` removes it. A quoted JSON `"CLEAR"` stores literal text. Exported JSON strings preserve formula-like text, quotes and leading zeros. Required/type rules apply to new or changed values. |
 
 Use a CSV-aware editor to quote JSON cells. For example, the cell value `{"Front":true}` is
 encoded in CSV as `"{""Front"":true}"`. Only the configured physical lock 1 is assigned.
@@ -59,7 +63,7 @@ on the administrator's own computer is not deleted by the integration.
 
 ## Export central users
 
-**Users → Export users CSV** exports employee IDs, names, active state, dates and assignment IDs.
+**Users → Export users CSV** exports employee IDs, names, active state, dates, group IDs, personal exceptions and custom fields by stable ID. The legacy `stations` cell is empty: group permissions are not flattened into personal assignments. Unknown/ambiguous destinations must be mapped or corrected before importing into a different project.
 PINs and card numbers are deliberately absent; the file is not a complete credential backup.
 Re-importing an unmodified normal export in update mode leaves credentials unchanged and avoids
 no-op revision increments. Disabled assignments remain represented. A removed station ID needs
@@ -76,6 +80,26 @@ In **Events**, set the desired station/user/result/method/date filters and click
 Then choose **Generate report** or **Export filtered events CSV**. The report uses all matching
 records in the cache, including pages not loaded in the browser. Editing filters without applying
 them does not change the selected query. Applying new filters clears the previous report.
+
+From 0.33 Beta, **Current group** and each **Current exact value** filter match the central
+membership/profile at query time. Values compare exactly (including leading zeros). Matching
+requires an observed owner of the event employee ID on that station before its device timestamp.
+Missing identities, receipt-time substitutes and unobserved/legacy ownership are excluded. A
+name match alone does not join a record. This is explicitly not historical group membership.
+The same predicate applies before pagination and to report/CSV/print; deleted field/group IDs
+are rejected instead of widening the query.
+
+**Saved report queries** stores up to twenty names and applied filters per HA account in the
+current browser, including fixed date intervals. It stores no event rows. Renames retain stable
+field IDs; removed definitions require editing the query. Concurrent preference changes prompt
+a reload rather than silently overwriting another tab.
+
+**Prepare full print report** fetches all matching retained rows, regardless of loaded pages,
+and prepares an escaped, sandboxed document with summary, filters, warnings, original and display
+timestamps. **Print / save as PDF** opens the browser print dialog; PDF output depends on the
+browser's print destination. The document permits no scripts or external resources. It is
+cleared when the filters/actor change or the view closes. This is an administrator report with
+personal information; it is not a redacted support bundle.
 
 Reports show generation time, totals, authentication results/methods, station breakdown and station-local
 calendar-day groups. Unlocking records are separate from authentication so one access operation
