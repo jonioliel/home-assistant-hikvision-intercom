@@ -4,10 +4,16 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.34.0-beta.1] - 2026-09-11
+
 ### Added
 - Fleet clock comparison with measured request uncertainty, repeated drift qualification, sampled device DST forecasts, stale-data handling, and separate device/display zones. Read-only; HA is the time reference.
 - Save up to twenty named camera-wall layouts per administrator/browser. Restore camera order and the stream budget with playback stopped; report removed cameras and reject stale or corrupted preference writes.
 - Opt-in HA diagnostic sensors for observed managed people, unique pending people, sync state and last successful reconciliation. Missing inventory stays unknown; offline queues stay visible. Pending-work age remains unimplemented.
+
+### Scope and validation
+- N65 and N77 implemented; N73 remains partial because pending-work age needs durable timestamps. No new physical acceptance is claimed. Local checks: 1008 Python tests, 356 browser regressions before clock UI plus 15 focused clock/health cases. Release CI reruns the complete suite before publication.
+- Remains a Beta prerelease; the access schema is unchanged from 0.33.0-beta.1.
 
 ### Documentation
 - Add forty further planned tasks (N41ג€“N80), preserving the prior N01ג€“N40 backlog. Record priorities, distinct deliverables, dependencies and specification mapping; no runtime changes or new physical acceptance.
