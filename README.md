@@ -274,3 +274,7 @@ Version 0.32 adds custom-field columns, inherited group door permissions and per
 
 For microphone packets accepted by HA but no speech from the station, use the
 [direct audio diagnostics and current investigation (Hebrew)](docs/AUDIO_TALKBACK_DIAGNOSTICS_HE.md).
+
+## Development roadmap
+
+[Next 40 tasks and phase acceptance gates (Hebrew)](docs/ROADMAP_NEXT_40_HE.md) distinguish planned enhancements from the remaining physical acceptance checks.

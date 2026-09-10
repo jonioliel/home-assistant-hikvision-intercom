@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "reported_on": "2026-09-10",
+  "basis": "owner_report_in_conversation",
+  "context_release": "0.32.1-alpha.1",
+  "installed_version_explicitly_confirmed": false,
+  "mse_playback": "owner reports working well on installed system",
+  "scope": {
+    "station_count": null,
+    "browser": null,
+    "desktop_mobile_coverage": null
+  },
+  "speaker_audio": "owner plans to test later; not yet accepted",
+  "rtc_playback": "not confirmed by this report",
+  "mandatory_acceptance_count": {
+    "closed": 31,
+    "applicable": 38,
+    "changed": false
+  },
+  "note": "MSE reinforces the already accepted camera capability; no duplicate DoD credit. No physical audio or fleet acceptance inferred."
+}

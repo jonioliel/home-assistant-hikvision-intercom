@@ -1,5 +1,17 @@
 # Project progress
 
+## Current planning checkpoint — 40-task roadmap
+
+The owner confirms installed MSE video works well and plans the audio check later.
+This confirms playback on the reported path, not RTC, speaker audibility or fleet acceptance.
+[Owner report](evidence/owner_media_confirmation_2026-09-10.json).
+
+[Next 40-task development plan](ROADMAP_NEXT_40_HE.md) proposes 25 software improvements,
+10 investigation/acceptance tasks and five later extensions. Existing functionality is not
+counted as missing, and none of the proposed tasks is marked implemented. Core acceptance
+remains 31/38; Phase 5 closure depends on the remaining lab and fleet evidence.
+No software version bump accompanies this planning-only update.
+
 ## Current release — 0.32.1-alpha.1
 
 [Published diagnostic patch](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.1-alpha.1) from `2c4d485d25ff8b50de6cb815f87f31267ae69b00`.
