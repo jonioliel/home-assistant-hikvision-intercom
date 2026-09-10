@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 const draft = {
@@ -17,7 +18,7 @@ const document = JSON.stringify({
 });
 async function open(page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
 }
 async function upload(page, content = document) {
   await page.getByLabel("Import draft file", { exact: true }).setInputFiles({

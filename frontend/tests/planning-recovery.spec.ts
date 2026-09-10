@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 const screens = [
@@ -23,7 +24,7 @@ for (const [selector, command, reload] of screens) {
       };
     }, command);
     await page.clock.install();
-    await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+    await navigate(page, "Access schedules");
     const screen = page.locator(selector);
     await page.clock.fastForward(61000);
     await expect(screen.getByRole("button", { name: reload, exact: true })).toBeEnabled();
@@ -49,7 +50,7 @@ for (const [selector, command, reload] of screens) {
         return base.call(this, message);
       };
     }, command);
-    await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+    await navigate(page, "Access schedules");
     const screen = page.locator(selector);
     await page.locator("hikvision-intercom-panel").evaluate(async (node: any) => {
       node.hass = { ...node.hass, connection: { ...node.hass.connection } };
@@ -64,7 +65,7 @@ for (const [selector, command, reload] of screens) {
 
 test("a missing schedule save response requires reload without replay", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.getByRole("button", { name: "New schedule", exact: true }).click();
   await page.getByLabel("Schedule name", { exact: true }).fill("Recovery example");
   await page.evaluate(() => {

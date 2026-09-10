@@ -4,6 +4,21 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.29.0-alpha.1] - 2026-09-10
+
+### Added
+- Rename the product to WisKey in the panel, Home Assistant sidebar and integration setup. Retain the integration domain, entity IDs, data, URLs, repository and saved appearance preferences for existing installations.
+- Add a Management tools page for users, stations, synchronization, administrator history, health diagnostics, schedules, integration settings and appearance selection. Advanced pages return to the hub; all existing administrator restrictions remain enforced by Home Assistant and the WebSocket API.
+- Show a live date and time on Overview, ticking every second in the Home Assistant time zone with automatic daylight-saving transitions. Use the current browser clock; refresh immediately after returning to a hidden tab and clean up the timer when leaving the page.
+
+### Improved
+- Move the Appearance picker exclusively to Management tools. Remove its header/sidebar and camera/editor dialog entry points. Keep the existing/new design choice and responsive compact counters.
+- Clock updates do not reload cameras or issue network/device commands. Station event timestamps retain their own existing time-zone rules.
+
+### Validation
+- Exercise management navigation, revoked administrator access, clock midnight/DST/zone changes, timer lifecycle, camera preservation and responsive Hebrew layouts in both designs.
+- Update existing browser journeys for the new management hub; document the delivery in docs/WISKEY_029_HE.md. No physical device operations were performed.
+
 ## [0.28.1-alpha.1] - 2026-09-10
 
 ### Improved

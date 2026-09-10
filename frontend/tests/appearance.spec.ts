@@ -1,20 +1,17 @@
+import { navigate, openAppearance } from "./navigation";
 import { test, expect, type Page } from "@playwright/test";
 const panel = (page: Page) => page.locator("hikvision-intercom-panel");
 const key = "hikvision-intercom:appearance:v1:demo-admin";
-async function choose(page: Page, choice = "New", editor = false) {
-  await page
-    .locator(editor ? ".editor-dialog .appearance-button" : ".head .appearance-button")
-    .click();
+async function choose(page: Page, choice = "New") {
+  const active = await page.locator('.nav [aria-current="page"]').innerText();
+  await openAppearance(page);
   const picker = page.locator("hikvision-appearance-picker");
   await picker.getByRole("radio", { name: choice, exact: true }).check();
   await picker.getByRole("button", { name: "Apply design" }).click();
   await expect(picker.getByRole("dialog")).toHaveCount(0);
+  await navigate(page, active.trim());
 }
-async function nav(page: Page, name: string) {
-  const button = page.locator(".nav").getByRole("button", { name, exact: true });
-  if (!(await button.isVisible())) await page.locator(".nav-more").click();
-  await button.click();
-}
+const nav = navigate;
 async function noOverflow(page: Page) {
   await expect
     .poll(() => page.locator(".app-shell").evaluate((el) => el.scrollWidth - el.clientWidth))
@@ -40,8 +37,8 @@ test("existing default; design persists per user and ignores invalid saved value
 });
 test("cancel and Escape keep design and restore focus", async ({ page }) => {
   await page.goto("/");
-  const opener = page.locator(".head .appearance-button");
-  await opener.click();
+  await openAppearance(page);
+  const opener = page.locator(".tools-grid .appearance-button");
   const picker = page.locator("hikvision-appearance-picker");
   await picker.getByRole("radio", { name: "New", exact: true }).check();
   await picker.getByRole("button", { name: "Cancel" }).click();
@@ -72,52 +69,25 @@ test("blocked browser storage applies design for the session without losing acce
   await nav(page, "Users");
   await expect(page.getByRole("button", { name: "+ Add user" })).toBeVisible();
 });
-test("switch with unsaved editor retains input nodes, values, selection and makes no write", async ({
-  page,
-}) => {
+test("editor and camera dialogs expose no appearance controls", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator(".head .appearance-button")).toHaveCount(0);
+  await page.locator(".overview-station .camera-wrap button").first().click();
+  await expect(page.locator(".camera-dialog")).toBeVisible();
+  await expect(page.locator(".camera-dialog .appearance-button")).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await nav(page, "Users");
-  await page.locator(".desktop-users .user-selection").first().check();
   await page.getByRole("button", { name: "+ Add user", exact: true }).click();
   const editor = page.locator(".editor-dialog");
-  await editor.getByLabel("Name", { exact: true }).fill("Draft with design change");
-  const pin = editor.locator('input[type="password"]').first();
-  await pin.fill("748205");
-  await pin.evaluate((el) => ((window as any).originalPin = el));
-  await choose(page, "New", true);
-  await expect(editor.getByLabel("Name", { exact: true })).toHaveValue("Draft with design change");
-  await expect(pin).toHaveValue("748205");
-  expect(await pin.evaluate((el) => el === (window as any).originalPin)).toBe(true);
-  await expect(editor.locator(".appearance-button")).toBeFocused();
-  await choose(page, "Existing", true);
-  await expect(pin).toHaveValue("748205");
+  await editor.getByLabel("Name", { exact: true }).fill("Unchanged draft");
+  await expect(editor.locator(".appearance-button")).toHaveCount(0);
+  await expect(editor.getByLabel("Name", { exact: true })).toHaveValue("Unchanged draft");
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.locator(".desktop-users .user-selection").first()).toBeChecked();
   expect(
     await page.evaluate(() => window.calls.some((c) => /users\/(create|update)$/.test(c.type))),
   ).toBe(false);
 });
-test("switch preserves expanded camera and overview camera elements", async ({ page }) => {
-  await page.goto("/");
-  await page.locator(".overview-station .camera-wrap button").first().click();
-  const camera = page.locator(".camera-dialog hikvision-intercom-camera");
-  await camera.evaluate((el) => ((window as any).cameraBeforeAppearance = el));
-  await page
-    .locator(".overview-station hikvision-intercom-camera")
-    .first()
-    .evaluate((el) => ((window as any).overviewCameraBeforeAppearance = el));
-  await page.locator(".camera-dialog .appearance-button").click();
-  const picker = page.locator("hikvision-appearance-picker");
-  await picker.getByRole("radio", { name: "New", exact: true }).check();
-  await picker.getByRole("button", { name: "Apply design" }).click();
-  expect(await camera.evaluate((el) => el === (window as any).cameraBeforeAppearance)).toBe(true);
-  expect(
-    await page
-      .locator(".overview-station hikvision-intercom-camera")
-      .first()
-      .evaluate((el) => el === (window as any).overviewCameraBeforeAppearance),
-  ).toBe(true);
-});
+
 test("effective Home Assistant theme changes palette without changing selected design", async ({
   page,
 }) => {
@@ -197,7 +167,9 @@ test("narrow HA panel inside desktop viewport uses mobile navigation and user ca
   await panel(page).evaluate((el) => {
     (el as HTMLElement).style.width = "390px";
   });
-  await expect(page.locator(".nav-more")).toBeVisible();
+  await expect(
+    page.locator(".nav").getByRole("button", { name: "Management tools", exact: true }),
+  ).toBeVisible();
   await nav(page, "Users");
   await expect(page.locator(".desktop-users")).toBeHidden();
   await expect(page.locator(".mobile-users")).toBeVisible();
@@ -280,11 +252,7 @@ test("landscape mobile and keyboard navigation keep controls reachable", async (
   await page.setViewportSize({ width: 740, height: 360 });
   await page.goto("/");
   await choose(page);
-  await page.locator(".nav-more").click();
-  await page
-    .locator(".nav-secondary")
-    .getByRole("button", { name: "Intercoms", exact: true })
-    .click();
+  await nav(page, "Intercoms");
   await expect(page.locator("main")).toBeFocused();
   await nav(page, "Users");
   await page.getByRole("button", { name: "+ Add user", exact: true }).click();

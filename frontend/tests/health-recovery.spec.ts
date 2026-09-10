@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect, type Page } from "@playwright/test";
 
 async function setup(page: Page) {
@@ -44,7 +45,7 @@ async function setup(page: Page) {
     };
     document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   await expect.poll(() => page.evaluate(() => window.healthRequests.length)).toBe(3);
   return page.locator("hikvision-intercom-health");
 }

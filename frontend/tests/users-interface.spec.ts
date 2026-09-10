@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 test("empty filters recover without claiming the user database is empty", async ({ page }) => {
@@ -41,9 +42,7 @@ for (const [name, width, language, dark] of [
       await page.locator(".app-shell").evaluate((el) => el.scrollWidth <= el.clientWidth),
     ).toBe(true);
     await page.screenshot({ path: `test-results/users-${name}.png`, fullPage: true });
-    await page
-      .getByRole("button", { name: language === "he" ? "אינטרקומים" : "Intercoms", exact: true })
-      .click();
+    await navigate(page, language === "he" ? "אינטרקומים" : "Intercoms");
     const card = page.locator("article.station").first();
     expect(
       await card.evaluate((el) => parseFloat(getComputedStyle(el).paddingInlineStart)),

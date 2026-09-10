@@ -26,6 +26,7 @@ async def test_admin_overview_and_panel_registration(hass, loaded_entry, hass_ws
     assert hass.data[DOMAIN]["panel_registered"]
     from homeassistant.components.frontend import DATA_PANELS
 
+    assert hass.data[DATA_PANELS]["hikvision-intercom"].sidebar_title == "WisKey"
     assert hass.data[DATA_PANELS]["hikvision-intercom"].require_admin
 
 

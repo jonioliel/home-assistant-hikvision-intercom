@@ -1,8 +1,9 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 async function prepare(page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.getByRole("button", { name: "New schedule", exact: true }).click();
   await page.getByLabel("Schedule name", { exact: true }).fill("Deployment example");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();

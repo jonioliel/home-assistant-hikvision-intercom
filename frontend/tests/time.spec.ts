@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 test.use({ timezoneId: "America/Los_Angeles" });
@@ -65,7 +66,7 @@ test("device daylight boundaries and manual IANA override use their own rules", 
   await expect(page.locator("article.station").first().locator(".last-access")).toContainText(
     "3:00:00 PM",
   );
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   await expect(page.locator(".clock-details").first()).toContainText("Manual display time zone");
 });
 
@@ -123,7 +124,7 @@ test("clock read on one station leaves other station release buttons available",
   page,
 }) => {
   await configure(page);
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   await page.evaluate(() => {
     const original = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = (message) =>
@@ -147,7 +148,7 @@ test("Hebrew mobile clock rules wrap and use explicit offset", async ({ page }) 
     window.demoData.stations[0].clock.device_time = "2026-09-09T00:30:00+03:00";
     await document.querySelector("hikvision-intercom-panel").refresh();
   }, zone);
-  await page.getByRole("button", { name: "אינטרקומים", exact: true }).click();
+  await navigate(page, "אינטרקומים");
   await page.locator(".clock-details").first().scrollIntoViewIfNeeded();
   await expect(page.locator(".clock-details").first()).toContainText("UTC+03:00");
   expect(
@@ -305,7 +306,7 @@ test("change-history filters preserve their instant after HA clock settings chan
       return { records: [], actors: {}, total: 0, next_cursor: null };
     };
   });
-  await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await navigate(page, "Change history");
   await page.getByText("History filters", { exact: true }).click();
   await page.getByLabel("From (HA display time)", { exact: true }).fill("2026-09-09T12:30");
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();

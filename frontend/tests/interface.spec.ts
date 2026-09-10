@@ -12,8 +12,8 @@ for (const [name, width, lang, dark] of [
     const shell = page.locator(".app-shell");
     await expect(shell).toBeVisible();
     expect(await shell.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-    await expect(page.locator(".nav-primary button")).toHaveCount(3);
-    await expect(page.locator(".nav-secondary button")).toHaveCount(5);
+    await expect(page.locator(".nav-primary button")).toHaveCount(4);
+    await expect(page.locator(".nav-secondary button")).toHaveCount(0);
     const station = page.locator("article.station").first();
     const action = await station.locator(".door-action").boundingBox();
     const history = await station.locator(".last-access").boundingBox();

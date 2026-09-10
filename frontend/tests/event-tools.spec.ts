@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 async function setup(page) {
@@ -39,7 +40,7 @@ async function setup(page) {
       return base(message);
     };
   });
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const tools = page.locator("hikvision-intercom-event-tools").first();
   await tools.getByText("Event and call investigation", { exact: true }).click();
   return tools;

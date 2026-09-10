@@ -13,8 +13,6 @@ export const modernStyles = css`
   .metric .metric-label-short {
     display: none;
   }
-  .nav .nav-more,
-  .nav-appearance,
   .person-avatar,
   .device-selector,
   .device-metrics {
@@ -148,12 +146,6 @@ export const modernStyles = css`
     background: #1263ac;
     color: #fff;
     box-shadow: inset 3px 0 #60b3ff;
-  }
-  :host([data-appearance="modern"]) .nav .nav-appearance {
-    display: block;
-    margin-top: auto;
-    border-top: 1px solid #475362;
-    padding-top: 14px;
   }
   :host([data-appearance="modern"]) main {
     grid-column: 2;
@@ -530,26 +522,6 @@ export const modernStyles = css`
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
     }
-    :host([data-appearance="modern"]) .nav .nav-secondary {
-      display: none;
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-    :host([data-appearance="modern"]) .nav.expanded .nav-secondary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      border-top: 1px solid #475362;
-      padding-top: 8px;
-    }
-    :host([data-appearance="modern"]) .nav .nav-more {
-      grid-column: 2;
-      grid-row: 1;
-      display: flex;
-    }
-    :host([data-appearance="modern"]) .nav .nav-label,
-    :host([data-appearance="modern"]) .nav .nav-appearance {
-      display: none;
-    }
     :host([data-appearance="modern"]) main {
       grid-column: 1;
       grid-row: 3;
@@ -564,15 +536,8 @@ export const modernStyles = css`
     }
   }
   @container intercom-panel (max-width: 600px) {
-    .head .appearance-button span,
-    .dialog-head .appearance-button span {
-      display: none;
-    }
     .appearance-button {
       min-width: 44px;
-    }
-    .head .appearance-button {
-      padding: 8px;
     }
     :host([data-appearance="modern"]) .head {
       padding: 12px;
@@ -595,9 +560,6 @@ export const modernStyles = css`
       font-size: 12px;
       padding: 8px 6px;
       gap: 5px;
-    }
-    :host([data-appearance="modern"]) .nav.expanded .nav-secondary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     :host([data-appearance="modern"]) .overview-header .metrics {
       display: grid;
@@ -653,6 +615,59 @@ export const modernStyles = css`
       scroll-behavior: auto !important;
       transition: none !important;
       animation: none !important;
+    }
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+    gap: 16px;
+  }
+  .tool-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--divider-color);
+    border-radius: var(--panel-radius);
+    background: var(--surface);
+  }
+  .tool-card button,
+  .tool-card a {
+    min-height: 44px;
+    width: 100%;
+    justify-content: flex-start;
+    text-align: start;
+  }
+  .tool-card a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+  .tool-card .sub {
+    margin: 12px 0 0;
+  }
+  .tools-back {
+    margin-bottom: 16px;
+  }
+  @container intercom-panel (max-width: 950px) {
+    .nav .nav-primary,
+    :host([data-appearance="modern"]) .nav .nav-primary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      width: 100%;
+      overflow: visible;
+    }
+    :host([data-appearance="modern"]) .nav {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .nav .nav-primary button,
+    :host([data-appearance="modern"]) .nav .nav-primary button {
+      min-width: 0;
+      white-space: normal;
+      flex-direction: column;
+      gap: 4px;
+      padding-inline: 4px;
     }
   }
 `;

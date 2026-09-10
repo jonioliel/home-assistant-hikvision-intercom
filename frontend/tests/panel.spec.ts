@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
@@ -113,7 +114,7 @@ test("import and conflict inspection are available", async ({ page }) => {
     .getByRole("button", { name: "Close", exact: true })
     .first()
     .click();
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await navigate(page, "Sync");
   await page.getByRole("button", { name: "Conflict", exact: true }).click();
   await expect(
     page.getByRole("dialog").getByText("Name changed on station", { exact: true }),
@@ -254,7 +255,7 @@ test("sync error explains the failure and exports only backend diagnostics", asy
     window.demoData.users[0].sync_reference = "112233445566";
     window.demoNotify();
   });
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await navigate(page, "Sync");
   await expect(
     page.getByText("The station rejected the validity dates.", { exact: false }),
   ).toBeVisible();
@@ -280,7 +281,7 @@ test("Hebrew sync error stays visible when the station is offline", async ({ pag
     window.demoData.stations[0].online = false;
     window.demoNotify();
   });
-  await page.getByRole("button", { name: "סנכרון", exact: true }).click();
+  await navigate(page, "סנכרון");
   await expect(page.getByText("הציוד דחה את תאריכי התוקף.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "הורד דוח אבחון סנכרון" })).toBeEnabled();
 });
@@ -302,7 +303,7 @@ test("overview and devices show actual health and historical access context", as
   await expect(
     page.locator(".metric").filter({ hasText: "Pending sync" }).locator("strong"),
   ).toHaveText("3");
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   await expect(gate).toContainText("18.4 ms");
   await expect(offline).toContainText("Not observed since loading");
 });
@@ -336,7 +337,7 @@ test("pending previous PIN removal is visible and clears after confirmation", as
     ];
     window.demoNotify();
   });
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await navigate(page, "Sync");
   const row = page.getByText("Previous PIN removal pending", { exact: false });
   await expect(row).toContainText("Or Levy");
   await expect(row).toContainText("Service gate");
@@ -378,7 +379,7 @@ test("station inspection shows observed capabilities and sends only the rescan a
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   const offline = page
     .locator("article.station")
     .filter({ has: page.getByRole("heading", { name: "Service gate", exact: true }) });
@@ -461,7 +462,7 @@ test("Hebrew mobile inspection shows scan errors and preserves readable layout",
     window.demoData.stations[0].scan_error = "connection_failed";
     window.demoNotify();
   });
-  await page.getByRole("button", { name: "אינטרקומים", exact: true }).click();
+  await navigate(page, "אינטרקומים");
   await expect(page.locator(".scan-error").first()).toContainText("סריקת התחנה נכשלה");
   await expect(page.locator(".capability-details").first()).toContainText("מיפוי המנעול המוגדר");
   expect(
@@ -623,7 +624,7 @@ test("named lock appears in overview camera station and assignments with the sam
     .getByRole("button", { name: "Close", exact: true })
     .first()
     .click();
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   await expect(page.getByText("Garden door", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Open Garden door", exact: true }).click();
   const writes = await page.evaluate(() =>
@@ -730,7 +731,7 @@ test("same-door pending state follows the camera dialog and Intercoms view", asy
   ).toBeDisabled();
   await expect(dialog.locator(".release-feedback")).toContainText("Sending release");
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Intercoms", exact: true }).click();
+  await navigate(page, "Intercoms");
   const cards = page.locator("article.station");
   await expect(
     cards.first().getByRole("button", { name: "Open active lock", exact: true }),
@@ -939,7 +940,7 @@ test("reconnect refreshes after an old overview response and restores its subscr
 });
 
 async function openReview(page) {
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await navigate(page, "Sync");
   await page.getByRole("button", { name: "Conflict", exact: true }).click();
   await expect(
     page.getByRole("dialog").getByRole("heading", { name: "Reconciliation targets" }),
@@ -1054,7 +1055,7 @@ test("Hebrew mobile review keeps comparison and resolution controls accessible",
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
-  await page.getByRole("button", { name: "סנכרון", exact: true }).click();
+  await navigate(page, "סנכרון");
   await page.getByRole("button", { name: "התנגשות", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "יעדי הסנכרון" })).toBeVisible();

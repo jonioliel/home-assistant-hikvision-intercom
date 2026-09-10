@@ -1,11 +1,10 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 async function prepare(page, hebrew = false) {
   await page.goto(hebrew ? "/?lang=he" : "/");
-  await page
-    .getByRole("button", { name: hebrew ? "תוכניות שעות" : "Access schedules", exact: true })
-    .click();
+  await navigate(page, hebrew ? "תוכניות שעות" : "Access schedules");
   await page
     .getByRole("button", { name: hebrew ? "תוכנית חדשה" : "New schedule", exact: true })
     .click();

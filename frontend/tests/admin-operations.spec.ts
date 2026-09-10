@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 async function setup(page, he = false) {
@@ -248,7 +249,7 @@ test("permission audit reports drift and opens existing per-user conflict review
   page,
 }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await navigate(page, "Change history");
   const audit = page.locator("hikvision-admin-audit");
   await audit
     .getByRole("combobox", { name: "Read-only permission audit" })

@@ -1,8 +1,9 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 async function editor(page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.getByRole("button", { name: "New schedule", exact: true }).click();
   await page.getByLabel("Schedule name", { exact: true }).fill("Office hours");
   const monday = page.getByRole("group", { name: "Monday", exact: true });
@@ -17,7 +18,7 @@ test("schedule draft persists through navigation and editing without sync", asyn
     page.getByText("Draft saved in Home Assistant. Station permissions were not changed."),
   ).toBeVisible();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.getByRole("button", { name: "Office hours", exact: true }).click();
   await expect(
     page.getByRole("group", { name: "Monday", exact: true }).getByLabel("Start", { exact: true }),
@@ -134,7 +135,7 @@ test("Hebrew mobile schedules support end of day without horizontal overflow", a
 
 test("late readiness response cannot restore detached schedule content", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.evaluate(() => {
     const original = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = (message) =>
@@ -148,6 +149,6 @@ test("late readiness response cannot restore detached schedule content", async (
   await page.getByRole("button", { name: "Check station", exact: true }).click();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
   await page.evaluate(() => window.finishSchedule());
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await expect(page.getByRole("button", { name: "Download readiness report" })).toHaveCount(0);
 });

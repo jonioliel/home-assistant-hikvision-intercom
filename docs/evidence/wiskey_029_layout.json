@@ -1,0 +1,31 @@
+{
+  "synthetic_fixture": true,
+  "time_paused_for_screenshots": true,
+  "zone": "Asia/Jerusalem",
+  "results": [
+    {
+      "width": 1440,
+      "metrics_height": 34,
+      "clock_height": 19,
+      "first_card_y": 208.1875,
+      "tool_cards": 8,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "metrics_height": 34,
+      "clock_height": 19,
+      "first_card_y": 275.53125,
+      "tool_cards": 8,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "metrics_height": 74,
+      "clock_height": 19,
+      "first_card_y": 343.390625,
+      "tool_cards": 8,
+      "overflow": false
+    }
+  ]
+}

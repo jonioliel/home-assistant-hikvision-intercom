@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
@@ -93,7 +94,7 @@ async function setup(page) {
 
 test("health shows queue reasons and refreshes selected stations only", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const health = page.locator("hikvision-intercom-health");
   await expect(health.locator(".health-card")).toHaveCount(9);
   await expect(health.locator(".health-card").first()).toContainText("Pending sync jobs: 2");
@@ -114,7 +115,7 @@ test("health shows queue reasons and refreshes selected stations only", async ({
 
 test("field checklist starts unverified and records only an explicit save", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const card = page.locator(".health-card").first();
   await card.getByRole("button", { name: "Record field tests" }).click();
   const select = card.getByRole("combobox", { name: "PIN removed, user retained, PIN rejected" });
@@ -134,7 +135,7 @@ test("field checklist starts unverified and records only an explicit save", asyn
     )
     .toBe(1);
   await page.getByRole("button", { name: "Overview", exact: true }).click();
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   await page
     .locator(".health-card")
     .first()
@@ -166,7 +167,7 @@ test("event evidence distinguishes history and exports no identity", async ({ pa
 
 test("call signals require explicit action and reflect current call state", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const first = page.locator(".health-card").first();
   await first.getByText("Call signaling", { exact: true }).click();
   await expect(first.getByRole("button", { name: "Hang up signal" })).toBeDisabled();
@@ -182,7 +183,7 @@ test("call signals require explicit action and reflect current call state", asyn
 
 test("health data clears on administrator role loss", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   await expect(page.locator(".health-card")).toHaveCount(9);
   await page.evaluate(() => {
     const panel = document.querySelector("hikvision-intercom-panel");
@@ -220,7 +221,7 @@ test("a lost health call command stops waiting and requires an explicit state re
       return result;
     };
   });
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const card = page.locator(".health-card").first();
   await card.getByText("Call signaling", { exact: true }).click();
   await page.clock.install();
@@ -248,7 +249,7 @@ test("a pending health call command remains owned by its station after switching
       return result;
     };
   });
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const card = page.locator(".health-card").first();
   await card.getByText("Call signaling", { exact: true }).click();
   await card.getByRole("button", { name: "Reject signal", exact: true }).click();
@@ -266,7 +267,7 @@ test("health reads call state only after opening that station's call controls", 
   page,
 }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+  await navigate(page, "Health & field tests");
   const health = page.locator("hikvision-intercom-health");
   await expect(
     health.getByRole("button", { name: "Export compatibility report", exact: true }).last(),

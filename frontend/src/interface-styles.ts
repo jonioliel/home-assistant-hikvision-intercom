@@ -613,17 +613,6 @@ export const interfaceStyles = css`
       flex: 1;
       justify-content: center;
     }
-    .nav .nav-secondary {
-      margin-top: 3px;
-    }
-    .nav .nav-secondary button {
-      min-height: 34px;
-      font-size: 11px;
-    }
-    .nav .nav-secondary .ui-icon {
-      width: 15px;
-      height: 15px;
-    }
     main {
       grid-column: 1;
       padding: 24px 18px;

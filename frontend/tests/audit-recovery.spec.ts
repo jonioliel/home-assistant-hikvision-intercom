@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect, type Page } from "@playwright/test";
 
 async function setup(page: Page, delayed: string) {
@@ -27,7 +28,7 @@ async function setup(page: Page, delayed: string) {
       return result;
     };
   });
-  await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await navigate(page, "Change history");
   const audit = page.locator("hikvision-admin-audit");
   await expect(
     audit.getByRole("button", { name: "Export change history CSV", exact: true }),

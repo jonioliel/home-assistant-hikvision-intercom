@@ -27,9 +27,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         hass,
         frontend_url_path="hikvision-intercom",
         webcomponent_name="hikvision-intercom-panel",
-        sidebar_title="ניהול אינטרקומים"
-        if hass.config.language.startswith("he")
-        else "Intercom Manager",
+        sidebar_title="WisKey",
         sidebar_icon="mdi:doorbell-video",
         module_url=f"/hikvision_intercom_static/panel.js?v={VERSION}",
         require_admin=True,

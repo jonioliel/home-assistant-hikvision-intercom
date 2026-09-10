@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 test("repeated navigation releases connection listeners and never replays a device action", async ({
@@ -42,7 +43,7 @@ test("repeated navigation releases connection listeners and never replays a devi
   const baseline = await count();
   expect(baseline).toBeGreaterThan(0);
   for (let cycle = 0; cycle < 12; cycle++) {
-    await page.getByRole("button", { name: "Health & field tests", exact: true }).click();
+    await navigate(page, "Health & field tests");
     const health = page.locator("hikvision-intercom-health");
     await health
       .locator(".health-card")

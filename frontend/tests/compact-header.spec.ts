@@ -1,3 +1,4 @@
+import { navigate, openAppearance } from "./navigation";
 import { test, expect } from "@playwright/test";
 const preference = "hikvision-intercom:appearance:v1:demo-admin";
 for (const [name, width, lang, dark] of [
@@ -61,16 +62,18 @@ test("existing design retains its metric row when toggling appearance", async ({
   const oldMetrics = await page.locator(".metrics").boundingBox();
   expect(oldMetrics!.y).toBeGreaterThan(oldHeader!.y + oldHeader!.height);
   const oldCard = await page.locator(".overview-station").first().boundingBox();
-  await page.locator(".head .appearance-button").click();
+  await openAppearance(page);
   const picker = page.locator("hikvision-appearance-picker");
   await picker.getByRole("radio", { name: "New", exact: true }).check();
   await picker.getByRole("button", { name: "Apply design" }).click();
+  await navigate(page, "Overview");
   await expect(counters).toHaveText(["8 / 9", "1", "6", "3"]);
   const compactCard = await page.locator(".overview-station").first().boundingBox();
   expect(oldCard!.y - compactCard!.y).toBeGreaterThan(60);
-  await page.locator(".head .appearance-button").click();
+  await openAppearance(page);
   await picker.getByRole("radio", { name: "Existing", exact: true }).check();
   await picker.getByRole("button", { name: "Apply design" }).click();
+  await navigate(page, "Overview");
   expect((await page.locator(".metrics").boundingBox())!.height).toBe(oldMetrics!.height);
   await page.setViewportSize({ width: 390, height: 900 });
   await expect(page.locator(".metric-label-short").first()).toBeHidden();

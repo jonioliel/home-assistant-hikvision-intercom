@@ -1,7 +1,8 @@
+import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 async function open(page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Access schedules", exact: true }).click();
+  await navigate(page, "Access schedules");
   await page.getByRole("button", { name: "New schedule", exact: true }).click();
   await page.getByLabel("Schedule name", { exact: true }).fill("Original");
   await page

@@ -1,3 +1,4 @@
+import { navigate } from "./navigation";
 import { test, expect, type Page } from "@playwright/test";
 async function auditFixture(page: Page) {
   await page.evaluate(() => {
@@ -73,7 +74,7 @@ test("event draft filters stay distinct from applied results and reset restores 
 
 test("sync filters are local and retain all station options and removals", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sync", exact: true }).click();
+  await navigate(page, "Sync");
   const station = page.getByRole("combobox", { name: "Show station" });
   await station.selectOption("station-2");
   await expect(station.locator("option")).toHaveCount(10);
@@ -95,7 +96,7 @@ test("sync filters are local and retain all station options and removals", async
 test("history comparison opens from keyboard without changing access", async ({ page }) => {
   await page.goto("/");
   await auditFixture(page);
-  await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await navigate(page, "Change history");
   const audit = page.locator("hikvision-admin-audit");
   await expect(audit.locator(".record-person")).toHaveText("Demo resident");
   await expect(audit.locator(".comparison")).not.toBeVisible();
@@ -127,7 +128,7 @@ for (const [name, width, lang, dark] of [
       ["sync", "סנכרון", "Sync"],
       ["audit", "יומן שינויים", "Change history"],
     ]) {
-      await page.getByRole("button", { name: lang === "he" ? he : en, exact: true }).click();
+      await navigate(page, lang === "he" ? he : en);
       const target =
         tab === "events"
           ? page.locator(".audit-row")

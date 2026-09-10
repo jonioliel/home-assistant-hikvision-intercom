@@ -23,6 +23,7 @@ import type {
   Assignment,
 } from "./types";
 import "./schedules";
+import "./live-clock";
 import { downloadText } from "./download";
 import "./camera";
 import "./call-controls";
@@ -96,7 +97,6 @@ export class IntercomManagerPanel extends LitElement {
     narrow: { type: Boolean },
     _appearance: { attribute: "data-appearance", reflect: true },
     _dark: { type: Boolean, attribute: "data-dark", reflect: true },
-    _navExpanded: { state: true },
     _deviceFocus: { state: true },
     _data: { state: true },
     _haConnected: { state: true },
@@ -127,7 +127,6 @@ export class IntercomManagerPanel extends LitElement {
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
   private _dark = false;
-  private _navExpanded = false;
   private _deviceFocus = "";
   protected willUpdate(changed: PropertyValues) {
     if (changed.has("hass")) {
@@ -158,12 +157,9 @@ export class IntercomManagerPanel extends LitElement {
       (HTMLElement & { canLeave(): boolean }) | null;
     if (tab !== this._tab && schedules && !schedules.canLeave()) return;
     this._tab = tab;
-    const collapsedManagement = this._navExpanded;
-    this._navExpanded = false;
-    if (collapsedManagement)
-      void this.updateComplete.then(() =>
-        this.renderRoot.querySelector<HTMLElement>("main")?.focus({ preventScroll: true }),
-      );
+    void this.updateComplete.then(() =>
+      this.renderRoot.querySelector<HTMLElement>("main")?.focus({ preventScroll: true }),
+    );
   }
 
   private _data?: Overview;
@@ -1384,6 +1380,10 @@ export class IntercomManagerPanel extends LitElement {
           <div>
             <h2>${this.t("overview_heading")}</h2>
             <p class="sub">${this.t("overview_intro")}</p>
+            <hikvision-live-clock
+              .language=${this.hass?.language ?? "en"}
+              .zone=${this._data?.default_zone ?? UTC_ZONE}
+            ></hikvision-live-clock>
           </div>
         </div>
         <section class="metrics" aria-label=${this.t("overview")}>
@@ -1487,43 +1487,47 @@ export class IntercomManagerPanel extends LitElement {
       }`;
   }
   private navigation() {
-    const groups = [
-      ["daily_navigation", ["overview", "users", "events"]],
-      ["management_navigation", ["devices", "sync", "audit", "health", "schedules"]],
-    ] as const;
-    return html`<nav
-      class="nav ${this._navExpanded ? "expanded" : ""}"
-      aria-label=${this.t("title")}
-    >
-      ${groups.map(
-        ([label, tabs], index) =>
-          html`<div
-            id=${index ? "management-navigation" : "daily-navigation"}
-            class="nav-group ${index ? "nav-secondary" : "nav-primary"}"
-          >
-            <span class="nav-label">${this.t(label)}</span>${tabs.map(
-              (tab) =>
-                html`<button
-                  aria-current=${this._tab === tab ? "page" : nothing}
-                  @click=${() => this.navigate(tab)}
-                >
-                  ${icon(tab)}<span>${this.t(tab)}</span>
-                </button>`,
-            )}
-          </div>`,
-      )}
-      <button
-        class="nav-more"
-        aria-expanded=${this._navExpanded}
-        aria-controls="management-navigation"
-        @click=${() => {
-          this._navExpanded = !this._navExpanded;
-        }}
-      >
-        ${icon("menu")}<span>${this.t("more_navigation")}</span>
-      </button>
-      <div class="nav-appearance">${this.appearanceButton()}</div>
+    const management = !["overview", "users", "events"].includes(this._tab);
+    return html`<nav class="nav" aria-label=${this.t("title")}>
+      <div class="nav-group nav-primary">
+        ${["overview", "users", "events", "tools"].map(
+          (tab) =>
+            html`<button
+              aria-current=${this._tab === tab || (tab === "tools" && management) ? "page" : nothing}
+              @click=${() => this.navigate(tab)}
+            >
+              ${icon(tab)}<span>${this.t(tab)}</span>
+            </button>`,
+        )}
+      </div>
     </nav>`;
+  }
+  private toolsView() {
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("tools")}</h2>
+          <p class="sub">${this.t("tools_intro")}</p>
+        </div>
+      </div>
+      <section class="tools-grid" aria-label=${this.t("tools")}>
+        ${["users", "devices", "sync", "audit", "health", "schedules"].map(
+          (tab) =>
+            html`<article class="tool-card">
+              <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
+                ${icon(tab)}${this.t(tab)}${icon("arrow")}
+              </button>
+              <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
+            </article>`,
+        )}
+        <article class="tool-card">
+          ${this.appearanceButton()}
+          <p class="sub">${this.t("tools_appearance")}</p>
+        </article>
+        <article class="tool-card">
+          <a href=${settingsPath}>${icon("tools")}${this.t("tools_settings")}${icon("arrow")}</a>
+          <p class="sub">${this.t("tools_settings_hint")}</p>
+        </article>
+      </section>`;
   }
 
   private userSelection(user: Person) {
@@ -2632,7 +2636,6 @@ export class IntercomManagerPanel extends LitElement {
     >
       <div class="dialog-head">
         <h2>${title}</h2>
-        ${this.appearanceButton()}
         <button
           class="quiet"
           @click=${() => this.close()}
@@ -2672,7 +2675,6 @@ export class IntercomManagerPanel extends LitElement {
             <div class="version">${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi></div>
           </div>
           <div class="spacer"></div>
-          ${this.appearanceButton()}
           <button
             @click=${() => {
               this._error = "";
@@ -2686,6 +2688,7 @@ export class IntercomManagerPanel extends LitElement {
         ${this.navigation()}
       </header>
       <main tabindex="-1">
+        ${!["overview", "users", "events", "tools"].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
         ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
         ${
           this._notice
@@ -2706,40 +2709,42 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "overview"
-              ? this.overviewView()
-              : this._tab === "users"
-                ? this.usersView()
-                : this._tab === "devices"
-                  ? this.devicesView()
-                  : this._tab === "sync"
-                    ? this.syncView()
-                    : this._tab === "audit"
-                      ? html`<hikvision-admin-audit
-                          .hass=${this.hass}
-                          .users=${this._data.users}
-                          .stations=${this._data.stations}
-                          .focusUser=${this._auditUser}
-                          .zone=${this._data.default_zone ?? UTC_ZONE}
-                          @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                        ></hikvision-admin-audit>`
-                      : this._tab === "health"
-                        ? html`<hikvision-intercom-health
-                            .callBusy=${this._callBusy}
-                            .onCallBusy=${this.setCallBusy}
+            : this._tab === "tools"
+              ? this.toolsView()
+              : this._tab === "overview"
+                ? this.overviewView()
+                : this._tab === "users"
+                  ? this.usersView()
+                  : this._tab === "devices"
+                    ? this.devicesView()
+                    : this._tab === "sync"
+                      ? this.syncView()
+                      : this._tab === "audit"
+                        ? html`<hikvision-admin-audit
                             .hass=${this.hass}
+                            .users=${this._data.users}
                             .stations=${this._data.stations}
-                          ></hikvision-intercom-health>`
-                        : this._tab === "schedules"
-                          ? html`<hikvision-intercom-schedules
+                            .focusUser=${this._auditUser}
+                            .zone=${this._data.default_zone ?? UTC_ZONE}
+                            @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                          ></hikvision-admin-audit>`
+                        : this._tab === "health"
+                          ? html`<hikvision-intercom-health
+                              .callBusy=${this._callBusy}
+                              .onCallBusy=${this.setCallBusy}
                               .hass=${this.hass}
                               .stations=${this._data.stations}
-                            ></hikvision-intercom-schedules>`
-                          : html`<hikvision-intercom-events
-                              .hass=${this.hass}
-                              .stations=${this._data.stations}
-                              .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                            ></hikvision-intercom-events>`
+                            ></hikvision-intercom-health>`
+                          : this._tab === "schedules"
+                            ? html`<hikvision-intercom-schedules
+                                .hass=${this.hass}
+                                .stations=${this._data.stations}
+                              ></hikvision-intercom-schedules>`
+                            : html`<hikvision-intercom-events
+                                .hass=${this.hass}
+                                .stations=${this._data.stations}
+                                .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                              ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

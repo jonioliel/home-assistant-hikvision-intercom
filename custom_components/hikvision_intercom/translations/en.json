@@ -1,5 +1,5 @@
 {
-  "title": "Hikvision Intercom",
+  "title": "WisKey",
   "config": {
     "step": {
       "user": {
@@ -43,7 +43,7 @@
         },
         "data_description": {
           "mode": "Camera-only mode creates no lock and does not permit release commands.",
-          "lock_name": "Name shown in Home Assistant and Intercom Manager, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
+          "lock_name": "Name shown in Home Assistant and WisKey, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
         }
       },
       "mapping": {
@@ -278,11 +278,11 @@
     },
     "sync_conflict": {
       "title": "Synchronization needs review for {station}",
-      "description": "Open Intercom Manager > Sync and review the conflict. Choose the central or device version explicitly."
+      "description": "Open WisKey > Sync and review the conflict. Choose the central or device version explicitly."
     },
     "access_capacity": {
       "title": "Access capacity reached on {station}",
-      "description": "Review the station user/card limits and pending assignments in Intercom Manager. No existing users are removed automatically."
+      "description": "Review the station user/card limits and pending assignments in WisKey. No existing users are removed automatically."
     },
     "identity": {
       "title": "Station identity changed: {station}",
