@@ -2028,7 +2028,7 @@ export class IntercomManagerPanel extends LitElement {
                 autocomplete="new-password"
                 pattern="[0-9]*"
                 maxlength="128"
-                .value=${draft.pin ?? ""}
+                .value=${live(draft.pin ?? "")}
                 ?disabled=${blocked || draft.pin === null}
                 @input=${(event: Event) => this.patchDraft("pin", value(event) || undefined)} /></label
             ><label
@@ -2038,7 +2038,7 @@ export class IntercomManagerPanel extends LitElement {
                 autocomplete="new-password"
                 pattern="[0-9]*"
                 maxlength="128"
-                .value=${draft.confirm_pin}
+                .value=${live(draft.confirm_pin)}
                 ?disabled=${blocked || draft.pin === null}
                 @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
             /></label>
