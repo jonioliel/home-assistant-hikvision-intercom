@@ -297,3 +297,137 @@ async def test_event_session_constructed_during_unload_is_still_closed(hass, loa
         assert task.cancelled()
         session.aclose.assert_awaited_once()
         assert monitor._tasks == []
+
+
+@pytest.mark.parametrize("source", ["ring", "access"])
+async def test_closing_runtime_does_not_accept_events_during_clock_cleanup(
+    hass, loaded_entry, source
+):
+    runtime = loaded_entry.runtime_data
+    entered, finish = asyncio.Event(), asyncio.Event()
+    original_close = runtime.clock.async_close
+
+    async def close_clock():
+        entered.set()
+        await finish.wait()
+        await original_close()
+
+    with patch.object(runtime.clock, "async_close", close_clock):
+        closing = asyncio.create_task(runtime.async_close())
+        try:
+            await entered.wait()
+            assert not runtime.session.is_closed
+            if source == "ring":
+                runtime.coordinator.async_set_updated_data(CallState("ringing", "ring"))
+            else:
+                runtime.events.ingest(live())
+            assert get_events(hass).query({})["records"] == []
+        finally:
+            finish.set()
+            await closing
+
+
+async def test_late_history_does_not_advance_cursor_after_runtime_starts_closing(
+    hass, loaded_entry
+):
+    runtime = loaded_entry.runtime_data
+    monitor, manager = runtime.events, get_events(hass)
+    old = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    manager.cursors[runtime.station_id] = old
+    monitor.client.page_size = 30
+
+    async def history(*_args):
+        runtime._closing = True
+        return [
+            {
+                "major": 5,
+                "minor": 181,
+                "time": (datetime.now(UTC) - timedelta(minutes=1)).isoformat(),
+            }
+        ]
+
+    async def stop_sleep(_delay):
+        raise asyncio.CancelledError
+
+    with (
+        patch.object(monitor.client, "async_history", history),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", stop_sleep),
+    ):
+        try:
+            await monitor._history()
+        except asyncio.CancelledError:
+            pass
+    assert manager.cursors[runtime.station_id] == old
+    assert manager.query({})["records"] == []
+
+
+async def test_history_interrupted_between_rows_preserves_recovery_cursor(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    monitor, manager = runtime.events, get_events(hass)
+    old = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    manager.cursors[runtime.station_id] = old
+    monitor.client.page_size = 30
+    row = {"major": 5, "minor": 181, "time": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()}
+
+    async def stop_between_rows(delay):
+        if delay:
+            raise asyncio.CancelledError
+        runtime._closing = True
+
+    with (
+        patch.object(monitor.client, "async_history", return_value=[row, row]),
+        patch(
+            "custom_components.hikvision_intercom.event_manager.asyncio.sleep", stop_between_rows
+        ),
+    ):
+        try:
+            await monitor._history()
+        except asyncio.CancelledError:
+            pass
+    assert manager.cursors[runtime.station_id] == old
+    assert len(manager.query({})["records"]) == 1
+
+
+async def test_late_stream_frame_is_discarded_and_session_closed(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    monitor = runtime.events
+    session = AsyncMock()
+
+    async def stream(_session):
+        runtime._closing = True
+        yield live()
+
+    async def stop_sleep(_delay):
+        raise asyncio.CancelledError
+
+    with (
+        patch(
+            "custom_components.hikvision_intercom.event_manager.create_event_session",
+            return_value=session,
+        ),
+        patch.object(monitor.client, "async_stream", stream),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", stop_sleep),
+    ):
+        try:
+            await monitor._stream()
+        except asyncio.CancelledError:
+            pass
+    assert get_events(hass).query({})["records"] == []
+    session.aclose.assert_awaited_once()
+
+
+async def test_replaced_event_monitor_cannot_emit_or_remove_its_successor(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    old, manager = runtime.events, get_events(hass)
+    successor = manager.attach(runtime)
+    runtime.events = successor
+    try:
+        old.ingest(live(serialNo=8101))
+        old.runtime.coordinator.data = CallState("ringing", "ring")
+        old._call_changed()
+        assert manager.query({})["records"] == []
+    finally:
+        await old.async_close()
+    assert manager.stations[runtime.station_id] is successor
+    successor.ingest(live(serialNo=8102))
+    assert len(manager.query({})["records"]) == 1

@@ -377,3 +377,30 @@ async def test_closing_runtime_rejects_api_work_before_clock_cleanup(
         finally:
             finish.set()
             await unloading
+
+
+async def test_recovery_callback_does_not_queue_sync_while_runtime_closes(hass, loaded_entry):
+    from unittest.mock import patch
+
+    runtime = loaded_entry.runtime_data
+    runtime.coordinator.async_set_update_error(HikvisionConnectionError("offline"))
+    entered, finish = asyncio.Event(), asyncio.Event()
+    original_close = runtime.clock.async_close
+
+    async def close_clock():
+        entered.set()
+        await finish.wait()
+        await original_close()
+
+    with (
+        patch.object(runtime.clock, "async_close", close_clock),
+        patch.object(runtime.access_manager, "request") as queued,
+    ):
+        closing = asyncio.create_task(runtime.async_close())
+        try:
+            await entered.wait()
+            runtime.coordinator.async_set_updated_data(CallState("idle", "idle"))
+            queued.assert_not_called()
+        finally:
+            finish.set()
+            await closing
