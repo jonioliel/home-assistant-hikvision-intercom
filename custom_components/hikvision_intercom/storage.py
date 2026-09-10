@@ -19,6 +19,9 @@ from .access.models import AccessError
 from .issues import issue
 
 
+MAX_STORAGE_BYTES = 33_554_432
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -44,8 +47,8 @@ class AccessStore(Store[dict[str, Any]]):
         path = Path(self.path)
         try:
             with path.open("rb") as source:
-                encoded = source.read(33_554_433)
-                if len(encoded) > 33_554_432:
+                encoded = source.read(MAX_STORAGE_BYTES + 1)
+                if len(encoded) > MAX_STORAGE_BYTES:
                     raise AccessError("invalid_storage")
                 envelope = json.loads(encoded, object_pairs_hook=_unique_object)
             if (
@@ -86,6 +89,8 @@ class AccessStore(Store[dict[str, Any]]):
                 ensure_ascii=False,
                 allow_nan=False,
             )
+            if len(encoded.encode("utf-8")) > MAX_STORAGE_BYTES:
+                raise AccessError("storage_write_failed")
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
             write_utf8_file_atomic(self.path, encoded, private=True)
         except Exception:

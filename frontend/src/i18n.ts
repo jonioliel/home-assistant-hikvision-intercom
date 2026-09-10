@@ -53,6 +53,8 @@ const en = {
   sync_no_matches: "No users match these sync filters.",
   report_help: "About reports and retained history",
   events_intro: "Find access activity by person, station and time.",
+  filter_zone_changed_invalid:
+    "Clock settings changed and the draft time is ambiguous or invalid. Enter the date range again. Applied reports still use their previous filters.",
   filters_not_applied:
     "Filters were edited. Apply them to update the results; reports still use the last applied filters.",
   loaded_records: "Loaded records",
@@ -1195,6 +1197,8 @@ const he: Record<keyof typeof en, string> = {
   sync_no_matches: "אין משתמשים התואמים למסנני הסנכרון.",
   report_help: "על הדוחות וההיסטוריה שנשמרת",
   events_intro: "איתור פעילות גישה לפי אדם, תחנה וזמן.",
+  filter_zone_changed_invalid:
+    "הגדרות השעון השתנו והזמן בטיוטה אינו חד־משמעי או תקין. יש להזין מחדש את טווח התאריכים. הדוחות הקיימים ממשיכים להשתמש במסננים שהוחלו קודם.",
   filters_not_applied:
     "המסננים נערכו. יש להחיל אותם לעדכון התוצאות; הדוחות עדיין משתמשים בסינון שהוחל קודם.",
   loaded_records: "רשומות שנטענו",

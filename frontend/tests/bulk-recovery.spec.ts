@@ -191,3 +191,67 @@ test("a new HA connection cannot inherit a pending bulk operation", async ({ pag
     bulk.getByRole("button", { name: "Review group action", exact: true }),
   ).toBeEnabled();
 });
+
+test("missing receipt stays uncertain and permits only a fresh reviewed action", async ({
+  page,
+}) => {
+  const bulk = await setup(page);
+  await page.evaluate(() => ((window as any).bulkHold = "apply"));
+  await page.clock.install();
+  await apply(page);
+  await page.clock.fastForward(61000);
+  await page.evaluate(() => ((window as any).bulkNoReceipt = true));
+  await bulk.getByRole("button", { name: "Check saved operation", exact: true }).click();
+  await expect(bulk).toContainText("The earlier request may still finish");
+  await expect(bulk).not.toContainText("Saved centrally");
+  await bulk.getByRole("button", { name: "Review group action", exact: true }).click();
+  await expect(
+    bulk.getByRole("button", { name: "Apply reviewed action", exact: true }),
+  ).toBeDisabled();
+  expect(await writes(page)).toBe(1);
+});
+
+test("another administrator on the same connection cannot inherit bulk recovery", async ({
+  page,
+}) => {
+  const bulk = await setup(page);
+  await page.evaluate(() => ((window as any).bulkHold = "apply"));
+  await apply(page);
+  await bulk.evaluate(async (node: any) => {
+    node.hass = { ...node.hass, user: { is_admin: true, id: "other-admin" } };
+    await node.updateComplete;
+  });
+  await page.evaluate(() => (window as any).bulkLate());
+  await expect(bulk).not.toContainText("bulk-1");
+  await expect(bulk).not.toContainText("Saved centrally");
+});
+
+test("repeated bulk view attachment does not accumulate HA listeners", async ({ page }) => {
+  const bulk = await setup(page);
+  const counts = await bulk.evaluate(async (node: any) => {
+    let count = 0;
+    const connection = {
+      connected: true,
+      addEventListener: () => {
+        count++;
+      },
+      removeEventListener: () => {
+        count--;
+      },
+      subscribeMessage: async () => () => {},
+    };
+    node.hass = { ...node.hass, connection };
+    await node.updateComplete;
+    const parent = node.parentElement;
+    const counts = [count];
+    for (let i = 0; i < 8; i++) {
+      node.remove();
+      counts.push(count);
+      parent.append(node);
+      await node.updateComplete;
+      counts.push(count);
+    }
+    return counts;
+  });
+  expect(counts).toEqual([2, ...Array.from({ length: 8 }, () => [0, 2]).flat()]);
+});

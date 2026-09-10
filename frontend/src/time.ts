@@ -107,3 +107,13 @@ export function fromLocalInput(value: string, zone: DisplayZone = UTC_ZONE): str
     throw new Error(candidates.length ? "clock_ambiguous" : "clock_nonexistent");
   return candidates[0];
 }
+
+/** Keep a known instant (including a DST fold) when its displayed input is unchanged. */
+export function resolveLocalInput(
+  value: string,
+  zone: DisplayZone,
+  known?: unknown,
+): string | null {
+  if (typeof known === "string" && localInput(known, zone) === value) return known;
+  return fromLocalInput(value, zone);
+}

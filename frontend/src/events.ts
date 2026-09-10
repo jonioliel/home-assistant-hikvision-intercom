@@ -1,4 +1,4 @@
-import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
+import { formatTime, localInput, resolveLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { adminStyles } from "./admin-styles";
@@ -105,6 +105,8 @@ export class IntercomEvents extends LitElement {
   stations: Station[] = [];
   defaultZone: DisplayZone = UTC_ZONE;
   private _filtersOpen = !window.matchMedia("(max-width: 650px)").matches;
+  private _inputZone: DisplayZone = UTC_ZONE;
+  private _knownTimes: Record<string, unknown> = {};
   private _filterStation = "";
   private _filterDirty = false;
   private _data?: AuditPage;
@@ -151,6 +153,7 @@ export class IntercomEvents extends LitElement {
     this._error = "";
     this._listError = "";
     this._filters = {};
+    this._knownTimes = {};
     this._filterStation = "";
     this._filterDirty = false;
     this.clearReport();
@@ -218,6 +221,7 @@ export class IntercomEvents extends LitElement {
       if (changed.has("hass") && !replaced) this.invalidate();
       return;
     }
+    this.refreshFilterZone();
     if (replaced || changed.has("stations")) void this.load();
   }
   disconnectedCallback() {
@@ -279,12 +283,45 @@ export class IntercomEvents extends LitElement {
       }
     }
   }
+  private refreshFilterZone() {
+    const form = this.renderRoot.querySelector<HTMLFormElement>("form");
+    if (this._filterStation && !this.stations.some((s) => s.id === this._filterStation)) {
+      this._filterStation = "";
+      const select = form?.elements.namedItem("station_id") as HTMLSelectElement | null;
+      if (select) select.value = "";
+      this._filterDirty = true;
+    }
+    const station = this.stations.find((s) => s.id === this._filterStation);
+    const zone = station ? (station.clock?.zone ?? UTC_ZONE) : this.defaultZone;
+    if (JSON.stringify(zone) === JSON.stringify(this._inputZone)) return;
+    if (form) {
+      const inputs = ["start", "end"].map(
+        (key) => form.elements.namedItem(key) as HTMLInputElement,
+      );
+      try {
+        const times = inputs.map((input) =>
+          resolveLocalInput(input.value, this._inputZone, this._knownTimes[input.name]),
+        );
+        inputs.forEach((input, i) => {
+          input.value = localInput(times[i], zone);
+          this._knownTimes[input.name] = times[i];
+        });
+      } catch {
+        inputs.forEach((input) => {
+          input.value = "";
+        });
+        this._knownTimes = {};
+        this._filterDirty = true;
+        this._error = this.t("filter_zone_changed_invalid");
+      }
+    }
+    this._inputZone = structuredClone(zone);
+  }
   private apply(event: Event) {
     event.preventDefault();
     const form = new FormData(event.target as HTMLFormElement);
     const filters: Record<string, unknown> = {};
-    const selected = this.stations.find((s) => s.id === form.get("station_id"));
-    const zone = selected ? (selected.clock?.zone ?? UTC_ZONE) : this.defaultZone;
+    const zone = this._inputZone;
     try {
       for (const [key, raw] of form.entries()) {
         if (!raw) continue;
@@ -292,7 +329,7 @@ export class IntercomEvents extends LitElement {
           key === "door"
             ? Number(raw)
             : key === "start" || key === "end"
-              ? fromLocalInput(String(raw), zone)
+              ? resolveLocalInput(String(raw), zone, this._knownTimes[key])
               : raw;
       }
     } catch (e) {
@@ -303,6 +340,7 @@ export class IntercomEvents extends LitElement {
     this._error = "";
     this._data = undefined;
     this._filters = filters;
+    this._knownTimes = { start: filters.start, end: filters.end };
     this._filterDirty = false;
     this.clearReport();
     void this.load();
@@ -315,6 +353,7 @@ export class IntercomEvents extends LitElement {
     this._filterStation = "";
     this._filterDirty = false;
     this._filters = {};
+    this._knownTimes = {};
     this.clearReport();
     void this.load();
   }
@@ -524,6 +563,7 @@ export class IntercomEvents extends LitElement {
               aria-label=${this.t("station")}
               @change=${(e: Event) => {
                 this._filterStation = (e.target as HTMLSelectElement).value;
+                this.refreshFilterZone();
                 this.requestUpdate();
               }}
             >

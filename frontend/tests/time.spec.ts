@@ -306,6 +306,7 @@ test("change-history filters preserve their instant after HA clock settings chan
     };
   });
   await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await page.getByText("History filters", { exact: true }).click();
   await page.getByLabel("From (HA display time)", { exact: true }).fill("2026-09-09T12:30");
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   const original = await page.evaluate(
@@ -336,4 +337,21 @@ test("ambiguous event time drafts are visibly cleared when station clock rules c
   });
   await expect(page.getByLabel("From time", { exact: true })).toHaveValue("");
   await expect(page.getByRole("alert")).toContainText("Enter the date range again");
+});
+
+test("event filter retains a known instant when the new display zone falls in a DST fold", async ({
+  page,
+}) => {
+  await configure(page);
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  await page.getByLabel("From time", { exact: true }).fill("2026-10-24T22:30");
+  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await page.getByLabel("Station", { exact: true }).selectOption("station-0");
+  await expect(page.getByLabel("From time", { exact: true })).toHaveValue("2026-10-25T01:30");
+  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("events/list")).at(-1).filters.start,
+    ),
+  ).toBe("2026-10-24T22:30:00.000Z");
 });

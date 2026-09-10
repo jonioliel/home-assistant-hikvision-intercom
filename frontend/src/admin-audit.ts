@@ -1,10 +1,11 @@
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { live } from "lit/directives/live.js";
 import { styles } from "./styles";
 import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
 import { boundedRequest } from "./request";
-import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
+import { formatTime, localInput, resolveLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import type { Hass, Person, Station } from "./types";
 interface AuditRow {
   sequence: number;
@@ -149,6 +150,8 @@ export class AdminAudit extends LitElement {
   private _station = "";
   private _action = "";
   private _actor = "";
+  private _inputZone: DisplayZone = UTC_ZONE;
+  private _knownTimes: Record<string, unknown> = {};
   private _start = "";
   private _end = "";
   private _auditStation = "";
@@ -180,7 +183,9 @@ export class AdminAudit extends LitElement {
         this._auditStation =
           "";
       this.applied = {};
+      this._knownTimes = {};
     }
+    this.refreshFilterZone();
     if (this.hass?.user?.is_admin && (!this.initialized || this.focusUser !== this.lastFocus)) {
       if (this.focusUser !== this.lastFocus) this.invalidate();
       this.initialized = true;
@@ -234,6 +239,21 @@ export class AdminAudit extends LitElement {
       ? this.t(action.replace("/", "_"))
       : this.t("audit_source_" + action.replaceAll("/", "_"));
   }
+  private refreshFilterZone() {
+    if (JSON.stringify(this.zone) === JSON.stringify(this._inputZone)) return;
+    try {
+      const start = resolveLocalInput(this._start, this._inputZone, this._knownTimes.start);
+      const end = resolveLocalInput(this._end, this._inputZone, this._knownTimes.end);
+      this._start = localInput(start, this.zone);
+      this._end = localInput(end, this.zone);
+      this._knownTimes = { start, end };
+    } catch {
+      this._start = this._end = "";
+      this._knownTimes = {};
+      this._error = this.t("filter_zone_changed_invalid");
+    }
+    this._inputZone = structuredClone(this.zone);
+  }
   private filters() {
     const filters: Record<string, unknown> = {};
     for (const [key, value] of [
@@ -243,8 +263,10 @@ export class AdminAudit extends LitElement {
       ["actor", this._actor],
     ])
       if (value) filters[key] = value;
-    if (this._start) filters.start = fromLocalInput(this._start, this.zone);
-    if (this._end) filters.end = fromLocalInput(this._end, this.zone);
+    if (this._start)
+      filters.start = resolveLocalInput(this._start, this._inputZone, this._knownTimes.start);
+    if (this._end)
+      filters.end = resolveLocalInput(this._end, this._inputZone, this._knownTimes.end);
     return filters;
   }
   private async load(more = false) {
@@ -263,6 +285,7 @@ export class AdminAudit extends LitElement {
       );
       if (!this.valid(epoch)) return;
       this.applied = filters;
+      this._knownTimes = { start: filters.start, end: filters.end };
       this._report =
         more && this._report
           ? {
@@ -422,7 +445,7 @@ export class AdminAudit extends LitElement {
             >${this.t("audit_from")}<input
               type="datetime-local"
               step="60"
-              .value=${this._start}
+              .value=${live(this._start)}
               @input=${(e: Event) => {
                 this._start = (e.target as HTMLInputElement).value;
               }}
@@ -431,7 +454,7 @@ export class AdminAudit extends LitElement {
             >${this.t("audit_until")}<input
               type="datetime-local"
               step="60"
-              .value=${this._end}
+              .value=${live(this._end)}
               @input=${(e: Event) => {
                 this._end = (e.target as HTMLInputElement).value;
               }}
