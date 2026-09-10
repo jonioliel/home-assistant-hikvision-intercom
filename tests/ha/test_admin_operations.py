@@ -120,5 +120,5 @@ async def test_group_policy_review_and_directory_use_real_admin_transport(
     )
     assert directory["success"] and directory["result"]["total"] == 0
     bad = await request(client, "permissions/directory", filters={"station_id": []})
-    assert not bad["success"] and bad["error"]["code"] == "invalid_fields"
+    assert not bad["success"] and bad["error"]["code"] == "invalid_text"
     device_io["unlock"].assert_not_called()

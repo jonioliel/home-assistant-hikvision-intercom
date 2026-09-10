@@ -54,3 +54,6 @@ No physical acceptance was inferred from local tests. Core acceptance remains 31
 ## Publication status
 
 The first implementation commit is `edf4b4885afe194b5fb10d7e8c55df6c1cd48696`; the complete candidate is retained on the local `codex/wiskey-beta-development` branch. Neither has been pushed. Automatic approval review rejected the public push even after origin and public repository metadata were verified and a private-value scan passed. The owner's explicit confirmation of the exact public destination is pending. No alternate publication path was used. After authorization, Linux/HA, HACS and Hassfest must pass on this candidate before the release workflow may publish it.
+
+
+Release validation follow-up: the first GitHub HA run passed 311 cases and found one incorrect test expectation for a list-valued station ID. The directory correctly rejects it with the existing `invalid_text` validator code. The test now expects that exact code; production validation is unchanged. HACS, Hassfest, both Python jobs and all browser cases passed on that checkpoint. The complete release workflow still gates publication.
