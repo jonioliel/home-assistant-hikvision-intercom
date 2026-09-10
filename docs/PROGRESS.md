@@ -1,6 +1,12 @@
 # Project progress
 
-## Current release — 0.33.0-beta.1
+## Current release — 0.34.0-beta.1
+
+N65 (named camera layouts) and N77 (fleet clock comparison) are implemented and release-validated. N73 has four opt-in diagnostic entities; reliable pending-work age remains open. The additional forty-task batch has 2 complete, 1 partial, and 37 not yet implemented. No N01–N40 work is closed by this delivery. [Release](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.34.0-beta.1), [evidence](evidence/release_0.34.0-beta.1.json), [continuation](DEVELOPMENT_CONTINUATION_HE.md). Core acceptance stays 31/38 (81.6%); Phase 5 remains open. Storage schemas unchanged from the previous Beta.
+
+The following entries describe the earlier state.
+
+## Previous release — 0.33.0-beta.1
 
 Sixteen approved software items are implemented (01,02,04–11,13,14,16,17,19,37); mobile-credential feasibility (40) is documented. This is not completion of all forty tasks. [Delivery](BETA_033_HE.md), [validation](BETA_DEVELOPMENT.md), [per-item status](ROADMAP_NEXT_40_HE.md).
 

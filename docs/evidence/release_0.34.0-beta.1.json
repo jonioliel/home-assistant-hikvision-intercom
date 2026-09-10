@@ -1,0 +1,77 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.34.0-beta.1",
+  "tag": "v0.34.0-beta.1",
+  "sha": "c9d74a493d71b5102f37c4bf524d0cfbbb97c8ec",
+  "prerelease": true,
+  "published_at": "2026-09-10T23:08:50Z",
+  "manifest_version": "0.34.0-beta.1",
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34540617437",
+  "release_jobs_passed": 7,
+  "jobs": [
+    {
+      "id": 103082207759,
+      "name": "hassfest / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082207856,
+      "name": "python / tests (3.14)",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082207901,
+      "name": "python / home-assistant",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082207905,
+      "name": "python / frontend",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082207936,
+      "name": "hacs / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082207991,
+      "name": "python / tests (3.12)",
+      "conclusion": "success"
+    },
+    {
+      "id": 103082788338,
+      "name": "publish",
+      "conclusion": "success"
+    }
+  ],
+  "python_tests_per_version": 1008,
+  "home_assistant_tests": 314,
+  "browser_tests": 361,
+  "test_counts_from_release_logs": {
+    "python / tests (3.14)": 1008,
+    "python / home-assistant": 314,
+    "python / frontend": 361,
+    "python / tests (3.12)": 1008
+  },
+  "artifacts": {
+    "custom_components/hikvision_intercom/manifest.json": {
+      "bytes": 527,
+      "sha256": "02203233b8a15d91829c8b20673ae56db81a5efee3dcd6b03488bfcffda6c07e"
+    },
+    "custom_components/hikvision_intercom/frontend/panel.js": {
+      "bytes": 1310071,
+      "sha256": "93050b2a8201256780aab184aa6c056d67315c15e1cbd1c8d88abb172d10e851"
+    },
+    "custom_components/hikvision_intercom/frontend/audio-worklet.js": {
+      "bytes": 604,
+      "sha256": "c2cfa40eb531001bdbb7e450210790f39e50ce767d7d6b6d25ecdb7798a3c1ad"
+    }
+  },
+  "access_storage_schema": 6,
+  "profile_settings_schema": 2,
+  "physical_speaker_audibility": "unverified",
+  "core_acceptance": "31/38; unchanged by Beta publication",
+  "persistent_station_configuration_writes_this_release_session": 0
+}

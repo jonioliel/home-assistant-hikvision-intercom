@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[0.33.0-beta.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.33.0-beta.1)** — the first WisKey Beta. [Delivery and upgrade notes](docs/BETA_033_HE.md), [verified release checks](docs/VALIDATION.md), [next 40 tasks](docs/ROADMAP_AFTER_BETA_40_HE.md), [40 additional tasks N41–N80](docs/ROADMAP_ADDITIONAL_40_HE.md). Back up HA before upgrading; access storage migrates to schema 6. Physical commissioning remains open.
+Published runtime: **[0.34.0-beta.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.34.0-beta.1)** — saved camera layouts, fleet clock comparison and opt-in operational sensors. [Upgrade notes](docs/BETA_034_HE.md), [verified checks](docs/VALIDATION.md), [development checkpoint](docs/DEVELOPMENT_CONTINUATION_HE.md), [remaining roadmap](docs/ROADMAP_ADDITIONAL_40_HE.md). Beta prerelease; physical commissioning remains open.
 
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:

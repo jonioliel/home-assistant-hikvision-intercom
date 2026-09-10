@@ -1,4 +1,8 @@
-# Published validation — 0.33.0-beta.1
+# Published validation — 0.34.0-beta.1
+
+Published code: `c9d74a493d71b5102f37c4bf524d0cfbbb97c8ec`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34540617437) passed: **1008 Python tests per version (3.12/3.14), 314 HA tests and 361 browser tests**, static checks, reproducible bundles, HACS and Hassfest. Counts were verified from the release job logs. The public tag, manifest and bundles match the tested commit. [Evidence](evidence/release_0.34.0-beta.1.json), [delivery](BETA_034_HE.md). No physical device actions were performed; core acceptance remains 31/38.
+
+## Published validation — 0.33.0-beta.1
 
 Published code: `60ca27ef897e8c631440fbb9ac983819e8f4770f`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34533008089) passed: **994 Python tests per version (3.12/3.14), 312 HA tests and 352 browser tests**, Ruff/format, strict mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest. Counts were checked in the release job logs.
 
