@@ -1,19 +1,27 @@
-# 0.32 group-permissions checkpoint
-
-Custom user columns and inherited group door grants with personal exceptions are implemented.
-Policy and effective users now commit atomically in schema 5; existing access remains personal.
-[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local full validation passed **933 core tests and 322 browser tests**; Ruff,
-formatting, mypy (60 files), TypeScript, Prettier and production build passed.
-Implementation commit: `6179b01`. The owner provided fresh publication authorization, and the candidate is now on GitHub.
-CI found one frontend formatting issue, corrected without changing runtime behavior.
-Home Assistant, unchanged audio soak and all release CI gates remain required before release.
-[Automatic HACS update discovery](HACS_UPDATES_HE.md) documents the one-time prerelease
-switch and polling delay; no HA installation settings were changed remotely.
-No new physical acceptance gate is claimed. [Local evidence](evidence/groups_032_local.json).
-
 # Project progress
 
-## Current release — 0.31.0-alpha.1
+## Current release — 0.32.0-alpha.1
+
+Enabled custom user fields and memberships are visible in the table and mobile cards.
+Groups grant their combined station door permissions; personal additions and denials override
+them. Editors show permission sources and allow returning to inherited permissions.
+Group changes commit atomically with affected users in schema 5 and use existing durable
+reconciliation, offline revocation, ownership and readback. Old assignments remain personal.
+[Delivery and migration](GROUP_PERMISSIONS_032_HE.md).
+
+Published [v0.32.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.0-alpha.1) from `e5f50a10bd93d23b28b40de8312b9a333d040e8a`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34488590232) passed: **934 Python tests per version (3.12/3.14),
+304 HA tests and 322 browser tests**, static checks, reproducible bundles, HACS and Hassfest.
+The unchanged audio soak passed in CI. [Publication evidence](evidence/release_0.32.0-alpha.1.json).
+Fresh owner approval resolved the earlier public-upload block; the first CI formatting issue
+was fixed before release. No new physical acceptance gate is claimed and no live station
+permissions were changed by development tests.
+
+[Automatic HACS update discovery](HACS_UPDATES_HE.md) explains the one-time prerelease
+switch and custom-repository polling delay. HA notification arrival is not remotely verified.
+Historical phase counts below retain their original acceptance boundaries.
+
+## Previous release — 0.31.0-alpha.1
 
 User row actions now sit inside Edit, with Sync now beside Edit. Global profile options
 provide configurable fields, groups, filters and optional camera-captured portraits. User data

@@ -1,0 +1,30 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.0-alpha.1",
+  "tag": "v0.32.0-alpha.1",
+  "sha": "e5f50a10bd93d23b28b40de8312b9a333d040e8a",
+  "prerelease": true,
+  "published_at": "2026-09-10T14:25:06Z",
+  "manifest_version": "0.32.0-alpha.1",
+  "bundle_bytes": 1204419,
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34488590232",
+  "release_jobs_passed": 7,
+  "python_tests_per_version": 934,
+  "home_assistant_tests": 304,
+  "browser_tests": 322,
+  "audio_worklet_verified": true,
+  "manifest_name": "WisKey",
+  "access_storage_schema": 5,
+  "physical_device_permission_changes": false,
+  "ha_update_notification_verified": false,
+  "validation_notes": [
+    "Group union, personal denial precedence, reset, disabled groups, atomic failure/cancellation, migration and offline restart/revocation tested locally and in CI.",
+    "All 934 core tests, including the unchanged audio soak excluded in the Windows local run, passed on Python 3.12 and 3.14 in the release workflow.",
+    "All 304 actual Home Assistant tests passed, including group policy API authorization, stale revisions, central storage and one-time prior-profile migration.",
+    "All 322 browser cases passed, including Hebrew custom columns and group permission editing on mobile and desktop in both appearances.",
+    "An initial CI frontend formatting failure was corrected with no runtime bundle change before release. No failed gate was bypassed.",
+    "Fresh owner authorization resolved the earlier public-upload approval block.",
+    "Automatic update discovery uses HACS. Current releases require its prerelease switch; the inspected custom-repository polling interval is 48 hours. No HACS settings were changed remotely and notification arrival in the owner installation is unverified."
+  ]
+}

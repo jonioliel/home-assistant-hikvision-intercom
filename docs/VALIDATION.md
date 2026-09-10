@@ -1,17 +1,28 @@
-# 0.32 group-permissions checkpoint
+# Current validation — 0.32.0-alpha.1
 
-Custom user columns and inherited group door grants with personal exceptions are implemented.
-Policy and effective users now commit atomically in schema 5; existing access remains personal.
-[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local full validation passed **933 core tests and 322 browser tests**; Ruff,
-formatting, mypy (60 files), TypeScript, Prettier and production build passed.
-Implementation commit: `6179b01`. The owner provided fresh publication authorization, and the candidate is now on GitHub.
-CI found one frontend formatting issue, corrected without changing runtime behavior.
-Home Assistant, unchanged audio soak and all release CI gates remain required before release.
-[Automatic HACS update discovery](HACS_UPDATES_HE.md) documents the one-time prerelease
-switch and polling delay; no HA installation settings were changed remotely.
-No new physical acceptance gate is claimed. [Local evidence](evidence/groups_032_local.json).
+Published code: `e5f50a10bd93d23b28b40de8312b9a333d040e8a`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34488590232) passed:
+**934 Python tests per version (3.12/3.14), 304 Home Assistant tests and 322 browser tests**,
+Ruff, Python formatting, mypy (60 source files), TypeScript, Prettier, reproducible bundles,
+HACS and Hassfest. The tag, manifest, panel and worklet match the tested commit.
+[Release evidence](evidence/release_0.32.0-alpha.1.json), [delivery](GROUP_PERMISSIONS_032_HE.md).
 
-# Current validation — 0.31.0-alpha.1
+New coverage exercises group unions, personal exception precedence and reset, disabled
+groups, old assignments, schema 5 and one-time profile migration, atomic failed/cancelled saves,
+stale policy editors, legacy bulk edits, offline revocation after restart and admin API restrictions.
+Browser tests cover table/mobile custom fields, memberships, permission sources and group
+door editing in Hebrew and both appearances, including many-column internal table scrolling.
+
+The first CI run found a frontend indentation issue; it was fixed without changing the built
+runtime bundle. All release gates ran again and passed. Local validation passed 933 core and
+322 browser tests. The unchanged nine-station audio soak excluded in the Windows run passed
+in both full Python release suites, without relaxing its timeout or assertions.
+No permission changes were made on live stations; physical owner acceptance remains separate.
+
+HACS discovery documentation was checked against official update/switch docs and HACS source.
+Its prerelease switch and update entity must be enabled in HA; discovery is periodic, not a push
+from publication. The owner's HACS configuration and notification arrival remain unverified.
+
+## Previous validation — 0.31.0-alpha.1
 
 Published code: `c90ba1e9185f9113d3396ad463bdf4d02df5750a`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34481556058) passed:
 **926 Python tests per version (3.12/3.14), 301 Home Assistant tests and 315 browser tests**,
