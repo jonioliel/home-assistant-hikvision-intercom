@@ -1,7 +1,7 @@
 # WisKey Beta — development delivery
 
 Approved work: [40-task roadmap](ROADMAP_NEXT_40_HE.md), 10 September 2026.
-Status: local **0.33.0-beta.1** release candidate; no Beta artifact published yet. Publication requires the final Linux/HA/HACS gates. Public runtime remains 0.32.1-alpha.1.
+Status: **[0.33.0-beta.1 published](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.33.0-beta.1)** on 11 September 2026 (Asia/Jerusalem), after all seven release jobs passed. Runtime commit: `60ca27ef897e8c631440fbb9ac983819e8f4770f`. [Publication evidence](evidence/release_0.33.0-beta.1.json).
 
 ## First delivery: user administration
 
@@ -47,13 +47,16 @@ The final full browser suite passed **352 tests** in 6.3 minutes. Rebuilding aft
 
 During implementation, a full Python run concurrent with browser load hit the existing 30-second loopback audio deadline. The isolated exercise and the final sequential full Python suite passed; no timeout threshold was relaxed. Browser tests found an outdated tool count and exact accessible-label mismatches, both corrected. Report tests also corrected the synthetic administrator storage key. Final results below supersede those intermediate failures.
 
-Real HA transport tests were added for policy reviews, receipts, directory, CSV mapping and current-membership/print APIs. They require Linux CI and have not yet run for this candidate. HACS/Hassfest and publication are likewise pending; earlier published release results do not validate this candidate.
+Real HA transport tests cover policy reviews, receipts, directory, CSV mapping and current-membership/print APIs. On the published commit, the [release workflow](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34533008089) passed **994 Python cases on each of 3.12/3.14, 312 real-HA cases and 352 browser cases**, together with static checks, reproducible frontend build, HACS and Hassfest. Counts were verified from that run's logs, not copied from a previous release.
 
 No physical acceptance was inferred from local tests. Core acceptance remains 31/38; speaker audio, ringing/validity and fleet acceptance remain in [deferred validation](DEFERRED_VALIDATION.md).
 
 ## Publication status
 
-The first implementation commit is `edf4b4885afe194b5fb10d7e8c55df6c1cd48696`; the complete candidate is retained on the local `codex/wiskey-beta-development` branch. Neither has been pushed. Automatic approval review rejected the public push even after origin and public repository metadata were verified and a private-value scan passed. The owner's explicit confirmation of the exact public destination is pending. No alternate publication path was used. After authorization, Linux/HA, HACS and Hassfest must pass on this candidate before the release workflow may publish it.
+The owner explicitly approved publication to the existing public repository. The implementation commits are `edf4b4885afe194b5fb10d7e8c55df6c1cd48696` and `52b9f00e5ff790745639facb7df3b07b63b1eb28`. The final release commit is `60ca27ef897e8c631440fbb9ac983819e8f4770f`. The earlier approval-review block was resolved by that explicit authorization; the branch was pushed, validated, fast-forwarded to main and published through the gated release workflow.
 
+The first GitHub HA checkpoint passed 311 cases and found one incorrect test expectation for a list-valued station ID. The directory correctly rejects it with the existing `invalid_text` validator code. Commit `60ca27e` aligns the assertion with that exact code; production validation is unchanged. All branch, main and release checks then passed.
 
-Release validation follow-up: the first GitHub HA run passed 311 cases and found one incorrect test expectation for a list-valued station ID. The directory correctly rejects it with the existing `invalid_text` validator code. The test now expects that exact code; production validation is unchanged. HACS, Hassfest, both Python jobs and all browser cases passed on that checkpoint. The complete release workflow still gates publication.
+The public tag resolves to the tested commit. The published manifest, panel bundle and audio worklet were downloaded through GitHub's contents API and compared byte-for-byte with that commit. [Machine-readable evidence](evidence/release_0.33.0-beta.1.json) records the run, job IDs and content hashes. No station settings were changed during publication.
+
+After publication, [the next forty-task plan](ROADMAP_AFTER_BETA_40_HE.md) preserves 23 open tasks and adds 17 scoped improvements. Preparing that plan does not implement its tasks or change the software version.

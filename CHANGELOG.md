@@ -7,7 +7,7 @@ Semantic Versioning is used throughout the project.
 ## [0.33.0-beta.1] - 2026-09-11
 
 ### Beta scope
-- Move the next installation candidate from Alpha to Beta with sixteen software deliverables from the approved roadmap. This is a prerelease, not stable v1; physical acceptance remains 31/38. Speaker audibility, ringing, validity and fleet acceptance remain open. Publication still requires all release CI gates.
+- Move the release from Alpha to Beta with sixteen software deliverables from the approved roadmap. This is a prerelease, not stable v1; physical acceptance remains 31/38. Speaker audibility, ringing, validity and fleet acceptance remain open. All seven release CI jobs passed before publication.
 
 ### Added
 - Typed and required profile fields, per-user saved filters/sort/custom-column order, and onboarding templates containing profile/group defaults only.
@@ -23,7 +23,7 @@ Semantic Versioning is used throughout the project.
 ### Reliability and upgrade
 - Preserve and immediately queue committed group/bulk changes when a response is cancelled. Validate schema 5/6 exceptions before migration; reject corrupted state instead of reconstructing access.
 - Access storage migrates to schema **6** and profile definitions to schema **2**. Existing text fields stay optional; old clients preserve new attributes and templates. Back up HA before upgrading; rollback to older code requires restoring the pre-upgrade backup.
-- Source, browser and real-HA transport regression coverage added. Local validation and publication status are recorded in docs/BETA_DEVELOPMENT.md. No claim that the pending Linux HA/HACS gates have passed.
+- Source, browser and real-HA transport regression coverage added. The published commit passed 994 Python cases on each of 3.12/3.14, 312 HA cases and 352 browser cases, plus static checks, reproducible bundles, HACS and Hassfest. Verified publication evidence is recorded in docs/BETA_DEVELOPMENT.md and docs/evidence/release_0.33.0-beta.1.json.
 
 ### Capability evidence
 - Read-only checks on two DS-KV6124-E1 stations found six successful PIN history records; the production normalizer preserved all six employee IDs and names. This is not confirmation of the earlier installed-HA unidentified-user report.

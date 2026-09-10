@@ -1,12 +1,18 @@
 # Project progress
 
-## Current development — local 0.33.0-beta.1 candidate
+## Current release — 0.33.0-beta.1
 
 Sixteen approved software items are implemented (01,02,04–11,13,14,16,17,19,37); mobile-credential feasibility (40) is documented. This is not completion of all forty tasks. [Delivery](BETA_033_HE.md), [validation](BETA_DEVELOPMENT.md), [per-item status](ROADMAP_NEXT_40_HE.md).
 
-Access storage migrates to schema 6; profile settings to schema 2. Candidate publication and Linux/HA/HACS gates are pending. Last public runtime remains 0.32.1-alpha.1. Core acceptance remains **31/38** and Phase 5 is still open. The planning checkpoint below describes the earlier, pre-implementation state.
+Access storage migrates to schema 6; profile settings to schema 2. [Beta is published](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.33.0-beta.1) at `60ca27ef897e8c631440fbb9ac983819e8f4770f` after all seven release jobs passed. [Verified results](evidence/release_0.33.0-beta.1.json). Core acceptance remains **31/38** and Phase 5 is still open.
 
-## Current planning checkpoint — 40-task roadmap
+## Next development plan — after Beta publication
+
+[The next forty tasks](ROADMAP_AFTER_BETA_40_HE.md) retain all 23 unfinished tasks and add 17 substantive improvements tied to the original specification. Each has a completion condition and dependencies. The first proposed delivery improves user-directory scale, station health, operation tracing, concurrent edits and guided recovery. Field acceptance runs alongside independent software work; additional convenience features do not delay core v1. The plan is not an implementation claim.
+
+The checkpoints below describe their earlier state.
+
+## Historical planning checkpoint — original 40-task roadmap
 
 The owner confirms installed MSE video works well and plans the audio check later.
 This confirms playback on the reported path, not RTC, speaker audibility or fleet acceptance.
@@ -18,7 +24,7 @@ counted as missing, and none of the proposed tasks is marked implemented. Core a
 remains 31/38; Phase 5 closure depends on the remaining lab and fleet evidence.
 No software version bump accompanies this planning-only update.
 
-## Current release — 0.32.1-alpha.1
+## Previous release — 0.32.1-alpha.1
 
 [Published diagnostic patch](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.1-alpha.1) from `2c4d485d25ff8b50de6cb815f87f31267ae69b00`.
 The audio foldout now shows microphone bytes written to the station, numeric HTTP upload

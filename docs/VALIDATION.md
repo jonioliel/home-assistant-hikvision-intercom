@@ -1,6 +1,8 @@
-# Candidate validation — 0.33.0-beta.1
+# Published validation — 0.33.0-beta.1
 
-The local Beta candidate passed **994 Python tests and 352 browser tests**. Ruff/format, strict mypy (62 configured modules), TypeScript, Prettier and a byte-identical panel rebuild passed. It also has read-only capability evidence. Final results and CI/publication status are tracked in [Beta development](BETA_DEVELOPMENT.md). Linux HA, HACS and Hassfest have not yet run for this candidate. The published-release results below are historical and must not be treated as validating new Beta code.
+Published code: `60ca27ef897e8c631440fbb9ac983819e8f4770f`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34533008089) passed: **994 Python tests per version (3.12/3.14), 312 HA tests and 352 browser tests**, Ruff/format, strict mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest. Counts were checked in the release job logs.
+
+The public tag, manifest version, panel bundle and audio worklet were verified against the tested commit. [Release evidence](evidence/release_0.33.0-beta.1.json), [implementation and intermediate findings](BETA_DEVELOPMENT.md), [delivery guide](BETA_033_HE.md). Physical acceptance remains 31/38; automated checks do not verify speaker audibility or the outstanding field scenarios. The published-release results below are historical.
 
 ## Published validation — 0.32.1-alpha.1
 
