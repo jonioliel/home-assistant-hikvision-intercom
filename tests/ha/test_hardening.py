@@ -175,3 +175,45 @@ async def test_storage_rejects_duplicate_keys_and_oversized_file(hass):
     await hass.async_add_executor_job(enlarge)
     with pytest.raises(AccessError):
         await store.async_load()
+
+
+@pytest.mark.parametrize("character", ["a", "ש", "😀"])
+async def test_oversized_save_preserves_reloadable_store_and_sets_repair(hass, character):
+    from pathlib import Path
+
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
+
+    store = AccessStore(hass)
+    original = {"resident": "retained"}
+    await store.async_save(original)
+    before = await hass.async_add_executor_job(Path(store.path).read_bytes)
+    # A small limit exercises the identical atomic-write boundary without large fixtures.
+    with patch("custom_components.hikvision_intercom.storage.MAX_STORAGE_BYTES", 512, create=True):
+        with pytest.raises(AccessError, match="storage_write_failed"):
+            await store.async_save({"resident": character * 512})
+        assert await hass.async_add_executor_job(Path(store.path).read_bytes) == before
+        assert await store.async_load() == original
+        assert ir.async_get(hass).async_get_issue(DOMAIN, "users_storage_write")
+        await store.async_save(original)
+        assert ir.async_get(hass).async_get_issue(DOMAIN, "users_storage_write") is None
+
+
+async def test_storage_byte_limit_includes_envelope_and_accepts_exact_boundary(hass):
+    from pathlib import Path
+
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
+
+    store = AccessStore(hass)
+    data = {"resident": "משתמש 😀"}
+    await store.async_save(data)
+    encoded = await hass.async_add_executor_job(Path(store.path).read_bytes)
+    with patch(
+        "custom_components.hikvision_intercom.storage.MAX_STORAGE_BYTES", len(encoded), create=True
+    ):
+        await store.async_save(data)
+        assert await store.async_load() == data
+        with pytest.raises(AccessError, match="storage_write_failed"):
+            await store.async_save({"resident": data["resident"] + "x"})
+        assert await store.async_load() == data
