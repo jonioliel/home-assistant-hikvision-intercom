@@ -26,7 +26,7 @@ def entity_id(hass, domain, key):
 async def test_entities_states_and_diagnostics(hass, loaded_entry):
     registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(registry, loaded_entry.entry_id)
-    assert len(entities) == 7
+    assert len(entities) == 11
     assert {item.domain for item in entities} == {
         "binary_sensor",
         "sensor",
@@ -42,7 +42,9 @@ async def test_entities_states_and_diagnostics(hass, loaded_entry):
         == "optimistic"
     )
     diagnostics = await async_get_config_entry_diagnostics(hass, loaded_entry)
-    states = str([hass.states.get(item.entity_id).as_dict() for item in entities])
+    states = str(
+        [state.as_dict() for item in entities if (state := hass.states.get(item.entity_id))]
+    )
     for secret in (DATA["host"], DATA["password"], PROFILE.unique_id):
         assert secret not in str(diagnostics)
         assert secret not in states
@@ -404,3 +406,42 @@ async def test_recovery_callback_does_not_queue_sync_while_runtime_closes(hass, 
         finally:
             finish.set()
             await closing
+
+
+async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_entry, device_io):
+    from homeassistant.helpers.entity import EntityCategory
+
+    from custom_components.hikvision_intercom.access_runtime import get_manager
+
+    registry = er.async_get(hass)
+    keys = ("managed_users", "pending_users", "sync_health", "last_reconciled")
+    ids = {key: entity_id(hass, "sensor", key) for key in keys}
+    for eid in ids.values():
+        record = registry.async_get(eid)
+        assert record.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        assert record.entity_category is EntityCategory.DIAGNOSTIC
+        assert hass.states.get(eid) is None
+        registry.async_update_entity(eid, disabled_by=None)
+    assert await hass.config_entries.async_reload(loaded_entry.entry_id)
+    await hass.async_block_till_done()
+    manager = get_manager(hass)
+    station = manager.stations[loaded_entry.entry_id]
+    assert hass.states.get(ids["managed_users"]).state == "0"
+    assert hass.states.get(ids["pending_users"]).state == "0"
+    assert hass.states.get(ids["sync_health"]).state == "synced"
+    assert hass.states.get(ids["last_reconciled"]).state not in ("unknown", "unavailable")
+    calls = device_io["inventory"].await_count
+    station.inventory = None
+    station.status = "offline"
+    manager._changed()
+    await hass.async_block_till_done()
+    assert hass.states.get(ids["managed_users"]).state == "unknown"
+    assert hass.states.get(ids["pending_users"]).state == "0"
+    assert hass.states.get(ids["sync_health"]).state == "offline"
+    assert device_io["inventory"].await_count == calls
+    assert await hass.config_entries.async_unload(loaded_entry.entry_id)
+    await hass.async_block_till_done()
+    manager._changed()
+    await hass.async_block_till_done()
+    for eid in ids.values():
+        assert hass.states.get(eid) is None or hass.states.get(eid).state == "unavailable"

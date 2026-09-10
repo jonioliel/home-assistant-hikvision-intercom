@@ -125,6 +125,28 @@
           "unknown": "לא ידוע",
           "unavailable": "לא זמין"
         }
+      },
+      "managed_users": {
+        "name": "משתמשים מנוהלים שנצפו"
+      },
+      "pending_users": {
+        "name": "משתמשים ממתינים לסנכרון"
+      },
+      "sync_health": {
+        "name": "מצב סנכרון",
+        "state": {
+          "synced": "מסונכרן",
+          "pending": "ממתין",
+          "syncing": "מסנכרן",
+          "offline": "מנותק",
+          "conflict": "התנגשות",
+          "error": "שגיאה",
+          "delete_pending": "ממתין למחיקה",
+          "unknown": "לא ידוע"
+        }
+      },
+      "last_reconciled": {
+        "name": "סיום סבב סנכרון אחרון"
       }
     },
     "camera": {

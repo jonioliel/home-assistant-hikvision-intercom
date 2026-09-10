@@ -125,6 +125,28 @@
           "unknown": "Unknown",
           "unavailable": "Unavailable"
         }
+      },
+      "managed_users": {
+        "name": "Observed managed users"
+      },
+      "pending_users": {
+        "name": "Users pending synchronization"
+      },
+      "sync_health": {
+        "name": "Synchronization state",
+        "state": {
+          "synced": "Synced",
+          "pending": "Pending",
+          "syncing": "Syncing",
+          "offline": "Offline",
+          "conflict": "Conflict",
+          "error": "Error",
+          "delete_pending": "Deletion pending",
+          "unknown": "Unknown"
+        }
+      },
+      "last_reconciled": {
+        "name": "Last reconciliation completed"
       }
     },
     "camera": {

@@ -842,3 +842,62 @@ async def test_review_reports_device_managed_pin_as_unverified(fleet):
     assert review["unverified_fields"] == ["pin"]
     assert review["device"]["pin_configured"] is None
     assert review["actions"]["central"]["reason"] == "pin_device_managed"
+
+
+async def test_station_metrics_unknown_inventory_and_offline_queue(fleet):
+    manager, device, _ = fleet
+    assert manager.station_metrics("missing") is None
+    station = manager.stations["a"]
+    station.inventory = None
+    assert manager.station_metrics("a")["managed_users"] is None
+    user = await manager.async_create(
+        {
+            "display_name": "PRIVATE NAME",
+            "pin": "918273",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        },
+        sync_now=False,
+    )
+    station.status = "synced"
+    metrics = manager.station_metrics("a")
+    assert metrics["pending_users"] == 1 and metrics["sync_health"] == "pending"
+    assert "PRIVATE NAME" not in str(metrics) and "918273" not in str(metrics)
+    assert user["id"] not in str(metrics)
+    station.status = "offline"
+    assert manager.station_metrics("a")["pending_users"] == 1
+    assert manager.station_metrics("a")["sync_health"] == "offline"
+
+
+async def test_station_metrics_observed_counts_and_closure(fleet):
+    manager, device, _ = fleet
+    device.users["1001"] = deepcopy(PERSON)
+    await manager.async_rescan("a")
+    # Device inventory exists but this person is unmanaged.
+    assert manager.station_metrics("a")["managed_users"] == 0
+    await manager.async_create(
+        {"display_name": "Managed", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    metrics = manager.station_metrics("a")
+    assert metrics["managed_users"] == 1 and metrics["pending_users"] == 0
+    assert metrics["sync_health"] == "synced" and metrics["last_reconciled"]
+    assert metrics["inventory_sampled_at"]
+    await manager.async_close()
+    assert manager.station_metrics("a") is None
+
+
+async def test_station_metrics_deduplicate_pending_removals(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {"display_name": "Remove me", "assignments": {"a": {"allowed_locks": [1]}}}
+    )
+    await drain(manager)
+    device.offline = True
+    await manager.async_delete(user["id"], revision=manager.repository.get(user["id"]).revision)
+    await drain(manager)
+    # A binding and its deletion journal both refer to the same pending person.
+    assert manager.station_metrics("a")["pending_users"] == 1
+    device.offline = False
+    manager.request("a")
+    await drain(manager)
+    assert manager.station_metrics("a")["pending_users"] == 0

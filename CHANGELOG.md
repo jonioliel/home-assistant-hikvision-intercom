@@ -4,8 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Added
+- Opt-in HA diagnostic sensors for observed managed people, unique pending people, sync state and last successful reconciliation. Missing inventory stays unknown; offline queues stay visible. Pending-work age remains unimplemented.
+
 ### Documentation
-- Add forty further planned tasks (N41–N80), preserving the prior N01–N40 backlog. Record priorities, distinct deliverables, dependencies and specification mapping; no runtime changes or new physical acceptance.
+- Add forty further planned tasks (N41ג€“N80), preserving the prior N01ג€“N40 backlog. Record priorities, distinct deliverables, dependencies and specification mapping; no runtime changes or new physical acceptance.
 
 ## [0.33.0-beta.1] - 2026-09-11
 
@@ -72,16 +75,16 @@ Semantic Versioning is used throughout the project.
 - Expose RTC connection and ICE state in safe playback diagnostics to distinguish signaling success from a decoded video stream.
 
 ### Validation and migration
-- Real browser decoding confirmed 2688×2016 MSE video from two stations through the installed go2rtc server. RTC over UDP connected but lost packets without decoding frames; TCP decoded 2688×1520 H.264 from both stations with zero packet loss in the measured interval. Prefer TCP for the selected add-on and retry ordinary RTC once when TCP is unavailable. See docs/PROFILES_MEDIA_031_HE.md for evidence and setup.
+- Real browser decoding confirmed 2688ֳ—2016 MSE video from two stations through the installed go2rtc server. RTC over UDP connected but lost packets without decoding frames; TCP decoded 2688ֳ—1520 H.264 from both stations with zero packet loss in the measured interval. Prefer TCP for the selected add-on and retry ordinary RTC once when TCP is unavailable. See docs/PROFILES_MEDIA_031_HE.md for evidence and setup.
 - Add persistence, migration, revision-conflict, admin authorization, bounded JPEG, photo privacy/deletion, selected-provider signaling, lifecycle, filtering, capture and Hebrew responsive regression checks. No device credentials, photos, raw signaling or live video recordings are published.
-- User storage payload migrates from schema 3 to 4 atomically. Keep a Home Assistant backup before upgrading; an older integration cannot read schema 4. Photos are JPEG up to 32 KiB and 512×512; the capture UI produces 256×256 images. Aggregate photo data is capped below the existing 32 MiB storage limit.
+- User storage payload migrates from schema 3 to 4 atomically. Keep a Home Assistant backup before upgrading; an older integration cannot read schema 4. Photos are JPEG up to 32 KiB and 512ֳ—512; the capture UI produces 256ֳ—256 images. Aggregate photo data is capped below the existing 32 MiB storage limit.
 
 ## [0.30.0-alpha.1] - 2026-09-10
 
 ### Added
 - Add global camera playback options under WisKey Management tools: HLS or WebRTC/go2rtc, RTC or MSE, and an explicit HLS fallback preference. Persist settings once for all WisKey players and administrators, with atomic storage, revision conflict protection and live refresh across browsers.
 - Implement real MSE fragmented-MP4 playback through an authenticated Home Assistant WebSocket bridge. Use the HA go2rtc integration or an explicitly configured trusted local go2rtc server; keep camera source credentials off the browser. Bound messages, buffering, startup and idle waits, and close streams on visibility, ownership, station, setting or connection changes.
-- Add microphone permission/device/processor errors, live microphone signal and accepted-packet counters, and a privacy-preserving audio diagnostic export. Distinguish accepted microphone packets, microphone bytes written toward the station, and total transport bytes including generated silence. Talk continues over browser → HA → ISAPI independently of RTC video.
+- Add microphone permission/device/processor errors, live microphone signal and accepted-packet counters, and a privacy-preserving audio diagnostic export. Distinguish accepted microphone packets, microphone bytes written toward the station, and total transport bytes including generated silence. Talk continues over browser ג†’ HA ג†’ ISAPI independently of RTC video.
 
 ### Validation
 - Verify live MSE negotiation and binary H.264 data from two stations through the existing go2rtc server. Open concurrent ISAPI audio sessions, receive data, transmit silence, close both sessions and confirm unchanged channel configuration and idle call state. Speaker audibility and the owner's browser microphone path remain unverified.
@@ -590,7 +593,7 @@ Semantic Versioning is used throughout the project.
 
 ### Validation and limitations
 - Live GET-only checks against DS-KV6124-E1 V3.9.0 build260115 confirmed advertised ranges
-  1–255 for templates/weeks, 1–64 for groups and 1–1024 for holidays. Every sample-1 GET
+  1ג€“255 for templates/weeks, 1ג€“64 for groups and 1ג€“1024 for holidays. Every sample-1 GET
   returned device status 3. A failed GET is never treated as an empty or available slot.
 - Schedule allocation, device writes, RightPlan assignment and physical enforcement remain
   unavailable pending protocol/ownership/readback validation. Even successful readiness
@@ -607,7 +610,7 @@ Semantic Versioning is used throughout the project.
   explicitly start collection, inspect a masked result, then confirm before adding a normal card
   and reconciling existing assignments. Fresh device identity/capability checks gate every start.
 - Manufacturer-documented CaptureCardInfo workflow. The commissioned firmware advertises support
-  and card length 1–32; its detailed capabilities do not advertise reader selection, so the
+  and card length 1ג€“32; its detailed capabilities do not advertise reader selection, so the
   documented default-reader request omits readerID. Collection technology is never confused with
   the access-control cardType enum. Unsupported or malformed capabilities/results fail closed.
 - Administrator-owned, ephemeral collection sessions: one per station, three across the fleet,
@@ -836,9 +839,9 @@ Semantic Versioning is used throughout the project.
 
 ## [0.6.0-alpha.1] - 2026-09-08
 
-### Combined release — Phases 2–5
+### Combined release ג€” Phases 2ג€“5
 
-This prerelease includes all changes below for versions 0.3–0.5 as well as Phase 5.
+This prerelease includes all changes below for versions 0.3ג€“0.5 as well as Phase 5.
 It upgrades the public 0.2 core integration with central user/PIN/card management,
 the Hebrew/English administrator panel, camera/live-video views, synchronization,
 import/conflict review, native events and bounded audit history.
@@ -864,7 +867,7 @@ The release workflow reruns required checks on the exact publication commit.
 - Physical PIN/card lifecycle, nine-station soak and real HACS install/upgrade remain acceptance gates.
 
 
-## [0.5.0-alpha.1] — Phase 4 (included in 0.6.0-alpha.1)
+## [0.5.0-alpha.1] ג€” Phase 4 (included in 0.6.0-alpha.1)
 
 - Add bounded alert-stream framing for the station's nested JSON MIME messages.
 - Normalize documented access events without inferring physical door movement or call answer.
@@ -874,9 +877,9 @@ The release workflow reruns required checks on the exact publication commit.
 - Validate the production client with 241 queried records and a bounded live stream capture.
 
 
-## [0.4.0-alpha.1] — Phase 3 (included in 0.6.0-alpha.1)
+## [0.4.0-alpha.1] ג€” Phase 3 (included in 0.6.0-alpha.1)
 
-### Added — Phase 3
+### Added ג€” Phase 3
 - Bundled Lit/TypeScript administrator sidebar: overview, users/editor, devices and sync matrix.
 - English/Hebrew RTL, mobile person cards, dark/light HA themes and keyboard-accessible dialogs.
 - HA camera previews and enlarged HA HLS video; no direct device connection from the browser.
@@ -891,9 +894,9 @@ The release workflow reruns required checks on the exact publication commit.
 - Published together with Phases 2, 4 and 5 in the 0.6.0-alpha.1 prerelease.
 - Physical acceptance and installation/upgrade on the owner's HA host remain pending.
 
-## [0.3.0-alpha.1] — Phase 2 (included in 0.6.0-alpha.1)
+## [0.3.0-alpha.1] ג€” Phase 2 (included in 0.6.0-alpha.1)
 
-### Added — Phase 2
+### Added ג€” Phase 2
 - Capability-driven user/card access client with bounded complete pagination and explicit write transactions.
 - Private central records, masked administrator views, revision/identity guards and durable ownership journals.
 - User-deletion tombstones and retired-card reservations survive offline stations and restarts.
@@ -929,7 +932,7 @@ The release workflow reruns required checks on the exact publication commit.
 - Requires Home Assistant 2026.9.1+. All publication checks run against the exact release commit.
 - Production-client read-only check passed on the target firmware without sending a release.
 - One active physical relay per station; camera-only mode is supported.
-- Central user/card/PIN management and the dedicated administrator panel follow in Phases 2–3.
+- Central user/card/PIN management and the dedicated administrator panel follow in Phases 2ג€“3.
 - Physical PIN change/removal, card CRUD, call sequence and nine-station commissioning remain open.
 
 ## [0.1.0-alpha.1] - 2026-09-08

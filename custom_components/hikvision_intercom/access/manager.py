@@ -701,6 +701,28 @@ class AccessManager:
             user["sync_reference"] = self.diagnostics.reference(user["id"])
         return {**public, "stations": stations}
 
+    def station_metrics(self, station_id: str) -> dict[str, Any] | None:
+        """Nonpersonal, read-only HA projection; no I/O or full user serialization."""
+        station = self.stations.get(station_id)
+        if self._closed or station is None:
+            return None
+        state = self.repository._state
+        pending = len(self._pending_users(state, station_id))
+        owned = {b["employee_no"] for b in state["bindings"].get(station_id, {}).values()}
+        status = station.status if station.status in SYNC_STATES else "unknown"
+        # A queued change can precede the worker's state transition.
+        if status == "synced" and pending:
+            status = "pending"
+        return {
+            "managed_users": len(set(station.inventory.users) & owned)
+            if station.inventory is not None
+            else None,
+            "pending_users": pending,
+            "sync_health": status,
+            "last_reconciled": station.reconciled_at,
+            "inventory_sampled_at": station.scanned_at,
+        }
+
     def sync_diagnostics(self) -> dict[str, Any]:
         """A support export excludes host/title/person/employee/credential identifiers."""
         stations = []
