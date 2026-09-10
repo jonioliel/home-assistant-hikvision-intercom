@@ -1,17 +1,22 @@
 # Project progress
 
-The [95% completion and UI redesign plan](ROADMAP_95_AND_UI_HE.md) remains the forward plan.
-Current release **0.27.6-alpha.1**: mandatory acceptance **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**.
-Phase 6: four software features implemented, four partial, one absent. Combined scope remains
-**37/47 = 78.7%**. This patch recovers change history and permission comparisons from missing replies,
-and discards obsolete audit results after a connection or view changes. It does not close physical acceptance.
-[Overnight delivery and open gates](OVERNIGHT_2026_09_10_HE.md). Access storage schema remains 3.
+Current release **0.27.7-alpha.1** closes the actionable software recovery gaps found in this review.
+The [delivery and remaining dependency report](SOFTWARE_CLOSURE_0277_HE.md) maps the outcome to
+A–F of the [95% roadmap](ROADMAP_95_AND_UI_HE.md). Mandatory acceptance remains **31/38 (81.6%)**,
+Phase 5 **8/9 (88.9%)**, and combined scope **37/47 (78.7%)**. Phase 6 still has four software
+features implemented, four partial and one absent. No physical acceptance was inferred.
 
-Published [v0.27.6-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.6-alpha.1) from `fe98cc1eb45737b1d3bde07bc07b8580c83defbd`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34420965388) passed: 887 Python tests per version (3.12/3.14), 274 HA tests,
-226 browser tests, mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
-The published tag, manifest, panel bundle and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.27.6-alpha.1.json).
+Published [v0.27.7-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.7-alpha.1) from `fc70d2088acb4092e078d13993b1f40c6277b138`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34443660814) passed: **887 Python tests per version (3.12/3.14),
+278 HA tests and 256 browser tests**, mypy57, Ruff, TypeScript, Prettier, reproducible bundles,
+HACS and Hassfest. The tag, manifest, panel and audio worklet match the tested commit.
+[Publication evidence](evidence/release_0.27.7-alpha.1.json). Access storage schema remains 3.
+
+Validity and event/history date drafts preserve instants across clock changes; discarded PIN fields
+clear visibly; bulk changes recover by receipt across navigation; planning requests have bounded
+waits; storage rejects writes that would become unreadable after restart. Remaining work requires
+installed HA access, firmware evidence, owner usability feedback or coordinated hardware acceptance.
+The earlier [overnight run](OVERNIGHT_2026_09_10_HE.md) is complete; its automation stays paused.
 
 ## Historical checkpoints (earlier counts below are not current)
 

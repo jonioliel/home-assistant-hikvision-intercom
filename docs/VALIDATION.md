@@ -1,15 +1,16 @@
-# Current validation — 0.27.6-alpha.1 audit recovery
+# Current validation — 0.27.7-alpha.1 software recovery
 
-Published code: `fe98cc1eb45737b1d3bde07bc07b8580c83defbd`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34420965388) passed:
-887 Python tests per version (3.12/3.14), 274 Home Assistant tests, 226 browser tests,
+Published code: `fc70d2088acb4092e078d13993b1f40c6277b138`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34443660814) passed:
+887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 256 browser tests,
 mypy57, Ruff, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel and audio worklet were verified against the tested commit.
-[Release evidence](evidence/release_0.27.6-alpha.1.json).
+[Release evidence](evidence/release_0.27.7-alpha.1.json).
 
-[Delivery, regression reproductions and limits](OVERNIGHT_2026_09_10_HE.md).
-No physical device operations were performed for this patch. Audible audio, calls, cards,
-timed validity, the original unidentified PIN event and nine-station hardware acceptance remain open.
-Prior [0.27 evidence](RECOVERY_027_HE.md) retains its own physical/loopback scope.
+[Delivery, regression reproductions and remaining gates](SOFTWARE_CLOSURE_0277_HE.md).
+Thirty browser and four HA regression tests were added since 0.27.6. The storage failures were
+reproduced in actual HA CI before their fix. Local Windows Python passed all 887 tests.
+No physical device operations were performed. Calls, audible audio, card lifecycle, timed validity,
+installed WebRTC, the original unidentified PIN event and hardware fleet acceptance remain open.
 Historical checkpoints below retain their original counts.
 
 # Phase 0 validation — 2026-09-08

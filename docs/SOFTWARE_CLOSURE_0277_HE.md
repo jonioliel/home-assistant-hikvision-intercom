@@ -32,7 +32,19 @@
 מכוונים ו־274 בדיקות שעברו ([הרצה](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34442306205)).
 בדיקת יומן השינויים תוקנה תחילה לפתיחת אזור המסננים; לאחר מכן שוחזרה סטיית הזמן עצמה.
 
-תוצאות הבדיקה המלאה והפרסום יירשמו לאחר השלמת שערי השחרור.
+פורסמה [v0.27.7-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.7-alpha.1) מהקוד `fc70d2088acb4092e078d13993b1f40c6277b138`.
+[כל שבעת שערי הפרסום](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34443660814) עברו: **887 בדיקות Python בכל גרסה (3.12/3.14),
+278 Home Assistant ו־256 דפדפן**, לצד mypy על 57 קבצים, Ruff, TypeScript,
+Prettier, שחזור חבילת הממשק, HACS ו־Hassfest. התג, manifest, הפאנל ו־AudioWorklet
+אומתו מול הקוד שנבדק. [ראיית פרסום מלאה](evidence/release_0.27.7-alpha.1.json).
+נוספו **34 בדיקות רגרסיה** ביחס ל־0.27.6: ארבע HA ושלושים בדפדפן.
+
+קומיטי המימוש: `5fbc105`, `cde5e29` (תוקף זמן), `c7e3dd1` (PIN),
+`ce32879` (פעולות קבוצתיות), `d2f74b3` (מסננים ושמירה), `0cb3b50` (תכנון),
+`fc70d20` (אריזת הגרסה והתיעוד). קומיטי הבדיקות ששחזרו את הכשלים נשמרו לפניהם.
+
+לעדכון: ב־HACS בחר 0.27.7-alpha.1, הורד והפעל מחדש את Home Assistant.
+לאחר רענון הפאנל מספר הגרסה המוצג צריך להתאים. סכמה 3 נשארה ללא שינוי.
 
 ## מה נשאר ומה נדרש להמשך
 
