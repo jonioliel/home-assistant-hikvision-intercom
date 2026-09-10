@@ -1,6 +1,7 @@
 import "./deployment-plans";
 import { formatTime, UTC_ZONE } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { ScopedRequests } from "./request";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
@@ -276,10 +277,25 @@ export class IntercomSchedules extends LitElement {
   private _checkStation = "";
   private _date = today();
   private _time = "12:00";
+  private requests = new ScopedRequests(() => this.hass);
+  private connection?: Hass["connection"];
+  private actor?: string;
   private _epoch = 0;
   private _loaded = false;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  connectedCallback() {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    const actor = this.hass?.user?.id;
+    if (connection !== this.connection || actor !== this.actor) {
+      this.clear();
+      this.connection = connection;
+      this.actor = actor;
+    }
     if (changed.has("hass") && !this.hass?.user?.is_admin) this.clear();
     else if (!this._loaded && this.hass?.user?.is_admin) {
       this._loaded = true;
@@ -292,6 +308,7 @@ export class IntercomSchedules extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this.requests.cancel();
     this._planBusy = false;
     this._importPreview = undefined;
     this.invalidateAssessment();
@@ -312,7 +329,10 @@ export class IntercomSchedules extends LitElement {
     return epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin;
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
-    return this.hass!.callWS<T>({ type: `hikvision_intercom/schedules/${command}`, ...data });
+    return this.requests.run<T>(
+      { type: `hikvision_intercom/schedules/${command}`, ...data },
+      ["readiness", "assess", "dependencies"].includes(command) ? 120000 : 60000,
+    );
   }
   canLeave() {
     return !this._busy && !this._planBusy && this.discard();

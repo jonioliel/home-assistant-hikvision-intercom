@@ -51,7 +51,7 @@ for (const [selector, command, reload] of screens) {
     }, command);
     await page.getByRole("button", { name: "Access schedules", exact: true }).click();
     const screen = page.locator(selector);
-    await screen.evaluate(async (node: any) => {
+    await page.locator("hikvision-intercom-panel").evaluate(async (node: any) => {
       node.hass = { ...node.hass, connection: { ...node.hass.connection } };
       await node.updateComplete;
     });

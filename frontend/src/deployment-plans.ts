@@ -1,5 +1,6 @@
 import "./schedule-operations";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { ScopedRequests } from "./request";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
@@ -129,6 +130,9 @@ export class DeploymentPlans extends LitElement {
   private _weekly = "";
   private _group = "";
   private _holidays: string[] = [];
+  private requests = new ScopedRequests(() => this.hass);
+  private connection?: Hass["connection"];
+  private actor?: string;
   private _epoch = 0;
   private _sequence = 0;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
@@ -139,7 +143,19 @@ export class DeploymentPlans extends LitElement {
       this._holidays = [];
     }
   }
+  connectedCallback() {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    const actor = this.hass?.user?.id;
+    if (connection !== this.connection || actor !== this.actor) {
+      this.clear();
+      this.connection = connection;
+      this.actor = actor;
+    }
     if (!this.hass?.user?.is_admin) {
       if (changed.has("hass") || this._loaded) this.clear();
       return;
@@ -155,6 +171,7 @@ export class DeploymentPlans extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this.requests.cancel();
     this._sequence++;
     this._items = [];
     this._preview = undefined;
@@ -175,7 +192,10 @@ export class DeploymentPlans extends LitElement {
     );
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
-    return this.hass!.callWS<T>({ type: `hikvision_intercom/schedules/plan_${command}`, ...data });
+    return this.requests.run<T>(
+      { type: `hikvision_intercom/schedules/plan_${command}`, ...data },
+      ["preview", "recheck"].includes(command) ? 120000 : 60000,
+    );
   }
   private error(e: unknown) {
     return this.t((e as { code?: string })?.code ?? "failed");

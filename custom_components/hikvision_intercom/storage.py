@@ -18,7 +18,6 @@ from homeassistant.util.file import write_utf8_file_atomic
 from .access.models import AccessError
 from .issues import issue
 
-
 MAX_STORAGE_BYTES = 33_554_432
 
 

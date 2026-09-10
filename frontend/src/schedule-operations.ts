@@ -1,4 +1,5 @@
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { ScopedRequests } from "./request";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
@@ -115,11 +116,26 @@ export class ScheduleOperationsPanel extends LitElement {
   private _error = "";
   private _selected = "";
   private _loaded = false;
+  private requests = new ScopedRequests(() => this.hass);
+  private connection?: Hass["connection"];
+  private actor?: string;
   private _epoch = 0;
   private _sequence = 0;
   private _timer?: ReturnType<typeof setTimeout>;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  connectedCallback() {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
   protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    const actor = this.hass?.user?.id;
+    if (connection !== this.connection || actor !== this.actor) {
+      this.clear();
+      this.connection = connection;
+      this.actor = actor;
+    }
     if (!this.hass?.user?.is_admin) {
       if (this._loaded) this.clear();
       return;
@@ -145,6 +161,7 @@ export class ScheduleOperationsPanel extends LitElement {
   }
   private clear() {
     this._epoch++;
+    this.requests.cancel();
     this._sequence++;
     clearTimeout(this._timer);
     this._timer = undefined;
@@ -159,7 +176,7 @@ export class ScheduleOperationsPanel extends LitElement {
     return epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin;
   }
   private api<T>(action: string, data: Record<string, unknown> = {}) {
-    return this.hass!.callWS<T>({
+    return this.requests.run<T>({
       type: `hikvision_intercom/schedules/operations_${action}`,
       ...data,
     });
