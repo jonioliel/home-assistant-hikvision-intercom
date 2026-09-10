@@ -29,6 +29,8 @@ class MSEView(HomeAssistantView):
     def __init__(self, hass: HomeAssistant):
         self.hass = hass
         self.active: set[web.WebSocketResponse] = set()
+        self.finished = asyncio.Event()
+        self.finished.set()
 
     async def get(self, request: web.Request, station_id: str) -> web.StreamResponse:
         user = request.get("hass_user")
@@ -44,8 +46,11 @@ class MSEView(HomeAssistantView):
         if policy["transport"] != "webrtc" or policy["webrtc_mode"] != "mse":
             raise web.HTTPConflict()
         revision = policy["revision"]
-        ws = web.WebSocketResponse(heartbeat=15, max_msg_size=1024)
+        # Continuous video, bounded upstream reads and downstream writes detect stalls.
+        # Avoid aiohttp heartbeat timers racing with concurrent receive/close.
+        ws = web.WebSocketResponse(max_msg_size=1024)
         self.active.add(ws)
+        self.finished.clear()
         tasks: list[asyncio.Task[Any]] = []
         try:
             await ws.prepare(request)
@@ -144,9 +149,13 @@ class MSEView(HomeAssistantView):
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
-            self.active.discard(ws)
-            if ws.prepared:
-                await ws.close()
+            try:
+                if ws.prepared:
+                    await ws.close()
+            finally:
+                self.active.discard(ws)
+                if not self.active:
+                    self.finished.set()
         return ws
 
     async def stop(self, _event: Any) -> None:
@@ -156,5 +165,6 @@ class MSEView(HomeAssistantView):
 @callback
 def register_mse(hass: HomeAssistant) -> None:
     view = MSEView(hass)
+    hass.data[DOMAIN]["mse_view"] = view
     hass.http.register_view(view)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, view.stop)

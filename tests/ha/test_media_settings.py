@@ -70,7 +70,10 @@ async def mse_server(hass, loaded_entry, socket_enabled, aiohttp_server):
         session=async_get_clientsession(hass), url=str(server.make_url(""))
     )
     await hass.data[DOMAIN]["media_settings"].update(0, {**DEFAULTS, "webrtc_mode": "mse"})
-    return state
+    yield state
+    view = hass.data[DOMAIN]["mse_view"]
+    await asyncio.wait_for(view.finished.wait(), 3)
+    assert not view.active
 
 
 async def test_mse_signed_url_carries_binary_and_closes_upstream(
