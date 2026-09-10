@@ -1,24 +1,19 @@
-# 0.31 local validation checkpoint
+# Current validation — 0.31.0-alpha.1
 
-Implementation commit: `5b6cb8c8e66fffd9d5231dc887c00a644219ad28`, candidate `0.31.0-alpha.1`.
-[Delivery and exact evidence boundaries](PROFILES_MEDIA_031_HE.md), [live decoder measurements](evidence/media_031.json).
+Published code: `c90ba1e9185f9113d3396ad463bdf4d02df5750a`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34481556058) passed:
+**926 Python tests per version (3.12/3.14), 301 Home Assistant tests and 315 browser tests**,
+Ruff, mypy (59 source files), TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+The published tag, manifest, panel and audio worklet match the tested commit.
+[Release evidence](evidence/release_0.31.0-alpha.1.json), [delivery and boundaries](PROFILES_MEDIA_031_HE.md).
 
-- Full browser suite: **315 passed**. The earlier Hebrew card-enrollment journey was updated
-  to navigate through Edit, matching the new UI; the complete rerun passed.
-- Core suite excluding the separately checked audio soak: **925 passed**.
-- `test_nine_station_audio_fault_does_not_block_pin_recovery_or_polling` timed out after
-  30 seconds locally. The same failure reproduced in an isolated checkout of published
-  baseline `5552650`, with baseline imports verified. The test remains unchanged and is
-  still a required release check; baseline reproduction does not waive it.
-- Ruff lint/format, mypy (59 source files), TypeScript, Prettier and production build passed.
-- Actual built browser player decoded MSE and TCP RTC video from two stations through the
-  existing go2rtc add-on. No authenticated installed-HA UI or physical speaker claim is made.
-
-Publication is pending fresh approval: automatic approval review rejected uploading this
-candidate to the public GitHub repository. Nothing in this checkpoint is a published release.
-Real Home Assistant tests, Python CI, HACS/Hassfest and release-bundle checks must complete
-on GitHub after upload authorization, before a release is created. Local Python uses 3.12;
-the real-HA test environment requires Python 3.14 and was not run on this Windows host.
+The local nine-station audio soak timeout also reproduced in published baseline `5552650` on
+Windows. The same unchanged test passed in both complete release CI suites; its timeout and
+assertions were not weakened. The local non-soak suite passed 925 tests and the full browser
+suite passed 315. The real HA suite passed admin permissions, signed-path authentication,
+selected-provider RTC forwarding/cleanup/revocation and profile-photo persistence/privacy.
+Live built-player probes decoded MSE and TCP RTC from two stations through the existing
+add-on; they do not establish installed authenticated HA UI playback or physical audibility.
+The earlier upload approval block was resolved by explicit owner authorization before push.
 
 ## Previous validation — 0.30.0-alpha.1 global playback and audio diagnostics
 

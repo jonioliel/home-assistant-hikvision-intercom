@@ -1,0 +1,28 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.31.0-alpha.1",
+  "tag": "v0.31.0-alpha.1",
+  "sha": "c90ba1e9185f9113d3396ad463bdf4d02df5750a",
+  "prerelease": true,
+  "published_at": "2026-09-10T13:18:29Z",
+  "manifest_version": "0.31.0-alpha.1",
+  "bundle_bytes": 1195057,
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34481556058",
+  "release_jobs_passed": 7,
+  "python_tests_per_version": 926,
+  "home_assistant_tests": 301,
+  "browser_tests": 315,
+  "audio_worklet_verified": true,
+  "manifest_name": "WisKey",
+  "live_mse_and_rtc_two_stations": true,
+  "installed_ha_ui": "awaiting_owner_check",
+  "physical_audibility": "unverified",
+  "access_storage_schema": 4,
+  "validation_notes": [
+    "The unchanged nine-station audio soak timed out on the local Windows host, including the previous published baseline. It passed within both complete Python CI suites (3.12 and 3.14), without relaxing its timeout or assertions.",
+    "The full HA suite passed selected-add-on signaling, signed-path authentication, reader denial, session revocation, photo access and global settings checks.",
+    "Real built-player probes decoded MSE and TCP RTC from two stations through the existing go2rtc add-on; they did not use the installed authenticated HA UI.",
+    "Public upload initially required fresh approval, received when the owner resumed the archived session and explicitly asked to push the update."
+  ]
+}

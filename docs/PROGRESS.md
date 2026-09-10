@@ -1,21 +1,21 @@
 # Project progress
 
-## 0.31 delivery checkpoint
+## Current release — 0.31.0-alpha.1
 
-User row actions now sit inside Edit, with Sync now beside Edit. New global profile options
-provide configurable user fields, groups and optional camera-captured portraits. User data
+User row actions now sit inside Edit, with Sync now beside Edit. Global profile options
+provide configurable fields, groups, filters and optional camera-captured portraits. User data
 migrates atomically to schema 4; profile-only changes preserve device synchronization state.
-The selected go2rtc add-on now serves both RTC and MSE. Real browser probes decoded video
-from two stations in both modes; TCP removed the packet loss observed on the tested UDP path.
-[Delivery, setup and limitations](PROFILES_MEDIA_031_HE.md), [sanitized media evidence](evidence/media_031.json).
+The selected go2rtc add-on serves both RTC and MSE. Real browser probes decoded video
+from two stations in both modes; TCP removed packet loss observed on the tested UDP path.
+[Delivery and setup](PROFILES_MEDIA_031_HE.md), [sanitized media evidence](evidence/media_031.json).
 
-Implementation is committed locally as `5b6cb8c` for candidate **0.31.0-alpha.1**.
-Local validation: **315 browser tests and 925 core tests passed**. One separate audio soak
-also fails on the published baseline on this host; it remains a required CI check.
-Static checks and build passed. Public upload was blocked by automatic approval review;
-fresh upload approval and the full release CI are pending. This candidate is not in HACS yet.
-This delivery does not claim new physical acceptance gates. [Validation status](VALIDATION.md).
-
+Published [v0.31.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.31.0-alpha.1) from `c90ba1e9185f9113d3396ad463bdf4d02df5750a`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34481556058) passed: **926 Python tests per version (3.12/3.14),
+301 HA tests and 315 browser tests**, static checks, reproducible bundles, HACS and Hassfest.
+The unchanged audio soak passed in CI. [Publication evidence](evidence/release_0.31.0-alpha.1.json).
+The earlier upload block was resolved by fresh owner approval. This delivery does not claim
+new physical acceptance gates; installed-HA playback and physical speaker audibility remain
+owner checks. Historical phase counts below retain their existing acceptance boundaries.
 
 Previous release **0.30.0-alpha.1** adds global HLS / RTC / MSE settings under WisKey Management tools,
 real binary MSE playback through authenticated HA, and microphone/transport diagnostics.
