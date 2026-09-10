@@ -276,7 +276,7 @@ test("Hebrew bulk preview and history fit a mobile screen", async ({ page }) => 
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth > 390),
   ).toBe(false);
   await page.screenshot({ path: "test-results/bulk-he-mobile.png", fullPage: true });
-  await page.getByRole("button", { name: "יומן שינויים", exact: true }).click();
+  await navigate(page, "יומן שינויים");
   await expect(page.locator("hikvision-admin-audit .history article")).toHaveCount(1);
   expect(
     await page

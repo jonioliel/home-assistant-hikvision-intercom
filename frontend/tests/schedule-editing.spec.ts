@@ -75,7 +75,7 @@ test("copied days are independent and clearing existing windows requires confirm
 test("Hebrew mobile copy controls fit the panel", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
-  await page.getByRole("button", { name: "תוכניות שעות", exact: true }).click();
+  await navigate(page, "תוכניות שעות");
   await page.getByRole("button", { name: "תוכנית חדשה", exact: true }).click();
   const copy = page.getByRole("group", { name: "העתקת חלונות יומיים", exact: true });
   await copy.scrollIntoViewIfNeeded();

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 test("overview shows HA cameras and only enabled online release buttons", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Intercom Manager" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "WisKey" })).toBeVisible();
   await expect(page.locator("article.station")).toHaveCount(9);
   await expect(page.getByRole("button", { name: "Open active lock" })).toHaveCount(8);
   await expect(

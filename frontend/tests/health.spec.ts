@@ -200,7 +200,7 @@ test("Hebrew health on mobile has no horizontal overflow", async ({ page }) => {
     window.demoHass.language = "he";
     panel.hass = { ...window.demoHass };
   });
-  await page.getByRole("button", { name: "בריאות ובדיקות שטח", exact: true }).click();
+  await navigate(page, "בריאות ובדיקות שטח");
   await expect(page.locator(".health-card")).toHaveCount(9);
   expect(
     await page.locator("hikvision-intercom-health").evaluate((el) => el.scrollWidth > 390),

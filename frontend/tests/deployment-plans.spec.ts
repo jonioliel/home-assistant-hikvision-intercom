@@ -97,7 +97,7 @@ test("uncertain proposal save requires reload and does not repeat the save", asy
 test("Hebrew mobile proposal remains readable and never offers device apply", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
-  await page.getByRole("button", { name: "תוכניות שעות", exact: true }).click();
+  await navigate(page, "תוכניות שעות");
   await page.getByRole("button", { name: "תוכנית חדשה", exact: true }).click();
   await page.getByLabel("שם התוכנית", { exact: true }).fill("בדיקת פריסה");
   await page.getByRole("button", { name: "שמירת טיוטה", exact: true }).click();
