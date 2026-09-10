@@ -111,3 +111,41 @@ async def test_explicit_clock_refresh_rejects_unloaded_station(hass, loaded_entr
     await hass.config_entries.async_unload(loaded_entry.entry_id)
     result = await request(client, "stations/clock_refresh", station_id=loaded_entry.entry_id)
     assert result["error"]["code"] == "station_offline"
+
+
+async def test_measured_clock_health_survives_display_override_and_failed_read_resets_trend(hass):
+    from datetime import timedelta
+
+    from custom_components.hikvision_intercom.clock_health import measured_clock
+
+    instant = datetime(2026, 9, 8, 21, tzinfo=UTC)
+    sample = measured_clock(
+        {"Time": {"localTime": "2026-09-09T00:02:00+03:00", "timeZone": RULE, "timeMode": "NTP"}},
+        instant,
+        instant + timedelta(seconds=1),
+        1,
+    )
+    clock = StationClock(hass, SimpleNamespace(), {"kind": "iana", "name": "UTC"})
+    clock.client.async_read = AsyncMock(return_value=sample)
+    try:
+        with patch(
+            "custom_components.hikvision_intercom.clock_runtime.monotonic", side_effect=[0, 300]
+        ):
+            await clock.async_refresh()
+            assert clock.public()["drift_state"] == "ahead"
+            await clock.async_refresh()
+            value = clock.public()
+            assert value["drift_state"] == "repeated_ahead"
+            assert value["zone"]["name"] == "UTC"
+            assert value["device_zone"]["name"] == RULE
+            assert value["measurement"]["uncertainty_seconds"] == 1.5
+            assert value["next_transition"]["at"] == "2026-10-24T23:00:00+00:00"
+            value["measurement"]["uncertainty_seconds"] = 99
+            assert clock.public()["measurement"]["uncertainty_seconds"] == 1.5
+        clock.client.async_read = AsyncMock(side_effect=HikvisionValidationError("PRIVATE"))
+        await clock.async_refresh()
+        assert clock.public()["status"] == "stale"
+        assert clock.public()["drift_state"] == "not_measured"
+    finally:
+        await clock.async_close()
+    assert clock._timer is None

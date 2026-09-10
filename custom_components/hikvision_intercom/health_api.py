@@ -109,7 +109,19 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
     clock = runtime.clock.public() if runtime and runtime.clock else {}
     report["clock"] = {
         key: clock.get(key)
-        for key in ("source", "zone", "status", "checked_at", "skew_seconds", "error")
+        for key in (
+            "source",
+            "zone",
+            "device_zone",
+            "status",
+            "checked_at",
+            "skew_seconds",
+            "error",
+            "measurement",
+            "next_transition",
+            "drift_state",
+            "time_mode",
+        )
     }
     cached = data.get("media_evidence", {}).get(station.id)
     report["media"] = cached[1] if cached and cached[0] is runtime else None

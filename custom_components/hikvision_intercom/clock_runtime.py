@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
+from time import monotonic
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -13,6 +14,7 @@ from .access_runtime import SIGNAL_ACCESS_CHANGED
 from .client.client import HikvisionClient
 from .client.clock import ClockClient
 from .clock import UTC_ZONE
+from .clock_health import ClockTrend
 from .exceptions import HikvisionError
 
 
@@ -23,6 +25,7 @@ class StationClock:
         self.hass, self.client, self.manual = hass, ClockClient(client), manual
         self.observed: dict[str, Any] | None = None
         self.error: str | None = None
+        self.trend = ClockTrend()
         self._task: asyncio.Task[None] | None = None
         self._timer: asyncio.TimerHandle | None = None
         self._closed = False
@@ -47,9 +50,11 @@ class StationClock:
         try:
             async with asyncio.timeout(20):
                 self.observed = await self.client.async_read()
+            self.trend.observe(self.observed, monotonic())
             self.error = None
         except (HikvisionError, TimeoutError):
             self.error = "clock_read_failed"
+            self.trend.reset()
         finally:
             self._task = None
             if not self._closed:
@@ -76,6 +81,11 @@ class StationClock:
             "skew_seconds": self.observed["skew_seconds"] if self.observed else None,
             "time_mode": self.observed["time_mode"] if self.observed else None,
             "device_zone": deepcopy(self.observed["zone"]) if self.observed else None,
+            "measurement": deepcopy(self.observed.get("measurement")) if self.observed else None,
+            "next_transition": deepcopy(self.observed.get("next_transition"))
+            if self.observed
+            else None,
+            "drift_state": self.trend.state,
         }
 
     async def async_close(self) -> None:

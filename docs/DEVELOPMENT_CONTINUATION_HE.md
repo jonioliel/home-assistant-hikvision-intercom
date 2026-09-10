@@ -1,21 +1,28 @@
-# Development checkpoint — operational sensors and camera layouts
+# WisKey — נקודת המשך לפיתוח
 
-Started 11 September 2026 on owner authorization to implement the additional roadmap within the remaining usage allowance.
+תאריך: 11 בספטמבר 2026. עבודה מאושרת לפי N41–N80, במסגרת מכסת השימוש שנותרה.
 
-## N73 — partial implementation
+## תוצרים בסבב הנוכחי
 
-Four opt-in diagnostic sensor entities: observed managed people, unique pending people, sync state, and last successful reconciliation time. Disabled by default. Counts use a nonpersonal projection without serializing public user records or making station requests. Missing inventory is unknown; queued work remains visible while offline. The observed count includes the last inventory scan time. A completed reconciliation is not physical access confirmation.
+- **N65 — פריסות מצלמות שמורות:** מימוש ובדיקות מקומיות הושלמו. עד 20 פריסות לכל מנהל בדפדפן, עם סדר ותקציב זרמים. טעינה עוצרת ניגון; תחנה שהוסרה מוצגת כחסרה. נתונים פגומים נשמרים ללא דריסה; נשמרת הפרדה בין משתמשים ונבדקת כתיבה מתחרה. commit `4437e03`.
+- **N73 — מימוש חלקי:** ארבע ישויות אבחון כבויות כברירת מחדל: משתמשים מנוהלים שנצפו, משתמשים הממתינים לסנכרון, מצב סנכרון ומועד התאמה מוצלחת אחרונה. אין נתונים אישיים ואין בקשות למכשיר לצורך ספירה. מלאי שלא נסרק מוצג כלא ידוע; התור מוצג גם בניתוק. commits `a59b942`, `b94411c`.
+- **N77 — השוואת שעוני הצי:** מימוש ובדיקות מקומיות הושלמו; בדיקות HA ו־CI מורחבות נדרשות לפני הפצה. אומדן ביחס לשעון שרת HA לפי אמצע חלון הבקשה, עם אי־ודאות הכוללת את משך הבקשה ודיוק של שנייה. שינוי שעון שרת במהלך הבקשה פוסל את האומדן. שתי דגימות באותו כיוון, בהפרש 5–45 דקות, נדרשות לסימון חריגה חוזרת מעל 90 שניות. כשל קריאה או שינוי בסיס המדידה מאפס את הרצף. זו אינה הוכחה לחריגה רציפה.
 
-Pending-work age is still open: the current durable schema has no reliable creation timestamp for every work type. No age is guessed from a user's edit time. N73 is not marked complete.
+תצוגת השעונים נמצאת בכלי ניהול ← בריאות ובדיקות שטח. היא משווה מקור זמן וכללי מכשיר, מפרידה בין כללי המכשיר לאזור הזמן הידני לתצוגה, ומציגה מועד דגימה. דגימה בת יותר מ־30 דקות מסומנת כישנה. מעבר שעון עתידי מחושב רק מכללי M מפורשים שהתקבלו מהמכשיר; אזור IANA שאינו UTC מוצג כ״לא חושב״. אין שינוי שעה, NTP או הרשאות.
 
-Initial validation: 45 access-manager tests passed, Ruff and formatting passed, strict mypy passed for 62 configured modules. Real HA lifecycle/opt-in coverage was added and awaits Linux CI. Other requested tasks remain open. No station I/O was performed during this implementation.
+## בדיקות
 
-Next: N65 named camera layouts, then the next independent priority item. Published version remains 0.33.0-beta.1 until a tested release is created.
+- N65: כל 356 בדיקות הדפדפן עברו; TypeScript ועיצוב קוד עברו.
+- N73: בדיקות GitHub על b94411c עברו, לרבות 997 בדיקות Python בכל אחת משתי הגרסאות ו־313 בדיקות HA.
+- N77: 46 בדיקות שעון וחישובים עברו; 15 בדיקות דפדפן ממוקדות עברו, כולל 360/768/1440 פיקסלים, התיישנות נתונים, הסרת הרשאת מנהל ותשובות ישנות. Ruff ו־mypy עברו. נוספה בדיקת מחזור חיים ב־HA.
+- ריצת דפדפן ראשונה ל־N77 השתמשה בחבילה מלפני הבנייה; לאחר בנייה והרצה חוזרת עברו כל הבדיקות הממוקדות.
+- לא בוצעו פעולות בציוד פיזי בסבב זה.
 
-## N65 — implemented and locally validated
+## מה ממשיך לאחר איפוס המכסה
 
-Named camera layouts save camera order and four/nine budget per administrator/browser (maximum twenty). Loading always stops playback; removed cameras are reported and not silently replaced. Saving checks concurrent storage changes; malformed storage is preserved and not overwritten. Logout/user changes reset selection and playback. Eleven focused browser cases passed including 360/768/1440px layouts, save/load, order, missing cameras, actor changes, corrupt and stale preferences.
+1. לבדוק סטטוס CI של ה־HEAD האחרון לפני הפצה.
+2. להשלים N73: גיל עבודה ממתינה דורש זמן התחלה עמיד לכל סוג עבודה. אין להסיק אותו מתאריך עריכת המשתמש או להחזיר אפס ללא מדידה.
+3. להמשיך ב־N80, N45 ו־N60 לפי התלויות במסמך התכנון; כל יתר המשימות נותרות פתוחות.
+4. לבצע בדיקות פיזיות מתואמות כשיהיה אדם ליד התחנות. קבלת הליבה נשארת 31/38 (81.6%); התוספות אינן סוגרות בדיקות שטח.
 
-The first HA sensor run passed 312 cases and found a new test incorrectly assuming inventory exists immediately after loading a station with no managed people. Commit b94411c asserts unknown before a scan, then requests reconciliation and verifies zero after the actual scan. No production behavior was weakened.
-
-N65 final local verification: all 356 browser tests passed, TypeScript and formatting passed. N73 corrected CI on b94411c passed all workflows. N77 clock comparison is the next implementation underway.
+הגרסה המפורסמת בתחילת הסבב היא 0.33.0-beta.1. אין לפרסם טענה על גרסה חדשה לפני שה־Release קיים ובדיקות ההפצה עברו.

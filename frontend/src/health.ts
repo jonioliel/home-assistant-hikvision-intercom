@@ -1,3 +1,4 @@
+import "./fleet-clocks";
 import "./event-tools";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
@@ -6,7 +7,7 @@ import { formatTime, UTC_ZONE } from "./time";
 import { downloadText } from "./download";
 import { boundedRequest } from "./request";
 import "./call-controls";
-import type { Hass, Station } from "./types";
+import type { Hass, Station, StationClock } from "./types";
 
 interface HealthRead {
   id: string;
@@ -20,7 +21,7 @@ interface Health {
   firmware?: string;
   online?: boolean;
   generated_at: string;
-  clock?: { skew_seconds?: number | null; status?: string; checked_at?: string | null };
+  clock?: Partial<StationClock>;
   access?: { queue_depth: number; errors: Record<string, number>; last_error?: string | null };
   events?: {
     stream: string;
@@ -373,7 +374,7 @@ export class IntercomHealth extends LitElement {
         }
       </p>
       <p>${this.t("health_skew")}: ${report?.clock?.skew_seconds ?? "—"}</p>
-      ${Math.abs(report?.clock?.skew_seconds ?? 0) > 90 ? html`<p class="notice error">${this.t("health_clock_warning")}</p>` : nothing}
+      ${report?.clock?.status === "ready" && ["ahead", "behind", "repeated_ahead", "repeated_behind"].includes(report.clock.drift_state ?? "") ? html`<p class="notice error">${this.t("health_clock_warning")}</p>` : nothing}
       <p>${this.t("health_delay")}: ${delays?.median ?? "—"} / ${delays?.p95 ?? "—"}</p>
       <p class="sub">${this.t("event_clock_hint")}</p>
       <div class="toolbar">
@@ -449,6 +450,11 @@ export class IntercomHealth extends LitElement {
       >
         ${this.t("health_refresh")}
       </button>
+      <hikvision-intercom-fleet-clocks
+        .hass=${this.hass}
+        .stations=${this.stations}
+        .reports=${this._reports}
+      ></hikvision-intercom-fleet-clocks>
       <div class="health-grid">${this.stations.map((station) => this.card(station))}</div>
     </section>`;
   }

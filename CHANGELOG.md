@@ -5,6 +5,7 @@ Semantic Versioning is used throughout the project.
 ## [Unreleased]
 
 ### Added
+- Fleet clock comparison with measured request uncertainty, repeated drift qualification, sampled device DST forecasts, stale-data handling, and separate device/display zones. Read-only; HA is the time reference.
 - Save up to twenty named camera-wall layouts per administrator/browser. Restore camera order and the stream budget with playback stopped; report removed cameras and reject stale or corrupted preference writes.
 - Opt-in HA diagnostic sensors for observed managed people, unique pending people, sync state and last successful reconciliation. Missing inventory stays unknown; offline queues stay visible. Pending-work age remains unimplemented.
 

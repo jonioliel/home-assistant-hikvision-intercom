@@ -47,6 +47,19 @@ export interface LastAccess {
   door: number | null;
 }
 export interface StationClock {
+  measurement?: {
+    status: string;
+    duration_seconds: number | null;
+    estimated_skew_seconds: number | null;
+    uncertainty_seconds: number | null;
+  } | null;
+  next_transition?: {
+    status: string;
+    at?: string;
+    before_seconds?: number;
+    after_seconds?: number;
+  } | null;
+  drift_state?: string;
   source: "device" | "manual" | "fallback";
   zone: DisplayZone;
   device_zone: DisplayZone | null;

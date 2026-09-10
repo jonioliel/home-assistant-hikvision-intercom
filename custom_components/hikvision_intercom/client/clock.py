@@ -2,9 +2,10 @@
 
 import asyncio
 from datetime import UTC, datetime
+from time import monotonic
 from typing import Any
 
-from ..clock import parse_clock
+from ..clock_health import measured_clock
 from .client import HikvisionClient
 
 
@@ -20,5 +21,7 @@ class ClockClient:
             expected_identity=self.client._expected_identity,
         )
         await reader.async_confirm_identity()
+        started, tick = datetime.now(UTC), monotonic()
         payload = await reader._get("/ISAPI/System/time")
-        return await asyncio.to_thread(parse_clock, payload, datetime.now(UTC))
+        received, elapsed = datetime.now(UTC), monotonic() - tick
+        return await asyncio.to_thread(measured_clock, payload, started, received, elapsed)
