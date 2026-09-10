@@ -2,8 +2,12 @@
 
 Custom user columns and inherited group door grants with personal exceptions are implemented.
 Policy and effective users now commit atomically in schema 5; existing access remains personal.
-[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local focused tests passed; the full
-local and GitHub release gates are still in progress. No new physical acceptance gate is claimed.
+[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local full validation passed **933 core tests and 322 browser tests**; Ruff,
+formatting, mypy (60 files), TypeScript, Prettier and production build passed.
+Implementation commit: `6179b01`. Public upload was rejected by automatic approval review;
+fresh authorization for this candidate and destination is required. No 0.32 release exists yet.
+Home Assistant, unchanged audio soak and all release CI gates remain required after approval.
+No new physical acceptance gate is claimed. [Local evidence](evidence/groups_032_local.json).
 
 # Project progress
 

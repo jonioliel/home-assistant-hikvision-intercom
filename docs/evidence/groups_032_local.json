@@ -1,0 +1,24 @@
+{
+  "version": "0.32.0-alpha.1",
+  "implementation_commit": "6179b01cd4486576ca40e3ab3d8c617d1fe0cc2d",
+  "core_tests_passed": 933,
+  "core_test_deselected": "test_nine_station_audio_fault_does_not_block_pin_recovery_or_polling",
+  "browser_tests_passed": 322,
+  "mypy_files": 60,
+  "static_checks_passed": true,
+  "build_passed": true,
+  "group_recovery_test_cases": 8,
+  "responsive_widths": [
+    360,
+    768,
+    1440
+  ],
+  "appearances": [
+    "current",
+    "modern"
+  ],
+  "ha_tests": "written; pending CI",
+  "physical_device_permission_changes": false,
+  "published": false,
+  "blocker": "Automatic approval review requires fresh authorization for 0.32 public upload."
+}
