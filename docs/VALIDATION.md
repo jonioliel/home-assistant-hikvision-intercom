@@ -1,13 +1,13 @@
-# Current validation — 0.28.0-alpha.1 alternate interface
+# Current validation — 0.28.1-alpha.1 compact overview header
 
-Published code: `3198e0f9f527e7efc096f20d99b003f99e1119a4`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34452343525) passed:
-887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 275 browser tests,
+Published code: `a571eec9c5bc80fa6f21f8769e0a7f27c8ed587f`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34460023906) passed:
+887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 283 browser tests,
 Ruff, mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
 The published tag, manifest, panel and audio worklet were verified against the tested commit.
-[Release evidence](evidence/release_0.28.0-alpha.1.json).
+[Release evidence](evidence/release_0.28.1-alpha.1.json).
 
-[Delivery and responsive verification](ALTERNATE_UI_028_HE.md). Nineteen new browser tests cover
-appearance preferences, state preservation, effective HA themes and responsive layouts.
+[Delivery and responsive verification](COMPACT_HEADER_0281_HE.md). Eight new browser tests cover
+compact positioning, wrapping, accessible counter names, updates, large values and existing-design preservation.
 No physical device operations were performed. Existing physical gates and counts are unchanged.
 Historical checkpoints below retain their original counts.
 

@@ -1,6 +1,6 @@
 # Hikvision Intercom Manager
 
-Latest delivery: [0.28 optional responsive interface](docs/ALTERNATE_UI_028_HE.md).
+Latest delivery: [0.28.1 compact overview header](docs/COMPACT_HEADER_0281_HE.md).
 
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:

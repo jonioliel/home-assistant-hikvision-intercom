@@ -42,7 +42,13 @@
 שמונה בדיקות ממוקדות עברו מקומית: פריסת הכותרת בחמישה שילובים של רוחב/שפה/ערכת צבעים,
 חזרה לעיצוב הקיים, עדכון מונים בזמן רענון וערכים גדולים בפאנל של 320px בתוך חלון 1500px.
 נבדקו בנוסף העיצוב ובורר ההעדפה; TypeScript, Prettier ובניית הפאנל עברו.
-תוצאות הרגרסיה המלאות וקישורי הפרסום יירשמו לאחר שערי השחרור.
+פורסמה [v0.28.1-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.28.1-alpha.1) מהקומיט `a571eec9c5bc80fa6f21f8769e0a7f27c8ed587f`.
+[כל שבעת שערי הפרסום](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34460023906) עברו: **887 בדיקות Python בכל גרסה (3.12/3.14),
+278 Home Assistant ו־283 בדיקות דפדפן**, וכן TypeScript, Prettier, Ruff, mypy,
+שחזור חבילת הממשק, HACS ו־Hassfest. התג, ה־manifest, הפאנל וה־AudioWorklet
+אומתו מול הקוד שנבדק. [ראיות הפרסום](evidence/release_0.28.1-alpha.1.json).
+
+קומיט המימוש: `a571eec`. קומיט ההדמיה והתכנון: `31f9fba`.
 
 ## תיעוד ההתקדמות
 

@@ -1,0 +1,19 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.28.1-alpha.1",
+  "tag": "v0.28.1-alpha.1",
+  "sha": "a571eec9c5bc80fa6f21f8769e0a7f27c8ed587f",
+  "prerelease": true,
+  "published_at": "2026-09-10T09:22:11Z",
+  "manifest_version": "0.28.1-alpha.1",
+  "bundle_bytes": 1132768,
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34460023906",
+  "release_jobs_passed": 7,
+  "python_tests_per_version": 887,
+  "home_assistant_tests": 278,
+  "browser_tests": 283,
+  "audio_worklet_verified": true,
+  "new_browser_tests": 8,
+  "physical_device_operations": false
+}

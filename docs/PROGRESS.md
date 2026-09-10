@@ -1,19 +1,16 @@
 # Project progress
 
-**0.28.1 compact header:** the approved status chips are implemented and in release validation.
-See [delivery, screenshots and layout comparison](COMPACT_HEADER_0281_HE.md). Hardware acceptance is unchanged.
+Current release **0.28.1-alpha.1** places compact status chips beside the new design's Overview title,
+with two short rows on mobile. The owner approved the mockup before implementation.
+See [delivery, screenshots and measured layout comparison](COMPACT_HEADER_0281_HE.md).
+The existing design, shared counts, station controls and access behavior are preserved.
+[Full alternate interface guide](ALTERNATE_UI_028_HE.md).
 
-Current release **0.28.0-alpha.1** delivers the owner-approved alternate interface. Existing/New design
-selection is per Home Assistant user and browser; light/dark follows HA. All eight views adapt to
-panel width, including mobile, tablet, desktop, landscape and resizing while editing.
-See [delivery, screenshots and validation](ALTERNATE_UI_028_HE.md) and the
-[completed C-ALT stages](design/ALTERNATE_UI_HE.md).
-
-Published [v0.28.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.28.0-alpha.1) from `3198e0f9f527e7efc096f20d99b003f99e1119a4`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34452343525) passed: **887 Python tests per version (3.12/3.14),
-278 HA tests and 275 browser tests**, Ruff, mypy, TypeScript, Prettier, reproducible bundles,
+Published [v0.28.1-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.28.1-alpha.1) from `a571eec9c5bc80fa6f21f8769e0a7f27c8ed587f`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34460023906) passed: **887 Python tests per version (3.12/3.14),
+278 HA tests and 283 browser tests**, Ruff, mypy, TypeScript, Prettier, reproducible bundles,
 HACS and Hassfest. The tag, manifest, panel and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.28.0-alpha.1.json). Access storage schema remains 3.
+[Publication evidence](evidence/release_0.28.1-alpha.1.json). Access storage schema remains 3.
 
 Mandatory acceptance remains **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**, and combined scope
 **37/47 (78.7%)**. Phase 6 still has four software features implemented, four partial and one absent.
