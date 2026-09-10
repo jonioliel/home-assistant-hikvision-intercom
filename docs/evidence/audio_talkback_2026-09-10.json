@@ -174,5 +174,7 @@
   ],
   "local_audio_python_tests_passed": 37,
   "local_audio_browser_tests_passed": 31,
-  "browser_validation_note": "29 passed on first run; two new layout checks failed because of a fixture-global lookup and passed after correcting the selector. Full release CI remains required."
+  "browser_validation_note": "29 passed on first run; two new layout checks failed because of a fixture-global lookup and passed after correcting the selector. Full release CI remains required.",
+  "candidate_0_32_1_commit": "2c4d485d25ff8b50de6cb815f87f31267ae69b00",
+  "release_evidence": "release_0.32.1-alpha.1.json"
 }

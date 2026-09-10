@@ -1,0 +1,21 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.1-alpha.1",
+  "tag": "v0.32.1-alpha.1",
+  "sha": "2c4d485d25ff8b50de6cb815f87f31267ae69b00",
+  "prerelease": true,
+  "published_at": "2026-09-10T15:17:24Z",
+  "manifest_version": "0.32.1-alpha.1",
+  "bundle_bytes": 1209806,
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34494380104",
+  "release_jobs_passed": 7,
+  "python_tests_per_version": 938,
+  "home_assistant_tests": 304,
+  "browser_tests": 327,
+  "access_storage_schema": 5,
+  "physical_speaker_audibility": "unverified",
+  "owner_speech_to_speaker_issue": "unresolved; awaiting installed HA counters and physical comparison",
+  "persistent_station_configuration_writes": 0,
+  "audio_worklet_verified": true
+}

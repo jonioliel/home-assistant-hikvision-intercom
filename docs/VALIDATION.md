@@ -1,4 +1,26 @@
-# Current validation — 0.32.0-alpha.1
+# Current validation — 0.32.1-alpha.1
+
+Published code: `2c4d485d25ff8b50de6cb815f87f31267ae69b00`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34494380104) passed:
+**938 Python tests per version (3.12/3.14), 304 HA tests and 327 browser tests**, Ruff,
+formatting, mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
+[Release evidence](evidence/release_0.32.1-alpha.1.json), [audio investigation](AUDIO_TALKBACK_DIAGNOSTICS_HE.md).
+
+New checks cover a persistent successful upload acknowledgment, safe numeric rejection
+status, retained peak, visible byte/status counters, failed refresh with a labelled old sample,
+late results after session replacement, Hebrew desktop/mobile layout and actual file download.
+Local focused audio validation passed 37 Python cases and 31 browser cases after correcting
+two layout-test fixture selectors. The first candidate CI run also found three camera-layout
+checks still using the old Hebrew download label; those selectors were updated, all four
+camera layouts passed locally and the full release suite passed. Screenshots at 390/1440px
+were visually inspected.
+
+Both real stations accepted the candidate's raw upload with HTTP 200, wrote 15360 microphone
+queue bytes (silence), received 16000 bytes and confirmed closure. Settings stayed unchanged.
+These checks were from the VPN development computer. They do not verify speech audibility
+or the installed HA-to-speaker path. The owner reported 23 HA-accepted microphone packets;
+the corresponding HA microphone byte counter and physical comparison remain outstanding.
+
+## Previous validation — 0.32.0-alpha.1
 
 Published code: `e5f50a10bd93d23b28b40de8312b9a333d040e8a`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34488590232) passed:
 **934 Python tests per version (3.12/3.14), 304 Home Assistant tests and 322 browser tests**,

@@ -1,6 +1,24 @@
 # Project progress
 
-## Current release — 0.32.0-alpha.1
+## Current release — 0.32.1-alpha.1
+
+[Published diagnostic patch](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.32.1-alpha.1) from `2c4d485d25ff8b50de6cb815f87f31267ae69b00`.
+The audio foldout now shows microphone bytes written to the station, numeric HTTP upload
+status, sample time and retained microphone peak. Server counters refresh during talk and
+can be read without downloading a file; download has its own explicit button.
+[Investigation and use](AUDIO_TALKBACK_DIAGNOSTICS_HE.md).
+
+Two real stations report matching G.711ulaw and talk volume 7/10. Their channels toggle
+closed/open correctly, accept silence upload with HTTP 200 and close without changing
+configuration. The owner's speech-to-speaker issue remains unresolved; installed HA byte
+counters and a coordinated audible comparison are still required. No physical acceptance
+percentage is increased by this diagnostic release.
+
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34494380104) passed: **938 Python tests per version, 304 HA tests and 327 browser tests**,
+static checks, reproducible build, HACS and Hassfest. [Evidence](evidence/release_0.32.1-alpha.1.json).
+Storage remains schema 5.
+
+## Previous release — 0.32.0-alpha.1
 
 Enabled custom user fields and memberships are visible in the table and mobile cards.
 Groups grant their combined station door permissions; personal additions and denials override
