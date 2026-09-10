@@ -37,7 +37,7 @@ async def test_global_settings_survive_reload_and_conflicting_admin(
 
 
 @pytest.fixture
-async def mse_server(hass, loaded_entry, aiohttp_server):
+async def mse_server(hass, loaded_entry, socket_enabled, aiohttp_server):
     state = {"closed": asyncio.Event(), "sources": [], "error": False}
 
     async def socket(request):

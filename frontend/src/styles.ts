@@ -635,6 +635,12 @@ export const styles = css`
   .camera-controls {
     min-width: 0;
   }
+  .camera-controls {
+    max-block-size: max(80px, calc(100dvh - 280px));
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
   .camera-video {
     position: sticky;
     top: 0;
@@ -646,6 +652,11 @@ export const styles = css`
     .camera-layout {
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
+    }
+    .camera-controls {
+      max-block-size: none;
+      overflow: visible;
+      scrollbar-gutter: auto;
     }
     .camera-video {
       position: static;
