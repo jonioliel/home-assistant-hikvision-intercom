@@ -1,13 +1,18 @@
-# Current validation — 0.28.1-alpha.1 compact overview header
+# Current validation — 0.29.0-alpha.1 WisKey management and live clock
 
-Published code: `a571eec9c5bc80fa6f21f8769e0a7f27c8ed587f`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34460023906) passed:
-887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 283 browser tests,
+Published code: `736c16078f9019171c5a2807c9b81e1ed7bb2f72`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34464255526) passed:
+887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 290 browser tests,
 Ruff, mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
-The published tag, manifest, panel and audio worklet were verified against the tested commit.
-[Release evidence](evidence/release_0.28.1-alpha.1.json).
+The published tag, manifest (name WisKey), panel and audio worklet match the tested commit.
+[Release evidence](evidence/release_0.29.0-alpha.1.json).
 
-[Delivery and responsive verification](COMPACT_HEADER_0281_HE.md). Eight new browser tests cover
-compact positioning, wrapping, accessible counter names, updates, large values and existing-design preservation.
+[Delivery and responsive verification](WISKEY_029_HE.md). Eight new browser cases cover
+midnight, Jerusalem summer time, DST transitions, zone changes, hidden/detached timer lifecycle,
+no camera remount/network requests on clock ticks, management navigation, revoked administrator access,
+and responsive Hebrew layouts in both designs. Existing UI journeys now use the management hub.
+The two old dialog-appearance tests were consolidated into one test of the new dialog restriction;
+clock/video preservation is covered separately. Total browser count increased from 283 to 290.
+The unchanged audio soak exceeded its local 30-second limit; both full Python suites passed in release CI.
 No physical device operations were performed. Existing physical gates and counts are unchanged.
 Historical checkpoints below retain their original counts.
 

@@ -1,0 +1,24 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.29.0-alpha.1",
+  "tag": "v0.29.0-alpha.1",
+  "sha": "736c16078f9019171c5a2807c9b81e1ed7bb2f72",
+  "prerelease": true,
+  "published_at": "2026-09-10T10:09:19Z",
+  "manifest_version": "0.29.0-alpha.1",
+  "bundle_bytes": 1138324,
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34464255526",
+  "release_jobs_passed": 7,
+  "python_tests_per_version": 887,
+  "home_assistant_tests": 278,
+  "browser_tests": 290,
+  "audio_worklet_verified": true,
+  "manifest_name": "WisKey",
+  "new_wiskey_browser_tests": 8,
+  "physical_device_operations": false,
+  "local_validation_notes": [
+    "Full browser run: 284 passed and 6 outdated name/navigation selectors failed; all six passed after updating the test journeys. CI reran all 290 together on this commit.",
+    "Local Python audio soak exceeded its 30-second limit twice; the full unchanged 887-test suite passed in release CI on both Python versions."
+  ]
+}
