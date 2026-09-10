@@ -262,3 +262,78 @@ test("an ambiguous unsaved validity range is cleared when its clock rules change
     false,
   );
 });
+
+for (const source of ["station", "ha", "removed"]) {
+  test(`event filters preserve their instant after a background ${source} clock change`, async ({
+    page,
+  }) => {
+    await configure(page);
+    await page.getByRole("button", { name: "Events", exact: true }).click();
+    if (source !== "ha")
+      await page.getByLabel("Station", { exact: true }).selectOption("station-0");
+    await page.getByLabel("From time", { exact: true }).fill("2026-09-09T12:30");
+    await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+    const original = await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("events/list")).at(-1).filters.start,
+    );
+    await page.evaluate(async (source) => {
+      if (source === "station")
+        window.demoData.stations[0].clock.zone = { kind: "iana", name: "America/New_York" };
+      else if (source === "ha")
+        window.demoData.default_zone = { kind: "iana", name: "America/New_York" };
+      else window.demoData.stations.shift();
+      await document.querySelector("hikvision-intercom-panel").refresh();
+    }, source);
+    await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+    expect(
+      await page.evaluate(
+        () => window.calls.filter((c) => c.type.endsWith("events/list")).at(-1).filters.start,
+      ),
+    ).toBe(original);
+  });
+}
+
+test("change-history filters preserve their instant after HA clock settings change", async ({
+  page,
+}) => {
+  await configure(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      if (!message.type.includes("/audit/")) return base.call(this, message);
+      window.calls.push(structuredClone(message));
+      return { records: [], actors: {}, total: 0, next_cursor: null };
+    };
+  });
+  await page.getByRole("button", { name: "Change history", exact: true }).click();
+  await page.getByLabel("From (HA display time)", { exact: true }).fill("2026-09-09T12:30");
+  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  const original = await page.evaluate(
+    () => window.calls.filter((c) => c.type.endsWith("audit/list")).at(-1).filters.start,
+  );
+  await page.evaluate(async () => {
+    window.demoData.default_zone = { kind: "iana", name: "America/New_York" };
+    await document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("audit/list")).at(-1).filters.start,
+    ),
+  ).toBe(original);
+});
+
+test("ambiguous event time drafts are visibly cleared when station clock rules change", async ({
+  page,
+}) => {
+  await configure(page);
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  await page.getByLabel("Station", { exact: true }).selectOption("station-0");
+  await page.getByLabel("From time", { exact: true }).fill("2026-10-25T01:30");
+  await page.evaluate(async () => {
+    window.demoData.stations[0].clock.zone = { kind: "iana", name: "Etc/UTC" };
+    await document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await expect(page.getByLabel("From time", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("alert")).toContainText("Enter the date range again");
+});
