@@ -11,6 +11,9 @@ Semantic Versioning is used throughout the project.
 - Assign station door permissions to groups in Management tools. Users inherit the union of active groups, with explicit personal grants and blocks; a personal block wins over all groups. Show permission sources and reset one or all personal exceptions in the user editor.
 - Apply group permission changes atomically to the policy and every affected user's desired access. Retain durable offline revocation, restart recovery and existing ownership/readback checks. Renaming groups does not request device writes.
 
+### Documentation
+- Document automatic HACS update discovery in Home Assistant, the one-time prerelease switch and the custom-repository polling delay. Publication does not imply immediate notification or automatic installation. See docs/HACS_UPDATES_HE.md.
+
 ### Compatibility and validation
 - Migrate access storage from schema 4 to 5 and import prior profile settings once into the central store. Preserve existing door assignments as personal exceptions, credentials, photos, pending revocations and audit history. Back up Home Assistant before upgrading; older integration versions cannot read schema 5.
 - Reject stale user-policy edits and stale bulk/CSV reviews. Preserve personal exceptions on unchanged doors when using legacy assignment edits. Disabled groups retain membership but grant no access.

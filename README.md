@@ -149,13 +149,17 @@ and access/event features:
    **Custom repository**, category **Integration**.
 2. Open **Hikvision Intercom Manager**, select the intended prerelease in the download
    dialog (enable beta versions if needed), download it and restart Home Assistant.
-3. In **Settings → Devices & services → Add integration**, choose **Hikvision Intercom**.
+3. In **Settings → Devices & services → Add integration**, choose **WisKey**.
 4. Enter the station address, account and ports, then confirm the detected device.
 5. Choose camera-only mode or stand beside the active lock and complete the mapping test.
 6. Repeat for each station. Receive subsequent releases through HACS and restart after updates.
 
 [HACS custom repository instructions](https://hacs.xyz/docs/faq/custom_repositories/).
 This is a custom repository, not a listing in the HACS default catalogue.
+HACS discovers updates periodically and exposes them under HA **Settings → Updates**.
+Enable the repository's **Pre-release** switch once to include the current alpha releases.
+Discovery is not instantaneous: the inspected HACS custom-repository interval is 48 hours.
+[Automatic update setup and timing (Hebrew)](docs/HACS_UPDATES_HE.md).
 The local development computer reaching a station over VPN does not establish that the
 Home Assistant host can reach it; HA must have its own network route.
 

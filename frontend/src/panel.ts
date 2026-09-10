@@ -2554,10 +2554,10 @@ export class IntercomManagerPanel extends LitElement {
               type="button"
               ?disabled=${this._busy}
               @click=${() => {
-              draft.permission_overrides = {};
-              this.refreshDraftPermissions();
-              this.requestUpdate();
-            }}
+                draft.permission_overrides = {};
+                this.refreshDraftPermissions();
+                this.requestUpdate();
+              }}
             >
               ${this.t("permission_reset_all")}
             </button>
