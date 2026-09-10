@@ -47,6 +47,20 @@ async function setup(page: Page) {
         w.audio.sent.push(message);
         return { sequence: message.sequence + 1 };
       }
+      if (message.type.endsWith("/diagnostics")) {
+        if (w.audio.delayDiagnostics)
+          return new Promise((resolve) => {
+            w.audio.resolveDiagnostics = resolve;
+          });
+        if (w.audio.failDiagnostics) throw new Error("synthetic diagnostics failure");
+        return {
+          microphone_packets_accepted: w.audio.sent.length,
+          microphone_bytes_written: w.audio.sent.length * 800,
+          total_bytes_written: w.audio.sent.length * 800 + 160,
+          received_bytes: 800,
+          upload_http_status: 200,
+        };
+      }
       return {};
     };
     navigator.mediaDevices.getUserMedia = async () => {
@@ -407,8 +421,108 @@ test("audio diagnostics report actual worklet counters without sound or session 
   const result = JSON.parse(await readFile((await (await download).path())!, "utf8"));
   expect(result.microphone_packets_acknowledged).toBeGreaterThan(2);
   expect(result.microphone_packets_captured).toBeGreaterThan(2);
+  expect(result.microphone_peak_percent).toBeGreaterThan(0);
+  expect(result.backend.upload_http_status).toBe(200);
+  expect(result.backend.microphone_bytes_written).toBeGreaterThan(0);
+  expect(result.backend_sampled_at).toBeTruthy();
   expect(result.physical_audibility).toBe("unverified");
   expect(result.path).toBe("browser_ha_isapi");
   expect(result.recording_saved).toBe(false);
   expect(JSON.stringify(result)).not.toContain("a".repeat(32));
 });
+
+test("visible server counters distinguish transmission from microphone acceptance and retain the peak", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator("summary").click();
+  await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+  await expect(audio.getByTestId("audio-written")).toHaveText("0");
+  await audio
+    .getByRole("button", { name: "Hold to talk", exact: true })
+    .dispatchEvent("pointerdown", { pointerId: 1 });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).audio.sent.length))
+    .toBeGreaterThan(2);
+  await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
+  await expect
+    .poll(async () => Number(await audio.getByTestId("audio-written").innerText()))
+    .toBeGreaterThan(0);
+  await expect
+    .poll(async () => Number((await audio.getByTestId("audio-peak").innerText()).replace("%", "")))
+    .toBeGreaterThan(0);
+  expect(await audio.evaluate((node: any) => node._signal)).toBe(0);
+  await expect(audio.getByRole("button", { name: "Download audio diagnostics" })).toBeVisible();
+});
+
+test("failed diagnostics retain a labelled old sample without stopping audio", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator("summary").click();
+  await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+  await page.evaluate(() => {
+    (window as any).audio.failDiagnostics = true;
+  });
+  await audio.getByRole("button", { name: "Refresh server counters" }).click();
+  await expect(audio).toContainText("Server diagnostics could not be refreshed");
+  await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+  await expect(audio.getByRole("button", { name: "Hold to talk", exact: true })).toBeEnabled();
+  await page.evaluate(() => {
+    (window as any).audio.failDiagnostics = false;
+  });
+  await audio.getByRole("button", { name: "Refresh server counters" }).click();
+  await expect(audio).not.toContainText("Server diagnostics could not be refreshed");
+});
+
+test("late diagnostic results cannot populate a replacement audio session", async ({ page }) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    (window as any).audio.delayDiagnostics = true;
+  });
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator("summary").click();
+  await expect
+    .poll(() => page.evaluate(() => typeof (window as any).audio.resolveDiagnostics))
+    .toBe("function");
+  await page.evaluate(() => {
+    (window as any).oldAudioDiagnostic = (window as any).audio.resolveDiagnostics;
+  });
+  await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+  await page.evaluate(() => {
+    (window as any).audio.delayDiagnostics = false;
+  });
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+  await page.evaluate(() => {
+    (window as any).oldAudioDiagnostic({
+      microphone_bytes_written: 999999,
+      upload_http_status: 403,
+    });
+  });
+  await expect(audio.getByTestId("audio-written")).toHaveText("0");
+  await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+});
+
+for (const width of [390, 1440])
+  test(`Hebrew audio diagnostics and download remain usable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 });
+    const audio = await setup(page);
+    await page.evaluate(() => {
+      window.demoHass.language = "he";
+      document.querySelector("hikvision-intercom-panel")!.hass = { ...window.demoHass };
+    });
+    await audio.getByRole("button", { name: "הפעל שמע", exact: true }).click();
+    await audio.locator("summary").click();
+    await expect(audio.getByTestId("audio-upload")).toHaveText("200");
+    const downloadButton = audio.getByRole("button", { name: "הורד קובץ אבחון", exact: true });
+    await downloadButton.scrollIntoViewIfNeeded();
+    await expect(downloadButton).toBeInViewport();
+    const download = page.waitForEvent("download");
+    await downloadButton.click();
+    expect((await download).suggestedFilename()).toBe("wiskey-audio-diagnostics.json");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: `test-results/audio-diagnostics-${width}-he.png` });
+  });

@@ -336,3 +336,31 @@ async def test_receive_does_not_return_queued_speech_after_transport_failure(aud
     audio.failure = "audio_connection_lost"
     with pytest.raises(AudioError):
         await audio.receive()
+
+
+async def test_upload_status_records_acknowledgment_while_connection_stays_open(audio):
+    audio._reader = asyncio.StreamReader()
+    assert audio.upload_http_status is None
+    task = asyncio.create_task(audio._upload_response())
+    audio._reader.feed_data(b"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n")
+    await asyncio.sleep(0)
+    assert audio.upload_http_status == 200 and not task.done()
+    audio._reader.feed_eof()
+    await task
+
+
+@pytest.mark.parametrize(
+    "line,expected",
+    [
+        (b"HTTP/1.1 401 Unauthorized\r\n", 401),
+        (b"HTTP/1.0 403 Forbidden\r\n", 403),
+        (b"not-an-http-status\r\n", None),
+    ],
+)
+async def test_rejected_upload_retains_only_safe_numeric_status(audio, line, expected):
+    audio._reader = asyncio.StreamReader()
+    audio._reader.feed_data(line)
+    with pytest.raises(AudioError) as error:
+        await audio._upload_response()
+    assert error.value.code == "audio_connection_lost"
+    assert audio.upload_http_status == expected

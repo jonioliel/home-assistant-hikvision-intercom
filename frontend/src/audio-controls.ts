@@ -58,6 +58,28 @@ export class IntercomAudioControls extends LitElement {
       background: var(--error-color, #b32b25);
       color: #fff;
     }
+    dl {
+      margin: 8px 0;
+      font-size: 13px;
+    }
+    dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 5px 0;
+    }
+    dt {
+      color: var(--secondary-text-color);
+    }
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    summary {
+      cursor: pointer;
+      padding-block: 8px;
+    }
     .error {
       color: var(--error-color, #b32b25);
     }
@@ -71,6 +93,12 @@ export class IntercomAudioControls extends LitElement {
     _micPending: { state: true },
     _acknowledged: { state: true },
     _signal: { state: true },
+    _peakSignal: { state: true },
+    _diagnosticsOpen: { state: true },
+    _diagnosticLoading: { state: true },
+    _diagnosticError: { state: true },
+    lastBackend: { state: true },
+    backendSampledAt: { state: true },
     _haConnected: { state: true },
   };
   hass?: Hass;
@@ -81,6 +109,13 @@ export class IntercomAudioControls extends LitElement {
   private _micPending = false;
   private _acknowledged = 0;
   private _signal = 0;
+  private _peakSignal = 0;
+  private _diagnosticsOpen = false;
+  private _diagnosticLoading = false;
+  private _diagnosticError = false;
+  private diagnosticEpoch = -1;
+  private lastDiagnosticPoll = 0;
+  private backendSampledAt: string | null = null;
   private captured = 0;
   private dropped = 0;
   private received = 0;
@@ -157,6 +192,14 @@ export class IntercomAudioControls extends LitElement {
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
+    if (
+      changed.has("station") &&
+      (changed.get("station") as Station | undefined)?.id !== this.station?.id
+    ) {
+      this.lastBackend = null;
+      this.backendSampledAt = null;
+      this._peakSignal = 0;
+    }
     const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
     if (this.observedConnection !== connection) this.bindConnection(connection);
     if (
@@ -206,6 +249,10 @@ export class IntercomAudioControls extends LitElement {
     this._acknowledged = this._signal = this.captured = this.dropped = this.received = 0;
     this.microphoneStage = "not_requested";
     this.lastBackend = null;
+    this.backendSampledAt = null;
+    this._peakSignal = 0;
+    this._diagnosticError = false;
+    this._diagnosticLoading = false;
     this.startedAt = new Date().toISOString();
     try {
       const context = new AudioContext({ sampleRate: 8000 });
@@ -230,6 +277,7 @@ export class IntercomAudioControls extends LitElement {
             this.token = event.token;
             this._state = "listening";
             void this.receive(epoch);
+            if (this._diagnosticsOpen) void this.refreshDiagnostics();
           } else this.stop("audio_unsupported");
         },
         { type: "hikvision_intercom/audio/start", station_id: this.activeStationId },
@@ -396,6 +444,7 @@ export class IntercomAudioControls extends LitElement {
     let energy = 0;
     for (const byte of packet) energy += decodeMuLaw(byte) ** 2;
     this._signal = Math.min(100, Math.round(Math.sqrt(energy / packet.length) * 100));
+    this._peakSignal = Math.max(this._peakSignal, this._signal);
     if (this.sending) {
       this.dropped++;
       return;
@@ -413,6 +462,8 @@ export class IntercomAudioControls extends LitElement {
         if (result.sequence !== this.sequence + 1) throw Error("audio_invalid_packet");
         this.sequence = result.sequence;
         this._acknowledged++;
+        if (this._diagnosticsOpen && performance.now() - this.lastDiagnosticPoll >= 2000)
+          void this.refreshDiagnostics();
       }
     } catch {
       if (this.valid(epoch)) this.stop("audio_connection_lost");
@@ -440,9 +491,13 @@ export class IntercomAudioControls extends LitElement {
     this.stream = undefined;
     if (this.token) {
       const epoch = this.epoch;
-      void this.request({ type: "hikvision_intercom/audio/mute", token: this.token }).catch(() => {
-        if (this.valid(epoch)) this.stop("audio_connection_lost");
-      });
+      void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
+        .then(() => {
+          if (this.valid(epoch) && this._diagnosticsOpen) void this.refreshDiagnostics();
+        })
+        .catch(() => {
+          if (this.valid(epoch)) this.stop("audio_connection_lost");
+        });
     }
   }
   private cancelSubscription(unsubscribe: () => void) {
@@ -454,6 +509,7 @@ export class IntercomAudioControls extends LitElement {
   }
   private stop(reason?: string) {
     this.epoch++;
+    this._diagnosticLoading = false;
     clearTimeout(this.openingTimeout);
     this.openingTimeout = undefined;
     this.connection = undefined;
@@ -474,39 +530,50 @@ export class IntercomAudioControls extends LitElement {
     this._state = "idle";
     if (reason && reason !== "audio_stopped") this._error = reason;
   }
+  private async refreshDiagnostics() {
+    const epoch = this.epoch;
+    if (!this.token || !this.valid(epoch) || this.diagnosticEpoch === epoch) return;
+    this.diagnosticEpoch = epoch;
+    this._diagnosticLoading = true;
+    this.lastDiagnosticPoll = performance.now();
+    try {
+      const result = await this.request<Record<string, unknown>>({
+        type: "hikvision_intercom/audio/diagnostics",
+        token: this.token,
+      });
+      if (!this.valid(epoch)) return;
+      this.lastBackend = Object.fromEntries(
+        [
+          "microphone_packets_accepted",
+          "microphone_bytes_written",
+          "total_bytes_written",
+          "received_bytes",
+          "dropped_receive_packets",
+          "upload_http_status",
+        ]
+          .filter(
+            (key) =>
+              typeof result[key] === "number" &&
+              Number.isFinite(result[key]) &&
+              (result[key] as number) >= 0,
+          )
+          .map((key) => [key, result[key]]),
+      );
+      this.backendSampledAt = new Date().toISOString();
+      this._diagnosticError = false;
+    } catch {
+      if (this.valid(epoch)) this._diagnosticError = true;
+    } finally {
+      if (this.diagnosticEpoch === epoch) this.diagnosticEpoch = -1;
+      if (this.epoch === epoch) this._diagnosticLoading = false;
+    }
+  }
   private async exportDiagnostics() {
     if (!this.hass?.user?.is_admin || !this.isConnected) return;
     const epoch = this.epoch,
       user = this.hass.user,
       connection = this.hass.connection;
-    if (this.token) {
-      try {
-        const result = await this.request<Record<string, unknown>>({
-          type: "hikvision_intercom/audio/diagnostics",
-          token: this.token,
-        });
-        if (
-          epoch !== this.epoch ||
-          this.hass?.user !== user ||
-          this.hass.connection !== connection ||
-          !this.isConnected
-        )
-          return;
-        this.lastBackend = Object.fromEntries(
-          [
-            "microphone_packets_accepted",
-            "microphone_bytes_written",
-            "total_bytes_written",
-            "received_bytes",
-            "dropped_receive_packets",
-          ]
-            .filter((key) => typeof result[key] === "number" && Number.isFinite(result[key]))
-            .map((key) => [key, result[key]]),
-        );
-      } catch {
-        this.lastBackend = null;
-      }
-    }
+    if (this.token) await this.refreshDiagnostics();
     if (
       epoch !== this.epoch ||
       this.hass?.user !== user ||
@@ -533,6 +600,9 @@ export class IntercomAudioControls extends LitElement {
           microphone_packets_acknowledged: this._acknowledged,
           microphone_packets_dropped_busy: this.dropped,
           microphone_signal_percent: this._signal,
+          microphone_peak_percent: this._peakSignal,
+          backend_sampled_at: this.backendSampledAt,
+          backend_refresh_failed: this._diagnosticError,
           receive_packets: this.received,
           backend: this.lastBackend,
           error: this._error || null,
@@ -551,15 +621,54 @@ export class IntercomAudioControls extends LitElement {
     return html`<section aria-label=${this.t("audio_title")}>
       <h3>${this.t("audio_title")}</h3>
       <p>${this.t("audio_hint")}</p>
-      <details>
-        <summary>${this.t("audio_diagnostics")}</summary>
+      <details
+        .open=${this._diagnosticsOpen}
+        @toggle=${(event: Event) => {
+          this._diagnosticsOpen = (event.currentTarget as HTMLDetailsElement).open;
+          if (this._diagnosticsOpen) void this.refreshDiagnostics();
+        }}
+      >
+        <summary>${this.t("audio_diagnostics_title")}</summary>
         <p>${this.t("audio_path_hint")}</p>
-        <p>
-          ${this.t("audio_signal")}: ${this._signal}% · ${this.t("audio_packets")}:
-          ${this._acknowledged}
-        </p>
+        <dl>
+          <div>
+            <dt>${this.t("audio_signal")}</dt>
+            <dd>${this._signal}%</dd>
+          </div>
+          <div>
+            <dt>${this.t("audio_peak")}</dt>
+            <dd data-testid="audio-peak">${this._peakSignal}%</dd>
+          </div>
+          <div>
+            <dt>${this.t("audio_packets")}</dt>
+            <dd>${this._acknowledged}</dd>
+          </div>
+          <div>
+            <dt>${this.t("audio_written")}</dt>
+            <dd data-testid="audio-written">
+              ${this.lastBackend?.microphone_bytes_written ?? "—"}
+            </dd>
+          </div>
+          <div>
+            <dt>${this.t("audio_upload")}</dt>
+            <dd data-testid="audio-upload">${this.lastBackend?.upload_http_status ?? "—"}</dd>
+          </div>
+        </dl>
+        <p>${this.t("audio_sample_hint")}</p>
+        ${this.backendSampledAt ? html`<p>${this.t("audio_sample_time")}: <time datetime=${this.backendSampledAt}>${new Date(this.backendSampledAt).toLocaleTimeString(this.hass?.language)}</time></p>` : nothing}
+        ${this._diagnosticError ? html`<p role="status">${this.t("audio_diagnostics_failed")}</p>` : nothing}
         <p>${this.t("audio_speaker_unverified")}</p>
-        <button @click=${() => this.exportDiagnostics()}>${this.t("audio_diagnostics")}</button>
+        <div class="buttons">
+          <button
+            ?disabled=${!this.token || this._diagnosticLoading}
+            @click=${() => this.refreshDiagnostics()}
+          >
+            ${this.t("audio_refresh_diagnostics")}
+          </button>
+          <button ?disabled=${this._diagnosticLoading} @click=${() => this.exportDiagnostics()}>
+            ${this.t("audio_diagnostics")}
+          </button>
+        </div>
       </details>
       <div class="buttons">
         ${

@@ -144,6 +144,7 @@ class AudioBridge:
                     "microphone_bytes_written": self.session.microphone_bytes
                     if self.session
                     else 0,
+                    "upload_http_status": self.session.upload_http_status if self.session else None,
                     "physical_result": "unverified",
                 },
             )
@@ -266,6 +267,7 @@ def packet_handler(operation: str) -> Any:
                     "total_bytes_written": session.sent_bytes,
                     "received_bytes": session.received_bytes,
                     "dropped_receive_packets": session.dropped_packets,
+                    "upload_http_status": session.upload_http_status,
                     "physical_result": "unverified",
                 }
             else:

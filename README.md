@@ -271,3 +271,6 @@ working ICE connectivity between the browser and go2rtc; an HTTP health check al
 ### Custom user columns and group permissions
 
 Version 0.32 adds custom-field columns, inherited group door permissions and personal exceptions. [Setup, precedence and schema-5 migration](docs/GROUP_PERMISSIONS_032_HE.md).
+
+For microphone packets accepted by HA but no speech from the station, use the
+[direct audio diagnostics and current investigation (Hebrew)](docs/AUDIO_TALKBACK_DIAGNOSTICS_HE.md).

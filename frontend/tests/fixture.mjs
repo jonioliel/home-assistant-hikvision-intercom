@@ -51,7 +51,7 @@ const data = {
     go2rtc_url: "",
   },
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.32.0-alpha.1",
+  version: "0.32.1-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,

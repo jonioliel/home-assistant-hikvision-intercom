@@ -89,6 +89,16 @@ const en = {
     "HA could not reach the saved go2rtc server. Check its address or configure the go2rtc integration.",
   player_mse: "MSE",
   audio_diagnostics: "Download audio diagnostics",
+  audio_diagnostics_title: "Audio diagnostics",
+  audio_peak: "Peak microphone signal this session",
+  audio_written: "Microphone bytes written to station",
+  audio_upload: "Station upload HTTP status",
+  audio_sample_hint:
+    "Server counters refresh while talking with diagnostics open. The current signal returns to zero on release; the peak is retained.",
+  audio_sample_time: "Last server sample",
+  audio_diagnostics_failed:
+    "Server diagnostics could not be refreshed. Any previous sample remains visible.",
+  audio_refresh_diagnostics: "Refresh server counters",
   audio_path_hint:
     "Talk uses your microphone → Home Assistant → ISAPI. RTC video connectivity does not verify or block this audio path.",
   audio_microphone_denied:
@@ -1377,7 +1387,16 @@ const he: Record<keyof typeof en, string> = {
   media_provider_failed:
     "HA לא הצליח לגשת לשרת go2rtc השמור. בדוק את הכתובת או הגדר את אינטגרציית go2rtc.",
   player_mse: "MSE",
-  audio_diagnostics: "הורדת אבחון שמע",
+  audio_diagnostics: "הורד קובץ אבחון",
+  audio_diagnostics_title: "אבחון שמע",
+  audio_peak: "שיא אות המיקרופון בסשן",
+  audio_written: "בתי מיקרופון שנכתבו לתחנה",
+  audio_upload: "קוד HTTP של חיבור השידור לתחנה",
+  audio_sample_hint:
+    "מוני השרת מתעדכנים בזמן הדיבור כשהאבחון פתוח. האות הנוכחי מתאפס בשחרור הכפתור; ערך השיא נשמר.",
+  audio_sample_time: "דגימת שרת אחרונה",
+  audio_diagnostics_failed: "לא ניתן לרענן את אבחון השרת. הדגימה הקודמת נשארת מוצגת, אם קיימת.",
+  audio_refresh_diagnostics: "רענון מוני שרת",
   audio_path_hint:
     "הדיבור נשלח מהמיקרופון דרך Home Assistant אל ISAPI. הצלחה או כישלון של וידאו RTC אינם מעידים על תקינות מסלול השמע הזה.",
   audio_microphone_denied:

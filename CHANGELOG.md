@@ -4,6 +4,17 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.32.1-alpha.1] - 2026-09-10
+
+### Fixed
+- Separate the audio diagnostics disclosure from the download button. Show station microphone-byte and HTTP upload counters directly in the camera dialog, with sample time, explicit refresh and refresh-failure feedback; a file download is no longer required to read the server counters.
+- Retain the peak microphone signal after releasing push-to-talk, alongside the instantaneous level that resets on release. Include the peak and backend sample time in the sanitized diagnostic export. Refresh while talking with diagnostics open and discard responses from previous sessions.
+
+### Diagnostics and validation
+- Capture only the numeric station PUT response status, without protocol headers or sound. HTTP 200 and bytes written do not establish physical speaker audibility.
+- Recheck two physical stations: G.711ulaw matches the client, talk volume is 7/10, the channel changes from disabled when closed to enabled while open, and all six bounded silence sessions close with unchanged settings. Content-Length and optional-session-query comparisons provide no evidence for a codec or transport change. See docs/AUDIO_TALKBACK_DIAGNOSTICS_HE.md.
+- Add upload acknowledgment/rejection and visible-counter, stale-response, refresh-failure, peak-retention and Hebrew mobile/desktop download coverage. The owner's speech-to-speaker failure remains under investigation pending installed-HA counters and a coordinated audible test. No storage migration or persistent station setting changes.
+
 ## [0.32.0-alpha.1] - 2026-09-10
 
 ### Added

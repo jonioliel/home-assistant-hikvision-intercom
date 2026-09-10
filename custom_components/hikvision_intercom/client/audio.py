@@ -63,7 +63,7 @@ def validate_channel(payload: dict[str, Any], capabilities: dict[str, Any]) -> N
         or channel.get("micInForbidden", "false") not in ("false", False)
     ):
         raise AudioError("audio_unsupported")
-    # Firmware 3.9.0 reports enabled=false even when open returns a valid session.
+    # Firmware 3.9.0 reports false while closed and true after a successful open.
     # No PUT to the channel configuration is necessary or performed.
 
 
@@ -107,6 +107,7 @@ class AudioSession:
         self._mute_epoch = 0
         self._last_send = 0.0
         self._credit = 2.0
+        self.upload_http_status: int | None = None
         self.received_bytes = 0
         self.sent_bytes = 0
         self.microphone_bytes = 0
@@ -212,11 +213,15 @@ class AudioSession:
                 self.failure = "audio_connection_lost"
 
     async def _upload_response(self) -> None:
-        # The documented persistent PUT has no initial acknowledgement. A rejected
-        # request or a peer closing the socket ends the session; no replay occurs.
+        # Observed firmware acknowledges PUT with HTTP 200, then keeps it open.
+        # Retain only the numeric status; it confirms transport, not speaker playback.
+        # A rejected request or peer closure ends the session without replay.
         line = await self._reader.readline()
         if line:
-            if not re.fullmatch(rb"HTTP/1\.[01] 200 [^\r\n]*\r\n", line):
+            status = re.fullmatch(rb"HTTP/1\.[01] ([1-5][0-9]{2}) [^\r\n]*\r\n", line)
+            if status:
+                self.upload_http_status = int(status.group(1))
+            if self.upload_http_status != 200:
                 raise AudioError("audio_connection_lost")
             headers = await self._reader.readuntil(b"\r\n\r\n")
             if len(headers) > 8192:

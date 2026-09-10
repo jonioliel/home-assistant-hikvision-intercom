@@ -1,0 +1,178 @@
+{
+  "observed_at": "2026-09-10T14:49:52.899109+00:00",
+  "integration_version": "0.32.0-alpha.1",
+  "tested_commit": "c1f7530adc8256ed954d2f08f21a592fa163dbf4",
+  "physical_audibility": "unverified",
+  "owner_report": {
+    "browser": "desktop_https",
+    "microphone_level_moves": true,
+    "acknowledged_packets_increase": true,
+    "speaker_not_heard": true,
+    "station_alias": "station_1",
+    "microphone_packets_acknowledged_reported": 23,
+    "signal_reported_after_release_percent": 0,
+    "diagnostic_file_not_obtained": true
+  },
+  "persistent_configuration_writes": 0,
+  "audio_recording_saved": false,
+  "ha_backend_diagnostics": "pending_owner_report",
+  "stations": [
+    {
+      "station_alias": "station_1",
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "codec": "G.711ulaw",
+      "idle_channel_enabled": false,
+      "talk_volume": 7,
+      "other_output_volume": 7,
+      "volume_range": [
+        0,
+        10
+      ],
+      "transports": [
+        {
+          "variant": "production",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 24800,
+          "sent_bytes": 24320,
+          "microphone_bytes_written": 23360,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        },
+        {
+          "variant": "content_length_zero",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 24800,
+          "sent_bytes": 24160,
+          "microphone_bytes_written": 23360,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        },
+        {
+          "variant": "without_session_query",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 24800,
+          "sent_bytes": 24000,
+          "microphone_bytes_written": 23200,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        }
+      ]
+    },
+    {
+      "station_alias": "station_2",
+      "model": "DS-KV6124-E1",
+      "firmware": "V3.9.0 build 260115",
+      "codec": "G.711ulaw",
+      "idle_channel_enabled": false,
+      "talk_volume": 7,
+      "other_output_volume": 7,
+      "volume_range": [
+        0,
+        10
+      ],
+      "transports": [
+        {
+          "variant": "production",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 25600,
+          "sent_bytes": 24960,
+          "microphone_bytes_written": 23840,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        },
+        {
+          "variant": "content_length_zero",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 24800,
+          "sent_bytes": 24160,
+          "microphone_bytes_written": 23360,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        },
+        {
+          "variant": "without_session_query",
+          "sent_signal": "mulaw_silence",
+          "configuration_writes": 0,
+          "received_bytes": 24800,
+          "sent_bytes": 24320,
+          "microphone_bytes_written": 23360,
+          "put_status": 200,
+          "response_body_seen": false,
+          "failure": null,
+          "close_confirmed": true,
+          "channel_restored": true,
+          "speaker_volume_unchanged": true,
+          "after_call_state": "idle",
+          "channel_enabled_while_open": true
+        }
+      ]
+    }
+  ],
+  "candidate_0_32_1_recheck": [
+    {
+      "station_alias": "station_1",
+      "signal": "G711_silence_only",
+      "configuration_writes": 0,
+      "recording_saved": false,
+      "upload_http_status": 200,
+      "microphone_bytes_written": 15360,
+      "received_bytes": 16000,
+      "failure": null,
+      "close_confirmed": true,
+      "channel_restored": true,
+      "call_state": "idle"
+    },
+    {
+      "station_alias": "station_2",
+      "signal": "G711_silence_only",
+      "configuration_writes": 0,
+      "recording_saved": false,
+      "upload_http_status": 200,
+      "microphone_bytes_written": 15360,
+      "received_bytes": 16000,
+      "failure": null,
+      "close_confirmed": true,
+      "channel_restored": true,
+      "call_state": "idle"
+    }
+  ],
+  "local_audio_python_tests_passed": 37,
+  "local_audio_browser_tests_passed": 31,
+  "browser_validation_note": "29 passed on first run; two new layout checks failed because of a fixture-global lookup and passed after correcting the selector. Full release CI remains required."
+}
