@@ -22,7 +22,7 @@ for (const width of [360, 768, 1440]) {
         .evaluateAll((els) => els.every((el) => el.live)),
     ).toBe(true);
     await wall.getByRole("combobox", { name: "מספר זרמים מרבי" }).selectOption("9");
-    await wall.locator("summary").click();
+    await wall.locator(".camera-choices > summary").click();
     for (const checkbox of await wall.getByRole("checkbox").all()) await checkbox.check();
     await expect(wall.locator("hikvision-intercom-camera")).toHaveCount(9);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(

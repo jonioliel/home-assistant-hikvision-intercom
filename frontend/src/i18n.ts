@@ -64,6 +64,17 @@ const en = {
   usb_card_use: "Use card in draft",
   usb_card_invalid:
     "Expected a 1–32 character card identifier using letters, digits, underscore or hyphen.",
+  wall_layouts: "Saved camera layouts",
+  wall_layout_hint:
+    "Up to 20 layouts per administrator in this browser. Loading stops playback; start it explicitly.",
+  wall_layout_choose: "Saved layout",
+  wall_layout_load: "Load layout",
+  wall_layout_name: "Layout name",
+  wall_layout_save: "Save layout",
+  wall_layout_delete: "Delete layout",
+  wall_layout_reload: "Reload layouts",
+  wall_layout_missing:
+    "Some saved cameras are no longer available. Only remaining cameras were selected; playback is stopped.",
   camera_wall: "Live camera wall",
   tools_camera_wall: "View up to four or nine selected cameras with a shared stream budget.",
   camera_wall_hint:
@@ -1499,6 +1510,16 @@ const he: Record<keyof typeof en, string> = {
   usb_card_candidate: "סיומת הכרטיס / אורך המזהה",
   usb_card_use: "הוסף כרטיס לטיוטה",
   usb_card_invalid: "נדרש מזהה כרטיס באורך 1–32 תווים: אותיות לטיניות, ספרות, קו תחתון או מקף.",
+  wall_layouts: "פריסות מצלמות שמורות",
+  wall_layout_hint: "עד 20 פריסות לכל מנהל בדפדפן הזה. טעינה עוצרת ניגון; יש להפעיל אותו במפורש.",
+  wall_layout_choose: "פריסה שמורה",
+  wall_layout_load: "טען פריסה",
+  wall_layout_name: "שם הפריסה",
+  wall_layout_save: "שמור פריסה",
+  wall_layout_delete: "מחק פריסה",
+  wall_layout_reload: "רענן פריסות",
+  wall_layout_missing:
+    "חלק מהמצלמות השמורות אינן זמינות עוד. נבחרו רק המצלמות שנותרו והניגון נעצר.",
   camera_wall: "קיר מצלמות חי",
   tools_camera_wall: "צפייה בארבע או תשע מצלמות נבחרות עם הגבלה משותפת למספר הזרמים.",
   camera_wall_hint:
