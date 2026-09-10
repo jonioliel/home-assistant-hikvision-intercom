@@ -3,6 +3,7 @@ import { styles } from "./styles";
 import { adminStyles } from "./admin-styles";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
+import { boundedRequest } from "./request";
 import { formatTime, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import type { Hass, Person, Station } from "./types";
 interface AuditRow {
@@ -157,27 +158,70 @@ export class AdminAudit extends LitElement {
   private applied: Record<string, unknown> = {};
   private epoch = 0;
   private initialized = false;
+  private connection?: Hass["connection"];
+  private requests = new Set<AbortController>();
   private lastFocus = "";
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.hasUpdated) this.requestUpdate();
+  }
   protected updated(changed: PropertyValues) {
-    if (changed.has("hass") && !this.hass?.user?.is_admin) {
-      this.epoch++;
-      this._report = undefined;
-      this._permissions = undefined;
-      this._error = "";
-      this._busy = false;
-      this.initialized = false;
+    if (!this.isConnected) return;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    if (connection !== this.connection || (changed.has("hass") && !this.hass?.user?.is_admin)) {
+      this.invalidate();
+      this.connection = connection;
+      this._station =
+        this._action =
+        this._actor =
+        this._start =
+        this._end =
+        this._auditStation =
+          "";
+      this.applied = {};
     }
     if (this.hass?.user?.is_admin && (!this.initialized || this.focusUser !== this.lastFocus)) {
+      if (this.focusUser !== this.lastFocus) this.invalidate();
       this.initialized = true;
       this.lastFocus = this.focusUser;
       this._user = this.focusUser;
       void this.load();
     }
   }
-  disconnectedCallback() {
-    super.disconnectedCallback();
+  private invalidate() {
     this.epoch++;
+    for (const controller of this.requests) controller.abort();
+    this.requests.clear();
+    this._report = undefined;
+    this._permissions = undefined;
+    this._error = "";
+    this._busy = false;
+    this.initialized = false;
+  }
+  disconnectedCallback() {
+    this.invalidate();
+    super.disconnectedCallback();
+  }
+  private async request<T>(message: Record<string, unknown>, timeout: number): Promise<T> {
+    if (!this.isConnected || !this.hass?.user?.is_admin || this.hass.connection.connected === false)
+      throw { code: "connection_lost" };
+    const hass = this.hass,
+      epoch = this.epoch,
+      controller = new AbortController();
+    this.requests.add(controller);
+    try {
+      const result = await boundedRequest(
+        () => hass.callWS<T>(message),
+        timeout,
+        controller.signal,
+      );
+      if (!this.valid(epoch) || this.hass?.connection !== hass.connection)
+        throw { code: "connection_lost" };
+      return result;
+    } finally {
+      this.requests.delete(controller);
+    }
   }
   private valid(epoch: number) {
     return epoch === this.epoch && this.isConnected && !!this.hass?.user?.is_admin;
@@ -210,10 +254,13 @@ export class AdminAudit extends LitElement {
     this._error = "";
     try {
       const filters = more ? this.applied : this.filters();
-      const result = await this.hass.callWS<AuditReport>({
-        type: "hikvision_intercom/audit/list",
-        filters: { ...filters, ...(more ? { before: this._report!.next_cursor } : {}) },
-      });
+      const result = await this.request<AuditReport>(
+        {
+          type: "hikvision_intercom/audit/list",
+          filters: { ...filters, ...(more ? { before: this._report!.next_cursor } : {}) },
+        },
+        20000,
+      );
       if (!this.valid(epoch)) return;
       this.applied = filters;
       this._report =
@@ -237,10 +284,13 @@ export class AdminAudit extends LitElement {
     this._busy = true;
     this._error = "";
     try {
-      const result = await this.hass.callWS<AuditReport>({
-        type: "hikvision_intercom/audit/export",
-        filters: { ...this.applied },
-      });
+      const result = await this.request<AuditReport>(
+        {
+          type: "hikvision_intercom/audit/export",
+          filters: { ...this.applied },
+        },
+        60000,
+      );
       if (!this.valid(epoch)) return;
       if (format === "csv")
         downloadText(result.csv ?? "", "hikvision-change-history.csv", "text/csv;charset=utf-8");
@@ -267,10 +317,13 @@ export class AdminAudit extends LitElement {
     this._error = "";
     this._permissions = undefined;
     try {
-      const report = await this.hass.callWS<Permissions>({
-        type: "hikvision_intercom/stations/permission_audit",
-        station_id: sid,
-      });
+      const report = await this.request<Permissions>(
+        {
+          type: "hikvision_intercom/stations/permission_audit",
+          station_id: sid,
+        },
+        120000,
+      );
       if (this.valid(epoch) && sid === this._auditStation) {
         this._permissions = report;
         this._shown = 50;

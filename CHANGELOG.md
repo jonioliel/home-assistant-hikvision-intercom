@@ -4,6 +4,15 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.6-alpha.1] - 2026-09-10
+
+### Fixed
+- Bound change-history reads, exports and permission comparisons to 20, 60 and 120 seconds respectively. Missing replies release the controls with an error; late replies cannot overwrite that result or download a stale export.
+- Discard previous audit results and pending requests when the Home Assistant connection or administrator changes. Reattaching the history view loads a fresh list, and changing the selected person replaces an obsolete pending read.
+
+### Validation boundaries
+- No physical device operations were performed. Hardware acceptance and the current completion percentages remain unchanged.
+
 ## [0.27.5-alpha.1] - 2026-09-10
 
 ### Fixed
