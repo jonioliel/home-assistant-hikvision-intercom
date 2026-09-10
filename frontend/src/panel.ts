@@ -1,4 +1,4 @@
-import { formatTime, localInput, fromLocalInput, UTC_ZONE } from "./time";
+import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { styles } from "./styles";
@@ -161,6 +161,7 @@ export class IntercomManagerPanel extends LitElement {
   private _notice = "";
   private _error = "";
   private _draft?: Draft;
+  private _validityInputZone: DisplayZone = UTC_ZONE;
   private _importRows: Inventory[] = [];
   private _importStation = "";
   private _review?: Review;
@@ -368,6 +369,7 @@ export class IntercomManagerPanel extends LitElement {
           const data = await this.api<Overview>("overview");
           if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin) {
             this._data = data;
+            this.refreshValidityZone();
             this._refreshFailed = false;
             const configured = new Set(data.stations.map((station) => station.id));
             this._releases = new Map([...this._releases].filter(([id]) => configured.has(id)));
@@ -503,7 +505,7 @@ export class IntercomManagerPanel extends LitElement {
     return this.zone(this._data?.stations.find((s) => s.id === this._validityStation));
   }
   private readValidity() {
-    const zone = this.validityZone();
+    const zone = this._validityInputZone;
     // Preserve an existing instant (including seconds and a DST fold) when its
     // visible field has not changed. Newly entered wall times must be unique.
     const resolve = (raw: string, previous: string | null) =>
@@ -515,10 +517,34 @@ export class IntercomManagerPanel extends LitElement {
       this._draft.valid_until = last;
     }
   }
+  private refreshValidityZone() {
+    if (this._dialog !== "editor" || !this._draft) return;
+    if (
+      this._validityStation &&
+      this._validityStation !== "__utc__" &&
+      !this._data?.stations.some((s) => s.id === this._validityStation)
+    )
+      this._validityStation = "";
+    const next = this.validityZone();
+    if (JSON.stringify(next) === JSON.stringify(this._validityInputZone)) return;
+    try {
+      // Resolve the draft under the rules displayed when it was entered, before
+      // formatting those same instants using freshly read station/HA rules.
+      this.readValidity();
+      this._validityFrom = localInput(this._draft.valid_from, next);
+      this._validityUntil = localInput(this._draft.valid_until, next);
+    } catch {
+      this._validityFrom = this._validityUntil = "";
+      this._draft.valid_from = this._draft.valid_until = null;
+      this._error = this.t("validity_zone_changed_invalid");
+    }
+    this._validityInputZone = structuredClone(next);
+  }
   private changeValidityZone(id: string) {
     try {
       this.readValidity();
       this._validityStation = id;
+      this._validityInputZone = structuredClone(this.validityZone());
       this._validityFrom = localInput(this._draft?.valid_from ?? null, this.validityZone());
       this._validityUntil = localInput(this._draft?.valid_until ?? null, this.validityZone());
       this._error = "";
@@ -612,6 +638,7 @@ export class IntercomManagerPanel extends LitElement {
       ) ??
       this._data?.stations.find((s) => s.lock_enabled)?.id ??
       "";
+    this._validityInputZone = structuredClone(this.validityZone());
     this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
     this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
     this._error = "";

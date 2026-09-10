@@ -623,6 +623,8 @@ const en = {
     "This local time occurs twice when DST ends. Choose an unambiguous time or enter it using UTC as the time basis.",
   clock_nonexistent:
     "This local time does not exist when DST starts. Choose a time before or after the clock change.",
+  validity_zone_changed_invalid:
+    "The input time zone changed, but the previous local range was ambiguous or invalid. Enter the start and end again.",
   clock_invalid_local: "Enter a valid local date and time.",
   report_station_time:
     "Each record is grouped by calendar date in its station’s configured display zone. Removed or unreadable stations without verified rules use UTC.",
@@ -1736,6 +1738,8 @@ const he: Record<keyof typeof en, string> = {
     "השעה המקומית מופיעה פעמיים בסיום שעון הקיץ. בחרו שעה חד־משמעית או הזינו אותה כש־UTC נבחר כבסיס הזמן.",
   clock_nonexistent:
     "השעה המקומית אינה קיימת בתחילת שעון הקיץ. בחרו שעה לפני שינוי השעון או אחריו.",
+  validity_zone_changed_invalid:
+    "אזור הזמן לקלט השתנה, אך טווח השעות הקודם היה דו־משמעי או לא תקין. יש להזין מחדש התחלה וסיום.",
   clock_invalid_local: "הזינו תאריך ושעה מקומיים תקינים.",
   report_station_time:
     "כל רשומה משויכת לתאריך המקומי באזור התצוגה של התחנה שלה. תחנות שהוסרו או שאין עבורן כללים מאומתים משתמשות ב־UTC.",
