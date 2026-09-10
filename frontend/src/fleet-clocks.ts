@@ -103,11 +103,13 @@ export class FleetClocks extends LitElement {
       <p class="transition">
         ${this.t("fleet_next")}:
         ${
-        fresh && next?.status === "scheduled" && Date.parse(next.at ?? "") > this.now
-          ? html`${formatTime(next.at, this.hass?.language, clock.device_zone ?? UTC_ZONE)} ·
-              <bdi>${offsetLabel(next.before_seconds!)} → ${offsetLabel(next.after_seconds!)}</bdi>`
-          : this.t(fresh && next?.status === "fixed" ? "fleet_fixed" : "fleet_not_computed")
-      }
+          fresh && next?.status === "scheduled" && Date.parse(next.at ?? "") > this.now
+            ? html`${formatTime(next.at, this.hass?.language, clock.device_zone ?? UTC_ZONE)} ·
+                <bdi
+                  >${offsetLabel(next.before_seconds!)} → ${offsetLabel(next.after_seconds!)}</bdi
+                >`
+            : this.t(fresh && next?.status === "fixed" ? "fleet_fixed" : "fleet_not_computed")
+        }
       </p>
     </article>`;
   }

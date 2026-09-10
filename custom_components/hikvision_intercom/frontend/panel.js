@@ -4858,7 +4858,9 @@ Schedule: ${l.map(m=>Je(m))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
       <p class="transition">
         ${this.t("fleet_next")}:
         ${s&&l?.status==="scheduled"&&Date.parse(l.at??"")>this.now?v`${fe(l.at,this.hass?.language,i.device_zone??ne)} ·
-              <bdi>${Ar(l.before_seconds)} → ${Ar(l.after_seconds)}</bdi>`:this.t(s&&l?.status==="fixed"?"fleet_fixed":"fleet_not_computed")}
+                <bdi
+                  >${Ar(l.before_seconds)} → ${Ar(l.after_seconds)}</bdi
+                >`:this.t(s&&l?.status==="fixed"?"fleet_fixed":"fleet_not_computed")}
       </p>
     </article>`}render(){if(!this.hass?.user?.is_admin)return S;let t=this.stations.map(r=>this.clock(r)).filter(r=>this.fresh(r)),i=new Set(t.map(r=>r.device_zone?.name).filter(Boolean)),s=new Set(t.map(r=>r.time_mode).filter(r=>r&&r!=="unknown"));return v`<details class="fleet-clocks">
       <summary>${this.t("fleet_title")}</summary>
