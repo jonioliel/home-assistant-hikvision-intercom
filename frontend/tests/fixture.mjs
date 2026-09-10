@@ -26,8 +26,15 @@ const names = hebrew
       "Rear entrance",
     ];
 const data = {
+  media_settings: {
+    revision: 0,
+    transport: "webrtc",
+    webrtc_mode: "rtc",
+    fallback_hls: true,
+    go2rtc_url: "",
+  },
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.29.0-alpha.1",
+  version: "0.30.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -194,6 +201,14 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "media/settings_get") return structuredClone(data.media_settings);
+    if (command === "media/settings_update") {
+      if (message.revision !== data.media_settings.revision) throw { code: "revision_conflict" };
+      data.media_settings = { ...message.values, revision: message.revision + 1 };
+      window.demoNotify();
+      return structuredClone(data.media_settings);
+    }
+    if (command === "media/provider_check") return { available: true, source: "home_assistant" };
     if (command === "media/call")
       return {
         call_commands: ["answer", "reject", "hangUp"],

@@ -1,5 +1,7 @@
 # Project progress
 
+**0.30.0-alpha.1 candidate:** global HLS / RTC / MSE playback, authenticated binary MSE bridge, audio diagnostics and owner-confirmed card lifecycle. [Delivery](MEDIA_030_HE.md). Release results will be recorded after CI and publication. Previous published checkpoint follows.
+
 Current release **0.29.0-alpha.1** introduces **WisKey**, a dedicated administrator Management tools page,
 and a live date/time on Overview. Appearance selection is now exclusively in the management hub;
 the camera/editor dialogs no longer expose it. The clock ticks independently of video and network refresh,

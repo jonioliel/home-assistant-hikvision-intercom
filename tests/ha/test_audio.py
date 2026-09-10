@@ -21,6 +21,8 @@ async def audio_driver():
         close_confirmed = True
         received_bytes = 800
         sent_bytes = 160
+        microphone_bytes = 0
+        dropped_packets = 0
         start = AsyncMock()
         close = AsyncMock()
         receive = AsyncMock(return_value=b"\xff" * 800)
@@ -48,7 +50,7 @@ async def started(client, station):
     return result["id"], ready["event"]["token"]
 
 
-@pytest.mark.parametrize("command", ["start", "send", "receive", "mute"])
+@pytest.mark.parametrize("command", ["start", "send", "receive", "mute", "diagnostics"])
 async def test_audio_requires_admin(
     hass, loaded_entry, hass_ws_client, hass_read_only_access_token, command, audio_driver
 ):
@@ -252,6 +254,8 @@ async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
             close_confirmed=True,
             received_bytes=800,
             sent_bytes=160,
+            microphone_bytes=0,
+            dropped_packets=0,
             start=AsyncMock(),
             close=AsyncMock(),
             receive=AsyncMock(return_value=b"\xff" * 800),
@@ -347,3 +351,21 @@ async def test_cancellation_before_audio_task_starts_releases_subscription(
     assert not hass.data[DOMAIN]["audio_sessions"]
     audio_driver.start.assert_not_called()
     assert connection.send_event.call_args.args[1]["state"] == "closed"
+
+
+async def test_audio_diagnostics_belong_to_browser_and_contain_no_packets(
+    hass, loaded_entry, hass_ws_client, audio_driver
+):
+    client = await hass_ws_client(hass)
+    other = await hass_ws_client(hass)
+    _subscription, token = await started(client, loaded_entry.entry_id)
+    denied = await request(other, "audio/diagnostics", token=token)
+    assert denied["error"]["code"] == "audio_not_started"
+    await request(
+        client, "audio/send", token=token, sequence=0, data=base64.b64encode(b"\xfe" * 800).decode()
+    )
+    result = (await request(client, "audio/diagnostics", token=token))["result"]
+    assert result["microphone_packets_accepted"] == 1
+    assert result["microphone_bytes_written"] == 0
+    assert result["physical_result"] == "unverified"
+    assert "data" not in result and token not in json.dumps(result)

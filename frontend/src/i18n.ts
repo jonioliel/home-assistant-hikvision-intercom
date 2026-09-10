@@ -1,4 +1,57 @@
 const en = {
+  media_options: "Camera playback options",
+  tools_media_options: "Global video transport for all WisKey cameras.",
+  media_scope:
+    "Applies to every WisKey live player, station and browser. Other Home Assistant camera cards use their own player settings.",
+  media_transport: "Video transport",
+  media_webrtc_mode: "WebRTC / go2rtc player mode",
+  media_mse_hint:
+    "MSE streams video over the Home Assistant connection. It does not need a direct browser-to-camera RTC connection. Microphone audio uses the separate talk controls.",
+  media_rtc_hint:
+    "RTC uses the Home Assistant WebRTC provider. Connectivity depends on ICE and the network path.",
+  media_fallback: "Allow automatic HLS fallback if the selected mode fails",
+  media_go2rtc_url: "go2rtc server address (optional, MSE only)",
+  media_go2rtc_hint:
+    "Leave empty to use the Home Assistant go2rtc integration. Otherwise enter a trusted local server reachable from HA, such as http://go2rtc:1984. HA sends the camera source to this server; its address and camera credentials stay out of the player. No username or password in this address.",
+  media_save: "Save for all cameras",
+  media_reload: "Reload saved settings",
+  media_provider_check: "Check saved go2rtc server",
+  media_saved: "Saved globally. Open WisKey players reconnect using this preference.",
+  media_load_failed:
+    "Playback settings could not be loaded. Refresh or check integration diagnostics.",
+  media_conflict: "Another administrator changed these settings. Reload before saving.",
+  media_invalid: "Check the server address and options; no credentials, path or query are allowed.",
+  media_save_unknown: "The save could not be confirmed. Reload saved settings before trying again.",
+  media_provider_ready:
+    "The saved go2rtc server is reachable. Camera decoding is checked when a live player opens.",
+  media_provider_failed:
+    "HA could not reach the saved go2rtc server. Check its address or configure the go2rtc integration.",
+  player_mse: "MSE",
+  audio_diagnostics: "Download audio diagnostics",
+  audio_path_hint:
+    "Talk uses your microphone → Home Assistant → ISAPI. RTC video connectivity does not verify or block this audio path.",
+  audio_microphone_denied:
+    "Microphone permission was denied. Allow microphone access for this site and hold Talk again.",
+  audio_microphone_missing: "No microphone was found. Connect an input device and try again.",
+  audio_microphone_busy:
+    "The browser could not open the microphone. Check system permissions and other apps using it.",
+  audio_worklet_failed:
+    "The microphone processor could not start. Reload Home Assistant after updating and try again.",
+  audio_packets: "Microphone packets accepted by HA",
+  audio_signal: "Microphone signal",
+  audio_speaker_unverified: "Accepted packets do not confirm sound from the intercom speaker.",
+  player_reason_mse_browser_unavailable: "This browser does not support MSE video.",
+  player_reason_mse_provider_unavailable:
+    "Configure a go2rtc server in Management tools → Camera playback options.",
+  player_reason_mse_connection_lost:
+    "The MSE connection stopped. Check HA and go2rtc availability.",
+  player_reason_mse_codec_unavailable:
+    "The camera video codec is not supported by this MSE player.",
+  player_reason_mse_protocol_error: "The MSE server returned an unsupported response.",
+  player_reason_mse_session_changed: "Playback settings or station availability changed.",
+  player_reason_mse_buffer_failed: "The browser could not buffer the MSE stream.",
+  player_reason_mse_timeout: "No MSE video frame arrived in time.",
+
   metric_online: "online",
   metric_ringing: "ringing",
   metric_users: "users",
@@ -1179,6 +1232,53 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  media_options: "אפשרויות ניגון מצלמות",
+  tools_media_options: "בחירת אופן ניגון הווידאו בכל מצלמות WisKey.",
+  media_scope:
+    "ההגדרה חלה על כל נגני הווידאו החיים ב־WisKey, בכל התחנות והדפדפנים. כרטיסי מצלמה אחרים ב־Home Assistant משתמשים בהגדרות הנגן שלהם.",
+  media_transport: "אופן ניגון הווידאו",
+  media_webrtc_mode: "מצב נגן WebRTC / go2rtc",
+  media_mse_hint:
+    "MSE מעביר וידאו דרך החיבור ל־Home Assistant, ללא חיבור RTC ישיר מהדפדפן למצלמה. הדיבור מתבצע דרך בקרי השמע הנפרדים.",
+  media_rtc_hint: "RTC משתמש בספק WebRTC של Home Assistant. החיבור תלוי ב־ICE ובנתיב הרשת.",
+  media_fallback: "לאפשר מעבר אוטומטי ל־HLS אם המצב שנבחר נכשל",
+  media_go2rtc_url: "כתובת שרת go2rtc (רשות, עבור MSE בלבד)",
+  media_go2rtc_hint:
+    "השאר ריק כדי להשתמש באינטגרציית go2rtc של Home Assistant. לחלופין הזן שרת מקומי מהימן שנגיש מ־HA, למשל http://go2rtc:1984. HA מוסר לשרת זה את מקור המצלמה; הכתובת ופרטי המצלמה אינם נשלחים לנגן. אין להזין שם משתמש או סיסמה בכתובת.",
+  media_save: "שמירה לכל המצלמות",
+  media_reload: "טעינת ההגדרות השמורות",
+  media_provider_check: "בדיקת שרת go2rtc השמור",
+  media_saved: "נשמר לכל המערכת. נגני WisKey פתוחים מתחברים מחדש לפי ההגדרה.",
+  media_load_failed: "לא ניתן לטעון את הגדרות הניגון. רענן או בדוק את אבחון האינטגרציה.",
+  media_conflict: "מנהל אחר שינה את ההגדרות. טען אותן מחדש לפני שמירה.",
+  media_invalid:
+    "בדוק את הכתובת והאפשרויות; הכתובת אינה יכולה לכלול פרטי התחברות, נתיב או פרמטרים.",
+  media_save_unknown: "השמירה לא אושרה. טען את ההגדרות השמורות לפני ניסיון נוסף.",
+  media_provider_ready: "שרת go2rtc השמור נגיש. פענוח וידאו מהמצלמה נבדק בפתיחת הנגן.",
+  media_provider_failed:
+    "HA לא הצליח לגשת לשרת go2rtc השמור. בדוק את הכתובת או הגדר את אינטגרציית go2rtc.",
+  player_mse: "MSE",
+  audio_diagnostics: "הורדת אבחון שמע",
+  audio_path_hint:
+    "הדיבור נשלח מהמיקרופון דרך Home Assistant אל ISAPI. הצלחה או כישלון של וידאו RTC אינם מעידים על תקינות מסלול השמע הזה.",
+  audio_microphone_denied:
+    "הגישה למיקרופון נדחתה. אפשר גישה למיקרופון באתר זה והחזק שוב את כפתור הדיבור.",
+  audio_microphone_missing: "לא נמצא מיקרופון. חבר התקן קלט ונסה שוב.",
+  audio_microphone_busy:
+    "הדפדפן לא הצליח לפתוח את המיקרופון. בדוק הרשאות מערכת ויישומים אחרים שמשתמשים בו.",
+  audio_worklet_failed: "מעבד המיקרופון לא הופעל. טען מחדש את Home Assistant לאחר העדכון ונסה שוב.",
+  audio_packets: "חבילות מיקרופון שאושרו ב־HA",
+  audio_signal: "אות מהמיקרופון",
+  audio_speaker_unverified: "אישור חבילות אינו מאמת שנשמע קול ברמקול האינטרקום.",
+  player_reason_mse_browser_unavailable: "הדפדפן אינו תומך בווידאו MSE.",
+  player_reason_mse_provider_unavailable: "הגדר שרת go2rtc בכלי ניהול ← אפשרויות ניגון מצלמות.",
+  player_reason_mse_connection_lost: "חיבור MSE נותק. בדוק את זמינות HA ו־go2rtc.",
+  player_reason_mse_codec_unavailable: "קידוד הווידאו של המצלמה אינו נתמך בנגן MSE זה.",
+  player_reason_mse_protocol_error: "שרת MSE החזיר תגובה שאינה נתמכת.",
+  player_reason_mse_session_changed: "הגדרות הניגון או זמינות התחנה השתנו.",
+  player_reason_mse_buffer_failed: "הדפדפן לא הצליח לעבד את זרם MSE.",
+  player_reason_mse_timeout: "לא התקבלה תמונת וידאו מ־MSE בזמן.",
+
   metric_online: "מחוברות",
   metric_ringing: "מצלצלים",
   metric_users: "משתמשים",

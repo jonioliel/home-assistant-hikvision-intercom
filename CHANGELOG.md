@@ -4,6 +4,18 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.30.0-alpha.1] - 2026-09-10
+
+### Added
+- Add global camera playback options under WisKey Management tools: HLS or WebRTC/go2rtc, RTC or MSE, and an explicit HLS fallback preference. Persist settings once for all WisKey players and administrators, with atomic storage, revision conflict protection and live refresh across browsers.
+- Implement real MSE fragmented-MP4 playback through an authenticated Home Assistant WebSocket bridge. Use the HA go2rtc integration or an explicitly configured trusted local go2rtc server; keep camera source credentials off the browser. Bound messages, buffering, startup and idle waits, and close streams on visibility, ownership, station, setting or connection changes.
+- Add microphone permission/device/processor errors, live microphone signal and accepted-packet counters, and a privacy-preserving audio diagnostic export. Distinguish accepted microphone packets, microphone bytes written toward the station, and total transport bytes including generated silence. Talk continues over browser → HA → ISAPI independently of RTC video.
+
+### Validation
+- Verify live MSE negotiation and binary H.264 data from two stations through the existing go2rtc server. Open concurrent ISAPI audio sessions, receive data, transmit silence, close both sessions and confirm unchanged channel configuration and idle call state. Speaker audibility and the owner's browser microphone path remain unverified.
+- Record the owner's successful card create/write, assignment, update and deletion tests. Multiple simultaneous cards for one person and reader-enrollment cancellation were not explicitly confirmed and remain separate acceptance items.
+- Add settings persistence/conflict/authorization tests, authenticated MSE bridge tests, real browser fMP4 decoding, global mode changes, strict fallback, responsive Hebrew layouts and microphone diagnostic tests. See docs/MEDIA_030_HE.md for setup, limits and evidence.
+
 ## [0.29.0-alpha.1] - 2026-09-10
 
 ### Added

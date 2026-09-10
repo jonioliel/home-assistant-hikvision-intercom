@@ -50,6 +50,9 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "media/settings_get": {},
+    "media/settings_update": {"revision": int, "values": dict},
+    "media/provider_check": {},
     "users/bulk_preview": {"request": dict},
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
@@ -217,6 +220,8 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
             host=entry.data.get("host") if entry else None,
         )
     data["default_zone"] = {"kind": "iana", "name": hass.config.time_zone}
+    media = hass.data[DOMAIN].get("media_settings")
+    data["media_settings"] = media.public() if media else None
     data["version"] = VERSION
     return data
 
@@ -253,6 +258,10 @@ async def _dispatch_inner(
             return report
         finally:
             reads.discard(station.id)
+    if command in {"media/settings_get", "media/settings_update", "media/provider_check"}:
+        from .media_api import dispatch_media
+
+        return await dispatch_media(hass, command, msg)
     if command.startswith(("health/", "acceptance/", "media/")):
         return await dispatch_health(hass, command, msg)
     if command.startswith("events/trace_"):

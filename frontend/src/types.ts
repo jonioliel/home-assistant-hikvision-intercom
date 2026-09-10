@@ -1,3 +1,4 @@
+import type { MediaPolicy } from "./media-settings";
 import type { DisplayZone } from "./time";
 export interface Card {
   id?: string;
@@ -106,6 +107,7 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  media_settings?: MediaPolicy | null;
   default_zone?: DisplayZone;
   version: string;
   users: Person[];

@@ -1,5 +1,7 @@
 import { LitElement, html, css, type PropertyValues } from "lit";
 import Hls from "hls.js";
+import { CameraMSE } from "./camera-mse";
+import { DEFAULT_MEDIA, type MediaPolicy } from "./media-settings";
 import { CameraRTC } from "./camera-rtc";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
@@ -10,6 +12,8 @@ export class IntercomCamera extends LitElement {
   static properties = {
     hass: { attribute: false },
     entity: { type: String },
+    stationId: { type: String },
+    media: { attribute: false },
     live: { type: Boolean },
     label: { type: String },
     _tick: { state: true },
@@ -48,6 +52,12 @@ export class IntercomCamera extends LitElement {
   };
   private connection?: Hass["connection"];
   entity = "";
+  stationId = "";
+  media?: MediaPolicy | null;
+  private policyKey = "";
+  private mse?: CameraMSE;
+  private previousMSE?: Record<string, unknown>;
+  private activeTransport = "";
   live = false;
   label = "";
   private _tick = 0;
@@ -187,6 +197,8 @@ export class IntercomCamera extends LitElement {
     clearTimeout(this.startTimer);
     this.rtc?.close();
     this.rtc = undefined;
+    this.mse?.close();
+    this.mse = undefined;
     this.player?.destroy();
     this.player = undefined;
     const video = this.renderRoot.querySelector("video");
@@ -205,10 +217,21 @@ export class IntercomCamera extends LitElement {
       this.stop();
       return;
     }
+    const policy = this.media ?? DEFAULT_MEDIA;
+    const policyKey = JSON.stringify([
+      policy.revision,
+      policy.transport,
+      policy.webrtc_mode,
+      policy.fallback_hls,
+    ]);
+    const policyChanged = this.policyKey !== policyKey;
+    this.policyKey = policyKey;
     const connectionChanged = this.connection !== this.hass?.connection;
     if (connectionChanged) this.bindConnection(this.hass?.connection);
     if (
       connectionChanged ||
+      policyChanged ||
+      changed.has("stationId") ||
       changed.has("entity") ||
       changed.has("live") ||
       changed.has("_visible") ||
@@ -237,6 +260,9 @@ export class IntercomCamera extends LitElement {
     this.startedAt = new Date().toISOString();
     this.firstFrameAt = null;
     this.previousRTC = undefined;
+    this.previousMSE = undefined;
+    const policy = this.media ?? DEFAULT_MEDIA;
+    this.activeTransport = policy.transport === "hls" ? "hls" : policy.webrtc_mode;
     const current = () =>
       generation === this.generation &&
       this.isConnected &&
@@ -252,11 +278,47 @@ export class IntercomCamera extends LitElement {
         this.previousRTC = this.rtc?.summary();
         this.rtc?.close();
         this.rtc = undefined;
+        this.previousMSE = this.mse?.summary();
+        this.mse?.close();
+        this.mse = undefined;
+        if (!policy.fallback_hls) {
+          this.failPlayer(reason);
+          return;
+        }
         this._fallback = true;
         this._fallbackReason = reason;
         void this.startHls();
       }
     };
+    if (policy.transport === "hls") {
+      void this.startHls();
+      return;
+    }
+    if (policy.webrtc_mode === "mse") {
+      await this.updateComplete;
+      if (!current()) return;
+      const video = this.renderRoot.querySelector("video");
+      if (!video || !this.stationId) {
+        fallback("mse_provider_unavailable");
+        return;
+      }
+      this.startTimer = setTimeout(() => fallback("mse_timeout"), 16000);
+      this.mse = new CameraMSE(
+        this.hass!,
+        this.stationId,
+        video,
+        () => {
+          if (current()) {
+            clearTimeout(this.startTimer);
+            this._mode = "player_mse";
+            this.firstFrameAt = new Date().toISOString();
+          }
+        },
+        fallback,
+      );
+      void this.mse.start();
+      return;
+    }
     this.startTimer = setTimeout(() => fallback("capabilities_timeout"), 10000);
     try {
       const caps = await this.hass!.callWS<{ frontend_stream_types: string[] }>({
@@ -300,7 +362,7 @@ export class IntercomCamera extends LitElement {
     this.stop();
   }
   private loaded() {
-    if (this._fallback && this.renderRoot.querySelector("video")?.videoWidth) {
+    if (this.activeTransport === "hls" && this.renderRoot.querySelector("video")?.videoWidth) {
       clearTimeout(this.startTimer);
       this._mode = "player_hls";
       this.firstFrameAt = new Date().toISOString();
@@ -329,6 +391,11 @@ export class IntercomCamera extends LitElement {
           width: video?.videoWidth ?? 0,
           height: video?.videoHeight ?? 0,
           rtc,
+          mse: this.mse?.summary() ?? this.previousMSE ?? null,
+          selected_transport: (this.media ?? DEFAULT_MEDIA).transport,
+          selected_webrtc_mode: (this.media ?? DEFAULT_MEDIA).webrtc_mode,
+          fallback_allowed: (this.media ?? DEFAULT_MEDIA).fallback_hls,
+          active_transport: this.activeTransport,
         },
         null,
         2,
@@ -343,6 +410,7 @@ export class IntercomCamera extends LitElement {
     </button>`;
   }
   private async startHls() {
+    this.activeTransport = "hls";
     const generation = this.generation;
     this.startTimer = setTimeout(() => {
       if (generation === this.generation) this.failPlayer("hls_timeout");

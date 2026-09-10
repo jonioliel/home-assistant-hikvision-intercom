@@ -1,3 +1,7 @@
+# Candidate validation — 0.30.0-alpha.1
+
+909 Python tests passed locally. New playback/audio browser cases passed, including real synthetic H.264 fMP4 decoding. The complete HA and release gates remain pending. [Live transport evidence and limitations](MEDIA_030_HE.md).
+
 # Current validation — 0.29.0-alpha.1 WisKey management and live clock
 
 Published code: `736c16078f9019171c5a2807c9b81e1ed7bb2f72`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34464255526) passed:

@@ -187,7 +187,7 @@ test("microphone denial leaves listening available and does not send frames", as
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
   await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
   await page.keyboard.press("Space");
-  await expect(audio).toContainText("Microphone unavailable");
+  await expect(audio).toContainText("Microphone permission was denied");
   await expect(audio).toContainText("Audio connected");
   expect(await page.evaluate(() => (window as any).audio.sent.length)).toBe(0);
 });
@@ -365,4 +365,50 @@ test("reattaching idle audio restores connection listeners without starting a se
       () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
     ),
   ).toBe(0);
+});
+
+for (const [name, message] of [
+  ["NotAllowedError", "Microphone permission was denied"],
+  ["NotFoundError", "No microphone was found"],
+  ["NotReadableError", "could not open the microphone"],
+]) {
+  test(`microphone failure explains ${name}`, async ({ page }) => {
+    const audio = await setup(page);
+    await page.evaluate((name) => {
+      navigator.mediaDevices.getUserMedia = async () => {
+        throw new DOMException("synthetic", name);
+      };
+    }, name);
+    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    await audio
+      .getByRole("button", { name: "Hold to talk", exact: true })
+      .dispatchEvent("pointerdown", { pointerId: 1 });
+    await expect(audio.getByRole("alert")).toContainText(message);
+    expect(await page.evaluate(() => (window as any).audio.sent.length)).toBe(0);
+  });
+}
+
+test("audio diagnostics report actual worklet counters without sound or session secrets", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio
+    .getByRole("button", { name: "Hold to talk", exact: true })
+    .dispatchEvent("pointerdown", { pointerId: 1 });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).audio.sent.length))
+    .toBeGreaterThan(2);
+  await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
+  await audio.locator("summary").click();
+  const download = page.waitForEvent("download");
+  await audio.getByRole("button", { name: "Download audio diagnostics" }).click();
+  const { readFile } = await import("node:fs/promises");
+  const result = JSON.parse(await readFile((await (await download).path())!, "utf8"));
+  expect(result.microphone_packets_acknowledged).toBeGreaterThan(2);
+  expect(result.microphone_packets_captured).toBeGreaterThan(2);
+  expect(result.physical_audibility).toBe("unverified");
+  expect(result.path).toBe("browser_ha_isapi");
+  expect(result.recording_saved).toBe(false);
+  expect(JSON.stringify(result)).not.toContain("a".repeat(32));
 });

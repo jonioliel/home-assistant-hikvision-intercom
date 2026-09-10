@@ -140,6 +140,10 @@ class AudioBridge:
                     "close_confirmed": self.session.close_confirmed if self.session else None,
                     "received_bytes": self.session.received_bytes if self.session else 0,
                     "sent_bytes": self.session.sent_bytes if self.session else 0,
+                    "microphone_packets_accepted": self.sequence,
+                    "microphone_bytes_written": self.session.microphone_bytes
+                    if self.session
+                    else 0,
                     "physical_result": "unverified",
                 },
             )
@@ -255,6 +259,15 @@ def packet_handler(operation: str) -> Any:
                 session.send(packet)
                 bridge.sequence += 1
                 result = {"sequence": bridge.sequence}
+            elif operation == "diagnostics":
+                result = {
+                    "microphone_packets_accepted": bridge.sequence,
+                    "microphone_bytes_written": session.microphone_bytes,
+                    "total_bytes_written": session.sent_bytes,
+                    "received_bytes": session.received_bytes,
+                    "dropped_receive_packets": session.dropped_packets,
+                    "physical_result": "unverified",
+                }
             else:
                 session.mute()
                 result = {}
@@ -271,5 +284,5 @@ def packet_handler(operation: str) -> Any:
 @callback
 def register_audio(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, start)
-    for operation in ("send", "receive", "mute"):
+    for operation in ("send", "receive", "mute", "diagnostics"):
         websocket_api.async_register_command(hass, packet_handler(operation))

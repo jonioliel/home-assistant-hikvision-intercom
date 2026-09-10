@@ -245,3 +245,7 @@ Version 0.22 adds [call workflows, verified local-time history recovery and even
 Use **Health & field tests** for an explicit 90-second capture or a read-only history inspection;
 use **Playback report** in the camera dialog to investigate WebRTC/HLS selection.
 [Time interpretation and device-clock evidence](docs/TIME_ZONES.md) explains the history fix.
+
+### Global WisKey playback and audio diagnostics
+
+Management tools → Camera playback options selects HLS, RTC or MSE for every WisKey live player. Preferences are stored centrally in HA, including optional HLS fallback. MSE uses the HA go2rtc integration or a trusted local go2rtc server and stays on the authenticated HA origin in the browser. Other HA dashboard camera cards use their own player settings. Talk uses the separate HA/ISAPI path and requires microphone access in a secure browser context. [Setup, audio diagnostics and verified limits](docs/MEDIA_030_HE.md).

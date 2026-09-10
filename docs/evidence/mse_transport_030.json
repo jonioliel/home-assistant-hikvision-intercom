@@ -1,0 +1,16 @@
+[
+  {
+    "station_alias": "A",
+    "recording_saved": false,
+    "configuration_written": false,
+    "bytes_received": 206163,
+    "mime": "video/mp4; codecs=\"avc1.420029\""
+  },
+  {
+    "station_alias": "B",
+    "recording_saved": false,
+    "configuration_written": false,
+    "bytes_received": 293062,
+    "mime": "video/mp4; codecs=\"avc1.420029\""
+  }
+]

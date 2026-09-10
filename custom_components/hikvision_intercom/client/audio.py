@@ -109,6 +109,7 @@ class AudioSession:
         self._credit = 2.0
         self.received_bytes = 0
         self.sent_bytes = 0
+        self.microphone_bytes = 0
         self.dropped_packets = 0
 
     def _path(self, operation: str) -> str:
@@ -266,6 +267,7 @@ class AudioSession:
                     if now - received <= 0.25:
                         pending, expires = packet, received + 0.25
                         break
+            from_microphone = bool(pending)
             frame = pending[:FRAME_BYTES] if pending else SILENCE
             pending = pending[FRAME_BYTES:]
             if self._writer is None:
@@ -274,6 +276,8 @@ class AudioSession:
                 self._writer.write(frame)
                 await self._writer.drain()
             self.sent_bytes += len(frame)
+            if from_microphone:
+                self.microphone_bytes += len(frame)
             deadline += 0.02
             now = time.monotonic()
             if now - deadline > 0.1:

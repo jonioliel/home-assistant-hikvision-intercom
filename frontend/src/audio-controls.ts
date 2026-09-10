@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
+import { downloadText } from "./download";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
 import { decodeMuLaw } from "./audio-codec";
@@ -68,6 +69,8 @@ export class IntercomAudioControls extends LitElement {
     _error: { state: true },
     _talking: { state: true },
     _micPending: { state: true },
+    _acknowledged: { state: true },
+    _signal: { state: true },
     _haConnected: { state: true },
   };
   hass?: Hass;
@@ -76,6 +79,16 @@ export class IntercomAudioControls extends LitElement {
   private _error = "";
   private _talking = false;
   private _micPending = false;
+  private _acknowledged = 0;
+  private _signal = 0;
+  private captured = 0;
+  private dropped = 0;
+  private received = 0;
+  private microphoneStage = "not_requested";
+  private contextState = "not_started";
+  private sampleRate = 0;
+  private startedAt: string | null = null;
+  private lastBackend: Record<string, unknown> | null = null;
   private epoch = 0;
   private micEpoch = 0;
   private context?: AudioContext;
@@ -190,9 +203,14 @@ export class IntercomAudioControls extends LitElement {
     }, 25000);
     this._error = "";
     this.sequence = 0;
+    this._acknowledged = this._signal = this.captured = this.dropped = this.received = 0;
+    this.microphoneStage = "not_requested";
+    this.lastBackend = null;
+    this.startedAt = new Date().toISOString();
     try {
       const context = new AudioContext({ sampleRate: 8000 });
       this.context = context;
+      this.sampleRate = context.sampleRate;
       context.addEventListener("statechange", this.audioStateChanged);
       if (context.sampleRate !== 8000) throw new Error("unsupported");
       await context.resume();
@@ -261,6 +279,7 @@ export class IntercomAudioControls extends LitElement {
         if (!result.data) continue;
         const packet = atob(result.data);
         if (packet.length !== 800) throw new Error("invalid packet");
+        this.received++;
         if (!this._talking) this.play(packet);
       } catch {
         if (this.valid(epoch)) this.stop("audio_connection_lost");
@@ -311,6 +330,7 @@ export class IntercomAudioControls extends LitElement {
       micEpoch = ++this.micEpoch,
       context = this.context!;
     try {
+      this.microphoneStage = "permission";
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
         video: false,
@@ -320,6 +340,7 @@ export class IntercomAudioControls extends LitElement {
         return;
       }
       this.stream = stream;
+      this.microphoneStage = "processor";
       if (!this.workletLoaded) {
         const url = new URL("./audio-worklet.js", import.meta.url);
         url.search = new URL(import.meta.url).search;
@@ -342,22 +363,43 @@ export class IntercomAudioControls extends LitElement {
       this.processor.connect(context.destination);
       this.clearPlayback();
       this._talking = true;
+      this.microphoneStage = "capturing";
       stream
         .getAudioTracks()
         .forEach((track) =>
           track.addEventListener("ended", () => this.releaseTalk(), { once: true }),
         );
-    } catch {
+    } catch (error) {
       if (this.valid(epoch) && micEpoch === this.micEpoch) {
+        const stage = this.microphoneStage;
+        const name = (error as { name?: string }).name;
         this.releaseTalk();
-        this._error = "audio_microphone_failed";
+        this.microphoneStage = stage + "_failed";
+        this._error =
+          stage === "processor"
+            ? "audio_worklet_failed"
+            : name === "NotAllowedError" || name === "SecurityError"
+              ? "audio_microphone_denied"
+              : name === "NotFoundError"
+                ? "audio_microphone_missing"
+                : name === "NotReadableError"
+                  ? "audio_microphone_busy"
+                  : "audio_microphone_failed";
       }
     } finally {
       if (this.valid(epoch) && micEpoch === this.micEpoch) this._micPending = false;
     }
   }
   private async send(packet: Uint8Array, epoch: number) {
-    if (this.sending || packet.length !== 800 || !this.token) return;
+    if (packet.length !== 800 || !this.token) return;
+    this.captured++;
+    let energy = 0;
+    for (const byte of packet) energy += decodeMuLaw(byte) ** 2;
+    this._signal = Math.min(100, Math.round(Math.sqrt(energy / packet.length) * 100));
+    if (this.sending) {
+      this.dropped++;
+      return;
+    }
     this.sending = true;
     try {
       const data = btoa(String.fromCharCode(...packet));
@@ -367,7 +409,11 @@ export class IntercomAudioControls extends LitElement {
         sequence: this.sequence,
         data,
       });
-      if (this.valid(epoch)) this.sequence = result.sequence;
+      if (this.valid(epoch)) {
+        if (result.sequence !== this.sequence + 1) throw Error("audio_invalid_packet");
+        this.sequence = result.sequence;
+        this._acknowledged++;
+      }
     } catch {
       if (this.valid(epoch)) this.stop("audio_connection_lost");
     } finally {
@@ -379,6 +425,8 @@ export class IntercomAudioControls extends LitElement {
     this.micEpoch++;
     this._micPending = false;
     this._talking = false;
+    this._signal = 0;
+    if (this.microphoneStage === "capturing") this.microphoneStage = "released";
     if (this.processor) {
       this.processor.port.onmessage = null;
       this.processor.onprocessorerror = null;
@@ -417,6 +465,7 @@ export class IntercomAudioControls extends LitElement {
     if (unsubscribe) this.cancelSubscription(unsubscribe);
     this.clearPlayback();
     for (const cancel of this.pendingRequests) cancel();
+    this.contextState = this.context?.state ?? this.contextState;
     this.context?.removeEventListener("statechange", this.audioStateChanged);
     void this.context?.close().catch(() => undefined);
     this.context = undefined;
@@ -425,11 +474,93 @@ export class IntercomAudioControls extends LitElement {
     this._state = "idle";
     if (reason && reason !== "audio_stopped") this._error = reason;
   }
+  private async exportDiagnostics() {
+    if (!this.hass?.user?.is_admin || !this.isConnected) return;
+    const epoch = this.epoch,
+      user = this.hass.user,
+      connection = this.hass.connection;
+    if (this.token) {
+      try {
+        const result = await this.request<Record<string, unknown>>({
+          type: "hikvision_intercom/audio/diagnostics",
+          token: this.token,
+        });
+        if (
+          epoch !== this.epoch ||
+          this.hass?.user !== user ||
+          this.hass.connection !== connection ||
+          !this.isConnected
+        )
+          return;
+        this.lastBackend = Object.fromEntries(
+          [
+            "microphone_packets_accepted",
+            "microphone_bytes_written",
+            "total_bytes_written",
+            "received_bytes",
+            "dropped_receive_packets",
+          ]
+            .filter((key) => typeof result[key] === "number" && Number.isFinite(result[key]))
+            .map((key) => [key, result[key]]),
+        );
+      } catch {
+        this.lastBackend = null;
+      }
+    }
+    if (
+      epoch !== this.epoch ||
+      this.hass?.user !== user ||
+      !user.is_admin ||
+      this.hass.connection !== connection ||
+      !this.isConnected
+    )
+      return;
+    downloadText(
+      JSON.stringify(
+        {
+          format: "hikvision_intercom.audio_diagnostics",
+          schema: 1,
+          generated_at: new Date().toISOString(),
+          started_at: this.startedAt,
+          path: "browser_ha_isapi",
+          secure_context: window.isSecureContext,
+          microphone_api: !!navigator.mediaDevices?.getUserMedia,
+          state: this._state,
+          microphone_stage: this.microphoneStage,
+          audio_context: this.context?.state ?? this.contextState,
+          sample_rate: this.sampleRate,
+          microphone_packets_captured: this.captured,
+          microphone_packets_acknowledged: this._acknowledged,
+          microphone_packets_dropped_busy: this.dropped,
+          microphone_signal_percent: this._signal,
+          receive_packets: this.received,
+          backend: this.lastBackend,
+          error: this._error || null,
+          physical_audibility: "unverified",
+          recording_saved: false,
+        },
+        null,
+        2,
+      ),
+      "wiskey-audio-diagnostics.json",
+      "application/json",
+    );
+  }
   render() {
     if (!this.hass?.user?.is_admin || !this.station) return nothing;
     return html`<section aria-label=${this.t("audio_title")}>
       <h3>${this.t("audio_title")}</h3>
       <p>${this.t("audio_hint")}</p>
+      <details>
+        <summary>${this.t("audio_diagnostics")}</summary>
+        <p>${this.t("audio_path_hint")}</p>
+        <p>
+          ${this.t("audio_signal")}: ${this._signal}% · ${this.t("audio_packets")}:
+          ${this._acknowledged}
+        </p>
+        <p>${this.t("audio_speaker_unverified")}</p>
+        <button @click=${() => this.exportDiagnostics()}>${this.t("audio_diagnostics")}</button>
+      </details>
       <div class="buttons">
         ${
           this._state === "idle"

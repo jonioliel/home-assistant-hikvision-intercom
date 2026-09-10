@@ -359,6 +359,10 @@
     "acceptance_storage_write": {
       "title": "Field test results could not be saved",
       "description": "The new result was not committed. Check available disk space and configuration-directory permissions, then save again."
+    },
+    "media_settings_storage_corrupt": {
+      "title": "Camera playback settings could not be loaded",
+      "description": "The stored WisKey playback preferences failed validation. Restore this storage file from a trusted backup and restart Home Assistant. Camera and user configuration are separate."
     }
   }
 }

@@ -90,3 +90,7 @@ or remove the owner's original user/card.
 Capture-timeout recovery, reader behavior after cancellation and simultaneous live camera/status/
 door control also need observation. Use the version/firmware/time/result fields in the
 [deferred validation ledger](DEFERRED_VALIDATION.md). The automated suite simulates all device I/O.
+
+## Owner evidence — 2026-09-10
+
+The owner reports successful card creation/writing, assignment, updating and deletion. These operations no longer need to be treated as wholly untested hardware behavior. This report does not explicitly cover two simultaneous cards assigned to one person, reader capture cancellation or expiry; those narrower checks remain open in DEFERRED_VALIDATION.md. No card numbers or user identities were recorded in this evidence.

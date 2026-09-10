@@ -48,6 +48,19 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         # The signal carries no personal data. Only administrator subscribers may project it.
         async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
 
+    from .media_settings import MediaSettings
+
+    media_store = AccessStore(hass, key=f"{DOMAIN}.media_settings")
+    media = MediaSettings(media_store.async_save, changed)
+    try:
+        media.load(await media_store.async_load())
+    except AccessError:
+        issue(hass, "media_settings_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["media_settings"] = None
+    else:
+        issue(hass, "media_settings_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["media_settings"] = media
+
     schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
     schedules = ScheduleLibrary(schedule_store.async_save, changed)
     try:
