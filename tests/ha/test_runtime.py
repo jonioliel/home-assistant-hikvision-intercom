@@ -426,6 +426,12 @@ async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_e
     await hass.async_block_till_done()
     manager = get_manager(hass)
     station = manager.stations[loaded_entry.entry_id]
+    # No inventory has been requested for an empty newly loaded station.
+    assert hass.states.get(ids["managed_users"]).state == "unknown"
+    manager.request(loaded_entry.entry_id)
+    if station.task:
+        await station.task
+    await hass.async_block_till_done()
     assert hass.states.get(ids["managed_users"]).state == "0"
     assert hass.states.get(ids["pending_users"]).state == "0"
     assert hass.states.get(ids["sync_health"]).state == "synced"
