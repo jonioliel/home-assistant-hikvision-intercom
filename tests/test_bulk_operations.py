@@ -189,7 +189,7 @@ async def test_schema_two_migrates_without_inventing_past_audit(batch):
     saver = AsyncMock()
     restored = AccessRepository(saver)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 5
+    assert restored.snapshot()["schema"] == 6
     assert restored.snapshot()["admin_audit"] == {"next": 1, "records": []}
     assert restored.get(batch.repository.users()[0].id).pin == batch.repository.users()[0].pin
     assert saver.await_count == 1

@@ -39,6 +39,11 @@ ACTIONS = frozenset(
         "bulk/remove_pin",
         "bulk/remove_cards",
         "bulk/sync",
+        "bulk/profile",
+        "bulk/group_add",
+        "bulk/group_remove",
+        "bulk/reset_overrides",
+        "bulk/group_policy",
         "system",
     }
 )
@@ -280,11 +285,15 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             receipt["action"] not in ACTIONS
             or not receipt["action"].startswith("bulk/")
             or type(receipt["changed"]) is not int
-            or not 0 <= receipt["changed"] <= 200
+            or not 0
+            <= receipt["changed"]
+            <= (10000 if receipt["action"] == "bulk/group_policy" else 200)
         ):
             raise AccessError("invalid_storage")
         for field in ("user_ids", "stations"):
-            if not isinstance(receipt[field], list) or len(receipt[field]) > 200:
+            if not isinstance(receipt[field], list) or len(receipt[field]) > (
+                10000 if field == "user_ids" and receipt["action"] == "bulk/group_policy" else 200
+            ):
                 raise AccessError("invalid_storage")
             for value in receipt[field]:
                 text_field(value, 128)

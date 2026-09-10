@@ -4,6 +4,7 @@ import { styles } from "./styles";
 import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
 import type { Hass, Person, Station } from "./types";
+import type { ProfilePolicy } from "./profile-settings";
 interface Preview {
   operation_id: string;
   action: string;
@@ -15,6 +16,13 @@ interface Preview {
     display_name: string;
     employee_no: string;
     changed_fields: string[];
+    profile_changes?: Record<string, { before: string; after: string }>;
+    groups_before?: string[];
+    groups_after?: string[];
+    permissions_before?: string[];
+    permissions_after?: string[];
+    overrides_before?: number;
+    overrides_after?: number;
     changed: boolean;
     stations: string[];
   }[];
@@ -94,6 +102,8 @@ export class BulkUsers extends LitElement {
   ];
   static properties = {
     hass: { attribute: false },
+    policy: { attribute: false },
+    _profileValue: { state: true },
     users: { attribute: false },
     selected: { attribute: false },
     stations: { attribute: false },
@@ -110,6 +120,8 @@ export class BulkUsers extends LitElement {
     _online: { state: true },
   };
   hass?: Hass;
+  policy?: ProfilePolicy;
+  private _profileValue = "";
   users: Person[] = [];
   selected: string[] = [];
   stations: Station[] = [];
@@ -137,7 +149,13 @@ export class BulkUsers extends LitElement {
       .map((u) => ({ user_id: u.id, revision: u.revision }));
   }
   private stamp() {
-    return JSON.stringify([this.current(), this._action, this._target]);
+    return JSON.stringify([
+      this.current(),
+      this._action,
+      this._target,
+      this._profileValue,
+      this.policy?.revision,
+    ]);
   }
   private reset() {
     this.epoch++;
@@ -251,6 +269,12 @@ export class BulkUsers extends LitElement {
                 ...(["assign", "unassign"].includes(this._action)
                   ? { station_id: this._target }
                   : {}),
+                ...(this._action === "profile"
+                  ? { profile: { [this._target]: this._profileValue } }
+                  : {}),
+                ...(["group_add", "group_remove"].includes(this._action)
+                  ? { group_ids: [this._target] }
+                  : {}),
               },
             }
           : action === "recent"
@@ -329,11 +353,12 @@ export class BulkUsers extends LitElement {
               ?disabled=${this._busy || !this._online}
               @change=${(e: Event) => {
                 this._action = (e.target as HTMLSelectElement).value;
+                this._target = "";
                 this._preview = undefined;
                 this._approved = false;
               }}
             >
-              ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync"].map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.t("bulk_" + a)}</option>`)}
+              ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync", "profile", "group_add", "group_remove", "reset_overrides"].map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.t("bulk_" + a)}</option>`)}
             </select></label
           >
           ${
@@ -355,8 +380,40 @@ export class BulkUsers extends LitElement {
                 >`
               : nothing
           }
+          ${
+            ["profile", "group_add", "group_remove"].includes(this._action)
+              ? html`<label>
+                  ${this.t(this._action === "profile" ? "profile_fields" : "profile_groups")}
+                  <select
+                    aria-label=${this.t("bulk_profile_target")}
+                    .value=${this._target}
+                    ?disabled=${this._busy || !this._online}
+                    @change=${(e: Event) => {
+                      this._target = (e.target as HTMLSelectElement).value;
+                    }}
+                  >
+                    <option value="">—</option>
+                    ${(this._action === "profile" ? (this.policy?.fields ?? []) : (this.policy?.groups ?? [])).filter((d) => d.enabled || this._action === "group_remove").map((d) => html`<option value=${d.id} ?selected=${this._target === d.id}>${d.label}</option>`)}
+                  </select></label
+                >`
+              : nothing
+          }
+          ${
+            this._action === "profile"
+              ? html`<label
+                  >${this.t("bulk_profile_value")}<input
+                    aria-label=${this.t("bulk_profile_value")}
+                    maxlength="100"
+                    .value=${this._profileValue}
+                    ?disabled=${this._busy || !this._online}
+                    @input=${(e: Event) => {
+                      this._profileValue = (e.target as HTMLInputElement).value;
+                    }}
+                /></label>`
+              : nothing
+          }
           <button
-            ?disabled=${this._busy || !this._online || (!!this._unknown && !this._checked) || !this.current().length || this.current().length > 200 || (["assign", "unassign"].includes(this._action) && !this._target)}
+            ?disabled=${this._busy || !this._online || (!!this._unknown && !this._checked) || !this.current().length || this.current().length > 200 || (["assign", "unassign", "profile", "group_add", "group_remove"].includes(this._action) && !this._target)}
             @click=${() => this.perform("preview")}
           >
             ${this.t("bulk_preview")}
@@ -375,7 +432,15 @@ export class BulkUsers extends LitElement {
                   ${this.t("bulk_changed")}: ${this._preview.changed} / ${this._preview.selected}
                 </p>
                 <div class="items">
-                  ${this._preview.rows.map((row) => html`<p><strong>${row.display_name}</strong> · <bdi>${row.employee_no}</bdi><br />${row.changed ? row.changed_fields.map((f) => this.t("audit_field_" + f)).join(", ") : this.t("bulk_no_change")}<br />${row.stations.map((s) => this.stationName(s)).join(", ")}</p>`)}
+                  ${this._preview.rows.map(
+                    (row) =>
+                      html`<p>
+                        <strong>${row.display_name}</strong> · <bdi>${row.employee_no}</bdi
+                        ><br />${row.changed ? row.changed_fields.map((f) => this.t("audit_field_" + f)).join(", ") : this.t("bulk_no_change")}<br />${row.stations.map((s) => this.stationName(s)).join(", ")}
+                        ${Object.entries(row.profile_changes ?? {}).map(([id, v]) => html`<br />${this.policy?.fields.find((f) => f.id === id)?.label ?? id}: ${v.before || "—"} → ${v.after || "—"}`)}
+                        ${["group_add", "group_remove", "reset_overrides"].includes(this._preview!.action) ? html`<br />${this.t("profile_groups")}: ${(row.groups_before ?? []).map((id) => this.policy?.groups.find((g) => g.id === id)?.label ?? id).join(", ") || "—"} → ${(row.groups_after ?? []).map((id) => this.policy?.groups.find((g) => g.id === id)?.label ?? id).join(", ") || "—"}<br />${this.t("assignments")}: ${(row.permissions_before ?? []).map((id) => this.stationName(id)).join(", ") || "—"} → ${(row.permissions_after ?? []).map((id) => this.stationName(id)).join(", ") || "—"}<br />${this.t("bulk_reset_overrides")}: ${row.overrides_before ?? 0} → ${row.overrides_after ?? 0}` : nothing}
+                      </p>`,
+                  )}
                 </div>
                 <h4>${this.t("bulk_capacity")}</h4>
                 <p class="sub">${this.t("bulk_capacity_hint")}</p>

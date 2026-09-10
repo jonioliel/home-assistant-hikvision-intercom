@@ -102,10 +102,17 @@ test("group settings save selected station doors with renamed group and disabled
   await group.getByLabel("Warehouse", { exact: true }).check();
   await settings.getByRole("button", { name: "Save", exact: true }).click();
   const saved = await page.evaluate(() =>
-    window.calls.filter((c) => c.type.endsWith("profiles/settings_update")).at(-1),
+    window.calls.filter((c) => c.type.endsWith("profiles/settings_preview")).at(-1),
   );
   expect(saved.values.groups[0].label).toBe("Leadership");
   expect(saved.values.groups[0].station_ids).toEqual(["station-1", "station-4"]);
+  await expect(
+    settings.getByRole("heading", { name: "Review group permission changes" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type.endsWith("profiles/settings_apply"))),
+  ).toBe(false);
+  await settings.getByRole("button", { name: "Apply reviewed policy" }).click();
   await expect(settings.getByRole("status")).toContainText("Saved");
 });
 test("stale group policy cannot overwrite newer permission decisions", async ({ page }) => {

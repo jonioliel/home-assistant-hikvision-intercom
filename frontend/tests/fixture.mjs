@@ -219,6 +219,68 @@ const fake = {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "profiles/settings_get") return structuredClone(data.profile_settings);
+    if (command === "profiles/settings_preview") {
+      if (message.revision !== data.profile_settings.revision) throw { code: "revision_conflict" };
+      const groups = message.values.groups;
+      const changed = groups.filter((g) => {
+        const old = data.profile_settings.groups.find((x) => x.id === g.id) ?? {
+          enabled: true,
+          station_ids: [],
+        };
+        return (
+          g.enabled !== old.enabled ||
+          JSON.stringify([...(g.station_ids ?? [])].sort()) !==
+            JSON.stringify([...(old.station_ids ?? [])].sort())
+        );
+      });
+      const rows = data.users
+        .filter((u) => (u.group_ids ?? []).some((id) => changed.some((g) => g.id === id)))
+        .map((u) => {
+          const overrides = u.permission_overrides ?? {};
+          const grant = new Set(
+            groups
+              .filter((g) => g.enabled && (u.group_ids ?? []).includes(g.id))
+              .flatMap((g) => g.station_ids ?? []),
+          );
+          for (const [sid, mode] of Object.entries(overrides))
+            mode === "allow" ? grant.add(sid) : grant.delete(sid);
+          return {
+            user_id: u.id,
+            display_name: u.display_name,
+            employee_no: u.employee_no,
+            before: Object.keys(u.assignments).filter((s) => u.assignments[s].enabled),
+            after: [...grant],
+            overrides,
+            changed: true,
+          };
+        });
+      const operation_id = crypto.randomUUID();
+      window.fixturePolicyReviews ??= {};
+      window.fixturePolicyReviews[operation_id] = structuredClone(message);
+      return {
+        operation_id,
+        requires_confirmation: changed.length > 0,
+        changed: rows.length,
+        offline: [],
+        rows,
+        expires_in: 300,
+        device_writes: 0,
+      };
+    }
+    if (command === "profiles/settings_apply") {
+      const planned = window.fixturePolicyReviews[message.operation_id];
+      if (planned.revision !== data.profile_settings.revision) throw { code: "bulk_review_stale" };
+      data.profile_settings = { ...planned.values, revision: planned.revision + 1 };
+      data.users.forEach(groupAccess);
+      window.demoNotify();
+      return {
+        operation_id: message.operation_id,
+        changed: 0,
+        stations: [],
+        user_ids: [],
+        action: "bulk/group_policy",
+      };
+    }
     if (command === "profiles/settings_update") {
       if (message.revision !== data.profile_settings.revision) throw { code: "revision_conflict" };
       data.profile_settings = { ...message.values, revision: message.revision + 1 };

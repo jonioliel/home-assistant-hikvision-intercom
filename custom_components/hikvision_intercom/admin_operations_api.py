@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .access.admin_audit import export, query
-from .access.models import AccessError
+from .access.models import AccessError, text_field
 from .access.permission_audit import inspect_permissions
 from .access_runtime import get_manager
 from .const import DOMAIN
@@ -18,6 +18,21 @@ async def dispatch_admin(hass: HomeAssistant, command: str, msg: dict[str, Any],
     if not actor:
         raise AccessError("unauthorized")
     manager = get_manager(hass)
+    if command == "permissions/directory":
+        from .access.permission_directory import directory
+
+        sid = text_field(msg["filters"].get("station_id", ""), 128, empty=True)
+        if sid and sid not in manager.stations:
+            raise AccessError("station_not_found")
+        stamp = manager.repository.bulk_stamp()
+        result = await asyncio.to_thread(directory, manager.repository.snapshot(), msg["filters"])
+        if manager._closed or stamp != manager.repository.bulk_stamp():
+            raise AccessError("bulk_review_stale")
+        return result
+    if command == "profiles/settings_preview":
+        return await manager.policy.preview(actor, msg["revision"], msg["values"])
+    if command == "profiles/settings_apply":
+        return await manager.policy.apply(actor, msg["operation_id"])
     if command == "users/bulk_preview":
         return await manager.bulk.preview(actor, msg["request"])
     if command == "users/bulk_apply":

@@ -10,22 +10,36 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from ..profile_settings import group_values, profile_values
 from .admin_audit import audit_actor
 from .csv_transfer import desired_fields, validate_csv_targets
-from .models import AccessError, build_user, text_field, utc_now
+from .models import AccessError, ManagedUser, build_user, text_field, utc_now
 
 if TYPE_CHECKING:
     from .manager import AccessManager
 
 ACTIONS = frozenset(
-    {"enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync"}
+    {
+        "enable",
+        "disable",
+        "assign",
+        "unassign",
+        "delete",
+        "remove_pin",
+        "remove_cards",
+        "sync",
+        "profile",
+        "group_add",
+        "group_remove",
+        "reset_overrides",
+    }
 )
 
 
 def selection(request: dict[str, Any]) -> list[dict[str, Any]]:
     if (
         not isinstance(request, dict)
-        or set(request) - {"action", "selection", "station_id"}
+        or set(request) - {"action", "selection", "station_id", "profile", "group_ids"}
         or not isinstance(request.get("action"), str)
         or request.get("action") not in ACTIONS
     ):
@@ -45,7 +59,25 @@ def selection(request: dict[str, Any]) -> list[dict[str, Any]]:
         text_field(request.get("station_id"), 128)
     elif "station_id" in request:
         raise AccessError("invalid_fields")
+    if request["action"] == "profile":
+        if not isinstance(request.get("profile"), dict) or not request["profile"]:
+            raise AccessError("invalid_fields")
+        profile_values(request["profile"])
+    elif "profile" in request:
+        raise AccessError("invalid_fields")
+    if request["action"] in {"group_add", "group_remove"}:
+        if not group_values(request.get("group_ids")):
+            raise AccessError("invalid_fields")
+    elif "group_ids" in request:
+        raise AccessError("invalid_fields")
     return selected
+
+
+def changed_fields(before: ManagedUser, after: ManagedUser) -> list[str]:
+    first, last = desired_fields(before), desired_fields(after)
+    for key in ("profile", "group_ids", "permission_overrides"):
+        first[key], last[key] = getattr(before, key), getattr(after, key)
+    return sorted(key for key in first if first[key] != last[key])
 
 
 class BulkOperations:
@@ -82,6 +114,19 @@ class BulkOperations:
         rules = self.manager._csv_rules()
         captured_rules = self.rules_stamp()
         action = request["action"]
+        policy = (repository.profile_settings() or {}).get("values", {})
+        if action == "profile":
+            fields = {f["id"] for f in policy.get("fields", []) if f["enabled"]}
+            if set(request["profile"]) - fields:
+                raise AccessError("invalid_fields")
+        if action in {"group_add", "group_remove"}:
+            groups = {
+                g["id"]
+                for g in policy.get("groups", [])
+                if g["enabled"] or action == "group_remove"
+            }
+            if set(request["group_ids"]) - groups:
+                raise AccessError("invalid_fields")
         if action in {"assign", "unassign"} and request["station_id"] not in rules:
             raise AccessError("station_not_found")
         # Snapshot inventory for estimates only. Actual writes always recheck capacity.
@@ -94,6 +139,7 @@ class BulkOperations:
             state = repository.snapshot()
             changes, rows = [], []
             targets: set[str] = set()
+            access_changed: set[str] = set()
             capacity: dict[str, dict[str, Any]] = {}
             for sid, (observed, checked) in inventory.items():
                 caps = rules[sid][3]
@@ -139,6 +185,18 @@ class BulkOperations:
                     data = {"pin": None}
                 elif action == "remove_cards":
                     data = {"cards": []}
+                elif action == "profile":
+                    data = {"profile": {**old.profile, **request["profile"]}}
+                elif action in {"group_add", "group_remove"}:
+                    groups = set(old.group_ids)
+                    if action == "group_add":
+                        groups.update(request["group_ids"])
+                    else:
+                        groups.difference_update(request["group_ids"])
+                    data = {"group_ids": sorted(groups)}
+                elif action == "reset_overrides":
+                    data = {"permission_overrides": {}}
+
                 new = (
                     None
                     if action == "delete"
@@ -149,18 +207,14 @@ class BulkOperations:
                         previous=old,
                     )
                 )
-                fields = (
-                    sorted(desired_fields(old))
-                    if new is None
-                    else [
-                        key
-                        for key, value in desired_fields(old).items()
-                        if value != desired_fields(new)[key]
-                    ]
-                )
+                fields = sorted(desired_fields(old)) if new is None else changed_fields(old, new)
+                access_change = new is None or desired_fields(old) != desired_fields(new)
+                if access_change:
+                    access_changed.add(old.id)
                 if fields:
                     if new:
-                        validate_csv_targets(new, rules)
+                        if access_change:
+                            validate_csv_targets(new, rules)
                         repository._update_user(state, old.id, data, old.revision)
                     else:
                         repository._delete_user(state, old.id, old.revision)
@@ -184,7 +238,13 @@ class BulkOperations:
                         if retired["user_id"] == old.id
                         for sid in retired["targets"]
                     )
-                targets.update(affected)
+                if access_change or action not in {
+                    "profile",
+                    "group_add",
+                    "group_remove",
+                    "reset_overrides",
+                }:
+                    targets.update(affected)
                 rows.append(
                     {
                         "user_id": old.id,
@@ -198,6 +258,25 @@ class BulkOperations:
                         "pin_after": new.pin is not None if new else False,
                         "cards_before": len(old.cards),
                         "cards_after": len(new.cards) if new else 0,
+                        "profile_changes": {
+                            key: {
+                                "before": old.profile.get(key, ""),
+                                "after": new.profile.get(key, "") if new else "",
+                            }
+                            for key in request.get("profile", {})
+                        },
+                        "groups_before": old.group_ids,
+                        "groups_after": new.group_ids if new else [],
+                        "permissions_before": sorted(
+                            sid for sid, a in old.assignments.items() if a.enabled
+                        ),
+                        "permissions_after": sorted(
+                            sid for sid, a in new.assignments.items() if a.enabled
+                        )
+                        if new
+                        else [],
+                        "overrides_before": len(old.permission_overrides),
+                        "overrides_after": len(new.permission_overrides) if new else 0,
                         "active_before": old.active,
                         "active_after": new.active if new else False,
                     }
@@ -251,6 +330,7 @@ class BulkOperations:
                 )
             return {
                 "changes": changes,
+                "access_changed": access_changed,
                 "rows": rows,
                 "capacity": estimates,
                 "stations": sorted(targets),
@@ -341,7 +421,11 @@ class BulkOperations:
                 review["changes"],
                 stamp=review["stamp"],
                 receipt=receipt,
-                validate=lambda user: validate_csv_targets(user, rules),
+                validate=lambda user: (
+                    validate_csv_targets(user, rules)
+                    if user.id in review["access_changed"]
+                    else None
+                ),
             )
         self.reviews.pop(operation_id, None)
         for sid in set(result["stations"]).intersection(self.manager.stations):

@@ -57,11 +57,14 @@ CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
     "profiles/settings_get": {},
     "profiles/settings_update": {"revision": int, "values": dict},
+    "profiles/settings_preview": {"revision": int, "values": dict},
+    "profiles/settings_apply": {"operation_id": str},
     "users/photo_get": {"user_id": str},
     "media/settings_get": {},
     "media/settings_update": {"revision": int, "values": dict},
     "media/provider_check": {},
     "media/provider_discover": {},
+    "permissions/directory": {"filters": dict},
     "users/bulk_preview": {"request": dict},
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
@@ -247,7 +250,12 @@ async def _dispatch(
 async def _dispatch_inner(
     hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
 ) -> Any:
-    if command.startswith(("users/bulk_", "audit/")) or command == "stations/permission_audit":
+    if command.startswith(("users/bulk_", "audit/")) or command in {
+        "stations/permission_audit",
+        "permissions/directory",
+        "profiles/settings_preview",
+        "profiles/settings_apply",
+    }:
         return await dispatch_admin(hass, command, msg, actor)
     manager = get_manager(hass)
     if command == "events/history_inspect":
@@ -460,7 +468,7 @@ async def _dispatch_inner(
                         raise AccessError("station_not_found")
                     if not station.lock_enabled:
                         raise AccessError("unmanaged_lock")
-            return await profile_settings.update(msg["revision"], values)
+            return await profile_settings.update(msg["revision"], msg["values"])
         if not profile_settings.public()["photo_enabled"]:
             return {"photo": None}
         return {"photo": manager.repository.get(msg["user_id"]).photo}

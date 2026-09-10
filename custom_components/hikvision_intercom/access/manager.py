@@ -88,6 +88,9 @@ class AccessManager:
         from .bulk_operations import BulkOperations
 
         self.bulk = BulkOperations(self)
+        from .policy_operations import PolicyOperations
+
+        self.policy = PolicyOperations(self)
 
     def register(self, station_id: str, name: str, lock_enabled: bool) -> None:
         if station_id in self.stations:
@@ -126,6 +129,7 @@ class AccessManager:
     async def async_close(self) -> None:
         self._closed = True
         self.bulk.reviews.clear()
+        self.policy.reviews.clear()
         await asyncio.gather(*(self.async_detach(key) for key in self.stations))
 
     def _station(self, station_id: str) -> Station:

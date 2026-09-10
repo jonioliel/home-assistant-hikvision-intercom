@@ -95,3 +95,30 @@ async def test_permission_audit_endpoint_is_readonly_and_bounded(
         assert result["success"] and result["result"]["device_writes"] == 0
         read.assert_awaited_once()
     device_io["unlock"].assert_not_called()
+
+
+async def test_group_policy_review_and_directory_use_real_admin_transport(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    current = await request(client, "profiles/settings_get")
+    values = {k: v for k, v in current["result"].items() if k != "revision"}
+    values["groups"] = [
+        {"id": "staff", "label": "Staff", "enabled": True, "station_ids": [loaded_entry.entry_id]}
+    ]
+    preview = await request(
+        client, "profiles/settings_preview", revision=current["result"]["revision"], values=values
+    )
+    assert preview["success"] and preview["result"]["device_writes"] == 0
+    saved = await request(
+        client, "profiles/settings_apply", operation_id=preview["result"]["operation_id"]
+    )
+    assert saved["success"] and saved["result"]["action"] == "bulk/group_policy"
+    assert (await request(client, "profiles/settings_get"))["result"]["groups"][0]["id"] == "staff"
+    directory = await request(
+        client, "permissions/directory", filters={"station_id": loaded_entry.entry_id}
+    )
+    assert directory["success"] and directory["result"]["total"] == 0
+    bad = await request(client, "permissions/directory", filters={"station_id": []})
+    assert not bad["success"] and bad["error"]["code"] == "invalid_fields"
+    device_io["unlock"].assert_not_called()

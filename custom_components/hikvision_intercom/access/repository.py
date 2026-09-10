@@ -29,7 +29,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 5,
+            "schema": 6,
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
@@ -48,6 +48,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
+            require_overrides = data.get("schema") in (5, 6)
             legacy_keys = set(self._state) - {
                 "admin_audit",
                 "operation_receipts",
@@ -70,8 +71,11 @@ class AccessRepository:
             if data.get("schema") == 4 and set(data) == set(self._state) - {"profile_settings"}:
                 data = {**deepcopy(data), "schema": 5, "profile_settings": None}
                 migrated = True
+            if data.get("schema") == 5 and set(data) == set(self._state):
+                data = {**deepcopy(data), "schema": 6}
+                migrated = True
             try:
-                if data.get("schema") != 5 or set(data) != set(self._state):
+                if data.get("schema") != 6 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -93,7 +97,7 @@ class AccessRepository:
                     profiles.load(data["profile_settings"])
                     normalized["profile_settings"] = deepcopy(profiles.data)
                 for key, raw in data["users"].items():
-                    if not migrated and "permission_overrides" not in raw:
+                    if require_overrides and "permission_overrides" not in raw:
                         raise AccessError("invalid_storage")
                     user = ManagedUser.from_private(raw)
                     if user.id != key:
@@ -375,10 +379,19 @@ class AccessRepository:
             or data["access_policy_revision"] != policy["revision"]
         ):
             raise AccessError("group_policy_changed")
+        if policy is not None and (previous is None or "profile" in data):
+            from ..profile_settings import validate_profile
+
+            validate_profile(policy, data, previous.profile if previous else None)
         return prepare(policy, data, previous)
 
     async def async_profile_settings(
-        self, data: dict[str, Any], validate: Callable[[ManagedUser], None] | None = None
+        self,
+        data: dict[str, Any],
+        validate: Callable[[ManagedUser], None] | None = None,
+        *,
+        stamp: str | None = None,
+        receipt: dict[str, Any] | None = None,
     ) -> list[str]:
         from ..profile_settings import ProfileSettings
 
@@ -387,6 +400,12 @@ class AccessRepository:
         desired = deepcopy(checked.data)
 
         def update(state: dict[str, Any]) -> list[str]:
+            if receipt and (existing := state["operation_receipts"].get(receipt["operation_id"])):
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return list(existing["user_ids"])
+            if stamp is not None and stamp != self.bulk_stamp(state):
+                raise AccessError("bulk_review_stale")
             prior = state["profile_settings"]
             if prior is not None and desired["revision"] != prior["revision"] + 1:
                 raise AccessError("revision_conflict")
@@ -408,6 +427,18 @@ class AccessRepository:
                     validate(user)
                 self._update_user(state, uid, {}, old.revision)
                 changed.append(uid)
+            if receipt:
+                state["operation_receipts"][receipt["operation_id"]] = {
+                    **deepcopy(receipt),
+                    "user_ids": changed,
+                    "changed": len(changed),
+                }
+                while len(state["operation_receipts"]) > 1000:
+                    oldest = min(
+                        state["operation_receipts"],
+                        key=lambda k: state["operation_receipts"][k]["saved_at"],
+                    )
+                    del state["operation_receipts"][oldest]
             return changed
 
         return await self._commit(update, offload=True)

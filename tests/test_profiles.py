@@ -102,7 +102,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
         await repo.async_load(raw)
     save.side_effect = None
     await repo.async_load(raw)
-    assert repo.snapshot()["schema"] == 5
+    assert repo.snapshot()["schema"] == 6
     assert repo.get(user.id).profile == {} and repo.get(user.id).photo is None
 
 

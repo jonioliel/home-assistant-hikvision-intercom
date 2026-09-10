@@ -31,7 +31,7 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
     repo = AccessRepository(AsyncMock())
     await repo.async_load(data)
     expected = deepcopy(data)
-    expected["schema"] = 5
+    expected["schema"] = 6
     expected["profile_settings"] = None
     for record in expected["users"].values():
         record.update(
