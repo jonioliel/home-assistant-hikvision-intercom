@@ -26,7 +26,7 @@ export const adminStyles = css`
     padding: 18px;
     background: var(--surface);
     border: 1px solid var(--divider-color);
-    border-radius: 14px;
+    border-radius: var(--hik-radius, 14px);
     margin-bottom: 16px;
   }
   .filter-panel summary {
@@ -94,7 +94,7 @@ export const adminStyles = css`
     margin: 0 0 12px;
     background: var(--surface);
     border: 1px solid var(--divider-color);
-    border-radius: 14px;
+    border-radius: var(--hik-radius, 14px);
   }
   .audit-row p {
     margin: 6px 0;
@@ -132,7 +132,7 @@ export const adminStyles = css`
   .audit-row .badge.error {
     color: color-mix(in srgb, var(--error-color, #b84246) 45%, var(--ink));
   }
-  @media (max-width: 650px) {
+  @container intercom-panel (max-width: 650px) {
     .page-heading {
       align-items: flex-start;
     }

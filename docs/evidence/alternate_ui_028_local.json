@@ -1,0 +1,61 @@
+{
+  "version": "0.28.0-alpha.1",
+  "date": "2026-09-10",
+  "fixture": "synthetic; no physical device operations",
+  "browser_tests": 275,
+  "new_appearance_tests": 19,
+  "targeted_final_layout_tests": 26,
+  "python_tests": 887,
+  "checks": [
+    "TypeScript",
+    "Prettier",
+    "Ruff",
+    "SemVer release metadata",
+    "Git whitespace (generated bundle excluded)"
+  ],
+  "screenshots": [
+    {
+      "path": "docs/design/images/028-editor-desktop-he.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "506c9d7ccf7b9f26ad97bc70d445f6f2b9a31c566961054e3b012ff8af5723f3"
+    },
+    {
+      "path": "docs/design/images/028-overview-desktop-he.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "064630c3ad58888a158343681bbc7bd8d31838f452f86d4244b37d1e5eef2e64"
+    },
+    {
+      "path": "docs/design/images/028-overview-mobile-he.png",
+      "width": 390,
+      "height": 950,
+      "sha256": "14a8368c762d4333af1917ece97c4d6c5daa3183cada260d04e64957544fbcb7"
+    },
+    {
+      "path": "docs/design/images/028-overview-tablet-dark-he.png",
+      "width": 768,
+      "height": 1000,
+      "sha256": "8a96e0d786d11543496c42a80a3d434be4f1d28653f8cd32ec0aa3b8f26942f8"
+    },
+    {
+      "path": "docs/design/images/028-picker-dark-he.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "b7918e2e824a0e08c23da8743e9eb6d7d68b7453e184db82c4828854dfd8b88d"
+    },
+    {
+      "path": "docs/design/images/028-station-desktop-he.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "38893de79b5f61d7c13ab772526d9b94be30174f43c94176ecb4d613b11da5d1"
+    },
+    {
+      "path": "docs/design/images/028-users-desktop-he.png",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "45eed1306345fcb6082570c3fa5d3475613b0e9bcdb96990f16a4130a7706ebf"
+    }
+  ],
+  "physical_acceptance_changed": false
+}

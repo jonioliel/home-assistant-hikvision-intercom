@@ -152,7 +152,7 @@ export class IntercomSchedules extends LitElement {
       .check {
         background: var(--surface);
         border: 1px solid var(--divider-color, #dce5e6);
-        border-radius: 14px;
+        border-radius: var(--hik-radius, 14px);
         padding: 16px;
         min-width: 0;
       }
@@ -217,7 +217,7 @@ export class IntercomSchedules extends LitElement {
         line-height: 1.6;
         overflow-wrap: anywhere;
       }
-      @media (max-width: 700px) {
+      @container intercom-panel (max-width: 700px) {
         .layout {
           grid-template-columns: minmax(0, 1fr);
         }

@@ -27,7 +27,7 @@ const names = hebrew
     ];
 const data = {
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.27.7-alpha.1",
+  version: "0.28.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -172,7 +172,8 @@ window.demoSchedules = schedules;
 window.demoData = data;
 const fake = {
   language: hebrew ? "he" : "en",
-  user: { is_admin: !query.has("reader") },
+  user: { id: "demo-admin", is_admin: !query.has("reader") },
+  themes: { darkMode: query.has("dark") },
   states: Object.fromEntries(
     data.stations.map((station, i) => [
       station.entities.camera,

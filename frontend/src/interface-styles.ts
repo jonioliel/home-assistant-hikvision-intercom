@@ -440,7 +440,7 @@ export const interfaceStyles = css`
     border-top: 1px solid var(--divider-color);
     padding-top: 12px;
   }
-  @media (max-width: 600px) {
+  @container intercom-panel (max-width: 600px) {
     .users-heading {
       align-items: flex-start;
       flex-direction: column;
@@ -499,7 +499,7 @@ export const interfaceStyles = css`
   .sync-cell-station {
     display: none;
   }
-  @media (max-width: 900px) {
+  @container intercom-panel (max-width: 900px) {
     .page-heading {
       flex-wrap: wrap;
     }
@@ -552,12 +552,12 @@ export const interfaceStyles = css`
       font-size: 13px;
     }
   }
-  @media (min-width: 1600px) {
+  @container intercom-panel (min-width: 1600px) {
     .grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
-  @media (max-width: 1100px) {
+  @container intercom-panel (max-width: 1100px) {
     .metric .metric-icon {
       display: none;
     }
@@ -571,7 +571,7 @@ export const interfaceStyles = css`
       grid-template-columns: 182px minmax(0, 1fr);
     }
   }
-  @media (max-width: 900px) {
+  @container intercom-panel (max-width: 900px) {
     .app-shell {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto auto 1fr;
@@ -641,7 +641,7 @@ export const interfaceStyles = css`
       grid-template-columns: 1fr;
     }
   }
-  @media (max-width: 600px) {
+  @container intercom-panel (max-width: 600px) {
     .head {
       padding: 12px 14px;
       gap: 8px;

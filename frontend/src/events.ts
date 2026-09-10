@@ -78,7 +78,7 @@ export class IntercomEvents extends LitElement {
         min-width: 0;
         width: 100%;
       }
-      @media (max-width: 650px) {
+      @container intercom-panel (max-width: 650px) {
         .form-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }

@@ -1,4 +1,20 @@
 const en = {
+  appearance: "Appearance",
+  appearance_choose: "Panel design",
+  appearance_current: "Existing",
+  appearance_modern: "New",
+  appearance_apply: "Apply design",
+  appearance_hint: "Your choice is saved for this user in this browser.",
+  appearance_theme:
+    "Light and dark colors follow Home Assistant. You can change the design while editing without losing your draft.",
+  appearance_session:
+    "Design applied for this session. This browser could not save the preference.",
+  more_navigation: "More",
+  station_details: "Station details",
+  station_activity: "Activity and details",
+  user_more_actions: "More actions",
+  device_selection: "Select station",
+
   events_load_failed:
     "Events could not be refreshed. Previously loaded records may be out of date; try Refresh after the connection returns.",
   events_report_failed:
@@ -1145,6 +1161,21 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  appearance: "עיצוב",
+  appearance_choose: "עיצוב הפאנל",
+  appearance_current: "קיים",
+  appearance_modern: "חדש",
+  appearance_apply: "החלת העיצוב",
+  appearance_hint: "ההעדפה נשמרת למשתמש בדפדפן זה.",
+  appearance_theme:
+    "הצבעים הבהירים והכהים נקבעים לפי Home Assistant. אפשר להחליף עיצוב גם במהלך עריכה בלי לאבד את הטיוטה.",
+  appearance_session: "העיצוב הוחל להפעלה זו. הדפדפן לא הצליח לשמור את ההעדפה.",
+  more_navigation: "עוד",
+  station_details: "פרטי התחנה",
+  station_activity: "פעילות ופרטים",
+  user_more_actions: "פעולות נוספות",
+  device_selection: "בחירת תחנה",
+
   events_load_failed:
     "רענון האירועים לא הושלם. ייתכן שהרשומות שהוצגו קודם אינן מעודכנות; ניתן לרענן לאחר חידוש החיבור.",
   events_report_failed:

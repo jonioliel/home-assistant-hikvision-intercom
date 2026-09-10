@@ -81,7 +81,7 @@ export const styles = css`
     border-radius: 9px;
     padding: 10px 14px;
     cursor: pointer;
-    min-height: 42px;
+    min-height: var(--hik-control-height, 42px);
   }
   button:hover:not(:disabled) {
     border-color: var(--accent);
@@ -192,7 +192,7 @@ export const styles = css`
     padding: 20px;
     background: var(--surface);
     border: 1px solid var(--divider-color, #dce5e6);
-    border-radius: 14px;
+    border-radius: var(--hik-radius, 14px);
   }
   .metric strong {
     font-size: 32px;
@@ -590,7 +590,7 @@ export const styles = css`
     background: var(--secondary-background-color);
     border-radius: 10px;
   }
-  @media (max-width: 480px) {
+  @container intercom-panel (max-width: 480px) {
     .review-values {
       grid-template-columns: 1fr;
     }
@@ -642,7 +642,7 @@ export const styles = css`
   .camera-video hikvision-intercom-camera {
     width: 100%;
   }
-  @media (max-width: 850px) {
+  @container intercom-panel (max-width: 850px) {
     .camera-layout {
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
@@ -656,7 +656,7 @@ export const styles = css`
     text-align: center;
     color: var(--muted);
   }
-  @media (max-width: 700px) {
+  @container intercom-panel (max-width: 700px) {
     .head {
       padding: 15px 16px;
       gap: 10px;

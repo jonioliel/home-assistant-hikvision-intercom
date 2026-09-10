@@ -95,7 +95,7 @@ export class DeploymentPlans extends LitElement {
         cursor: pointer;
         overflow-wrap: anywhere;
       }
-      @media (max-width: 600px) {
+      @container intercom-panel (max-width: 600px) {
         .fields {
           grid-template-columns: minmax(0, 1fr);
         }

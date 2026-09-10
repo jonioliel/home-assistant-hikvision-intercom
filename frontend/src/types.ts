@@ -176,6 +176,7 @@ export interface Review {
   deletion_pending: boolean;
 }
 export interface Hass {
+  themes?: { darkMode: boolean };
   language: string;
   user?: { is_admin: boolean; id?: string };
   states: Record<string, { state: string; attributes: Record<string, any> }>;

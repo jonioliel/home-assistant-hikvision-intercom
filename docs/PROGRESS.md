@@ -1,11 +1,12 @@
 # Project progress
 
-**Design proposal in review (2026-09-10):** the owner requested an alternate interface inspired
-by a four-screen reference, with a choice between the existing and new designs. See the
-[proposal and C-ALT delivery stages](design/ALTERNATE_UI_HE.md). This work is mockups and
-documentation only; implementation follows owner feedback. Released software remains 0.27.7.
+**Alternate design implementation (2026-09-10):** the owner approved both mockups and explicitly
+requested desktop, tablet, mobile and variable-width support. Version **0.28.0-alpha.1** adds
+an optional new design, per-user browser preference, width-aware layouts and state-preserving
+appearance changes. See [delivery and validation](ALTERNATE_UI_028_HE.md) and the
+[approved C-ALT stages](design/ALTERNATE_UI_HE.md). Hardware acceptance remains unchanged.
 
-Current release **0.27.7-alpha.1** closes the actionable software recovery gaps found in this review.
+Previous release **0.27.7-alpha.1** closes the actionable software recovery gaps found in this review.
 The [delivery and remaining dependency report](SOFTWARE_CLOSURE_0277_HE.md) maps the outcome to
 A–F of the [95% roadmap](ROADMAP_95_AND_UI_HE.md). Mandatory acceptance remains **31/38 (81.6%)**,
 Phase 5 **8/9 (88.9%)**, and combined scope **37/47 (78.7%)**. Phase 6 still has four software

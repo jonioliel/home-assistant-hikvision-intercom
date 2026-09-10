@@ -57,7 +57,7 @@ export class IntercomHealth extends LitElement {
       .health-card {
         background: var(--surface, white);
         border: 1px solid var(--divider-color, #dce5e6);
-        border-radius: 14px;
+        border-radius: var(--hik-radius, 14px);
         padding: 18px;
         margin-block: 12px;
         min-width: 0;

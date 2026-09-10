@@ -4,8 +4,21 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
-### Design planning
-- Document an optional alternate interface inspired by the owner’s four-screen reference, with a choice of existing/new design, desktop/mobile concepts and implementation stages. Mockups await owner feedback; no runtime behavior or released version changes in this planning step.
+## [0.28.0-alpha.1] - 2026-09-10
+
+### Added
+- Add an optional blue interface with a charcoal navigation rail, compact station cards, user avatars and action disclosures, a two-column editor, and focused station details. The existing design remains the default.
+- Add an Existing/New appearance picker in the header, desktop navigation and open editor/camera dialogs. Save the preference per Home Assistant user in this browser; blocked storage falls back to the current session with an explanation.
+- Follow Home Assistant's effective light/dark theme across both designs and all management views. Switching appearance preserves mounted camera controls, unsaved form fields, selected users and pending station actions without sending or replaying a device command.
+
+### Improved
+- Adapt layout to the actual Home Assistant panel width using container queries. Support desktop, tablet, mobile and live resizing, including a narrow panel inside a wide browser and mobile landscape dialogs.
+- Keep all eight views reachable through daily navigation and a mobile More menu. Use user cards when the content area is narrow; keep editor save actions visible while fields scroll.
+- Make station activity, clock and capability sections expandable in the new design; retain independent online/sync states, a red ringing indicator and one active lock per station.
+
+### Documentation and validation
+- Record owner design approval, implementation decisions, synthetic browser screenshots and C-ALT delivery stages in docs/design/ALTERNATE_UI_HE.md and docs/ALTERNATE_UI_028_HE.md.
+- No physical device operations were performed. Hardware acceptance, ISAPI contracts and access-storage schema are unchanged.
 
 ## [0.27.7-alpha.1] - 2026-09-10
 
