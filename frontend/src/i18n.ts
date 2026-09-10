@@ -135,6 +135,8 @@ const en = {
   bulk_changed: "Users with changes",
   bulk_no_change: "No desired-state change",
   bulk_saved: "Saved centrally; verify synchronization per station",
+  bulk_receipt_missing:
+    "No saved receipt is available yet. The earlier request may still finish. Refresh users before reviewing a new action, or check this receipt again.",
   bulk_unknown: "The response was lost. Check the saved operation receipt before another action.",
   bulk_receipt: "Check saved operation",
   bulk_recent: "Recent saved operations",
@@ -1274,6 +1276,8 @@ const he: Record<keyof typeof en, string> = {
   bulk_changed: "משתמשים שישתנו",
   bulk_no_change: "ללא שינוי במצב הרצוי",
   bulk_saved: "נשמר במאגר המרכזי; יש לבדוק סנכרון בכל תחנה",
+  bulk_receipt_missing:
+    "עדיין אין אישור שמירה. הבקשה הקודמת עשויה להסתיים בהמשך. רענן משתמשים לפני סקירת פעולה חדשה, או בדוק שוב את אישור השמירה.",
   bulk_unknown: "התשובה לא התקבלה. בדקו את קבלת הפעולה השמורה לפני פעולה נוספת.",
   bulk_receipt: "בדיקת פעולה שמורה",
   bulk_recent: "פעולות שמורות אחרונות",

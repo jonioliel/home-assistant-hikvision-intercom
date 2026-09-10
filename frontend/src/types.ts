@@ -177,7 +177,7 @@ export interface Review {
 }
 export interface Hass {
   language: string;
-  user?: { is_admin: boolean };
+  user?: { is_admin: boolean; id?: string };
   states: Record<string, { state: string; attributes: Record<string, any> }>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   connection: {

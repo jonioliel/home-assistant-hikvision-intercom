@@ -26,6 +26,7 @@ lit-html/is-server.js:
    */
 
 lit-html/directive-helpers.js:
+lit-html/directives/live.js:
   /**
    * @license
    * Copyright 2020 Google LLC

@@ -1,4 +1,5 @@
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { boundedRequest } from "./request";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
@@ -37,6 +38,13 @@ interface Receipt {
   stations: string[];
   user_ids: string[];
 }
+// Session-only recovery: no credentials or roster data, and never replay a write.
+interface PendingBulk {
+  operation: string;
+  actor: string | undefined;
+  checked: boolean;
+}
+const pending = new WeakMap<Hass["connection"], PendingBulk>();
 export class BulkUsers extends LitElement {
   static styles = [
     styles,
@@ -98,6 +106,8 @@ export class BulkUsers extends LitElement {
     _error: { state: true },
     _approved: { state: true },
     _unknown: { state: true },
+    _checked: { state: true },
+    _online: { state: true },
   };
   hass?: Hass;
   users: Person[] = [];
@@ -112,6 +122,12 @@ export class BulkUsers extends LitElement {
   private _approved = false;
   private _error = "";
   private _unknown = "";
+  private _checked = false;
+  private _online = true;
+  private connection?: Hass["connection"];
+  private actor?: string;
+  private controller?: AbortController;
+  private running = "";
   private epoch = 0;
   private signature = "";
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
@@ -123,86 +139,177 @@ export class BulkUsers extends LitElement {
   private stamp() {
     return JSON.stringify([this.current(), this._action, this._target]);
   }
-  protected updated(changed: PropertyValues) {
-    if (changed.has("hass") && !this.hass?.user?.is_admin) {
-      this.epoch++;
-      this._preview = undefined;
-      this._receipt = undefined;
-      this._recent = undefined;
+  private reset() {
+    this.epoch++;
+    this.controller?.abort();
+    this.controller = undefined;
+    this.running = "";
+    this._busy = false;
+    this._preview = undefined;
+    this._approved = false;
+    this._receipt = undefined;
+    this._recent = undefined;
+    this._error = "";
+  }
+  private restore() {
+    const item = this.connection && pending.get(this.connection);
+    this._unknown = item?.actor === this.actor ? (item?.operation ?? "") : "";
+    this._checked = !!this._unknown && !!item?.checked;
+  }
+  private forget(operation: string) {
+    if (this.connection && pending.get(this.connection)?.operation === operation)
+      pending.delete(this.connection);
+    this.restore();
+  }
+  private lost = () => {
+    this.reset();
+    this._online = false;
+    this.restore();
+    this._error = this.t("connection_lost");
+  };
+  private ready = () => {
+    this._online = true;
+  };
+  private bind(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.lost);
+    this.connection?.removeEventListener?.("ready", this.ready);
+    this.connection = connection;
+    this._online = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.lost);
+    connection?.addEventListener?.("ready", this.ready);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
+  protected updated(_changed: PropertyValues) {
+    const hass = this.hass;
+    if (!hass?.user?.is_admin) {
+      if (this.connection) pending.delete(this.connection);
+      this.reset();
+      this.bind(undefined);
       this._unknown = "";
-      this._error = "";
-      this._busy = false;
+      this._checked = false;
+      return;
+    }
+    if (hass.connection !== this.connection || hass.user.id !== this.actor) {
+      if (hass.connection === this.connection && this.connection) pending.delete(this.connection);
+      this.reset();
+      this.actor = hass.user.id;
+      this.bind(hass.connection);
+      this.restore();
     }
     const signature = this.stamp();
     if (signature !== this.signature) {
       this.signature = signature;
+      if (this.running === "preview") this.reset();
       this._preview = undefined;
       this._approved = false;
     }
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.epoch++;
+    this.reset();
+    this.bind(undefined);
   }
   private stationName(id: string) {
     return this.stations.find((s) => s.id === id)?.name ?? id;
   }
   private async perform(action: "preview" | "apply" | "receipt" | "recent") {
-    if (this._busy || !this.hass?.user?.is_admin) return;
+    const hass = this.hass;
+    if (this._busy || !hass?.user?.is_admin || !this._online || hass.connection.connected === false)
+      return;
+    if ((action === "preview" || action === "apply") && this._unknown && !this._checked) return;
     const epoch = this.epoch,
       stamp = this.stamp(),
       preview = this._preview;
     if (action === "apply" && (!preview || !this._approved)) return;
+    if (action === "receipt" && !this._unknown) return;
+    const connection = hass.connection,
+      actor = hass.user.id;
+    const valid = () =>
+      epoch === this.epoch &&
+      this.isConnected &&
+      this.hass?.user?.is_admin &&
+      this.hass.connection === connection &&
+      this.hass.user.id === actor;
     this._busy = true;
+    this.running = action;
     this._error = "";
     const operation = action === "apply" ? preview!.operation_id : this._unknown;
+    if (action === "apply") pending.set(connection, { operation, actor, checked: false });
+    const controller = new AbortController();
+    this.controller = controller;
     try {
-      let result: Preview | Receipt | Receipt[];
-      if (action === "preview") {
-        result = await this.hass.callWS<Preview>({
-          type: "hikvision_intercom/users/bulk_preview",
-          request: {
-            action: this._action,
-            selection: this.current(),
-            ...(["assign", "unassign"].includes(this._action) ? { station_id: this._target } : {}),
-          },
-        });
-      } else if (action === "recent")
-        result = await this.hass.callWS<Receipt[]>({
-          type: "hikvision_intercom/users/bulk_receipts",
-        });
-      else
-        result = await this.hass.callWS<Receipt>({
-          type: `hikvision_intercom/users/bulk_${action}`,
-          operation_id: operation,
-        });
-      if (epoch !== this.epoch || !this.isConnected || !this.hass?.user?.is_admin) return;
+      const message =
+        action === "preview"
+          ? {
+              type: "hikvision_intercom/users/bulk_preview",
+              request: {
+                action: this._action,
+                selection: this.current(),
+                ...(["assign", "unassign"].includes(this._action)
+                  ? { station_id: this._target }
+                  : {}),
+              },
+            }
+          : action === "recent"
+            ? { type: "hikvision_intercom/users/bulk_receipts" }
+            : {
+                type: `hikvision_intercom/users/bulk_${action}`,
+                operation_id: operation,
+              };
+      const result = await boundedRequest(
+        () => hass.callWS<Preview | Receipt | Receipt[]>(message),
+        action === "apply" ? 60000 : 30000,
+        controller.signal,
+      );
+      if (!valid()) return;
       if (action === "preview") {
         if (stamp !== this.stamp()) return;
         this._preview = result as Preview;
         this._approved = false;
         this._receipt = undefined;
-        this._unknown = "";
       } else if (action === "recent") this._recent = result as Receipt[];
       else {
         this._receipt = result as Receipt;
-        this._unknown = "";
+        this.forget(operation);
         this._preview = undefined;
         this._approved = false;
         this.dispatchEvent(new CustomEvent("access-changed", { bubbles: true, composed: true }));
       }
     } catch (error) {
-      if (epoch === this.epoch && this.isConnected && this.hass?.user?.is_admin) {
-        const code = (error as { code?: string }).code;
+      if (valid()) {
+        const code = (error as { code?: string })?.code;
         this._error = this.t(code ?? "failed");
         if (action === "apply") {
-          this._unknown = operation;
+          if (
+            [
+              "bulk_review_expired",
+              "bulk_review_stale",
+              "manager_closed",
+              "unauthorized",
+              "storage_write_failed",
+              "storage_stopping",
+            ].includes(code ?? "")
+          )
+            this.forget(operation);
+          else this.restore();
           this._preview = undefined;
           this._approved = false;
+        } else if (action === "receipt" && code === "operation_not_found") {
+          const item = pending.get(connection);
+          if (item?.operation === operation) item.checked = true;
+          this.restore();
+          this._error = this.t("bulk_receipt_missing");
         }
       }
     } finally {
-      if (epoch === this.epoch) this._busy = false;
+      if (epoch === this.epoch) {
+        this._busy = false;
+        this.running = "";
+        this.controller = undefined;
+      }
     }
   }
   render() {
@@ -219,7 +326,7 @@ export class BulkUsers extends LitElement {
             >${this.t("bulk_action")}<select
               aria-label=${this.t("bulk_action")}
               .value=${this._action}
-              ?disabled=${this._busy}
+              ?disabled=${this._busy || !this._online}
               @change=${(e: Event) => {
                 this._action = (e.target as HTMLSelectElement).value;
                 this._preview = undefined;
@@ -235,7 +342,7 @@ export class BulkUsers extends LitElement {
                   >${this.t("station")}<select
                     aria-label=${this.t("station")}
                     .value=${this._target}
-                    ?disabled=${this._busy}
+                    ?disabled=${this._busy || !this._online}
                     @change=${(e: Event) => {
                       this._target = (e.target as HTMLSelectElement).value;
                       this._preview = undefined;
@@ -249,17 +356,17 @@ export class BulkUsers extends LitElement {
               : nothing
           }
           <button
-            ?disabled=${this._busy || !this.current().length || this.current().length > 200 || (["assign", "unassign"].includes(this._action) && !this._target)}
+            ?disabled=${this._busy || !this._online || (!!this._unknown && !this._checked) || !this.current().length || this.current().length > 200 || (["assign", "unassign"].includes(this._action) && !this._target)}
             @click=${() => this.perform("preview")}
           >
             ${this.t("bulk_preview")}
           </button>
-          <button ?disabled=${this._busy} @click=${() => this.perform("recent")}>
+          <button ?disabled=${this._busy || !this._online} @click=${() => this.perform("recent")}>
             ${this.t("bulk_recent")}
           </button>
         </div>
         ${this._busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}
-        ${this._unknown ? html`<p class="notice">${this.t("bulk_unknown")} <button ?disabled=${this._busy} @click=${() => this.perform("receipt")}>${this.t("bulk_receipt")}</button><bdi>${this._unknown}</bdi></p>` : nothing}
+        ${this._unknown ? html`<p class="notice">${this.t("bulk_unknown")} <button ?disabled=${this._busy || !this._online} @click=${() => this.perform("receipt")}>${this.t("bulk_receipt")}</button><bdi>${this._unknown}</bdi></p>` : nothing}
         ${
           this._preview
             ? html`<section class="preview" aria-label=${this.t("bulk_preview")}>
@@ -277,7 +384,7 @@ export class BulkUsers extends LitElement {
                   ><input
                     type="checkbox"
                     .checked=${this._approved}
-                    ?disabled=${this._busy}
+                    ?disabled=${this._busy || !this._online}
                     @change=${(e: Event) => {
                       this._approved = (e.target as HTMLInputElement).checked;
                     }}
@@ -285,7 +392,7 @@ export class BulkUsers extends LitElement {
                 >
                 <button
                   class="primary"
-                  ?disabled=${this._busy || !this._approved}
+                  ?disabled=${this._busy || !this._online || !this._approved}
                   @click=${() => this.perform("apply")}
                 >
                   ${this.t("bulk_apply")}
