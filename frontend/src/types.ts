@@ -18,6 +18,9 @@ export interface Assignment {
   last_sync_at?: string | null;
 }
 export interface Person {
+  profile?: Record<string, string>;
+  group_ids?: string[];
+  photo_configured?: boolean;
   id: string;
   sync_reference?: string;
   employee_no: string;
@@ -108,6 +111,7 @@ export interface Tombstone {
 }
 export interface Overview {
   media_settings?: MediaPolicy | null;
+  profile_settings?: import("./profile-settings").ProfilePolicy | null;
   default_zone?: DisplayZone;
   version: string;
   users: Person[];
@@ -195,6 +199,10 @@ export interface Hass {
   };
 }
 export interface Draft {
+  profile?: Record<string, string>;
+  group_ids?: string[];
+  photo?: string | null;
+  photo_configured?: boolean;
   id?: string;
   revision?: number;
   employee_no: string;

@@ -155,6 +155,9 @@ class ManagedUser:
     created_at: str
     updated_at: str
     identity_locked: bool = False
+    profile: dict[str, str] = field(default_factory=dict)
+    group_ids: list[str] = field(default_factory=list)
+    photo: str | None = field(default=None, repr=False)
 
     def private(self) -> dict[str, Any]:
         return {
@@ -174,10 +177,18 @@ class ManagedUser:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "identity_locked": self.identity_locked,
+            "profile": dict(self.profile),
+            "group_ids": list(self.group_ids),
+            "photo": self.photo,
         }
 
     def public(self) -> dict[str, Any]:
-        data = {key: value for key, value in self.private().items() if key not in {"pin", "cards"}}
+        data = {
+            key: value
+            for key, value in self.private().items()
+            if key not in {"pin", "cards", "photo"}
+        }
+        data["photo_configured"] = self.photo is not None
         data["pin_configured"] = self.pin is not None
         data["cards"] = [card.public() for card in self.cards]
         return data
@@ -221,6 +232,8 @@ def build_user(
     data: dict[str, Any], *, employee_no: str, now: str, previous: ManagedUser | None = None
 ) -> ManagedUser:
     """Patch desired state; absent PIN/card numbers keep existing secret material."""
+    from ..profile_settings import group_values, photo_value, profile_values
+
     try:
         employee_no = validate_identifier(data.get("employee_no", employee_no))
         name = text_field(data.get("display_name", previous.display_name if previous else ""), 32)
@@ -313,6 +326,9 @@ def build_user(
             previous.created_at if previous else now,
             now,
             previous.identity_locked if previous else False,
+            profile_values(data.get("profile", previous.profile if previous else {})),
+            group_values(data.get("group_ids", previous.group_ids if previous else [])),
+            photo_value(data.get("photo", previous.photo if previous else None)),
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

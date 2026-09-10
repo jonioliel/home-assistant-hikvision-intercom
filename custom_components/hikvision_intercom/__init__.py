@@ -28,6 +28,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     from .issues import async_setup_repairs
     from .mse_api import register_mse
     from .panel import async_setup_panel
+    from .rtc_api import register_rtc
     from .runtime import async_register_services
     from .websocket import async_register_websocket
 
@@ -37,6 +38,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async_register_websocket(hass)
     register_audio(hass)
     register_mse(hass)
+    register_rtc(hass)
     await async_setup_panel(hass)
     async_register_services(hass)
     return True

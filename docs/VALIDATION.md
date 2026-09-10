@@ -1,4 +1,13 @@
-# Current validation — 0.30.0-alpha.1 global playback and audio diagnostics
+# 0.31 validation checkpoint
+
+User profiles, photo lifecycle and selected-add-on RTC/MSE are under final release validation.
+[Delivery and exact evidence boundaries](PROFILES_MEDIA_031_HE.md), [live decoder measurements](evidence/media_031.json).
+The local full browser run passed 313 tests and found one existing Hebrew card-enrollment
+journey still navigating the removed row action. The test now opens Edit first; targeted
+rechecks passed. An audio soak timed out during simultaneous live browser probes; it is
+being rechecked separately. Release CI must pass before publication.
+
+## Previous validation — 0.30.0-alpha.1 global playback and audio diagnostics
 
 Published code: `bc17023b540d5bf109bf5f2f3617553f189a52ed`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34471533161) passed:
 909 Python tests per version (3.12/3.14), 290 Home Assistant tests, 302 browser tests,

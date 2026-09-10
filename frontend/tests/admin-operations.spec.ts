@@ -225,8 +225,9 @@ test("per-user history shows administrator and export uses applied filters", asy
   await page
     .locator(".desktop-users tbody tr")
     .filter({ hasText: "Or Levy" })
-    .getByRole("button", { name: "User change history" })
+    .getByRole("button", { name: "Edit", exact: true })
     .click();
+  await page.getByRole("dialog").getByRole("button", { name: "User change history" }).click();
   const audit = page.locator("hikvision-admin-audit");
   await expect(audit).toContainText("Test administrator");
   await expect(audit.getByRole("combobox", { name: "Filter change history by user" })).toHaveValue(

@@ -1,5 +1,7 @@
 import type { Person } from "./types";
 export interface UserFilters {
+  group?: string;
+  profile?: Record<string, string>;
   station: string;
   rights: string;
   state: string;
@@ -22,6 +24,9 @@ export function matchingUsers(
   const text = query.trim().toLocaleLowerCase();
   return users
     .filter((u) => {
+      if (filters.group && !u.group_ids?.includes(filters.group)) return false;
+      if (Object.entries(filters.profile ?? {}).some(([id, v]) => !!v && u.profile?.[id] !== v))
+        return false;
       if (
         text &&
         !`${u.display_name} ${u.employee_no}`.toLocaleLowerCase().includes(text) &&

@@ -96,7 +96,8 @@ test("delete requires explicit confirmation", async ({ page }) => {
     expect(dialog.message()).toContain("2 station(s)");
     await dialog.dismiss();
   });
-  await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   expect(
     await page.evaluate(() => window.calls.some((item) => item.type.endsWith("users/delete"))),
   ).toBeFalsy();
@@ -1280,7 +1281,11 @@ test("Hebrew mobile CSV preview and activity reports fit the screen", async ({ p
 
 async function openReaderCapture(page) {
   await page.getByRole("button", { name: "Users", exact: true }).click();
-  await page.getByRole("button", { name: "Read card from station", exact: true }).first().click();
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Read card from station", exact: true })
+    .click();
   return page.getByRole("dialog");
 }
 
@@ -1407,7 +1412,11 @@ test("Hebrew mobile reader capture displays masked preview and confirmation", as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "משתמשים", exact: true }).click();
-  await page.getByRole("button", { name: "קריאת כרטיס מהאינטרקום", exact: true }).last().click();
+  await page.getByRole("button", { name: "עריכה", exact: true }).last().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "קריאת כרטיס מהאינטרקום", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "התחלת קריאת כרטיס", exact: true }).click();
   await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();

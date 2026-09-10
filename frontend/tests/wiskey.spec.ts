@@ -84,7 +84,7 @@ test("management hub contains every advanced tool and revoked admin access close
   await expect(page.getByRole("heading", { name: "WisKey", exact: true })).toBeVisible();
   await expect(page.locator(".appearance-button")).toHaveCount(0);
   await navigate(page, "Management tools");
-  await expect(page.locator(".tool-card")).toHaveCount(9);
+  await expect(page.locator(".tool-card")).toHaveCount(10);
   await expect(page.locator(".tools-grid .appearance-button")).toBeVisible();
   await expect(page.locator(".tools-grid a")).toHaveAttribute(
     "href",

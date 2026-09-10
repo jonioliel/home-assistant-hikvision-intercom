@@ -1,3 +1,5 @@
+import "./profile-settings";
+import "./user-photo";
 import "./media-settings";
 import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
@@ -207,6 +209,7 @@ export class IntercomManagerPanel extends LitElement {
   private _notice = "";
   private _error = "";
   private _draft?: Draft;
+  private _editorBaseline = "";
   private _validityInputZone: DisplayZone = UTC_ZONE;
   private _importRows: Inventory[] = [];
   private _importStation = "";
@@ -687,12 +690,13 @@ export class IntercomManagerPanel extends LitElement {
     this._validityInputZone = structuredClone(this.validityZone());
     this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
     this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
+    this._editorBaseline = JSON.stringify(this._draft);
     this._error = "";
     this._dialog = "editor";
   }
   private patchDraft(key: string, newValue: unknown) {
     if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
-    if (key === "display_name") this.requestUpdate();
+    this.requestUpdate();
   }
   private selectStations(all: boolean) {
     if (!this._draft || this._busy) return;
@@ -755,6 +759,11 @@ export class IntercomManagerPanel extends LitElement {
       })),
     };
     if (draft.pin !== undefined) data.pin = draft.pin;
+    if (this._data?.profile_settings) {
+      if (draft.profile !== undefined) data.profile = draft.profile;
+      if (draft.group_ids !== undefined) data.group_ids = draft.group_ids;
+      if (draft.photo !== undefined) data.photo = draft.photo;
+    }
     const success = await this.run(
       () =>
         draft.id
@@ -777,10 +786,11 @@ export class IntercomManagerPanel extends LitElement {
         .map((item) => item.station_id) ?? []),
     ]);
     if (!confirm(this.t("confirm_delete").replace("{count}", String(targets.size)))) return;
-    await this.run(
+    const removed = await this.run(
       () => this.api("users/delete", { user_id: user.id, revision: user.revision }),
       "deleted",
     );
+    if (removed && this._dialog === "editor") this.close();
   }
   private clearCapture() {
     this._captureEpoch++;
@@ -1345,34 +1355,130 @@ export class IntercomManagerPanel extends LitElement {
       <button class="user-edit" @click=${() => this.edit(user)} ?disabled=${this._busy}>
         ${this.t("edit")}
       </button>
-      <details class="user-more" ?open=${this._appearance === "current"}>
-        <summary>${this.t("user_more_actions")}</summary>
-        <div class="user-more-body">
-          <button @click=${() => this.openCapture(user)} ?disabled=${this._busy}>
-            ${this.t("capture_card")}</button
-          ><button
-            @click=${() => this.run(() => this.api("users/set_active", { user_id: user.id, revision: user.revision, active: !user.active }), "saved")}
-            ?disabled=${this._busy}
-          >
-            ${this.t(user.active ? "disable" : "enable")}</button
-          ><button
-            @click=${() => this.run(() => this.api("sync/user", { user_id: user.id }))}
-            ?disabled=${this._busy}
-          >
-            ${this.t("sync_now")}</button
-          ><button class="danger" @click=${() => this.removeUser(user)} ?disabled=${this._busy}>
-            ${this.t("delete")}</button
-          ><button
-            @click=${() => {
-              this._auditUser = user.id;
-              this._tab = "audit";
-            }}
-          >
-            ${this.t("audit_show_user")}
-          </button>
-        </div>
-      </details>
+      <button
+        @click=${() => this.run(() => this.api("sync/user", { user_id: user.id }))}
+        ?disabled=${this._busy}
+      >
+        ${this.t("sync_now")}
+      </button>
     </div>`;
+  }
+  private editorAction(action: (user: Person) => void) {
+    if (this._busy || !this._draft?.id) return;
+    if (
+      JSON.stringify(this._draft) !== this._editorBaseline ||
+      this._validityFrom !== localInput(this._draft.valid_from, this.validityZone()) ||
+      this._validityUntil !== localInput(this._draft.valid_until, this.validityZone())
+    ) {
+      this._error = this.t("profile_save_first");
+      return;
+    }
+    const user = this._data?.users.find((u) => u.id === this._draft?.id);
+    if (user) action(user);
+  }
+  private profileEditor() {
+    const draft = this._draft!;
+    const policy = this._data?.profile_settings;
+    if (
+      !policy ||
+      (!policy.photo_enabled &&
+        !policy.fields.some((f) => f.enabled) &&
+        !policy.groups.some((g) => g.enabled))
+    )
+      return nothing;
+    return html`<fieldset class="editor-profile">
+      <legend>${this.t("profile_details")}</legend>
+      <div class="fields">
+        ${policy.fields
+          .filter((f) => f.enabled)
+          .map(
+            (f) =>
+              html`<label
+                >${f.label}
+                <input
+                  maxlength="100"
+                  list=${"profile-options-" + f.id}
+                  .value=${draft.profile?.[f.id] ?? ""}
+                  @input=${(e: Event) => this.patchDraft("profile", { ...draft.profile, [f.id]: value(e) })}
+                />
+                <datalist id=${"profile-options-" + f.id}>
+                  ${f.options.map((o) => html`<option value=${o}></option>`)}
+                </datalist>
+              </label>`,
+          )}
+      </div>
+      ${
+        policy.groups.some((g) => g.enabled)
+          ? html`<p>${this.t("profile_groups")}</p>
+              <div class="fields">
+                ${policy.groups
+                  .filter((g) => g.enabled)
+                  .map(
+                    (g) =>
+                      html`<label class="check"
+                        ><input
+                          type="checkbox"
+                          .checked=${draft.group_ids?.includes(g.id) ?? false}
+                          @change=${(e: Event) => this.patchDraft("group_ids", checked(e) ? [...(draft.group_ids ?? []), g.id] : (draft.group_ids ?? []).filter((id) => id !== g.id))}
+                        />${g.label}</label
+                      >`,
+                  )}
+              </div>`
+          : nothing
+      }
+      ${
+        policy.photo_enabled
+          ? html`<hikvision-user-photo
+              .hass=${this.hass}
+              .userId=${draft.id ?? ""}
+              .configured=${draft.photo_configured ?? false}
+              .revision=${draft.revision ?? 0}
+              .image=${draft.photo}
+              @photo-changed=${(e: CustomEvent) => this.patchDraft("photo", e.detail)}
+            ></hikvision-user-photo>`
+          : nothing
+      }
+      <p class="sub">${this.t("profile_local_hint")}</p>
+    </fieldset>`;
+  }
+  private editorActions() {
+    if (!this._draft?.id) return nothing;
+    return html`<fieldset class="editor-user-actions">
+      <legend>${this.t("user_more_actions")}</legend>
+      <div class="row" style="flex-wrap:wrap">
+        <button
+          type="button"
+          ?disabled=${this._busy}
+          @click=${() => this.editorAction((u) => this.openCapture(u))}
+        >
+          ${this.t("capture_card")}
+        </button>
+        <button
+          type="button"
+          ?disabled=${this._busy}
+          @click=${() =>
+            this.editorAction((u) => {
+              this._auditUser = u.id;
+              this.close();
+              this._tab = "audit";
+            })}
+        >
+          ${this.t("audit_show_user")}
+        </button>
+        <button
+          type="button"
+          class="danger"
+          ?disabled=${this._busy}
+          @click=${() =>
+            this.editorAction((u) => {
+              void this.removeUser(u);
+            })}
+        >
+          ${this.t("delete")}
+        </button>
+      </div>
+      <p class="sub">${this.t("profile_actions_hint")}</p>
+    </fieldset>`;
   }
   private overviewView() {
     const stations = [...(this._data?.stations ?? [])].sort(
@@ -1513,7 +1619,16 @@ export class IntercomManagerPanel extends LitElement {
         </div>
       </div>
       <section class="tools-grid" aria-label=${this.t("tools")}>
-        ${["media_options", "users", "devices", "sync", "audit", "health", "schedules"].map(
+        ${[
+          "media_options",
+          "profile_options",
+          "users",
+          "devices",
+          "sync",
+          "audit",
+          "health",
+          "schedules",
+        ].map(
           (tab) =>
             html`<article class="tool-card">
               <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
@@ -1551,7 +1666,11 @@ export class IntercomManagerPanel extends LitElement {
     const users = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
     const filtered =
       !!this._query.trim() ||
-      Object.entries(this._userFilters).some(([key, value]) => key !== "sort" && !!value);
+      Object.entries(this._userFilters).some(
+        ([key, value]) =>
+          key !== "sort" &&
+          (typeof value === "object" ? Object.values(value).some(Boolean) : !!value),
+      );
     return html`<div class="page-heading users-heading">
         <div>
           <h2>${this.t("users")}</h2>
@@ -1634,6 +1753,42 @@ export class IntercomManagerPanel extends LitElement {
               >`,
           )}
         </div>
+        <div class="toolbar profile-filters">
+          ${this._data?.profile_settings?.fields
+            .filter((f) => f.enabled)
+            .map(
+              (f) =>
+                html`<label
+                  >${f.label}<select
+                    aria-label=${f.label}
+                    .value=${this._userFilters.profile?.[f.id] ?? ""}
+                    @change=${(e: Event) => {
+                      this._userFilters = {
+                        ...this._userFilters,
+                        profile: { ...this._userFilters.profile, [f.id]: value(e) },
+                      };
+                      this._selectedUsers = new Set();
+                    }}
+                  >
+                    <option value="">${this.t("filter_any")}</option>
+                    ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                  </select></label
+                >`,
+            )}
+          <label
+            >${this.t("profile_groups")}<select
+              aria-label=${this.t("profile_groups")}
+              .value=${this._userFilters.group ?? ""}
+              @change=${(e: Event) => {
+                this._userFilters = { ...this._userFilters, group: value(e) };
+                this._selectedUsers = new Set();
+              }}
+            >
+              <option value="">${this.t("filter_any")}</option>
+              ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+            </select></label
+          >
+        </div>
       </details>
       <div class="user-result-bar">
         <p role="status">
@@ -1651,6 +1806,8 @@ export class IntercomManagerPanel extends LitElement {
                     rights: "",
                     state: "",
                     credential: "",
+                    profile: {},
+                    group: "",
                   };
                   this._selectedUsers = new Set();
                 }}
@@ -1707,14 +1864,25 @@ export class IntercomManagerPanel extends LitElement {
                           <td>${this.userSelection(user)}</td>
                           <td>
                             <div class="person-name">
-                              <span class="person-avatar" aria-hidden="true"
-                                >${user.display_name
-                                  .trim()
-                                  .split(/\s+/)
-                                  .slice(0, 2)
-                                  .map((part) => Array.from(part)[0])
-                                  .join("")}</span
-                              ><strong>${user.display_name}</strong>
+                              ${
+                                this._data?.profile_settings?.photo_enabled && user.photo_configured
+                                  ? html`<hikvision-user-photo
+                                      compact
+                                      .hass=${this.hass}
+                                      .userId=${user.id}
+                                      .configured=${true}
+                                      .revision=${user.revision}
+                                    ></hikvision-user-photo>`
+                                  : html`<span class="person-avatar" aria-hidden="true"
+                                      >${user.display_name
+                                        .trim()
+                                        .split(/\s+/)
+                                        .slice(0, 2)
+                                        .map((part) => Array.from(part)[0])
+                                        .join("")}</span
+                                    >`
+                              }
+                              <strong>${user.display_name}</strong>
                             </div>
                           </td>
                           <td><bdi>${user.employee_no}</bdi></td>
@@ -1742,6 +1910,7 @@ export class IntercomManagerPanel extends LitElement {
                     html`<article class="person">
                       <div class="row between">
                         ${this.userSelection(user)}
+                        ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
                         <h3>${user.display_name}</h3>
                         ${this.badge(this.personStatus(user))}
                       </div>
@@ -2111,6 +2280,7 @@ export class IntercomManagerPanel extends LitElement {
               >
             </p>
           </fieldset>
+          ${this.profileEditor()} ${this.editorActions()}
           <fieldset class="editor-validity">
             <legend>${icon("schedules")}${this.t("validity")}</legend>
             <label class="check"
@@ -2712,50 +2882,58 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "media_options"
-              ? html`<hikvision-media-settings
+            : this._tab === "profile_options"
+              ? html`<hikvision-profile-settings
                   .hass=${this.hass}
-                  .settings=${this._data.media_settings}
-                  @media-saved=${(e: CustomEvent) => {
-                    if (this._data) this._data = { ...this._data, media_settings: e.detail };
+                  .settings=${this._data.profile_settings}
+                  @profile-saved=${(e: CustomEvent) => {
+                    if (this._data) this._data = { ...this._data, profile_settings: e.detail };
                   }}
-                ></hikvision-media-settings>`
-              : this._tab === "tools"
-                ? this.toolsView()
-                : this._tab === "overview"
-                  ? this.overviewView()
-                  : this._tab === "users"
-                    ? this.usersView()
-                    : this._tab === "devices"
-                      ? this.devicesView()
-                      : this._tab === "sync"
-                        ? this.syncView()
-                        : this._tab === "audit"
-                          ? html`<hikvision-admin-audit
-                              .hass=${this.hass}
-                              .users=${this._data.users}
-                              .stations=${this._data.stations}
-                              .focusUser=${this._auditUser}
-                              .zone=${this._data.default_zone ?? UTC_ZONE}
-                              @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                            ></hikvision-admin-audit>`
-                          : this._tab === "health"
-                            ? html`<hikvision-intercom-health
-                                .callBusy=${this._callBusy}
-                                .onCallBusy=${this.setCallBusy}
+                ></hikvision-profile-settings>`
+              : this._tab === "media_options"
+                ? html`<hikvision-media-settings
+                    .hass=${this.hass}
+                    .settings=${this._data.media_settings}
+                    @media-saved=${(e: CustomEvent) => {
+                      if (this._data) this._data = { ...this._data, media_settings: e.detail };
+                    }}
+                  ></hikvision-media-settings>`
+                : this._tab === "tools"
+                  ? this.toolsView()
+                  : this._tab === "overview"
+                    ? this.overviewView()
+                    : this._tab === "users"
+                      ? this.usersView()
+                      : this._tab === "devices"
+                        ? this.devicesView()
+                        : this._tab === "sync"
+                          ? this.syncView()
+                          : this._tab === "audit"
+                            ? html`<hikvision-admin-audit
                                 .hass=${this.hass}
+                                .users=${this._data.users}
                                 .stations=${this._data.stations}
-                              ></hikvision-intercom-health>`
-                            : this._tab === "schedules"
-                              ? html`<hikvision-intercom-schedules
+                                .focusUser=${this._auditUser}
+                                .zone=${this._data.default_zone ?? UTC_ZONE}
+                                @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                              ></hikvision-admin-audit>`
+                            : this._tab === "health"
+                              ? html`<hikvision-intercom-health
+                                  .callBusy=${this._callBusy}
+                                  .onCallBusy=${this.setCallBusy}
                                   .hass=${this.hass}
                                   .stations=${this._data.stations}
-                                ></hikvision-intercom-schedules>`
-                              : html`<hikvision-intercom-events
-                                  .hass=${this.hass}
-                                  .stations=${this._data.stations}
-                                  .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                ></hikvision-intercom-events>`
+                                ></hikvision-intercom-health>`
+                              : this._tab === "schedules"
+                                ? html`<hikvision-intercom-schedules
+                                    .hass=${this.hass}
+                                    .stations=${this._data.stations}
+                                  ></hikvision-intercom-schedules>`
+                                : html`<hikvision-intercom-events
+                                    .hass=${this.hass}
+                                    .stations=${this._data.stations}
+                                    .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                  ></hikvision-intercom-events>`
         }
       </main>
       ${this.dialogView()}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 from aiohttp import ClientSession
@@ -40,9 +41,34 @@ async def dispatch_media(hass: HomeAssistant, command: str, msg: dict[str, Any])
         return current.public()
     if command == "media/settings_update":
         return await current.update(msg["revision"], msg["values"])
+    if command == "media/provider_discover":
+        # Official add-on DNS names, checked from HA's network before offering a setting.
+        for host in ("a889bffc-go2rtc-hardware", "a889bffc-go2rtc"):
+            url = f"http://{host}:1984"
+            try:
+                version = await check_server(async_get_clientsession(hass), url, deadline=3)
+                return {"url": url, "version": version}
+            except Exception:
+                continue
+        raise AccessError("mse_provider_unavailable")
     try:
         session, url = provider(hass)
-        async with asyncio.timeout(6):
+        version = await check_server(session, url)
+        return {
+            "available": True,
+            "source": "explicit" if current.public()["go2rtc_url"] else "home_assistant",
+            "server": url if current.public()["go2rtc_url"] else "Home Assistant",
+            "version": version,
+        }
+    except AccessError:
+        raise
+    except Exception:
+        raise AccessError("mse_provider_failed") from None
+
+
+async def check_server(session: ClientSession, url: str, *, deadline: int = 6) -> str:
+    try:
+        async with asyncio.timeout(deadline):
             async with session.get(url + "/api", allow_redirects=False) as response:
                 if response.status != 200:
                     raise AccessError("mse_provider_failed")
@@ -54,10 +80,10 @@ async def dispatch_media(hass: HomeAssistant, command: str, msg: dict[str, Any])
                 payload = json.loads(raw)
                 if not isinstance(payload, dict) or not isinstance(payload.get("version"), str):
                     raise AccessError("mse_provider_failed")
-        return {
-            "available": True,
-            "source": "explicit" if current.public()["go2rtc_url"] else "home_assistant",
-        }
+        version = payload["version"]
+        if not re.fullmatch(r"[A-Za-z0-9_.+-]{1,64}", version):
+            raise AccessError("mse_provider_failed")
+        return str(version)
     except AccessError:
         raise
     except Exception:

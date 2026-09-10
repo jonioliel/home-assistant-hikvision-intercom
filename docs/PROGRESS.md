@@ -1,6 +1,18 @@
 # Project progress
 
-Current release **0.30.0-alpha.1** adds global HLS / RTC / MSE settings under WisKey Management tools,
+## 0.31 delivery checkpoint
+
+User row actions now sit inside Edit, with Sync now beside Edit. New global profile options
+provide configurable user fields, groups and optional camera-captured portraits. User data
+migrates atomically to schema 4; profile-only changes preserve device synchronization state.
+The selected go2rtc add-on now serves both RTC and MSE. Real browser probes decoded video
+from two stations in both modes; TCP removed the packet loss observed on the tested UDP path.
+[Delivery, setup and limitations](PROFILES_MEDIA_031_HE.md), [sanitized media evidence](evidence/media_031.json).
+
+Release checks are in progress. This delivery does not claim new physical acceptance gates.
+
+
+Previous release **0.30.0-alpha.1** adds global HLS / RTC / MSE settings under WisKey Management tools,
 real binary MSE playback through authenticated HA, and microphone/transport diagnostics.
 Preferences persist centrally and apply to all WisKey live players across stations and browsers.
 [Setup, responsive screenshot and evidence](MEDIA_030_HE.md).

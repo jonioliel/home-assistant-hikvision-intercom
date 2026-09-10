@@ -49,7 +49,7 @@ async function rtc(page, mode = "success") {
       }
       async setRemoteDescription(desc) {
         this.remoteDescription = desc;
-        if (mode === "success" || mode === "stalled") {
+        if (mode === "success" || mode === "stalled" || mode === "addon") {
           const canvas = document.createElement("canvas");
           canvas.width = 20;
           canvas.height = 20;
@@ -68,8 +68,22 @@ async function rtc(page, mode = "success") {
       }
     }
     window.RTCPeerConnection = Peer;
+    if (mode === "addon") {
+      window.demoData.media_settings = {
+        revision: 1,
+        transport: "webrtc",
+        webrtc_mode: "rtc",
+        fallback_hls: false,
+        go2rtc_url: "http://addon.test:1984",
+      };
+      window.demoNotify();
+    }
     const base = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = async (message) => {
+      if (message.type === "auth/sign_path") {
+        window.calls.push(message);
+        return { path: message.path + "?authSig=synthetic-signature" };
+      }
       if (message.type === "camera/capabilities") {
         window.calls.push(message);
         if (mode === "caps_pending")
@@ -331,4 +345,57 @@ test("closing camera while HA is disconnected prevents a reconnect from opening 
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
   ).toBe(1);
   expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+});
+
+test("selected add-on RTC uses signed bridge without native provider and cleans up", async ({
+  page,
+}) => {
+  let closed = false;
+  await page.routeWebSocket(/\/api\/hikvision_intercom\/rtc\//, (ws) => {
+    ws.onClose(() => {
+      closed = true;
+    });
+    ws.onMessage((raw) => {
+      const message = JSON.parse(String(raw));
+      if (message.offer) {
+        ws.send(JSON.stringify({ type: "answer", answer: "synthetic" }));
+        ws.send(
+          JSON.stringify({ type: "candidate", candidate: { candidate: "synthetic", sdpMid: "0" } }),
+        );
+      }
+    });
+  });
+  await rtc(page, "addon");
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  expect(
+    await page.evaluate(() =>
+      window.calls.some(
+        (c) => c.type.startsWith("camera/webrtc/") || c.type === "camera/capabilities",
+      ),
+    ),
+  ).toBe(false);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await expect.poll(() => closed).toBe(true);
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
+});
+
+test("add-on RTC retries normal ICE once when TCP cannot connect", async ({ page }) => {
+  let attempts = 0;
+  await page.routeWebSocket(/\/api\/hikvision_intercom\/rtc\//, (ws) => {
+    const attempt = ++attempts;
+    ws.onMessage((raw) => {
+      const message = JSON.parse(String(raw));
+      if (!message.offer) return;
+      if (attempt === 1) ws.send(JSON.stringify({ type: "error" }));
+      else ws.send(JSON.stringify({ type: "answer", answer: "synthetic" }));
+    });
+  });
+  await rtc(page, "addon");
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  expect(attempts).toBe(2);
+  expect(await page.evaluate(() => window.calls.some((c) => c.type === "camera/stream"))).toBe(
+    false,
+  );
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  expect(await page.evaluate(() => window.rtcClosed)).toBe(2);
 });

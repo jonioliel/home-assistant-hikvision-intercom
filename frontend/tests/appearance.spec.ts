@@ -191,8 +191,11 @@ test("station detail selection and user action disclosure retain every operation
   const user = page.locator(".desktop-users tbody tr").first();
   await expect(user.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
   await expect(user.getByRole("button", { name: "Delete", exact: true })).toBeHidden();
-  await user.locator("summary").click();
-  await expect(user.getByRole("button", { name: "Delete", exact: true })).toBeVisible();
+  await expect(user.getByRole("button", { name: "Sync now", exact: true })).toBeVisible();
+  await user.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }),
+  ).toBeVisible();
 });
 
 test("changing design during release neither replays it nor disables another station", async ({

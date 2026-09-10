@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "date": "2026-09-10",
+  "go2rtc_version": "1.9.14",
+  "method": "Built WisKey player in Chromium; local test signaling bridge to the existing go2rtc server; real HA bridge tested separately in CI",
+  "installed_ha_ui_verified": false,
+  "recordings_saved": false,
+  "device_configuration_written": false,
+  "go2rtc_configuration_written": false,
+  "mse": [
+    {
+      "station": "A",
+      "mode": "mse",
+      "decoded": true,
+      "bytes": 302060,
+      "width": 2688,
+      "height": 2016,
+      "frames": 5
+    },
+    {
+      "station": "B",
+      "mode": "mse",
+      "decoded": true,
+      "bytes": 384193,
+      "width": 2688,
+      "height": 2016,
+      "frames": 3
+    }
+  ],
+  "rtc_tcp": [
+    {
+      "station": "A",
+      "mode": "rtc",
+      "decoded": true,
+      "width": 2688,
+      "height": 1520,
+      "frames": 171,
+      "video": {
+        "bytesReceived": 1822487,
+        "packetsReceived": 1601,
+        "packetsLost": 0,
+        "framesDecoded": 167,
+        "framesDropped": 0,
+        "frameWidth": 2688,
+        "frameHeight": 1520,
+        "codec": "video/H264"
+      },
+      "ice_state": "connected",
+      "ice_transport": "tcp"
+    },
+    {
+      "station": "B",
+      "mode": "rtc",
+      "decoded": true,
+      "width": 2688,
+      "height": 1520,
+      "frames": 108,
+      "video": {
+        "bytesReceived": 2397444,
+        "packetsReceived": 2067,
+        "packetsLost": 0,
+        "framesDecoded": 105,
+        "framesDropped": 0,
+        "frameWidth": 2688,
+        "frameHeight": 1520,
+        "codec": "video/H264"
+      },
+      "ice_state": "connected",
+      "ice_transport": "tcp"
+    }
+  ],
+  "udp_comparison": {
+    "ice_connected": true,
+    "video_packets_received": 1420,
+    "video_packets_lost": 161,
+    "frames_decoded": 0,
+    "cause_not_proven": "Observed UDP packet loss does not establish CGNAT as the root cause"
+  }
+}

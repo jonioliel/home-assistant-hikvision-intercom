@@ -38,6 +38,9 @@ from .schedule_plan_api import dispatch_plans
 
 _LOGGER = logging.getLogger(__name__)
 USER_FIELDS = {
+    "profile",
+    "group_ids",
+    "photo",
     "employee_no",
     "display_name",
     "active",
@@ -50,9 +53,13 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "profiles/settings_get": {},
+    "profiles/settings_update": {"revision": int, "values": dict},
+    "users/photo_get": {"user_id": str},
     "media/settings_get": {},
     "media/settings_update": {"revision": int, "values": dict},
     "media/provider_check": {},
+    "media/provider_discover": {},
     "users/bulk_preview": {"request": dict},
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
@@ -222,6 +229,8 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
     data["default_zone"] = {"kind": "iana", "name": hass.config.time_zone}
     media = hass.data[DOMAIN].get("media_settings")
     data["media_settings"] = media.public() if media else None
+    profiles = hass.data[DOMAIN].get("profile_settings")
+    data["profile_settings"] = profiles.public() if profiles else None
     data["version"] = VERSION
     return data
 
@@ -258,7 +267,12 @@ async def _dispatch_inner(
             return report
         finally:
             reads.discard(station.id)
-    if command in {"media/settings_get", "media/settings_update", "media/provider_check"}:
+    if command in {
+        "media/settings_get",
+        "media/settings_update",
+        "media/provider_check",
+        "media/provider_discover",
+    }:
         from .media_api import dispatch_media
 
         return await dispatch_media(hass, command, msg)
@@ -422,8 +436,44 @@ async def _dispatch_inner(
         return overview(hass)
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command in {"profiles/settings_get", "profiles/settings_update", "users/photo_get"}:
+        profile_settings = hass.data[DOMAIN].get("profile_settings")
+        if profile_settings is None:
+            raise AccessError("profile_settings_unavailable")
+        if command == "profiles/settings_get":
+            return profile_settings.public()
+        if command == "profiles/settings_update":
+            return await profile_settings.update(msg["revision"], msg["values"])
+        if not profile_settings.public()["photo_enabled"]:
+            return {"photo": None}
+        return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command in {"users/create", "users/update"} and {
+        "profile",
+        "group_ids",
+        "photo",
+    }.intersection(msg["data"]):
+        patch = msg["data"]
+        profile_settings = hass.data[DOMAIN].get("profile_settings")
+        if profile_settings is None:
+            raise AccessError("profile_settings_unavailable")
+        definitions = profile_settings.public()
+        if "profile" in patch and (
+            not isinstance(patch["profile"], dict)
+            or set(patch["profile"]) - {f["id"] for f in definitions["fields"]}
+        ):
+            raise AccessError("invalid_fields")
+        if "group_ids" in patch and (
+            not isinstance(patch["group_ids"], list)
+            or any(
+                not isinstance(g, str) or g not in {v["id"] for v in definitions["groups"]}
+                for g in patch["group_ids"]
+            )
+        ):
+            raise AccessError("invalid_fields")
+        if patch.get("photo") is not None and not definitions["photo_enabled"]:
+            raise AccessError("photo_disabled")
     if command == "users/create":
         return await manager.async_create(_patch(msg["data"]), sync_now=msg.get("sync_now", True))
     if command in {"users/update", "users/set_active", "cards/add", "cards/remove"}:

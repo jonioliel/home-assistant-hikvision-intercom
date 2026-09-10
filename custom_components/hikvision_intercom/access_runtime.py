@@ -61,6 +61,20 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "media_settings_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["media_settings"] = media
 
+    from .profile_settings import ProfileSettings
+
+    profile_store = AccessStore(hass, key=f"{DOMAIN}.profile_settings")
+    profiles = ProfileSettings(profile_store.async_save, changed)
+    # Do not silently discard corrupt field definitions or reuse their identities.
+    try:
+        profiles.load(await profile_store.async_load())
+    except AccessError:
+        issue(hass, "profile_settings_storage_corrupt", active=True)
+        hass.data[DOMAIN]["profile_settings"] = None
+    else:
+        issue(hass, "profile_settings_storage_corrupt", active=False)
+        hass.data[DOMAIN]["profile_settings"] = profiles
+
     schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
     schedules = ScheduleLibrary(schedule_store.async_save, changed)
     try:

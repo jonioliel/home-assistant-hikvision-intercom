@@ -173,7 +173,17 @@ def desired_fields(user: ManagedUser) -> dict[str, Any]:
             else value
         )
         for key, value in data.items()
-        if key not in {"id", "revision", "created_at", "updated_at", "identity_locked"}
+        if key
+        not in {
+            "id",
+            "revision",
+            "created_at",
+            "updated_at",
+            "identity_locked",
+            "profile",
+            "group_ids",
+            "photo",
+        }
     }
 
 

@@ -25,7 +25,9 @@ const names = hebrew
       "Staff entrance",
       "Rear entrance",
     ];
+const photos = {};
 const data = {
+  profile_settings: { revision: 0, fields: [], groups: [], photo_enabled: false },
   media_settings: {
     revision: 0,
     transport: "webrtc",
@@ -34,7 +36,7 @@ const data = {
     go2rtc_url: "",
   },
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.30.0-alpha.1",
+  version: "0.31.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -201,6 +203,19 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "profiles/settings_get") return structuredClone(data.profile_settings);
+    if (command === "profiles/settings_update") {
+      if (message.revision !== data.profile_settings.revision) throw { code: "revision_conflict" };
+      data.profile_settings = { ...message.values, revision: message.revision + 1 };
+      window.demoNotify();
+      return structuredClone(data.profile_settings);
+    }
+    if (command === "users/photo_get")
+      return {
+        photo: data.profile_settings.photo_enabled ? (photos[message.user_id] ?? null) : null,
+      };
+    if (command === "media/provider_discover")
+      return { url: "http://a889bffc-go2rtc-hardware:1984", version: "1.9.14" };
     if (command === "media/settings_get") return structuredClone(data.media_settings);
     if (command === "media/settings_update") {
       if (message.revision !== data.media_settings.revision) throw { code: "revision_conflict" };
@@ -208,7 +223,13 @@ const fake = {
       window.demoNotify();
       return structuredClone(data.media_settings);
     }
-    if (command === "media/provider_check") return { available: true, source: "home_assistant" };
+    if (command === "media/provider_check")
+      return {
+        available: true,
+        source: "home_assistant",
+        server: "Home Assistant",
+        version: "1.9.14",
+      };
     if (command === "media/call")
       return {
         call_commands: ["answer", "reject", "hangUp"],
@@ -739,7 +760,7 @@ const fake = {
       };
     }
     if (command === "users/create") {
-      const { pin, cards, ...fields } = message.data;
+      const { pin, cards, photo, ...fields } = message.data;
       const user = {
         ...fields,
         id: crypto.randomUUID(),
@@ -754,6 +775,10 @@ const fake = {
           enabled: card.enabled,
         })),
       };
+      if (photo !== undefined) {
+        photos[user.id] = photo;
+        user.photo_configured = !!photo;
+      }
       data.users.push(user);
       callbacks.forEach((callback) => callback({ kind: "refresh" }));
       return structuredClone(user);
@@ -761,7 +786,11 @@ const fake = {
     if (command === "users/update") {
       const user = data.users.find((item) => item.id === message.user_id);
       if (message.revision !== user.revision) throw { code: "revision_conflict" };
-      const { pin, cards, ...fields } = message.data;
+      const { pin, cards, photo, ...fields } = message.data;
+      if (photo !== undefined) {
+        photos[user.id] = photo;
+        user.photo_configured = !!photo;
+      }
       Object.assign(user, fields);
       user.revision++;
       if (pin !== undefined) user.pin_configured = !!pin;

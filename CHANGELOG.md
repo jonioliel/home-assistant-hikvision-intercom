@@ -4,6 +4,23 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.31.0-alpha.1] - 2026-09-10
+
+### Added
+- Add global user profile options under Management tools: up to 12 named fields with suggestions, up to 64 organizational groups, and optional browser-camera portraits. Rename or hide definitions while preserving stable IDs and existing user values. Filter users by fields and groups and assign multiple groups in the editor. Groups do not grant door permissions.
+- Add explicit camera capture, preview, discard/retake, accept and photo removal. Save accepted images atomically with user changes; keep previews local until saving. Stop camera tracks on capture, cancellation, backgrounding, HA disconnection or component removal. Load saved portraits only for visible administrator views; never include JPEG data in overview broadcasts, CSV exports, audit history or deletion tombstones.
+- Add installed go2rtc add-on discovery and a saved-provider check showing the selected server and version. Share an explicit trusted go2rtc address between MSE and RTC, with same-origin authenticated RTC signaling and source credentials retained in HA. Preserve native HA RTC when no explicit provider is chosen.
+
+### Fixed
+- Move card enrollment, history and deletion into the user editor; user enable/disable uses the editor's Active control. Keep only Edit and Sync now beside each other in user rows, in both designs and mobile layouts. Guard other editor actions while unsaved changes exist.
+- Local profile-only edits preserve access assignment sync state and advance equivalent applied revisions together and do not request a new device synchronization. Central schema 4 migration preserves credentials, assignments, revocations and pending operations.
+- Expose RTC connection and ICE state in safe playback diagnostics to distinguish signaling success from a decoded video stream.
+
+### Validation and migration
+- Real browser decoding confirmed 2688×2016 MSE video from two stations through the installed go2rtc server. RTC over UDP connected but lost packets without decoding frames; TCP decoded 2688×1520 H.264 from both stations with zero packet loss in the measured interval. Prefer TCP for the selected add-on and retry ordinary RTC once when TCP is unavailable. See docs/PROFILES_MEDIA_031_HE.md for evidence and setup.
+- Add persistence, migration, revision-conflict, admin authorization, bounded JPEG, photo privacy/deletion, selected-provider signaling, lifecycle, filtering, capture and Hebrew responsive regression checks. No device credentials, photos, raw signaling or live video recordings are published.
+- User storage payload migrates from schema 3 to 4 atomically. Keep a Home Assistant backup before upgrading; an older integration cannot read schema 4. Photos are JPEG up to 32 KiB and 512×512; the capture UI produces 256×256 images. Aggregate photo data is capped below the existing 32 MiB storage limit.
+
 ## [0.30.0-alpha.1] - 2026-09-10
 
 ### Added

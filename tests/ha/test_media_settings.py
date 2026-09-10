@@ -138,7 +138,12 @@ async def test_mse_rejects_reader_and_hls_mode(
 async def test_provider_check_missing_and_available(hass, loaded_entry, hass_ws_client, mse_server):
     client = await hass_ws_client(hass)
     result = await request(client, "media/provider_check")
-    assert result["result"] == {"available": True, "source": "home_assistant"}
+    assert result["result"] == {
+        "available": True,
+        "source": "home_assistant",
+        "server": "Home Assistant",
+        "version": "test",
+    }
     hass.data.pop("go2rtc")
     assert (await request(client, "media/provider_check"))["error"][
         "code"

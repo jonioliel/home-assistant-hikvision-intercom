@@ -26,6 +26,7 @@ export class MediaSettingsPanel extends LitElement {
     draft: { state: true },
     busy: { state: true },
     notice: { state: true },
+    server: { state: true },
     error: { state: true },
     stale: { state: true },
   };
@@ -35,6 +36,7 @@ export class MediaSettingsPanel extends LitElement {
   private busy = false;
   private actor?: string;
   private notice = "";
+  private server = "";
   private error = "";
   private stale = false;
   private requests = new ScopedRequests(() => this.hass);
@@ -107,10 +109,33 @@ export class MediaSettingsPanel extends LitElement {
     this.error = "";
     this.notice = "";
     try {
-      await this.requests.run({ type: "hikvision_intercom/media/provider_check" }, 10000);
+      const result = await this.requests.run<{ server: string; version: string }>(
+        { type: "hikvision_intercom/media/provider_check" },
+        10000,
+      );
+      this.server = `${result.server} · go2rtc ${result.version}`;
       this.notice = "media_provider_ready";
     } catch {
       this.error = "media_provider_failed";
+    } finally {
+      this.busy = false;
+    }
+  }
+  private async discover() {
+    this.busy = true;
+    this.error = "";
+    this.notice = "";
+    try {
+      const result = await this.requests.run<{ url: string; version: string }>(
+        { type: "hikvision_intercom/media/provider_discover" },
+        12000,
+      );
+      if (!this.isConnected) return;
+      this.change("go2rtc_url", result.url);
+      this.server = `${result.url} · go2rtc ${result.version}`;
+      this.notice = "media_discovered";
+    } catch {
+      this.error = "media_discover_failed";
     } finally {
       this.busy = false;
     }
@@ -165,7 +190,7 @@ export class MediaSettingsPanel extends LitElement {
                   />${this.t("media_fallback")}</label
                 >
                 ${
-                  draft.webrtc_mode === "mse"
+                  true
                     ? html`<label
                           >${this.t("media_go2rtc_url")}<input
                             type="url"
@@ -187,10 +212,13 @@ export class MediaSettingsPanel extends LitElement {
           <button type="button" ?disabled=${this.busy} @click=${() => this.reload()}>
             ${this.t("media_reload")}
           </button>
-          ${draft.transport === "webrtc" && draft.webrtc_mode === "mse" ? html`<button type="button" ?disabled=${this.busy} @click=${() => this.check()}>${this.t("media_provider_check")}</button>` : nothing}
+          <button type="button" ?disabled=${this.busy} @click=${() => this.discover()}>
+            ${this.t("media_discover")}
+          </button>
+          ${draft.transport === "webrtc" ? html`<button type="button" ?disabled=${this.busy} @click=${() => this.check()}>${this.t("media_provider_check")}</button>` : nothing}
         </div>
       </form>
-      ${this.notice ? html`<p class="notice" role="status">${this.t(this.notice)}</p>` : nothing}
+      ${this.notice ? html`<p class="notice" role="status">${this.t(this.notice)} <bdi>${this.server}</bdi></p>` : nothing}
       ${this.error ? html`<p class="notice error" role="alert">${this.t(this.error)}</p>` : nothing}
     </section>`;
   }

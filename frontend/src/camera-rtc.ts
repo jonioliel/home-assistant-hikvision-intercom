@@ -1,3 +1,4 @@
+import { AddonSignaling } from "./camera-signaling";
 import type { Hass } from "./types";
 
 type Signal =
@@ -7,6 +8,7 @@ type Signal =
   | { type: "error" };
 /** Use HA's authenticated camera signaling and its configured WebRTC provider. */
 export class CameraRTC {
+  private addon?: AddonSignaling;
   private peer?: RTCPeerConnection;
   private closed = false;
   private unsubscribe?: () => void;
@@ -17,6 +19,8 @@ export class CameraRTC {
   private stream = new MediaStream();
   private sequence = Promise.resolve();
   private playing = false;
+  private lastConnection = "new";
+  private lastIce = "new";
   private startedAt = new Date().toISOString();
   private firstFrameAt: string | null = null;
   private failureReason: string | null = null;
@@ -43,18 +47,23 @@ export class CameraRTC {
     private video: HTMLVideoElement,
     private ready: () => void,
     private failed: (reason: string) => void,
+    private station?: string,
+    private tcpOnly = true,
   ) {}
   async start() {
     this.timer = setTimeout(() => this.fail("no_frame"), 12000);
     this.video.addEventListener("loadeddata", this.loaded);
     try {
-      const config = await this.hass.callWS<{
-        configuration: RTCConfiguration;
-        dataChannel?: string;
-      }>({ type: "camera/webrtc/get_client_config", entity_id: this.entity });
+      if (this.station) this.addon = new AddonSignaling(this.hass, this.station, () => this.fail());
+      const config = this.addon
+        ? { configuration: { iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] } }
+        : await this.hass.callWS<{
+            configuration: RTCConfiguration;
+            dataChannel?: string;
+          }>({ type: "camera/webrtc/get_client_config", entity_id: this.entity });
       if (this.closed) return;
       const peer = (this.peer = new RTCPeerConnection(config.configuration));
-      if (config.dataChannel) peer.createDataChannel(config.dataChannel);
+      if ("dataChannel" in config && config.dataChannel) peer.createDataChannel(config.dataChannel);
       peer.ontrack = (event) => {
         if (this.closed) return;
         this.stream.addTrack(event.track);
@@ -71,6 +80,7 @@ export class CameraRTC {
       peer.onicecandidate = (event) => {
         if (!event.candidate || this.closed) return;
         const candidate = event.candidate.toJSON();
+        if (this.station && this.tcpOnly && / udp /i.test(candidate.candidate ?? "")) return;
         if (this.session) void this.send(candidate);
         else if (this.candidates.length < 100) this.candidates.push(candidate);
         else this.fail("signal_limit");
@@ -81,7 +91,11 @@ export class CameraRTC {
       if (this.closed) return;
       await peer.setLocalDescription(offer);
       if (this.closed) return;
-      const unsubscribe = await this.hass.connection.subscribeMessage<Signal>(
+      const unsubscribe = await (
+        this.addon
+          ? this.addon.subscribe.bind(this.addon)
+          : this.hass.connection.subscribeMessage.bind(this.hass.connection)
+      )<Signal>(
         (event) => {
           if (this.closed) return;
           if (++this.incoming > 256) {
@@ -106,6 +120,10 @@ export class CameraRTC {
       return;
     }
     try {
+      if (this.addon) {
+        this.addon.candidate(candidate);
+        return;
+      }
       await this.hass.callWS({
         type: "camera/webrtc/candidate",
         entity_id: this.entity,
@@ -139,6 +157,7 @@ export class CameraRTC {
         await peer.addIceCandidate(candidate);
       }
     } else if (event.type === "candidate") {
+      if (this.station && this.tcpOnly && / udp /i.test(event.candidate.candidate ?? "")) return;
       const candidate =
         event.candidate.sdpMid != null || event.candidate.sdpMLineIndex != null
           ? event.candidate
@@ -150,6 +169,10 @@ export class CameraRTC {
   }
   summary(): Record<string, unknown> {
     return {
+      ice_transport: this.station && this.tcpOnly ? "tcp" : "auto",
+      connection_state: this.closed ? this.lastConnection : (this.peer?.connectionState ?? "new"),
+      ice_state: this.closed ? this.lastIce : (this.peer?.iceConnectionState ?? "new"),
+      provider: this.station ? "selected_go2rtc" : "home_assistant",
       started_at: this.startedAt,
       first_frame_at: this.firstFrameAt,
       video_decoded: this.playing,
@@ -213,7 +236,10 @@ export class CameraRTC {
       void Promise.resolve(this.unsubscribe?.()).catch(() => {});
     } catch {}
     this.unsubscribe = undefined;
+    this.addon?.close();
     if (this.peer) {
+      this.lastConnection = this.peer.connectionState;
+      this.lastIce = this.peer.iceConnectionState;
       this.peer.ontrack = null;
       this.peer.onicecandidate = null;
       this.peer.onconnectionstatechange = null;

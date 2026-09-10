@@ -363,6 +363,10 @@
     "media_settings_storage_corrupt": {
       "title": "Camera playback settings could not be loaded",
       "description": "The stored WisKey playback preferences failed validation. Restore this storage file from a trusted backup and restart Home Assistant. Camera and user configuration are separate."
+    },
+    "profile_settings_storage_corrupt": {
+      "title": "WisKey user profile settings are unavailable",
+      "description": "User field and group settings could not be loaded. Restore a valid profile settings backup. Door controls and synchronization remain available."
     }
   }
 }

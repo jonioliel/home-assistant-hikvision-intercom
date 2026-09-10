@@ -29,7 +29,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 3,
+            "schema": 4,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
             "bindings": {},
@@ -59,8 +59,11 @@ class AccessRepository:
                     "operation_receipts": {},
                 }
                 migrated = True
+            if data.get("schema") == 3 and set(data) == set(self._state):
+                data = {**deepcopy(data), "schema": 4}
+                migrated = True
             try:
-                if data.get("schema") != 3 or set(data) != set(self._state):
+                if data.get("schema") != 4 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -227,6 +230,8 @@ class AccessRepository:
 
     @staticmethod
     def _validate_collisions(state: dict[str, Any]) -> None:
+        if sum(len(u.get("photo") or "") for u in state["users"].values()) > 24 * 1024 * 1024:
+            raise AccessError("photo_storage_full")
         employees: set[str] = set()
         cards: dict[str, str] = {}
         pins: dict[str, str] = {}
@@ -350,6 +355,16 @@ class AccessRepository:
         if type(expected_revision) is not int or old.revision != expected_revision:
             raise AccessError("revision_conflict")
         user = build_user(data, employee_no=old.employee_no, now=utc_now(), previous=old)
+        from .csv_transfer import desired_fields
+
+        if desired_fields(user) == desired_fields(old):
+            # Access intent is unchanged. Advance already-applied revisions together so
+            # periodic reconciliation cannot leave desired/applied versions mismatched.
+            user.assignments = deepcopy(old.assignments)
+            for assignment in user.assignments.values():
+                if assignment.applied_revision == assignment.desired_revision:
+                    assignment.applied_revision = user.revision
+                assignment.desired_revision = user.revision
         if user.employee_no != old.employee_no and old.identity_locked:
             raise AccessError("identity_migration_required")
         desired_numbers = {card.card_no.value for card in user.cards}
@@ -451,6 +466,8 @@ class AccessRepository:
             if item["user_id"] == user_id
             for station in item["targets"]
         }
+        # Revocation needs credentials, never local portraits or organizational metadata.
+        record = {**record, "photo": None, "profile": {}, "group_ids": []}
         if targets:
             state["tombstones"][user_id] = {
                 "user_id": user_id,

@@ -1,4 +1,50 @@
 const en = {
+  audit_field_profile: "Custom details",
+  audit_field_group_ids: "Groups",
+  audit_field_photo: "User photo",
+  profile_options: "User profile options",
+  tools_profile_options: "Choose user fields, groups and photo collection.",
+  profile_settings_hint:
+    "Add fields such as Department and Role, or Building and Apartment. Names and suggestions can be changed for this project.",
+  profile_fields: "Custom user fields",
+  profile_label: "Field name",
+  profile_suggestions: "Suggested values (one per line)",
+  profile_collect: "Collect this field",
+  profile_add_field: "Add user field",
+  profile_groups: "Groups",
+  profile_group_name: "Group name",
+  profile_add_group: "Add group",
+  profile_photo_enabled: "Allow user photo capture",
+  profile_archive_hint:
+    "Turning a field, group or photo option off hides it and preserves existing data. Rename fields freely; their identities stay fixed.",
+  profile_load_failed: "User profile settings could not be loaded.",
+  profile_details: "Additional user details",
+  profile_local_hint:
+    "These details and groups are kept in WisKey. Door permissions are set separately below.",
+  profile_save_first: "Save or discard your edits before using this action.",
+  profile_actions_hint:
+    "Use the Active checkbox above to enable or disable this user, then save. Save any edits before reading a card, opening history or deleting.",
+  profile_photo: "User photo",
+  photo_open: "Open camera",
+  photo_capture: "Capture photo",
+  photo_preview: "Photo preview",
+  photo_use: "Use this photo",
+  photo_retake: "Discard and retake",
+  photo_remove: "Remove user photo",
+  photo_save_hint:
+    "The photo is saved with the user. The camera stops after capture or closing this editor.",
+  photo_https: "Open Home Assistant using HTTPS to allow browser camera access.",
+  photo_camera_failed:
+    "Could not open the camera. Check browser permission and that another app is not using it.",
+  photo_load_failed: "Could not load the saved photo. Try reopening the editor.",
+  invalid_photo: "The photo is invalid or too large. Capture it again.",
+  photo_storage_full: "Photo storage is full. Remove unused user photos before adding more.",
+  photo_disabled: "Photo collection was disabled. Reload user settings.",
+
+  media_discover: "Find installed go2rtc add-on",
+  media_discovered: "Add-on found. Save to use it for both RTC and MSE.",
+  media_discover_failed:
+    "Add-on DNS was not reachable. Enter the HA server address with port 1984, save and check the connection.",
   media_options: "Camera playback options",
   tools_media_options: "Global video transport for all WisKey cameras.",
   media_scope:
@@ -8,9 +54,9 @@ const en = {
   media_mse_hint:
     "MSE streams video over the Home Assistant connection. It does not need a direct browser-to-camera RTC connection. Microphone audio uses the separate talk controls.",
   media_rtc_hint:
-    "RTC uses the Home Assistant WebRTC provider. Connectivity depends on ICE and the network path.",
+    "RTC uses the selected go2rtc server, or the Home Assistant provider when the address is empty. Connectivity depends on ICE and the network path.",
   media_fallback: "Allow automatic HLS fallback if the selected mode fails",
-  media_go2rtc_url: "go2rtc server address (optional, MSE only)",
+  media_go2rtc_url: "go2rtc server address (RTC and MSE)",
   media_go2rtc_hint:
     "Leave empty to use the Home Assistant go2rtc integration. Otherwise enter a trusted local server reachable from HA, such as http://go2rtc:1984. HA sends the camera source to this server; its address and camera credentials stay out of the player. No username or password in this address.",
   media_save: "Save for all cameras",
@@ -1232,6 +1278,48 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  audit_field_profile: "פרטים מותאמים",
+  audit_field_group_ids: "קבוצות",
+  audit_field_photo: "תמונת משתמש",
+  profile_options: "אפשרויות פרטי משתמש",
+  tools_profile_options: "בחירת שדות משתמש, קבוצות וקליטת תמונה.",
+  profile_settings_hint:
+    "הוסף שדות כגון מחלקה ותפקיד, או בניין ומספר דירה. ניתן להתאים את השמות והערכים לפרויקט.",
+  profile_fields: "שדות משתמש מותאמים",
+  profile_label: "שם השדה",
+  profile_suggestions: "ערכים מוצעים (אחד בכל שורה)",
+  profile_collect: "לקלוט שדה זה",
+  profile_add_field: "הוספת שדה משתמש",
+  profile_groups: "קבוצות",
+  profile_group_name: "שם קבוצה",
+  profile_add_group: "הוספת קבוצה",
+  profile_photo_enabled: "לאפשר קליטת תמונת משתמש",
+  profile_archive_hint:
+    "כיבוי שדה, קבוצה או תמונות מסתיר אותם ושומר את הנתונים הקיימים. שינוי שם שדה אינו מוחק את תוכנו.",
+  profile_load_failed: "לא ניתן לטעון את הגדרות פרטי המשתמש.",
+  profile_details: "פרטי משתמש נוספים",
+  profile_local_hint: "הפרטים והקבוצות נשמרים ב־WisKey. הרשאות פתיחת דלת מוגדרות בנפרד בהמשך.",
+  profile_save_first: "שמור או בטל את השינויים לפני ביצוע הפעולה.",
+  profile_actions_hint:
+    "סימון פעיל למעלה מאפשר להפעיל או להשבית את המשתמש לאחר שמירה. שמור שינויים לפני קריאת כרטיס, פתיחת יומן או מחיקה.",
+  profile_photo: "תמונת משתמש",
+  photo_open: "פתיחת מצלמה",
+  photo_capture: "צלם",
+  photo_preview: "תצוגה מקדימה של הצילום",
+  photo_use: "השתמש בתמונה",
+  photo_retake: "מחק וצלם מחדש",
+  photo_remove: "הסרת תמונת המשתמש",
+  photo_save_hint: "התמונה תישמר יחד עם המשתמש. המצלמה תכבה לאחר הצילום או סגירת העריכה.",
+  photo_https: "יש לפתוח את Home Assistant ב־HTTPS כדי לאפשר גישה למצלמה בדפדפן.",
+  photo_camera_failed: "לא ניתן לפתוח את המצלמה. בדוק הרשאת דפדפן ושהמצלמה אינה בשימוש ביישום אחר.",
+  photo_load_failed: "לא ניתן לטעון את התמונה השמורה. נסה לפתוח מחדש את העריכה.",
+  invalid_photo: "התמונה אינה תקינה או גדולה מדי. צלם מחדש.",
+  photo_storage_full: "אחסון התמונות מלא. הסר תמונות משתמש שאינן נדרשות לפני הוספה.",
+  photo_disabled: "קליטת התמונות בוטלה. טען מחדש את הגדרות המשתמש.",
+  media_discover: "איתור תוסף go2rtc מותקן",
+  media_discovered: "התוסף נמצא. שמור כדי להשתמש בו גם ב־RTC וגם ב־MSE.",
+  media_discover_failed:
+    "התוסף לא נגיש בשם הרשת שלו. הזן את כתובת שרת HA עם פורט 1984, שמור ובדוק חיבור.",
   media_options: "אפשרויות ניגון מצלמות",
   tools_media_options: "בחירת אופן ניגון הווידאו בכל מצלמות WisKey.",
   media_scope:
@@ -1242,7 +1330,7 @@ const he: Record<keyof typeof en, string> = {
     "MSE מעביר וידאו דרך החיבור ל־Home Assistant, ללא חיבור RTC ישיר מהדפדפן למצלמה. הדיבור מתבצע דרך בקרי השמע הנפרדים.",
   media_rtc_hint: "RTC משתמש בספק WebRTC של Home Assistant. החיבור תלוי ב־ICE ובנתיב הרשת.",
   media_fallback: "לאפשר מעבר אוטומטי ל־HLS אם המצב שנבחר נכשל",
-  media_go2rtc_url: "כתובת שרת go2rtc (רשות, עבור MSE בלבד)",
+  media_go2rtc_url: "כתובת שרת go2rtc (ל־RTC ול־MSE)",
   media_go2rtc_hint:
     "השאר ריק כדי להשתמש באינטגרציית go2rtc של Home Assistant. לחלופין הזן שרת מקומי מהימן שנגיש מ־HA, למשל http://go2rtc:1984. HA מוסר לשרת זה את מקור המצלמה; הכתובת ופרטי המצלמה אינם נשלחים לנגן. אין להזין שם משתמש או סיסמה בכתובת.",
   media_save: "שמירה לכל המצלמות",

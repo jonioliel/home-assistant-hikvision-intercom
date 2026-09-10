@@ -270,9 +270,19 @@ export class IntercomCamera extends LitElement {
       this._documentVisible &&
       this._networkOnline &&
       this._haConnected;
+    let retryRTC: (() => void) | undefined;
     let fallbackStarted = false;
     const fallback = (reason: string) => {
       if (current() && !fallbackStarted) {
+        if (retryRTC) {
+          const retry = retryRTC;
+          retryRTC = undefined;
+          this.previousRTC = this.rtc?.summary();
+          this.rtc?.close();
+          this.rtc = undefined;
+          retry();
+          return;
+        }
         fallbackStarted = true;
         clearTimeout(this.startTimer);
         this.previousRTC = this.rtc?.summary();
@@ -321,10 +331,13 @@ export class IntercomCamera extends LitElement {
     }
     this.startTimer = setTimeout(() => fallback("capabilities_timeout"), 10000);
     try {
-      const caps = await this.hass!.callWS<{ frontend_stream_types: string[] }>({
-        type: "camera/capabilities",
-        entity_id: this.entity,
-      });
+      const caps =
+        policy.go2rtc_url && this.stationId
+          ? { frontend_stream_types: ["web_rtc"] }
+          : await this.hass!.callWS<{ frontend_stream_types: string[] }>({
+              type: "camera/capabilities",
+              entity_id: this.entity,
+            });
       if (!current() || fallbackStarted) return;
       clearTimeout(this.startTimer);
       if (!caps.frontend_stream_types?.includes("web_rtc")) {
@@ -339,19 +352,26 @@ export class IntercomCamera extends LitElement {
       if (!current() || fallbackStarted) return;
       const video = this.renderRoot.querySelector("video");
       if (!video) return;
-      this.rtc = new CameraRTC(
-        this.hass!,
-        this.entity,
-        video,
-        () => {
-          if (current()) {
-            this._mode = "player_webrtc";
-            this.firstFrameAt = new Date().toISOString();
-          }
-        },
-        fallback,
-      );
-      void this.rtc.start();
+      const beginRTC = (tcpOnly: boolean) => {
+        this.rtc = new CameraRTC(
+          this.hass!,
+          this.entity,
+          video,
+          () => {
+            if (current()) {
+              this._mode = "player_webrtc";
+              this.firstFrameAt = new Date().toISOString();
+            }
+          },
+          fallback,
+          policy.go2rtc_url ? this.stationId : undefined,
+          tcpOnly,
+        );
+        void this.rtc.start();
+      };
+      // TCP avoids packet loss on VPN/CGNAT paths; still try ordinary RTC if TCP is unavailable.
+      if (policy.go2rtc_url) retryRTC = () => beginRTC(false);
+      beginRTC(true);
     } catch {
       fallback("capabilities_failed");
     }

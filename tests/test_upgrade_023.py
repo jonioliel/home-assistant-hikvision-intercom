@@ -31,6 +31,9 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
     repo = AccessRepository(AsyncMock())
     await repo.async_load(data)
     expected = deepcopy(data)
+    expected["schema"] = 4
+    for record in expected["users"].values():
+        record.update(profile={}, group_ids=[], photo=None)
     for user in expected["users"].values():
         for assignment in user["assignments"].values():
             if assignment["sync_state"] == "syncing":

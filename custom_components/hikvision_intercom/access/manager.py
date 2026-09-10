@@ -521,7 +521,9 @@ class AccessManager:
         )
         user = await self.repository.async_update(user_id, data, expected_revision=revision)
         # Saving changes does not suspend periodic or already-running reconciliation.
-        if sync_now:
+        from .csv_transfer import desired_fields
+
+        if sync_now and desired_fields(user) != desired_fields(previous):
             self.request_user(user.id)
         self._changed()
         return user.public()

@@ -249,3 +249,17 @@ use **Playback report** in the camera dialog to investigate WebRTC/HLS selection
 ### Global WisKey playback and audio diagnostics
 
 Management tools → Camera playback options selects HLS, RTC or MSE for every WisKey live player. Preferences are stored centrally in HA, including optional HLS fallback. MSE uses the HA go2rtc integration or a trusted local go2rtc server and stays on the authenticated HA origin in the browser. Other HA dashboard camera cards use their own player settings. Talk uses the separate HA/ISAPI path and requires microphone access in a secure browser context. [Setup, audio diagnostics and verified limits](docs/MEDIA_030_HE.md).
+
+
+### User profiles and the installed go2rtc add-on
+
+WisKey Management tools → **User profile options** configures project-specific fields
+(e.g. department/role or building/apartment), groups and optional user photos.
+Use the user editor for these details and camera capture; only Edit and Sync now remain in rows.
+Photos require a secure browser context (HTTPS), remain local to Home Assistant and are not biometric enrollment.
+
+Management tools → **Camera playback options** can discover the installed go2rtc add-on.
+Save the discovered address to use the same server for both RTC and MSE; the saved-provider
+check reports its server and version. MSE carries video over HA's connection. RTC still requires
+working ICE connectivity between the browser and go2rtc; an HTTP health check alone does not prove it.
+[Hebrew setup, migration, limits and verification](docs/PROFILES_MEDIA_031_HE.md).
