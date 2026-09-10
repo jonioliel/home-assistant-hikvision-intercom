@@ -1,6 +1,7 @@
 import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
+import { live } from "lit/directives/live.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
 import { icon } from "./icons";
@@ -1995,7 +1996,7 @@ export class IntercomManagerPanel extends LitElement {
                       >${this.t("valid_from")}<input
                         required
                         type="datetime-local"
-                        .value=${this._validityFrom}
+                        .value=${live(this._validityFrom)}
                         @input=${(event: Event) => {
                           this._validityFrom = value(event);
                         }} /></label
@@ -2003,7 +2004,7 @@ export class IntercomManagerPanel extends LitElement {
                       >${this.t("valid_until")}<input
                         required
                         type="datetime-local"
-                        .value=${this._validityUntil}
+                        .value=${live(this._validityUntil)}
                         @input=${(event: Event) => {
                           this._validityUntil = value(event);
                         }}
