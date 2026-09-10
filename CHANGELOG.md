@@ -4,6 +4,16 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.5-alpha.1] - 2026-09-10
+
+### Fixed
+- Retire station event producers as soon as the runtime starts closing. Late call-status edges and live/history replies cannot emit events from an unloaded or replaced station.
+- Preserve the history recovery cursor when shutdown interrupts a page, so the next recovery replays and deduplicates that page without skipping records.
+- Keep a replacement event monitor registered when the old monitor finishes cleanup, and ignore late connection-recovery callbacks instead of queuing new synchronization during shutdown.
+
+### Validation boundaries
+- No physical device operations were performed. These lifecycle fixes do not close field acceptance for calls, audible audio, cards, timed validity or nine-station operation.
+
 ## [0.27.4-alpha.1] - 2026-09-10
 
 ### Fixed
