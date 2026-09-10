@@ -1,4 +1,19 @@
 const en = {
+  group_doors: "Group door permissions",
+  group_doors_hint:
+    "Saving applies these doors to all group members and queues synchronization, including offline stations. An inactive group grants no access.",
+  group_missing_station: "Removed station",
+  group_permission_hint:
+    "Group doors are combined. A personal block overrides every group; a personal grant adds a door. Reset returns to current and future group rules.",
+  permission_denied: "Personally blocked",
+  permission_personal: "Personal grant",
+  permission_inherited: "From groups",
+  permission_none: "No access",
+  permission_reset_all: "Reset personal exceptions",
+  permission_reset: "Use group permissions",
+  group_policy_changed:
+    "Group settings changed while this editor was open. Reopen the user to review the current permissions before saving.",
+  audit_field_permission_overrides: "Personal permission exceptions",
   audit_field_profile: "Custom details",
   audit_field_group_ids: "Groups",
   audit_field_photo: "User photo",
@@ -16,11 +31,11 @@ const en = {
   profile_add_group: "Add group",
   profile_photo_enabled: "Allow user photo capture",
   profile_archive_hint:
-    "Turning a field, group or photo option off hides it and preserves existing data. Rename fields freely; their identities stay fixed.",
+    "Hiding fields or photos preserves their data. Disabling a group also revokes its inherited permissions; personal exceptions remain. Rename definitions without losing their identities.",
   profile_load_failed: "User profile settings could not be loaded.",
   profile_details: "Additional user details",
   profile_local_hint:
-    "These details and groups are kept in WisKey. Door permissions are set separately below.",
+    "Details stay in WisKey. Selected groups grant their configured doors, with personal exceptions below.",
   profile_save_first: "Save or discard your edits before using this action.",
   profile_actions_hint:
     "Use the Active checkbox above to enable or disable this user, then save. Save any edits before reading a card, opening history or deleting.",
@@ -1278,6 +1293,21 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  group_doors: "הרשאות דלתות לקבוצה",
+  group_doors_hint:
+    "שמירה תחיל את הדלתות על כל חברי הקבוצה ותוסיף שינויים לסנכרון, גם בתחנות מנותקות. קבוצה לא פעילה אינה מקנה הרשאות.",
+  group_missing_station: "תחנה שהוסרה",
+  group_permission_hint:
+    "הרשאות הקבוצות מצטברות. חסימה אישית גוברת על כל קבוצה, והרשאה אישית מוסיפה דלת. חזרה להרשאות הקבוצה תחול גם על שינויים עתידיים.",
+  permission_denied: "חסימה אישית",
+  permission_personal: "הרשאה אישית",
+  permission_inherited: "לפי הקבוצות",
+  permission_none: "ללא הרשאה",
+  permission_reset_all: "ביטול כל החריגות האישיות",
+  permission_reset: "חזרה להרשאות הקבוצה",
+  group_policy_changed:
+    "הגדרות הקבוצות השתנו בזמן העריכה. פתח מחדש את המשתמש ובדוק את ההרשאות העדכניות לפני שמירה.",
+  audit_field_permission_overrides: "חריגות הרשאה אישיות",
   audit_field_profile: "פרטים מותאמים",
   audit_field_group_ids: "קבוצות",
   audit_field_photo: "תמונת משתמש",
@@ -1295,10 +1325,11 @@ const he: Record<keyof typeof en, string> = {
   profile_add_group: "הוספת קבוצה",
   profile_photo_enabled: "לאפשר קליטת תמונת משתמש",
   profile_archive_hint:
-    "כיבוי שדה, קבוצה או תמונות מסתיר אותם ושומר את הנתונים הקיימים. שינוי שם שדה אינו מוחק את תוכנו.",
+    "כיבוי שדות או תמונות שומר את הנתונים. השבתת קבוצה מבטלת גם את ההרשאות המורשות ממנה; חריגות אישיות נשמרות. שינוי שם אינו מוחק את הנתונים.",
   profile_load_failed: "לא ניתן לטעון את הגדרות פרטי המשתמש.",
   profile_details: "פרטי משתמש נוספים",
-  profile_local_hint: "הפרטים והקבוצות נשמרים ב־WisKey. הרשאות פתיחת דלת מוגדרות בנפרד בהמשך.",
+  profile_local_hint:
+    "הפרטים נשמרים ב־WisKey. הקבוצות שנבחרו מקנות את הדלתות שהוגדרו להן, עם חריגות אישיות בהמשך.",
   profile_save_first: "שמור או בטל את השינויים לפני ביצוע הפעולה.",
   profile_actions_hint:
     "סימון פעיל למעלה מאפשר להפעיל או להשבית את המשתמש לאחר שמירה. שמור שינויים לפני קריאת כרטיס, פתיחת יומן או מחיקה.",

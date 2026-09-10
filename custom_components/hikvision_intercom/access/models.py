@@ -158,6 +158,7 @@ class ManagedUser:
     profile: dict[str, str] = field(default_factory=dict)
     group_ids: list[str] = field(default_factory=list)
     photo: str | None = field(default=None, repr=False)
+    permission_overrides: dict[str, str] = field(default_factory=dict)
 
     def private(self) -> dict[str, Any]:
         return {
@@ -180,6 +181,7 @@ class ManagedUser:
             "profile": dict(self.profile),
             "group_ids": list(self.group_ids),
             "photo": self.photo,
+            "permission_overrides": dict(self.permission_overrides),
         }
 
     def public(self) -> dict[str, Any]:
@@ -233,6 +235,7 @@ def build_user(
 ) -> ManagedUser:
     """Patch desired state; absent PIN/card numbers keep existing secret material."""
     from ..profile_settings import group_values, photo_value, profile_values
+    from .group_permissions import overrides
 
     try:
         employee_no = validate_identifier(data.get("employee_no", employee_no))
@@ -329,6 +332,14 @@ def build_user(
             profile_values(data.get("profile", previous.profile if previous else {})),
             group_values(data.get("group_ids", previous.group_ids if previous else [])),
             photo_value(data.get("photo", previous.photo if previous else None)),
+            overrides(
+                data.get(
+                    "permission_overrides",
+                    previous.permission_overrides
+                    if previous
+                    else {sid: "allow" if a.enabled else "deny" for sid, a in assignments.items()},
+                )
+            ),
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

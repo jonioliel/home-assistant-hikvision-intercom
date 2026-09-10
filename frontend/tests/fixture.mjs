@@ -26,6 +26,21 @@ const names = hebrew
       "Rear entrance",
     ];
 const photos = {};
+function groupAccess(user) {
+  if (!user.permission_overrides) return;
+  const ids = new Set(
+    data.profile_settings.groups
+      .filter((g) => g.enabled && user.group_ids?.includes(g.id))
+      .flatMap((g) => g.station_ids ?? []),
+  );
+  for (const [id, mode] of Object.entries(user.permission_overrides)) {
+    if (mode === "allow") ids.add(id);
+    else ids.delete(id);
+  }
+  user.assignments = Object.fromEntries(
+    [...ids].map((id) => [id, { enabled: true, allowed_locks: [1], sync_state: "pending" }]),
+  );
+}
 const data = {
   profile_settings: { revision: 0, fields: [], groups: [], photo_enabled: false },
   media_settings: {
@@ -36,7 +51,7 @@ const data = {
     go2rtc_url: "",
   },
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.31.0-alpha.1",
+  version: "0.32.0-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,
@@ -207,6 +222,7 @@ const fake = {
     if (command === "profiles/settings_update") {
       if (message.revision !== data.profile_settings.revision) throw { code: "revision_conflict" };
       data.profile_settings = { ...message.values, revision: message.revision + 1 };
+      data.users.forEach(groupAccess);
       window.demoNotify();
       return structuredClone(data.profile_settings);
     }
@@ -779,6 +795,7 @@ const fake = {
         photos[user.id] = photo;
         user.photo_configured = !!photo;
       }
+      groupAccess(user);
       data.users.push(user);
       callbacks.forEach((callback) => callback({ kind: "refresh" }));
       return structuredClone(user);
@@ -791,7 +808,13 @@ const fake = {
         photos[user.id] = photo;
         user.photo_configured = !!photo;
       }
+      if (
+        fields.access_policy_revision !== undefined &&
+        fields.access_policy_revision !== data.profile_settings.revision
+      )
+        throw { code: "group_policy_changed" };
       Object.assign(user, fields);
+      groupAccess(user);
       user.revision++;
       if (pin !== undefined) user.pin_configured = !!pin;
       if (cards)

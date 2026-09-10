@@ -263,3 +263,7 @@ Save the discovered address to use the same server for both RTC and MSE; the sav
 check reports its server and version. MSE carries video over HA's connection. RTC still requires
 working ICE connectivity between the browser and go2rtc; an HTTP health check alone does not prove it.
 [Hebrew setup, migration, limits and verification](docs/PROFILES_MEDIA_031_HE.md).
+
+### Custom user columns and group permissions
+
+Version 0.32 adds custom-field columns, inherited group door permissions and personal exceptions. [Setup, precedence and schema-5 migration](docs/GROUP_PERMISSIONS_032_HE.md).

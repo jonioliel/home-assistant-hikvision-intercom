@@ -1,3 +1,10 @@
+# 0.32 group-permissions checkpoint
+
+Custom user columns and inherited group door grants with personal exceptions are implemented.
+Policy and effective users now commit atomically in schema 5; existing access remains personal.
+[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local focused tests passed; the full
+local and GitHub release gates are still in progress. No new physical acceptance gate is claimed.
+
 # Project progress
 
 ## Current release — 0.31.0-alpha.1

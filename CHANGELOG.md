@@ -4,6 +4,18 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.32.0-alpha.1] - 2026-09-10
+
+### Added
+- Display enabled custom fields as named columns in the users table and labelled values on mobile, alongside group memberships, in both designs.
+- Assign station door permissions to groups in Management tools. Users inherit the union of active groups, with explicit personal grants and blocks; a personal block wins over all groups. Show permission sources and reset one or all personal exceptions in the user editor.
+- Apply group permission changes atomically to the policy and every affected user's desired access. Retain durable offline revocation, restart recovery and existing ownership/readback checks. Renaming groups does not request device writes.
+
+### Compatibility and validation
+- Migrate access storage from schema 4 to 5 and import prior profile settings once into the central store. Preserve existing door assignments as personal exceptions, credentials, photos, pending revocations and audit history. Back up Home Assistant before upgrading; older integration versions cannot read schema 5.
+- Reject stale user-policy edits and stale bulk/CSV reviews. Preserve personal exceptions on unchanged doors when using legacy assignment edits. Disabled groups retain membership but grant no access.
+- Add group inheritance, exception precedence, atomic failure/cancellation, migration, offline restart/revocation, real HA authorization/storage and responsive Hebrew browser regression checks. See docs/GROUP_PERMISSIONS_032_HE.md.
+
 ## [0.31.0-alpha.1] - 2026-09-10
 
 ### Added

@@ -663,6 +663,7 @@ export class IntercomManagerPanel extends LitElement {
       }
     </div>`;
   }
+  private _editorPolicyRevision?: number;
   private edit(user?: Person) {
     const number = new Uint32Array(1);
     crypto.getRandomValues(number);
@@ -681,6 +682,14 @@ export class IntercomManagerPanel extends LitElement {
           valid_until: null,
           timed: false,
         };
+    this._draft.permission_overrides ??= Object.fromEntries(
+      Object.entries(this._draft.assignments).map(([id, a]) => [
+        id,
+        a.enabled ? ("allow" as const) : ("deny" as const),
+      ]),
+    );
+    this._editorPolicyRevision = this._data?.profile_settings?.revision;
+    this.refreshDraftPermissions();
     this._validityStation =
       Object.keys(this._draft.assignments).find((id) =>
         this._data?.stations.some((s) => s.id === id),
@@ -696,20 +705,46 @@ export class IntercomManagerPanel extends LitElement {
   }
   private patchDraft(key: string, newValue: unknown) {
     if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
+    if (key === "group_ids") this.refreshDraftPermissions();
     this.requestUpdate();
   }
   private selectStations(all: boolean) {
     if (!this._draft || this._busy) return;
-    if (all) {
-      for (const station of this._data?.stations ?? []) {
-        if (station.lock_enabled)
-          this._draft.assignments[station.id] = {
-            ...this._draft.assignments[station.id],
-            enabled: true,
-            allowed_locks: [1],
-          };
-      }
-    } else this._draft.assignments = {};
+    for (const station of this._data?.stations ?? []) {
+      if (station.lock_enabled)
+        this._draft.permission_overrides![station.id] = all ? "allow" : "deny";
+    }
+    this.refreshDraftPermissions();
+    this.requestUpdate();
+  }
+  private inheritedGroups(stationId: string) {
+    return (this._data?.profile_settings?.groups ?? []).filter(
+      (g) =>
+        g.enabled && this._draft?.group_ids?.includes(g.id) && g.station_ids?.includes(stationId),
+    );
+  }
+  private refreshDraftPermissions() {
+    const draft = this._draft;
+    if (!draft) return;
+    const ids = new Set([
+      ...Object.keys(draft.assignments),
+      ...Object.keys(draft.permission_overrides ?? {}),
+      ...(this._data?.stations ?? []).map((s) => s.id),
+    ]);
+    for (const id of ids) {
+      const mode = draft.permission_overrides?.[id];
+      const enabled = mode === "allow" || (mode !== "deny" && this.inheritedGroups(id).length > 0);
+      if (enabled)
+        draft.assignments[id] = { ...draft.assignments[id], enabled: true, allowed_locks: [1] };
+      else delete draft.assignments[id];
+    }
+  }
+  private setPersonalPermission(stationId: string, mode: "allow" | "deny" | "inherit") {
+    if (!this._draft) return;
+    this._draft.permission_overrides ??= {};
+    if (mode === "inherit") delete this._draft.permission_overrides[stationId];
+    else this._draft.permission_overrides[stationId] = mode;
+    this.refreshDraftPermissions();
     this.requestUpdate();
   }
   private pinBlocked() {
@@ -750,7 +785,12 @@ export class IntercomManagerPanel extends LitElement {
       active: draft.active,
       valid_from: draft.timed ? draft.valid_from : null,
       valid_until: draft.timed ? draft.valid_until : null,
-      assignments: draft.assignments,
+      ...(this._data?.profile_settings
+        ? {
+            permission_overrides: draft.permission_overrides ?? {},
+            access_policy_revision: this._editorPolicyRevision,
+          }
+        : { assignments: draft.assignments }),
       cards: draft.cards.map((card) => ({
         ...(card.id ? { id: card.id } : { card_no: card.card_no }),
         label: card.label,
@@ -1376,6 +1416,17 @@ export class IntercomManagerPanel extends LitElement {
     const user = this._data?.users.find((u) => u.id === this._draft?.id);
     if (user) action(user);
   }
+  private visibleProfileFields() {
+    return this._data?.profile_settings?.fields.filter((f) => f.enabled) ?? [];
+  }
+  private userGroupNames(user: Person) {
+    return (
+      this._data?.profile_settings?.groups
+        .filter((g) => g.enabled && user.group_ids?.includes(g.id))
+        .map((g) => g.label)
+        .join(", ") ?? ""
+    );
+  }
   private profileEditor() {
     const draft = this._draft!;
     const policy = this._data?.profile_settings;
@@ -1852,7 +1903,10 @@ export class IntercomManagerPanel extends LitElement {
                   <thead>
                     <tr>
                       <th>${this.t("select_user")}</th>
-                      ${["name", "employee_id", "pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
+                      ${["name", "employee_id"].map((key) => html`<th>${this.t(key)}</th>`)}
+                      ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
+                      ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
+                      ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
                     </tr>
                   </thead>
                   <tbody>
@@ -1886,6 +1940,8 @@ export class IntercomManagerPanel extends LitElement {
                             </div>
                           </td>
                           <td><bdi>${user.employee_no}</bdi></td>
+                          ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
+                          ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
                           <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
                           <td>${user.cards.length}</td>
                           <td>
@@ -1923,6 +1979,23 @@ export class IntercomManagerPanel extends LitElement {
                         ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
                         ${this.t("cards")}: ${user.cards.length}
                       </p>
+                      <dl class="user-custom-details">
+                        ${this.visibleProfileFields().map(
+                          (f) =>
+                            html`<div>
+                              <dt>${f.label}</dt>
+                              <dd>${user.profile?.[f.id] || "—"}</dd>
+                            </div>`,
+                        )}
+                        ${
+                          this.userGroupNames(user)
+                            ? html`<div>
+                                <dt>${this.t("profile_groups")}</dt>
+                                <dd>${this.userGroupNames(user)}</dd>
+                              </div>`
+                            : nothing
+                        }
+                      </dl>
                       ${this.validitySummary(user)}
                       <div class="row actions">${this.userActions(user)}</div>
                     </article>`,
@@ -2477,12 +2550,23 @@ export class IntercomManagerPanel extends LitElement {
             >
               ${this.t("clear_stations")}
             </button>
+            <button
+              type="button"
+              ?disabled=${this._busy}
+              @click=${() => {
+              draft.permission_overrides = {};
+              this.refreshDraftPermissions();
+              this.requestUpdate();
+            }}
+            >
+              ${this.t("permission_reset_all")}
+            </button>
             <span class="sub"
               >${this.t("selected_stations")}:
               ${Object.values(draft.assignments).filter((item) => item.enabled).length}</span
             >
           </div>
-          <p class="field-note">${this.t("selection_hint")}</p>
+          <p class="field-note">${this.t("group_permission_hint")}</p>
           <div class="assignment-list">
             ${(this._data?.stations ?? []).map(
               (station) =>
@@ -2493,16 +2577,24 @@ export class IntercomManagerPanel extends LitElement {
                       .checked=${!!draft.assignments[station.id]?.enabled}
                       ?disabled=${!station.lock_enabled}
                       @change=${(event: Event) => {
-                        if (checked(event))
-                          draft.assignments[station.id] = { enabled: true, allowed_locks: [1] };
-                        else delete draft.assignments[station.id];
-                        this.requestUpdate();
+                        this.setPersonalPermission(station.id, checked(event) ? "allow" : "deny");
                       }}
                     /><strong>${station.name}</strong
                     >${this.badge(station.online ? "online" : "offline")}</label
                   ><small
                     >${this.t(station.lock_enabled ? "station_access" : "camera_only")}${station.lock_enabled && this.lockName(station) ? html` · ${this.lockName(station)}` : nothing}</small
                   >
+                  <small class="permission-source"
+                    >${this.t(draft.permission_overrides?.[station.id] === "deny" ? "permission_denied" : draft.permission_overrides?.[station.id] === "allow" ? "permission_personal" : this.inheritedGroups(station.id).length ? "permission_inherited" : "permission_none")}${
+                      this.inheritedGroups(station.id).length
+                        ? html` ·
+                          ${this.inheritedGroups(station.id)
+                            .map((g) => g.label)
+                            .join(", ")}`
+                        : nothing
+                    }</small
+                  >
+                  ${draft.permission_overrides?.[station.id] ? html`<button type="button" class="permission-reset" @click=${() => this.setPersonalPermission(station.id, "inherit")}>${this.t("permission_reset")}</button>` : nothing}
                   ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
                 </div>`,
             )}
@@ -2886,6 +2978,7 @@ export class IntercomManagerPanel extends LitElement {
               ? html`<hikvision-profile-settings
                   .hass=${this.hass}
                   .settings=${this._data.profile_settings}
+                  .stations=${this._data.stations}
                   @profile-saved=${(e: CustomEvent) => {
                     if (this._data) this._data = { ...this._data, profile_settings: e.detail };
                   }}

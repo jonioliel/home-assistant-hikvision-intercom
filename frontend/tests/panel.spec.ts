@@ -447,11 +447,10 @@ test("saving bulk assignments sends only the configured physical lock", async ({
     window.calls.filter((item) => item.type.endsWith("users/create")),
   );
   expect(calls).toHaveLength(1);
-  expect(Object.keys(calls[0].data.assignments)).toHaveLength(8);
-  expect(calls[0].data.assignments["station-5"].enabled).toBe(true);
-  expect(calls[0].data.assignments["station-8"]).toBeUndefined();
-  for (const assignment of Object.values(calls[0].data.assignments))
-    expect(assignment.allowed_locks).toEqual([1]);
+  expect(Object.keys(calls[0].data.permission_overrides)).toHaveLength(8);
+  expect(calls[0].data.permission_overrides["station-5"]).toBe("allow");
+  expect(calls[0].data.permission_overrides["station-8"]).toBeUndefined();
+  for (const mode of Object.values(calls[0].data.permission_overrides)) expect(mode).toBe("allow");
 });
 
 test("Hebrew mobile inspection shows scan errors and preserves readable layout", async ({

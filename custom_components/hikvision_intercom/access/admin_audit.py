@@ -17,6 +17,7 @@ LIMIT = 5000
 DAYS = 30
 ACTIONS = frozenset(
     {
+        "profiles/settings_update",
         "users/create",
         "users/update",
         "users/delete",
@@ -87,7 +88,7 @@ def summary(raw: dict[str, Any] | None) -> dict[str, Any] | None:
 def changes(before: dict[str, Any] | None, after: dict[str, Any] | None) -> list[str]:
     first = desired_fields(ManagedUser.from_private(before)) if before else {}
     last = desired_fields(ManagedUser.from_private(after)) if after else {}
-    for key in ("profile", "group_ids", "photo"):
+    for key in ("profile", "group_ids", "photo", "permission_overrides"):
         first[key] = (before or {}).get(key)
         last[key] = (after or {}).get(key)
     return sorted(key for key in first.keys() | last.keys() if first.get(key) != last.get(key))
@@ -214,6 +215,7 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             "profile",
             "group_ids",
             "photo",
+            "permission_overrides",
         }
         if any(not isinstance(f, str) or f not in allowed_fields for f in row["fields"]):
             raise AccessError("invalid_storage")

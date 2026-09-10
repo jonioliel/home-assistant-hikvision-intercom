@@ -182,6 +182,7 @@ def desired_fields(user: ManagedUser) -> dict[str, Any]:
             "identity_locked",
             "profile",
             "group_ids",
+            "permission_overrides",
             "photo",
         }
     }

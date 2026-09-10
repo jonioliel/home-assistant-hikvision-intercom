@@ -1,3 +1,10 @@
+# 0.32 group-permissions checkpoint
+
+Custom user columns and inherited group door grants with personal exceptions are implemented.
+Policy and effective users now commit atomically in schema 5; existing access remains personal.
+[Delivery and migration](GROUP_PERMISSIONS_032_HE.md). Local focused tests passed; the full
+local and GitHub release gates are still in progress. No new physical acceptance gate is claimed.
+
 # Current validation — 0.31.0-alpha.1
 
 Published code: `c90ba1e9185f9113d3396ad463bdf4d02df5750a`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34481556058) passed:

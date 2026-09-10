@@ -757,4 +757,42 @@ export const styles = css`
       gap: 10px;
     }
   }
+
+  .custom-user-field {
+    min-width: 7rem;
+    max-width: 13rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .user-custom-details {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .user-custom-details > div {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .user-custom-details dt {
+    color: var(--secondary-text-color);
+  }
+  .user-custom-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .group-door-options {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .group-door-options .check {
+    margin: 8px 0;
+  }
+  .permission-source {
+    overflow-wrap: anywhere;
+  }
+  .permission-reset {
+    max-width: 100%;
+    white-space: normal;
+  }
 `;

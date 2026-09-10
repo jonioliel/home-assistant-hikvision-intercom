@@ -38,6 +38,8 @@ from .schedule_plan_api import dispatch_plans
 
 _LOGGER = logging.getLogger(__name__)
 USER_FIELDS = {
+    "permission_overrides",
+    "access_policy_revision",
     "profile",
     "group_ids",
     "photo",
@@ -443,7 +445,22 @@ async def _dispatch_inner(
         if command == "profiles/settings_get":
             return profile_settings.public()
         if command == "profiles/settings_update":
-            return await profile_settings.update(msg["revision"], msg["values"])
+            from .profile_settings import normalize
+
+            values = normalize(msg["values"])
+            previous = {
+                g["id"]: set(g.get("station_ids", [])) for g in profile_settings.public()["groups"]
+            }
+            for group in values["groups"]:
+                for station_id in set(group.get("station_ids", [])) - previous.get(
+                    group["id"], set()
+                ):
+                    station = manager.stations.get(station_id)
+                    if station is None:
+                        raise AccessError("station_not_found")
+                    if not station.lock_enabled:
+                        raise AccessError("unmanaged_lock")
+            return await profile_settings.update(msg["revision"], values)
         if not profile_settings.public()["photo_enabled"]:
             return {"photo": None}
         return {"photo": manager.repository.get(msg["user_id"]).photo}

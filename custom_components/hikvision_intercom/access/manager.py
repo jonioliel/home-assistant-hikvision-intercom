@@ -388,7 +388,12 @@ class AccessManager:
                 if previous and mode == "create":
                     raise AccessError("employee_conflict")
                 data = row_patch(row, previous, stations)
-                user = build_user(data, employee_no=employee, now=utc_now(), previous=previous)
+                user = build_user(
+                    repository.permission_data(data, previous),
+                    employee_no=employee,
+                    now=utc_now(),
+                    previous=previous,
+                )
                 validate_csv_targets(user, rules)
                 before = desired_fields(previous) if previous else {}
                 after = desired_fields(user)
@@ -504,7 +509,11 @@ class AccessManager:
         return {"counts": preview["counts"], "saved": len(users)}
 
     async def async_create(self, data: dict[str, Any], *, sync_now: bool = True) -> dict[str, Any]:
-        self._validate(build_user(data, employee_no="100000000", now=utc_now()))
+        self._validate(
+            build_user(
+                self.repository.permission_data(data), employee_no="100000000", now=utc_now()
+            )
+        )
         user = await self.repository.async_create(data)
         # Saving changes does not suspend periodic or already-running reconciliation.
         if sync_now:
@@ -517,7 +526,12 @@ class AccessManager:
     ) -> dict[str, Any]:
         previous = self.repository.get(user_id)
         self._validate(
-            build_user(data, employee_no=previous.employee_no, now=utc_now(), previous=previous)
+            build_user(
+                self.repository.permission_data(data, previous),
+                employee_no=previous.employee_no,
+                now=utc_now(),
+                previous=previous,
+            )
         )
         user = await self.repository.async_update(user_id, data, expected_revision=revision)
         # Saving changes does not suspend periodic or already-running reconciliation.

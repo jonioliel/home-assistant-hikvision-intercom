@@ -20,6 +20,7 @@ export interface Assignment {
 export interface Person {
   profile?: Record<string, string>;
   group_ids?: string[];
+  permission_overrides?: Record<string, "allow" | "deny">;
   photo_configured?: boolean;
   id: string;
   sync_reference?: string;
@@ -201,6 +202,7 @@ export interface Hass {
 export interface Draft {
   profile?: Record<string, string>;
   group_ids?: string[];
+  permission_overrides?: Record<string, "allow" | "deny">;
   photo?: string | null;
   photo_configured?: boolean;
   id?: string;

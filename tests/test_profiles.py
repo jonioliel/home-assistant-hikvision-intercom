@@ -93,6 +93,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
     user = await original.async_create({"display_name": "Demo"})
     raw = original.snapshot()
     raw["schema"] = 3
+    raw.pop("profile_settings")
     for key in ("profile", "group_ids", "photo"):
         raw["users"][user.id].pop(key)
     save = AsyncMock(side_effect=OSError())
@@ -101,7 +102,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
         await repo.async_load(raw)
     save.side_effect = None
     await repo.async_load(raw)
-    assert repo.snapshot()["schema"] == 4
+    assert repo.snapshot()["schema"] == 5
     assert repo.get(user.id).profile == {} and repo.get(user.id).photo is None
 
 

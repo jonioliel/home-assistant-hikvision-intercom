@@ -45,7 +45,9 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
             )
             if (
                 not isinstance(item, dict)
-                or set(item) != expected
+                or not expected
+                <= set(item)
+                <= expected | ({"station_ids"} if key == "groups" else set())
                 or type(item["enabled"]) is not bool
             ):
                 raise AccessError("invalid_fields")
@@ -60,6 +62,13 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
                     raise AccessError("invalid_fields")
                 normalized["options"] = [text_field(v, 100) for v in options]
                 if len(set(normalized["options"])) != len(options):
+                    raise AccessError("invalid_fields")
+            if key == "groups" and "station_ids" in item:
+                stations = item["station_ids"]
+                if not isinstance(stations, list) or len(stations) > 100:
+                    raise AccessError("invalid_fields")
+                normalized["station_ids"] = sorted(text_field(s, 64) for s in stations)
+                if len(set(normalized["station_ids"])) != len(stations):
                     raise AccessError("invalid_fields")
             result[key].append(normalized)
         if len({v["id"] for v in result[key]}) != len(items):
@@ -124,8 +133,12 @@ def photo_value(value: Any) -> str | None:
 
 class ProfileSettings:
     def __init__(
-        self, save: Callable[[dict[str, Any]], Awaitable[None]], changed: Callable[[], None]
+        self,
+        save: Callable[[dict[str, Any]], Awaitable[None]],
+        changed: Callable[[], None],
+        read: Callable[[], dict[str, Any] | None] | None = None,
     ):
+        self.read = read
         self.save = save
         self.changed = changed
         self.data: dict[str, Any] = {"schema": 1, "revision": 0, "values": dict(DEFAULTS)}
@@ -149,11 +162,23 @@ class ProfileSettings:
         self.data = {**data, "values": values}
 
     def public(self) -> dict[str, Any]:
+        if self.read and (data := self.read()) is not None:
+            self.data = data
         return {"revision": self.data["revision"], **deepcopy(self.data["values"])}
 
     async def update(self, revision: int, values: dict[str, Any]) -> dict[str, Any]:
-        values = normalize(values)
         async with self.lock:
+            self.public()
+            # Older clients do not send station_ids; preserve established group grants.
+            values = deepcopy(values)
+            if isinstance(values, dict) and isinstance(values.get("groups"), list):
+                old = {g["id"]: g for g in self.data["values"]["groups"]}
+                for group in values["groups"]:
+                    if isinstance(group, dict) and isinstance(group.get("id"), str):
+                        prior = old.get(group["id"], {})
+                        if "station_ids" not in group and "station_ids" in prior:
+                            group["station_ids"] = prior["station_ids"]
+            values = normalize(values)
             if type(revision) is not int or revision != self.data["revision"]:
                 raise AccessError("revision_conflict")
             # Definitions are archived rather than deleted, preserving IDs and existing data.

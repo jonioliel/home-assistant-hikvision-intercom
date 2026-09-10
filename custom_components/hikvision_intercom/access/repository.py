@@ -29,7 +29,8 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 4,
+            "schema": 5,
+            "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
             "bindings": {},
@@ -47,7 +48,11 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            legacy_keys = set(self._state) - {"admin_audit", "operation_receipts"}
+            legacy_keys = set(self._state) - {
+                "admin_audit",
+                "operation_receipts",
+                "profile_settings",
+            }
             if data.get("schema") == 1 and set(data) == legacy_keys - {"retired_pins"}:
                 data = {**deepcopy(data), "schema": 2, "retired_pins": {}}
                 migrated = True
@@ -59,11 +64,14 @@ class AccessRepository:
                     "operation_receipts": {},
                 }
                 migrated = True
-            if data.get("schema") == 3 and set(data) == set(self._state):
+            if data.get("schema") == 3 and set(data) == set(self._state) - {"profile_settings"}:
                 data = {**deepcopy(data), "schema": 4}
                 migrated = True
+            if data.get("schema") == 4 and set(data) == set(self._state) - {"profile_settings"}:
+                data = {**deepcopy(data), "schema": 5, "profile_settings": None}
+                migrated = True
             try:
-                if data.get("schema") != 4 or set(data) != set(self._state):
+                if data.get("schema") != 5 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -78,13 +86,33 @@ class AccessRepository:
                     if not isinstance(data[key], dict):
                         raise AccessError("invalid_storage")
                 normalized = deepcopy(data)
+                if data["profile_settings"] is not None:
+                    from ..profile_settings import ProfileSettings
+
+                    profiles = ProfileSettings(self._save, lambda: None)
+                    profiles.load(data["profile_settings"])
+                    normalized["profile_settings"] = deepcopy(profiles.data)
                 for key, raw in data["users"].items():
+                    if not migrated and "permission_overrides" not in raw:
+                        raise AccessError("invalid_storage")
                     user = ManagedUser.from_private(raw)
                     if user.id != key:
                         raise AccessError("invalid_storage")
                     for assignment in user.assignments.values():
                         if assignment.sync_state == "syncing":
                             assignment.sync_state = "pending"
+                    if data["profile_settings"] is not None:
+                        from .group_permissions import prepare
+
+                        effective = prepare(
+                            normalized["profile_settings"],
+                            {"permission_overrides": user.permission_overrides},
+                            user,
+                        )
+                        if {s for s, a in user.assignments.items() if a.enabled} != {
+                            s for s, a in effective["assignments"].items() if a["enabled"]
+                        }:
+                            raise AccessError("invalid_storage")
                     normalized["users"][key] = user.private()
                 # Ownership and tombstones are authoritative; never default corrupt data away.
                 for station, bindings in data["bindings"].items():
@@ -326,6 +354,64 @@ class AccessRepository:
             bytes.fromhex(self._state["fingerprint_key"]), encoded, hashlib.sha256
         ).hexdigest()
 
+    def profile_settings(self) -> dict[str, Any] | None:
+        result: dict[str, Any] | None = deepcopy(self._state["profile_settings"])
+        return result
+
+    def permission_data(
+        self,
+        data: dict[str, Any],
+        previous: ManagedUser | None = None,
+        *,
+        state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        from .group_permissions import prepare
+
+        current = self._state if state is None else state
+        policy = current["profile_settings"]
+        if "access_policy_revision" in data and (
+            type(data["access_policy_revision"]) is not int
+            or policy is None
+            or data["access_policy_revision"] != policy["revision"]
+        ):
+            raise AccessError("group_policy_changed")
+        return prepare(policy, data, previous)
+
+    async def async_profile_settings(
+        self, data: dict[str, Any], validate: Callable[[ManagedUser], None] | None = None
+    ) -> list[str]:
+        from ..profile_settings import ProfileSettings
+
+        checked = ProfileSettings(self._save, lambda: None)
+        checked.load(data)
+        desired = deepcopy(checked.data)
+
+        def update(state: dict[str, Any]) -> list[str]:
+            prior = state["profile_settings"]
+            if prior is not None and desired["revision"] != prior["revision"] + 1:
+                raise AccessError("revision_conflict")
+            state["profile_settings"] = desired
+            changed = []
+            from .csv_transfer import desired_fields
+
+            for uid, raw in list(state["users"].items()):
+                old = ManagedUser.from_private(raw)
+                user = build_user(
+                    self.permission_data({}, old, state=state),
+                    employee_no=old.employee_no,
+                    now=utc_now(),
+                    previous=old,
+                )
+                if desired_fields(user) == desired_fields(old):
+                    continue
+                if validate:
+                    validate(user)
+                self._update_user(state, uid, {}, old.revision)
+                changed.append(uid)
+            return changed
+
+        return await self._commit(update, offload=True)
+
     async def async_create(self, data: dict[str, Any]) -> ManagedUser:
         def create(state: dict[str, Any]) -> ManagedUser:
             employees = {item["employee_no"] for item in state["users"].values()} | {
@@ -333,7 +419,9 @@ class AccessRepository:
             }
             while (employee := str(100_000_000 + secrets.randbelow(900_000_000))) in employees:
                 pass
-            user = build_user(data, employee_no=employee, now=utc_now())
+            user = build_user(
+                self.permission_data(data, state=state), employee_no=employee, now=utc_now()
+            )
             state["users"][user.id] = user.private()
             return user
 
@@ -354,7 +442,12 @@ class AccessRepository:
         old = ManagedUser.from_private(state["users"][user_id])
         if type(expected_revision) is not int or old.revision != expected_revision:
             raise AccessError("revision_conflict")
-        user = build_user(data, employee_no=old.employee_no, now=utc_now(), previous=old)
+        user = build_user(
+            self.permission_data(data, old, state=state),
+            employee_no=old.employee_no,
+            now=utc_now(),
+            previous=old,
+        )
         from .csv_transfer import desired_fields
 
         if desired_fields(user) == desired_fields(old):
@@ -401,6 +494,7 @@ class AccessRepository:
                 "bindings": {key: sorted(records) for key, records in state["bindings"].items()},
                 "retired_cards": state["retired_cards"],
                 "retired_pins": state["retired_pins"],
+                "profile_revision": (state["profile_settings"] or {}).get("revision"),
             }
         )
 
@@ -411,7 +505,9 @@ class AccessRepository:
         for change in changes:
             if change["user_id"] is None:
                 user = build_user(
-                    change["data"], employee_no=change["data"]["employee_no"], now=utc_now()
+                    self.permission_data(change["data"], state=state),
+                    employee_no=change["data"]["employee_no"],
+                    now=utc_now(),
                 )
                 state["users"][user.id] = user.private()
             else:
@@ -799,6 +895,7 @@ class AccessRepository:
             user.assignments[station] = StationAssignment(
                 station, True, frozenset({1}), desired_revision=user.revision
             )
+            user.permission_overrides[station] = "allow"
             user.identity_locked = True
             if user.id in state["bindings"].get(station, {}):
                 raise AccessError("already_managed")
@@ -897,7 +994,7 @@ class AccessRepository:
             if type(expected_revision) is not int or previous.revision != expected_revision:
                 raise AccessError("revision_conflict")
             user = build_user(
-                device_data or {},
+                self.permission_data(device_data or {}, previous, state=state),
                 employee_no=previous.employee_no,
                 now=utc_now(),
                 previous=previous,

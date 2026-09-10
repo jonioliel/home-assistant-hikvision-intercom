@@ -2,12 +2,13 @@ import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { ScopedRequests } from "./request";
 import { translate } from "./i18n";
-import type { Hass } from "./types";
+import type { Hass, Station } from "./types";
 
 export interface ProfileDefinition {
   id: string;
   label: string;
   enabled: boolean;
+  station_ids?: string[];
 }
 export interface ProfileField extends ProfileDefinition {
   options: string[];
@@ -23,6 +24,7 @@ export class ProfileSettingsPanel extends LitElement {
   static properties = {
     hass: { attribute: false },
     settings: { attribute: false },
+    stations: { attribute: false },
     draft: { state: true },
     busy: { state: true },
     error: { state: true },
@@ -31,6 +33,7 @@ export class ProfileSettingsPanel extends LitElement {
   };
   hass?: Hass;
   settings?: ProfilePolicy | null;
+  stations: Station[] = [];
   private draft?: ProfilePolicy;
   private busy = false;
   private stale = false;
@@ -57,7 +60,7 @@ export class ProfileSettingsPanel extends LitElement {
     if (!this.draft || this.busy) return;
     const id = (key === "fields" ? "f_" : "g_") + crypto.randomUUID().replaceAll("-", "");
     if (key === "fields") this.draft.fields.push({ id, label: "", enabled: true, options: [] });
-    else this.draft.groups.push({ id, label: "", enabled: true });
+    else this.draft.groups.push({ id, label: "", enabled: true, station_ids: [] });
     this.requestUpdate();
   }
   private async reload() {
@@ -99,7 +102,11 @@ export class ProfileSettingsPanel extends LitElement {
           ? "media_conflict"
           : code === "invalid_fields"
             ? "media_invalid"
-            : "media_save_unknown";
+            : code === "station_not_found" ||
+                code === "unmanaged_lock" ||
+                code === "station_has_no_managed_lock"
+              ? this.t(code)
+              : "media_save_unknown";
     } finally {
       this.busy = false;
     }
@@ -179,6 +186,41 @@ export class ProfileSettingsPanel extends LitElement {
                     }}
                   />${this.t("active")}</label
                 >
+                <fieldset class="group-door-options">
+                  <legend>${this.t("group_doors")}</legend>
+                  <p class="sub">${this.t("group_doors_hint")}</p>
+                  ${this.stations.map(
+                    (station) =>
+                      html`<label class="check"
+                        ><input
+                          type="checkbox"
+                          .checked=${g.station_ids?.includes(station.id) ?? false}
+                          ?disabled=${!station.lock_enabled && !g.station_ids?.includes(station.id)}
+                          @change=${(e: Event) => {
+                            g.station_ids = (e.target as HTMLInputElement).checked
+                              ? [...(g.station_ids ?? []), station.id]
+                              : (g.station_ids ?? []).filter((id) => id !== station.id);
+                            this.requestUpdate();
+                          }}
+                        />${station.name}</label
+                      >`,
+                  )}
+                  ${(g.station_ids ?? [])
+                    .filter((id) => !this.stations.some((s) => s.id === id))
+                    .map(
+                      (id) =>
+                        html`<label class="check"
+                          ><input
+                            type="checkbox"
+                            checked
+                            @change=${() => {
+                              g.station_ids = g.station_ids?.filter((s) => s !== id);
+                              this.requestUpdate();
+                            }}
+                          />${this.t("group_missing_station")} (${id})</label
+                        >`,
+                    )}
+                </fieldset>
               </div>`,
           )}
           <button

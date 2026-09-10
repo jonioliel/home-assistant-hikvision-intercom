@@ -142,7 +142,12 @@ class BulkOperations:
                 new = (
                     None
                     if action == "delete"
-                    else build_user(data, employee_no=old.employee_no, now=utc_now(), previous=old)
+                    else build_user(
+                        repository.permission_data(data, old, state=state),
+                        employee_no=old.employee_no,
+                        now=utc_now(),
+                        previous=old,
+                    )
                 )
                 fields = (
                     sorted(desired_fields(old))

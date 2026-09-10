@@ -64,10 +64,27 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     from .profile_settings import ProfileSettings
 
     profile_store = AccessStore(hass, key=f"{DOMAIN}.profile_settings")
-    profiles = ProfileSettings(profile_store.async_save, changed)
+
+    async def save_profiles(data: dict[str, Any]) -> None:
+        manager = hass.data[DOMAIN].get("access")
+        before = {u.id: u.revision for u in repository.users()}
+        try:
+            await repository.async_profile_settings(data, manager._validate if manager else None)
+        finally:
+            # A cancelled caller can still have completed the durable commit.
+            if manager:
+                for user in repository.users():
+                    if before.get(user.id) != user.revision:
+                        manager.request_user(user.id)
+                changed()
+
+    profiles = ProfileSettings(save_profiles, changed, repository.profile_settings)
     # Do not silently discard corrupt field definitions or reuse their identities.
     try:
-        profiles.load(await profile_store.async_load())
+        central = repository.profile_settings()
+        profiles.load(central if central is not None else await profile_store.async_load())
+        if central is None:
+            await repository.async_profile_settings(profiles.data)
     except AccessError:
         issue(hass, "profile_settings_storage_corrupt", active=True)
         hass.data[DOMAIN]["profile_settings"] = None
