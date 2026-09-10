@@ -180,3 +180,85 @@ test("unchanged validity preserves a known fold instant and seconds when changin
   expect(request.data.valid_from).toBe("2026-10-24T22:30:37Z");
   expect(request.data.valid_until).toBe("2026-10-26T12:00:19Z");
 });
+
+for (const target of ["station", "ha", "removed"]) {
+  test(`validity draft preserves instants after a background ${target} time-zone change`, async ({
+    page,
+  }) => {
+    await configure(page);
+    await page.getByRole("button", { name: "Users", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add user", exact: true }).click();
+    await page.getByLabel("Name", { exact: true }).fill("Draft time test");
+    await page.getByLabel("Start and end", { exact: true }).check();
+    if (target === "ha")
+      await page.getByLabel("Time zone for validity input", { exact: true }).selectOption("");
+    await page.getByLabel("Start", { exact: true }).fill("2026-09-10T12:00");
+    await page.getByLabel("End", { exact: true }).fill("2026-09-10T13:00");
+    const expected = target === "ha" ? "2026-09-10T12:00:00.000Z" : "2026-09-10T09:00:00.000Z";
+    await page.evaluate(async (target) => {
+      if (target === "ha") window.demoData.default_zone = { kind: "iana", name: "Asia/Jerusalem" };
+      else if (target === "removed") window.demoData.stations = window.demoData.stations.slice(1);
+      else window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
+      await document.querySelector("hikvision-intercom-panel").refresh();
+    }, target);
+    await expect(page.getByLabel("Start", { exact: true })).toHaveValue(
+      target === "ha" ? "2026-09-10T15:00" : "2026-09-10T09:00",
+    );
+    if (target === "removed")
+      await expect(page.getByLabel("Time zone for validity input", { exact: true })).toHaveValue(
+        "",
+      );
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    const sent = await page.evaluate(() =>
+      window.calls.find((c) => c.type.endsWith("users/create")),
+    );
+    expect(sent.data.valid_from).toBe(expected);
+  });
+}
+
+test("background zone refresh preserves a saved fold and seconds in the validity editor", async ({
+  page,
+}) => {
+  await configure(page);
+  await page.evaluate(async () => {
+    Object.assign(window.demoData.users[0], {
+      valid_from: "2026-10-24T22:30:37Z",
+      valid_until: "2026-10-26T12:00:19Z",
+    });
+    await document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  await page.evaluate(async () => {
+    window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
+    await document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("2026-10-24T22:30");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  const sent = await page.evaluate(() => window.calls.find((c) => c.type.endsWith("users/update")));
+  expect(sent.data.valid_from).toBe("2026-10-24T22:30:37Z");
+  expect(sent.data.valid_until).toBe("2026-10-26T12:00:19Z");
+});
+
+test("an ambiguous unsaved validity range is cleared when its clock rules change", async ({
+  page,
+}) => {
+  await configure(page);
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "+ Add user", exact: true }).click();
+  await page.getByLabel("Name", { exact: true }).fill("Ambiguous time test");
+  await page.getByLabel("Start and end", { exact: true }).check();
+  await page.getByLabel("Start", { exact: true }).fill("2026-10-25T01:30");
+  await page.getByLabel("End", { exact: true }).fill("2026-10-26T04:00");
+  await page.evaluate(async () => {
+    window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
+    await document.querySelector("hikvision-intercom-panel").refresh();
+  });
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("End", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("alert")).toContainText("time zone changed");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.endsWith("users/create")))).toBe(
+    false,
+  );
+});
