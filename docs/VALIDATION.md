@@ -1,11 +1,24 @@
-# 0.31 validation checkpoint
+# 0.31 local validation checkpoint
 
-User profiles, photo lifecycle and selected-add-on RTC/MSE are under final release validation.
+Implementation commit: `5b6cb8c8e66fffd9d5231dc887c00a644219ad28`, candidate `0.31.0-alpha.1`.
 [Delivery and exact evidence boundaries](PROFILES_MEDIA_031_HE.md), [live decoder measurements](evidence/media_031.json).
-The local full browser run passed 313 tests and found one existing Hebrew card-enrollment
-journey still navigating the removed row action. The test now opens Edit first; targeted
-rechecks passed. An audio soak timed out during simultaneous live browser probes; it is
-being rechecked separately. Release CI must pass before publication.
+
+- Full browser suite: **315 passed**. The earlier Hebrew card-enrollment journey was updated
+  to navigate through Edit, matching the new UI; the complete rerun passed.
+- Core suite excluding the separately checked audio soak: **925 passed**.
+- `test_nine_station_audio_fault_does_not_block_pin_recovery_or_polling` timed out after
+  30 seconds locally. The same failure reproduced in an isolated checkout of published
+  baseline `5552650`, with baseline imports verified. The test remains unchanged and is
+  still a required release check; baseline reproduction does not waive it.
+- Ruff lint/format, mypy (59 source files), TypeScript, Prettier and production build passed.
+- Actual built browser player decoded MSE and TCP RTC video from two stations through the
+  existing go2rtc add-on. No authenticated installed-HA UI or physical speaker claim is made.
+
+Publication is pending fresh approval: automatic approval review rejected uploading this
+candidate to the public GitHub repository. Nothing in this checkpoint is a published release.
+Real Home Assistant tests, Python CI, HACS/Hassfest and release-bundle checks must complete
+on GitHub after upload authorization, before a release is created. Local Python uses 3.12;
+the real-HA test environment requires Python 3.14 and was not run on this Windows host.
 
 ## Previous validation — 0.30.0-alpha.1 global playback and audio diagnostics
 

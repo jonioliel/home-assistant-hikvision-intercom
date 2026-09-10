@@ -9,7 +9,12 @@ The selected go2rtc add-on now serves both RTC and MSE. Real browser probes deco
 from two stations in both modes; TCP removed the packet loss observed on the tested UDP path.
 [Delivery, setup and limitations](PROFILES_MEDIA_031_HE.md), [sanitized media evidence](evidence/media_031.json).
 
-Release checks are in progress. This delivery does not claim new physical acceptance gates.
+Implementation is committed locally as `5b6cb8c` for candidate **0.31.0-alpha.1**.
+Local validation: **315 browser tests and 925 core tests passed**. One separate audio soak
+also fails on the published baseline on this host; it remains a required CI check.
+Static checks and build passed. Public upload was blocked by automatic approval review;
+fresh upload approval and the full release CI are pending. This candidate is not in HACS yet.
+This delivery does not claim new physical acceptance gates. [Validation status](VALIDATION.md).
 
 
 Previous release **0.30.0-alpha.1** adds global HLS / RTC / MSE settings under WisKey Management tools,
