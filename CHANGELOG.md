@@ -4,6 +4,9 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+### Design planning
+- Document an optional alternate interface inspired by the owner’s four-screen reference, with a choice of existing/new design, desktop/mobile concepts and implementation stages. Mockups await owner feedback; no runtime behavior or released version changes in this planning step.
+
 ## [0.27.7-alpha.1] - 2026-09-10
 
 ### Fixed

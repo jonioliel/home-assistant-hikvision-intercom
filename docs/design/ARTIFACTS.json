@@ -1,0 +1,26 @@
+{
+  "created": "2026-09-10",
+  "status": "concepts_awaiting_owner_feedback",
+  "tool": "built-in ImageGen",
+  "source": "owner-provided four-screen reference, visually inspected in conversation",
+  "source_file_ingestion": "failed_windows_sandbox_helper",
+  "successful_generation_mode": "text_only_descriptions_from_visual_inspection",
+  "fictional_data": true,
+  "runtime_files_changed": false,
+  "images": [
+    {
+      "file": "images/alternate-desktop-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1484473,
+      "sha256": "594bb9db2c20f36af6c34065849ef03100c3018af1dc108c1b999eb063ca57b3"
+    },
+    {
+      "file": "images/alternate-mobile-dark-v1.png",
+      "width": 1774,
+      "height": 887,
+      "bytes": 1491757,
+      "sha256": "43add1ed7c5e7cf2f57e24dff0cca3a64c6d190884cf73cc2420850109d3dc3a"
+    }
+  ]
+}

@@ -1,5 +1,10 @@
 # Project progress
 
+**Design proposal in review (2026-09-10):** the owner requested an alternate interface inspired
+by a four-screen reference, with a choice between the existing and new designs. See the
+[proposal and C-ALT delivery stages](design/ALTERNATE_UI_HE.md). This work is mockups and
+documentation only; implementation follows owner feedback. Released software remains 0.27.7.
+
 Current release **0.27.7-alpha.1** closes the actionable software recovery gaps found in this review.
 The [delivery and remaining dependency report](SOFTWARE_CLOSURE_0277_HE.md) maps the outcome to
 A–F of the [95% roadmap](ROADMAP_95_AND_UI_HE.md). Mandatory acceptance remains **31/38 (81.6%)**,
