@@ -4,6 +4,17 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.28.1-alpha.1] - 2026-09-10
+
+### Improved
+- Replace the new design's large Overview metric cards with compact status chips beside the Doors & cameras heading. The camera grid starts higher on the page.
+- Wrap chips with the available panel width; use two compact rows on mobile. Keep full accessible descriptions, explicit number direction, live counts and large-number wrapping.
+- Preserve the existing design's metric row and the shared station, camera and door behavior.
+
+### Validation
+- Add eight browser tests for desktop/tablet/mobile layout, Hebrew/English, dark mode, live counts, large values, narrow embedded panels and switching back to the existing design.
+- Document the approved proposal, actual screenshots and measured layout changes in docs/COMPACT_HEADER_0281_HE.md. No physical device operations were performed.
+
 ## [0.28.0-alpha.1] - 2026-09-10
 
 ### Added

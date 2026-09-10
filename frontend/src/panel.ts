@@ -1379,33 +1379,46 @@ export class IntercomManagerPanel extends LitElement {
     const stations = [...(this._data?.stations ?? [])].sort(
       (a, b) => Number(b.call_state === "ringing") - Number(a.call_state === "ringing"),
     );
-    return html`<div class="page-heading">
-        <div>
-          <h2>${this.t("overview_heading")}</h2>
-          <p class="sub">${this.t("overview_intro")}</p>
+    return html`<div class="overview-header">
+        <div class="page-heading">
+          <div>
+            <h2>${this.t("overview_heading")}</h2>
+            <p class="sub">${this.t("overview_intro")}</p>
+          </div>
         </div>
+        <section class="metrics" aria-label=${this.t("overview")}>
+          ${[
+            [
+              `${stations.filter((s) => s.online).length} / ${stations.length}`,
+              "online_stations",
+              "devices",
+              "metric_online",
+            ],
+            [
+              stations.filter((s) => s.call_state === "ringing").length,
+              "ringing_now",
+              "health",
+              "metric_ringing",
+            ],
+            [this._data?.users.length ?? 0, "total_users", "users", "metric_users"],
+            [this.pendingCount(), "pending_sync", "sync", "metric_pending"],
+          ].map(
+            ([count, label, glyph, shortLabel]) =>
+              html`<div
+                class="metric"
+                role="group"
+                aria-label=${`${this.t(String(label))}: ${count}`}
+              >
+                <span class="metric-icon" aria-hidden="true">${icon(String(glyph))}</span>
+                <div class="metric-copy">
+                  <strong><bdi dir="ltr">${count}</bdi></strong
+                  ><span class="metric-label-full">${this.t(String(label))}</span
+                  ><span class="metric-label-short">${this.t(String(shortLabel))}</span>
+                </div>
+              </div>`,
+          )}
+        </section>
       </div>
-      <section class="metrics" aria-label=${this.t("overview")}>
-        ${[
-          [
-            `${stations.filter((s) => s.online).length} / ${stations.length}`,
-            "online_stations",
-            "devices",
-          ],
-          [stations.filter((s) => s.call_state === "ringing").length, "ringing_now", "health"],
-          [this._data?.users.length ?? 0, "total_users", "users"],
-          [this.pendingCount(), "pending_sync", "sync"],
-        ].map(
-          ([count, label, glyph]) =>
-            html`<div class="metric">
-              <span class="metric-icon">${icon(String(glyph))}</span>
-              <div>
-                <strong><bdi dir="ltr">${count}</bdi></strong
-                ><span>${this.t(String(label))}</span>
-              </div>
-            </div>`,
-        )}
-      </section>
       ${
         !stations.length
           ? html`<div class="empty">

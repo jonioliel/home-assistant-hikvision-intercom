@@ -1,4 +1,8 @@
 const en = {
+  metric_online: "online",
+  metric_ringing: "ringing",
+  metric_users: "users",
+  metric_pending: "to sync",
   appearance: "Appearance",
   appearance_choose: "Panel design",
   appearance_current: "Existing",
@@ -1161,6 +1165,10 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  metric_online: "מחוברות",
+  metric_ringing: "מצלצלים",
+  metric_users: "משתמשים",
+  metric_pending: "לסנכרון",
   appearance: "עיצוב",
   appearance_choose: "עיצוב הפאנל",
   appearance_current: "קיים",

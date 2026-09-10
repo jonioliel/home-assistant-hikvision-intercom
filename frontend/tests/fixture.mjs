@@ -27,7 +27,7 @@ const names = hebrew
     ];
 const data = {
   default_zone: { kind: "iana", name: "UTC" },
-  version: "0.28.0-alpha.1",
+  version: "0.28.1-alpha.1",
   users: [],
   stations: names.map((name, i) => ({
     id: `station-${i}`,

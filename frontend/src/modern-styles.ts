@@ -7,6 +7,12 @@ export const modernStyles = css`
   main {
     container: intercom-content / inline-size;
   }
+  .overview-header {
+    display: contents;
+  }
+  .metric .metric-label-short {
+    display: none;
+  }
   .nav .nav-more,
   .nav-appearance,
   .person-avatar,
@@ -160,23 +166,79 @@ export const modernStyles = css`
   :host([data-appearance="modern"]) .page-heading h2 {
     font-size: 27px;
   }
-  :host([data-appearance="modern"]) .metrics {
+  :host([data-appearance="modern"]) .overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin-bottom: 20px;
+  }
+  :host([data-appearance="modern"]) .overview-header .page-heading {
+    flex: 1 1 230px;
+    margin: 0;
+  }
+  :host([data-appearance="modern"]) .overview-header .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 100%;
     background: transparent;
     border: 0;
-    gap: 12px;
     overflow: visible;
-    margin-bottom: 22px;
+    margin: 0;
   }
-  :host([data-appearance="modern"]) .metric {
+  :host([data-appearance="modern"]) .overview-header .metric {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 34px;
     border: 1px solid var(--divider-color);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--surface);
-    padding: 14px;
-    gap: 10px;
+    padding: 6px 10px;
+    gap: 6px;
+    text-align: start;
+    justify-content: start;
+    line-height: 20px;
   }
-  :host([data-appearance="modern"]) .metric strong {
-    font-size: 25px;
+  :host([data-appearance="modern"]) .overview-header .metric-copy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 5px;
+    min-width: 0;
+  }
+  :host([data-appearance="modern"]) .overview-header .metric strong {
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: normal;
     color: var(--accent);
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+  :host([data-appearance="modern"]) .overview-header .metric .metric-label-full {
+    display: none;
+  }
+  :host([data-appearance="modern"]) .overview-header .metric .metric-label-short {
+    display: inline;
+    font-size: 12px;
+    line-height: 20px;
+    white-space: nowrap;
+  }
+  :host([data-appearance="modern"]) .overview-header .metric .metric-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    background: transparent;
+    color: var(--accent);
+  }
+  :host([data-appearance="modern"]) .overview-header .metric-icon .ui-icon {
+    width: 16px;
+    height: 16px;
   }
   :host([data-appearance="modern"]) .grid {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
@@ -537,23 +599,14 @@ export const modernStyles = css`
     :host([data-appearance="modern"]) .nav.expanded .nav-secondary {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    :host([data-appearance="modern"]) .metrics {
-      gap: 8px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    :host([data-appearance="modern"]) .metric {
-      padding: 10px;
-      text-align: start;
-      justify-content: start;
-    }
-    :host([data-appearance="modern"]) .metric .metric-icon {
+    :host([data-appearance="modern"]) .overview-header .metrics {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+      gap: 6px;
     }
-    :host([data-appearance="modern"]) .metric strong {
-      font-size: 24px;
-    }
-    :host([data-appearance="modern"]) .metric span {
-      font-size: 12px;
+    :host([data-appearance="modern"]) .overview-header .metric {
+      padding-inline: 8px;
     }
     :host([data-appearance="modern"]) .grid {
       grid-template-columns: minmax(0, 1fr);

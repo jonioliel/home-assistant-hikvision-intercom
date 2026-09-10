@@ -1,0 +1,54 @@
+{
+  "synthetic_fixture": true,
+  "baseline_commit": "3198e0f",
+  "results": [
+    {
+      "width": 1440,
+      "measurements": [
+        {
+          "version": "0.28.0-alpha.1",
+          "first_card_y": 288.4375,
+          "metrics_height": 84.25
+        },
+        {
+          "version": "0.28.1-alpha.1",
+          "first_card_y": 184.1875,
+          "metrics_height": 34
+        }
+      ],
+      "vertical_space_recovered_px": 104.25
+    },
+    {
+      "width": 768,
+      "measurements": [
+        {
+          "version": "0.28.0-alpha.1",
+          "first_card_y": 338.9375,
+          "metrics_height": 84.25
+        },
+        {
+          "version": "0.28.1-alpha.1",
+          "first_card_y": 234.6875,
+          "metrics_height": 34
+        }
+      ],
+      "vertical_space_recovered_px": 104.25
+    },
+    {
+      "width": 390,
+      "measurements": [
+        {
+          "version": "0.28.0-alpha.1",
+          "first_card_y": 388.75,
+          "metrics_height": 146.75
+        },
+        {
+          "version": "0.28.1-alpha.1",
+          "first_card_y": 308,
+          "metrics_height": 74
+        }
+      ],
+      "vertical_space_recovered_px": 80.75
+    }
+  ]
+}

@@ -1,5 +1,8 @@
 # Project progress
 
+**0.28.1 compact header:** the approved status chips are implemented and in release validation.
+See [delivery, screenshots and layout comparison](COMPACT_HEADER_0281_HE.md). Hardware acceptance is unchanged.
+
 Current release **0.28.0-alpha.1** delivers the owner-approved alternate interface. Existing/New design
 selection is per Home Assistant user and browser; light/dark follows HA. All eight views adapt to
 panel width, including mobile, tablet, desktop, landscape and resizing while editing.
