@@ -71,7 +71,10 @@ MSE משתמש בזרם fMP4 בינארי דרך החיבור המאומת ל־H
 
 בבדיקה מלאה ראשונה נמצאה גלישה של בקרים בחלון מצלמה באנגלית; אזור הבקרים הוגבל לגלילה נפרדת במחשב, עם גלילת החלון בנייד. בדיקות הפריסה עברו גם כשהאבחון מורחב. שרת ה־MSE הסינתטי ב־HA משתמש בהרשאת socket של תשתית הבדיקה, המוגבלת לחיבור המקומי.
 
-תוצאות השחרור יירשמו לאחר השלמת הבדיקות והפרסום.
+פורסמה [v0.30.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.30.0-alpha.1) מהקומיט `bc17023b540d5bf109bf5f2f3617553f189a52ed`.
+[כל שבעת שערי השחרור](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34471533161) עברו: **909 בדיקות Python בכל גרסה (3.12/3.14), 290 בדיקות Home Assistant ו־302 בדיקות דפדפן**, וכן TypeScript, Prettier, Ruff, mypy, שחזור חבילת הממשק, HACS ו־Hassfest. התג, גרסת ה־manifest, הפאנל ו־AudioWorklet אומתו מול הקומיט שנבדק. [ראיות הפרסום](evidence/release_0.30.0-alpha.1.json).
+
+המימוש הראשי נשמר ב־`95c881b`, תיקוני הפריסה ותשתית בדיקת הגשר ב־`37b2660`, וניקוי החיבורים ב־`1af61a9` וב־`bc17023`. תוצאות בדיקות התעבורה והכרטיסים הן במידת האימות המפורטת לעיל; בדיקת שמיעה פיזית נותרת פתוחה.
 
 מקורות הממשק שנבדקו: [go2rtc MSE](https://github.com/AlexxIT/go2rtc/blob/master/internal/mp4/ws.go),
 [נגן go2rtc](https://github.com/AlexxIT/go2rtc/blob/master/www/video-rtc.js),

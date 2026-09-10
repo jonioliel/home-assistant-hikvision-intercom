@@ -1,24 +1,24 @@
 # Project progress
 
-**0.30.0-alpha.1 candidate:** global HLS / RTC / MSE playback, authenticated binary MSE bridge, audio diagnostics and owner-confirmed card lifecycle. [Delivery](MEDIA_030_HE.md). Release results will be recorded after CI and publication. Previous published checkpoint follows.
+Current release **0.30.0-alpha.1** adds global HLS / RTC / MSE settings under WisKey Management tools,
+real binary MSE playback through authenticated HA, and microphone/transport diagnostics.
+Preferences persist centrally and apply to all WisKey live players across stations and browsers.
+[Setup, responsive screenshot and evidence](MEDIA_030_HE.md).
 
-Current release **0.29.0-alpha.1** introduces **WisKey**, a dedicated administrator Management tools page,
-and a live date/time on Overview. Appearance selection is now exclusively in the management hub;
-the camera/editor dialogs no longer expose it. The clock ticks independently of video and network refresh,
-in Home Assistant's time zone, while station event-time settings remain unchanged.
-[Delivery, responsive screenshots and upgrade guidance](WISKEY_029_HE.md).
-
-Published [v0.29.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.29.0-alpha.1) from `736c16078f9019171c5a2807c9b81e1ed7bb2f72`.
-[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34464255526) passed: **887 Python tests per version (3.12/3.14),
-278 HA tests and 290 browser tests**, Ruff, mypy, TypeScript, Prettier, reproducible bundles,
+Published [v0.30.0-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.30.0-alpha.1) from `bc17023b540d5bf109bf5f2f3617553f189a52ed`.
+[All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34471533161) passed: **909 Python tests per version (3.12/3.14),
+290 HA tests and 302 browser tests**, Ruff, mypy, TypeScript, Prettier, reproducible bundles,
 HACS and Hassfest. The tag, manifest, panel and audio worklet match the tested commit.
-[Publication evidence](evidence/release_0.29.0-alpha.1.json). Access storage schema remains 3.
+[Publication evidence](evidence/release_0.30.0-alpha.1.json). Access storage schema remains 3;
+playback preferences use a separate versioned storage file.
 
-Mandatory acceptance remains **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**, and combined scope
-**37/47 (78.7%)**. Phase 6 still has four software features implemented, four partial and one absent.
-This delivery completes the owner's WisKey/navigation/clock request without closing hardware gates.
-[Remaining dependencies and previous recovery work](SOFTWARE_CLOSURE_0277_HE.md).
-No physical device operations were performed; the earlier overnight automation stays paused.
+The owner confirmed successful card creation/writing, assignment, updating and deletion.
+The separate multi-card acceptance case is not explicitly confirmed. Live MSE returned H.264 data
+from two stations, and concurrent ISAPI audio sessions passed receive/silence-transmit/close checks.
+Microphone-to-speaker audibility remains unverified; no recording or persistent device changes.
+Mandatory acceptance remains **31/38 (81.6%)**, Phase 5 **8/9 (88.9%)**, combined **37/47 (78.7%)**.
+These conservative criteria are not automatically closed by transport counters or generic card CRUD evidence.
+[Deferred physical checks](DEFERRED_VALIDATION.md). The earlier overnight automation stays paused.
 
 ## Historical checkpoints (earlier counts below are not current)
 

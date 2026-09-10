@@ -1,24 +1,26 @@
-# Candidate validation — 0.30.0-alpha.1
+# Current validation — 0.30.0-alpha.1 global playback and audio diagnostics
 
-909 Python tests passed locally. New playback/audio browser cases passed, including real synthetic H.264 fMP4 decoding. The complete HA and release gates remain pending. [Live transport evidence and limitations](MEDIA_030_HE.md).
-
-# Current validation — 0.29.0-alpha.1 WisKey management and live clock
-
-Published code: `736c16078f9019171c5a2807c9b81e1ed7bb2f72`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34464255526) passed:
-887 Python tests per version (3.12/3.14), 278 Home Assistant tests, 290 browser tests,
+Published code: `bc17023b540d5bf109bf5f2f3617553f189a52ed`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34471533161) passed:
+909 Python tests per version (3.12/3.14), 290 Home Assistant tests, 302 browser tests,
 Ruff, mypy, TypeScript, Prettier, reproducible bundles, HACS and Hassfest.
-The published tag, manifest (name WisKey), panel and audio worklet match the tested commit.
-[Release evidence](evidence/release_0.29.0-alpha.1.json).
+The published tag, manifest, panel and audio worklet match the tested commit.
+[Release evidence](evidence/release_0.30.0-alpha.1.json).
 
-[Delivery and responsive verification](WISKEY_029_HE.md). Eight new browser cases cover
-midnight, Jerusalem summer time, DST transitions, zone changes, hidden/detached timer lifecycle,
-no camera remount/network requests on clock ticks, management navigation, revoked administrator access,
-and responsive Hebrew layouts in both designs. Existing UI journeys now use the management hub.
-The two old dialog-appearance tests were consolidated into one test of the new dialog restriction;
-clock/video preservation is covered separately. Total browser count increased from 283 to 290.
-The unchanged audio soak exceeded its local 30-second limit; both full Python suites passed in release CI.
-No physical device operations were performed. Existing physical gates and counts are unchanged.
-Historical checkpoints below retain their original counts.
+[Delivery and responsive verification](MEDIA_030_HE.md). New tests cover atomic global settings,
+conflicting administrators, reader restrictions, signed-path HA authentication, binary MSE forwarding,
+provider errors, stream closure on changes, real synthetic H.264 fMP4 browser decoding, explicit
+HLS and strict fallback, responsive Hebrew forms, specific microphone errors and safe audio counters.
+The camera layout test also expands diagnostics and checks access to controls at low viewport heights.
+
+909 Python tests passed locally. The first full browser run passed 301 and identified one layout regression;
+its correction passed targeted tests and the entire 302-case suite passed in CI on the released commit.
+The loopback go2rtc test server was enabled with the HA testing fixture, without relaxing external network restrictions.
+The first HA MSE cleanup checks found lingering aiohttp heartbeat timers; bounded stream liveness checks
+and explicit session-completion assertions fixed them, and the full suite passes its timer guard.
+Live checks returned MSE video from two stations; simultaneous ISAPI audio sessions received data,
+transmitted silence, closed with confirmation and retained identical channel configuration.
+No sound/video recording was saved. Owner card lifecycle passed; physical speaker audibility and
+multiple cards for one user remain separate, unverified checks. Historical counts below retain their original dates.
 
 # Phase 0 validation — 2026-09-08
 
