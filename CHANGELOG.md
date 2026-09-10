@@ -4,6 +4,19 @@ Semantic Versioning is used throughout the project.
 
 ## [Unreleased]
 
+## [0.27.7-alpha.1] - 2026-09-10
+
+### Fixed
+- Preserve absolute validity and event/history filter instants when station or HA time-zone rules change in the background or the selected station disappears. Retain known DST-fold instants and seconds; visibly clear ambiguous drafts with an explanation.
+- Clear discarded replacement PIN values from the actual editor fields when removing a PIN or choosing to retain the saved PIN.
+- Recover uncertain bulk changes after missing replies, navigation or HA disconnection using the saved operation ID. Bound waits, keep recovery scoped to the authenticated connection, reject late results and require a receipt check before another reviewed action; never automatically replay a change.
+- Bound schedule draft, proposal and operation requests, release controls after missing responses, and reload fresh data after authenticated connection replacement. Unconfirmed saves require a stored-state read before another change.
+- Reject oversized storage writes before replacing the last reloadable file. Apply the same 32 MiB UTF-8 byte limit to writes and reads, including the storage envelope, and retain the existing repair notification until a successful save.
+
+### Validation boundaries
+- No physical device operations were performed. No additional ISAPI behavior or schedule permission writing was enabled. Calls, audible audio, card lifecycle, timed validity, installed WebRTC and nine-station acceptance retain their documented gates.
+- See docs/SOFTWARE_CLOSURE_0277_HE.md for completed software work, regression evidence and the remaining dependencies.
+
 ## [0.27.6-alpha.1] - 2026-09-10
 
 ### Fixed
