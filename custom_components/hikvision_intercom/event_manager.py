@@ -231,6 +231,16 @@ class StationEvents:
         self._last_ring = float("-inf")
         self._unsubscribe = runtime.coordinator.async_add_listener(self._call_changed)
 
+    @property
+    def _active(self) -> bool:
+        """Only the current, running station may publish or advance recovery."""
+        return (
+            not self._closed
+            and not self.runtime.is_closed
+            and not self.manager._closing
+            and self.manager.stations.get(self.runtime.station_id) is self
+        )
+
     def start(self) -> None:
         for coro, name in ((self._stream(), "stream"), (self._history(), "history")):
             self._tasks.append(
@@ -253,6 +263,8 @@ class StationEvents:
 
     @callback
     def _call_changed(self) -> None:
+        if not self._active:
+            return
         coordinator = self.runtime.coordinator
         current = coordinator.data.normalized if coordinator.last_update_success else None
         self.trace.call(current)
@@ -290,6 +302,8 @@ class StationEvents:
     def ingest(
         self, payload: dict[str, Any], *, historical: bool = False, occurrence: int = 0
     ) -> None:
+        if not self._active:
+            return
         selected = self.runtime.locks[0].api_id if self.runtime.locks else None
         row = normalize_event(
             payload,
@@ -315,6 +329,8 @@ class StationEvents:
         self.trace.event(payload, row, historical=historical, resolved=resolved)
 
     async def _stream(self) -> None:
+        if not self._active:
+            return
         construction = self.manager.hass.async_add_executor_job(
             create_event_session, self.runtime.client.settings
         )
@@ -328,14 +344,18 @@ class StationEvents:
                 # late client so the finally block closes it during unload.
                 session = await construction
                 raise
-            while not self._closed:
+            while self._active:
                 try:
                     await self.runtime.client.async_confirm_identity()
+                    if not self._active:
+                        return
                     # Renew healthy streams periodically; call polling has its own connection.
                     async with asyncio.timeout(1800):
                         frames = 0
                         started = self.manager.hass.loop.time()
                         async for document in self.client.async_stream(session):
+                            if not self._active:
+                                return
                             self.stream_state = "connected"
                             self.last_frame_at = datetime.now(UTC).isoformat()
                             delay = 2
@@ -353,6 +373,8 @@ class StationEvents:
                     self.stream_state, delay = "unavailable", 300
                 except (HikvisionError, TimeoutError):
                     self.stream_state = "disconnected"
+                if not self._active:
+                    return
                 self.reconnects += 1
                 await asyncio.sleep(
                     delay
@@ -365,14 +387,18 @@ class StationEvents:
                 await session.aclose()
 
     async def _history(self) -> None:
-        while not self._closed:
+        while self._active:
             try:
                 if not self.runtime.coordinator.last_update_success:
                     self.history_state = "offline"
                 elif not self.client.page_size and not await self.client.async_capabilities():
                     self.history_state = "unavailable"
                 else:
+                    if not self._active:
+                        return
                     await self.runtime.client.async_confirm_identity()
+                    if not self._active:
+                        return
                     end = datetime.now(UTC).replace(microsecond=0) - timedelta(seconds=2)
                     saved = timestamp(self.manager.cursors.get(self.runtime.station_id))
                     start = max(saved or end - timedelta(days=1), end - timedelta(days=30))
@@ -383,6 +409,8 @@ class StationEvents:
                     # Narrow dense windows; never advance the cursor over omitted pages.
                     async with asyncio.timeout(120):
                         while True:
+                            if not self._active:
+                                return
                             try:
                                 rows = await self.client.async_history(
                                     start - timedelta(seconds=2), end
@@ -394,12 +422,16 @@ class StationEvents:
                                 end = start + timedelta(
                                     seconds=max(1, int((end - start).total_seconds() / 2))
                                 )
+                    if not self._active:
+                        return
                     for row in rows:
                         when = timestamp(row.get("time"))
                         if when is None or when < start - timedelta(seconds=2) or when > end:
                             raise ValueError("History time filter was not honored")
                     occurrences: dict[str, int] = {}
                     for row in rows:
+                        if not self._active:
+                            return
                         projected = normalize_event(
                             row,
                             self.runtime.station_id,
@@ -415,6 +447,9 @@ class StationEvents:
                         occurrences[identity] = occurrence + 1
                         self.ingest(row, historical=True, occurrence=occurrence)
                         await asyncio.sleep(0)
+                    # An interrupted page is replayed and deduplicated next time.
+                    if not self._active:
+                        return
                     self.manager.cursors[self.runtime.station_id] = end.isoformat()
                     self.history_state = "recovered"
                     self.manager.changed()
@@ -425,6 +460,8 @@ class StationEvents:
             except (HikvisionError, TimeoutError, ValueError):
                 # Keep the old cursor; incompleteness is visible and can be retried.
                 self.history_state = "incomplete"
+            if not self._active:
+                return
             caught_up = timestamp(self.manager.cursors.get(self.runtime.station_id))
             delay = 300
             if self.history_state in {"incomplete", "offline"}:
@@ -447,7 +484,8 @@ class StationEvents:
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
         self.stream_state = "stopped"
-        self.manager.stations.pop(self.runtime.station_id, None)
+        if self.manager.stations.get(self.runtime.station_id) is self:
+            self.manager.stations.pop(self.runtime.station_id, None)
 
 
 def get_events(hass: HomeAssistant) -> EventManager:

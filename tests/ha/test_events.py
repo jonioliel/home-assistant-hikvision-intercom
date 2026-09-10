@@ -387,6 +387,22 @@ async def test_history_interrupted_between_rows_preserves_recovery_cursor(hass, 
     assert manager.cursors[runtime.station_id] == old
     assert len(manager.query({})["records"]) == 1
 
+    # The next runtime replays the incomplete page; the first row is deduplicated.
+    runtime._closing = False
+
+    async def finish_page(delay):
+        if delay:
+            raise asyncio.CancelledError
+
+    with (
+        patch.object(monitor.client, "async_history", return_value=[row, row]),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", finish_page),
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await monitor._history()
+    assert len(manager.query({})["records"]) == 2
+    assert manager.cursors[runtime.station_id] != old
+
 
 async def test_late_stream_frame_is_discarded_and_session_closed(hass, loaded_entry):
     runtime = loaded_entry.runtime_data
@@ -430,4 +446,17 @@ async def test_replaced_event_monitor_cannot_emit_or_remove_its_successor(hass, 
         await old.async_close()
     assert manager.stations[runtime.station_id] is successor
     successor.ingest(live(serialNo=8102))
+    assert len(manager.query({})["records"]) == 1
+
+
+async def test_old_event_cleanup_preserves_current_monitor(hass, loaded_entry):
+    runtime = loaded_entry.runtime_data
+    old, manager = runtime.events, get_events(hass)
+    successor = manager.attach(runtime)
+    runtime.events = successor
+    await old.async_close()
+    assert manager.stations[runtime.station_id] is successor
+    successor.ingest(live(serialNo=8201))
+    await hass.async_block_till_done()
+    assert state(hass, "access").attributes["event_type"] == "access_granted"
     assert len(manager.query({})["records"]) == 1

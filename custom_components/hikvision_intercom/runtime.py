@@ -231,11 +231,14 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         manager.attach(entry.entry_id, AccessClient(client))
         entry.runtime_data.events = get_events(hass).attach(entry.runtime_data)
+        runtime = entry.runtime_data
         was_online = coordinator.last_update_success
 
         @callback
         def recovered() -> None:
             nonlocal was_online
+            if runtime.is_closed or entry.runtime_data is not runtime:
+                return
             online = coordinator.last_update_success
             if online and not was_online:
                 manager.request(entry.entry_id)
