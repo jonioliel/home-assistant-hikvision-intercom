@@ -4,13 +4,27 @@
 עד למסירה זו נוספו 86 בדיקות ביחס ל־0.27.0: 11 Python, 19 HA ו־56 דפדפן.
 המקטעים להלן מתעדים שש מסירות מצטברות; יש להתקין את האחרונה.
 
-חלון העבודה: עד 03:30 לפי Asia/Jerusalem. בסיס: v0.27.0-alpha.1,
+סבב הלילה הסתיים ב־`2026-09-10T00:27:38+00:00`. התזמון `hikvision-03-30` הושהה לאחר המסירה;
+לא תתחיל עבודה בלילות נוספים מכוח הבקשה הזאת. סביבת Git נקייה וכל המסירות פורסמו.
+
+## המסירות במבט אחד
+
+| גרסה | commit שפורסם | התקדמות |
+| --- | --- | --- |
+| [0.27.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.1-alpha.1) | `b6da2b0` | פקדי שיחה, פתיחת דלת, שמע, ניהול משתמשים, שיוך שם לאירוע ומיקוד מקלדת. |
+| [0.27.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.2-alpha.1) | `74577d0` | התאוששות רשימת אירועים ודוחות מתשובות חסרות ומניתוק HA. |
+| [0.27.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.3-alpha.1) | `1afe05a` | תור אבחון תחנות עצמאי ושמירת תוצאות בדיקות ללא שידור חוזר. |
+| [0.27.4](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.4-alpha.1) | `0b075f0` | פעילות בנייד, פקדי שיחה משותפים ושמירת טווח זמן בחקירת אירועים. |
+| [0.27.5](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.5-alpha.1) | `0035928` | עצירת מקורות אירועים בזמן סגירה ושחזור עמודי היסטוריה שנקטעו. |
+| [0.27.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.6-alpha.1) | `fe98cc1` | התאוששות יומן שינויים והשוואת הרשאות, ומניעת ייצוא מחיבור ישן. |
+
+חלון העבודה המקורי: עד 03:30 לפי Asia/Jerusalem. בסיס: v0.27.0-alpha.1,
 קוד e92425c ותיעוד d5a0d58. פורסמה [v0.27.1-alpha.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.27.1-alpha.1) מהקוד `b6da2b03ab8f8ffeaf14736e8886e2123c721118`.
 [שבעת שערי השחרור](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34412993869) עברו: 887 בדיקות Python בכל אחת מהגרסאות 3.12/3.14,
 264 בדיקות HA, 189 בדיקות דפדפן, mypy על 57 קבצים, Ruff, TypeScript,
 Prettier, HACS, Hassfest ובנייה ניתנת לשחזור. התג, manifest, חבילת הפאנל ו־AudioWorklet
 אומתו מול אותו commit. [ראיית הפרסום](evidence/release_0.27.1-alpha.1.json).
-זהו מקטע המסירה הראשון של הלילה; חלון העבודה ממשיך עד 03:30.
+זהו מקטע המסירה הראשון של הלילה; יתר המסירות מתועדות בהמשך.
 
 ## פקדי שיחה — הושלם בתוכנה
 
