@@ -1,5 +1,7 @@
 # Hardening, upgrades and recovery
 
+> עדכון היקף בעלים 2026-09-11: המוצר מיועד ל־1–X אינטרקומים. אין יעד או תנאי שחרור של תשע תחנות. מדדי 38/47 ותנאי מספר תחנות ברשומות הישנות להלן הם היסטוריים; לתכנון פעיל משתמשים ב־**31/37 = 83.8%** וב[מסלולים המעודכנים](SCALABLE_SCOPE_HE.md). בדיקות יציבות ועומס נשארות, בגודל התקנה/מדגם מתועד ללא מספר קבוע.
+
 This integration is still a prerelease. The main components of phases 0–5 are implemented;
 physical commissioning, firmware-dependent fixes and full fleet acceptance remain open.
 The owner has confirmed HACS installation and updates. Phase 6 is optional future work.

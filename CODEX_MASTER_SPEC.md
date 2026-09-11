@@ -2,9 +2,12 @@
 ## Master Development Specification for Codex
 ### Version 1.2 — 2026-09-07
 
+> **Owner scope amendment — 2026-09-11:** WisKey manages **1–X intercoms**, with dynamic station registration. Nine stations are neither a product target nor a prerequisite for acceptance or release. Fleet size in older examples is illustrative. DoD 1 is retired as a separate fixed-count gate; independent station behavior remains mandatory under section 3 and routine functional tests. DoD 40 is retained as a sustained stability test at the relevant deployment/load size, without a fixed hardware count. See [scope and recalculated acceptance](docs/SCALABLE_SCOPE_HE.md). Resource budgets and measured capacity limits remain explicit.
+
+
 **Project domain:** `hikvision_intercom`  
 **Target:** Home Assistant 2026.9+ custom integration / HACS  
-**Target fleet:** 9 × Hikvision DS-KV6124-E1  
+**Target fleet:** 1–X independently managed Hikvision DS-KV6124-E1 stations  
 **Observed target firmware:** V3.9.0 build 260115  
 **Design:** Local-first ISAPI integration + centralized access-control administration panel
 
@@ -38,7 +41,7 @@ A dedicated administrator-only Home Assistant sidebar panel provides:
 - global people/users database
 - PIN management
 - multiple cards per person
-- assign each person to any subset of the 9 intercoms
+- assign each person to any subset of the configured intercoms
 - optional per-lock rights on each selected intercom
 - validity periods
 - active/inactive state
@@ -136,7 +139,7 @@ Reasons:
 
 The integration also initializes one domain-level `IntercomFleetManager` which aggregates all loaded entries.
 
-Do **not** put all nine stations into one ConfigEntry.
+Do **not** put all configured stations into one ConfigEntry.
 
 ## 3.2 Global manager
 
@@ -871,7 +874,7 @@ Suggested:
 
 For 9 local stations this is a manageable load.
 
-Stagger station polling so all nine do not request simultaneously.
+Stagger station polling so configured stations do not request simultaneously.
 
 ## State machine
 
@@ -1090,7 +1093,7 @@ delete_pending
 
 # 14. Employee ID strategy
 
-Use the **same** `employeeNo` for the same person on all 9 stations.
+Use the **same** `employeeNo` for the same person on all configured stations.
 
 This is essential for:
 - card association
@@ -1367,7 +1370,7 @@ Intercom access
 The user can be assigned to:
 - 1 station
 - several selected stations
-- all 9 stations
+- all configured stations
 
 `Select all` is useful but must remain a deliberate admin action.
 
@@ -1842,7 +1845,7 @@ Delete requires a confirmation dialog that explains the number of target station
 - Add Card
 
 ## Section D — Intercom assignment
-Show all 9 stations.
+Show all configured stations.
 
 Example:
 ```text
@@ -1875,7 +1878,7 @@ Footer:
 
 The central desired state must be persisted before background device synchronization starts.
 
-Do not make the user wait for all nine HTTP writes before closing the editor.
+Do not make the user wait for all station HTTP writes before closing the editor.
 
 ---
 
@@ -2327,7 +2330,7 @@ All actual-device responses must be sanitized and stored.
 
 ## Sync
 - no-op idempotency
-- new user → 9 stations
+- new user → selected configured stations
 - selected subset only
 - deselect station
 - station offline
@@ -2382,37 +2385,28 @@ Use one test DS-KV6124-E1 first.
 19. Reboot intercom.
 20. Repeat core status/unlock checks.
 
-Only then expand to all nine stations.
+Only then expand to all configured stations.
 
 ---
 
-# 52. Nine-station end-to-end acceptance scenario
+# 52. Variable-size end-to-end acceptance scenario
 
-1. Add all nine intercoms to HA.
-2. Configure stations 1–5 with Relay 1 only.
-3. Configure stations 6–8 with both relays.
-4. Configure station 9 with Relay 2 only.
-5. Verify unwanted lock entities do not exist.
-6. Press the bell on station 4.
-7. `binary_sensor` changes to ringing within target latency.
-8. Overview card highlights station 4.
-9. Unlock the configured relay and verify physical operation.
-10. Add user `TEST-1001`.
-11. Add one PIN and two cards.
-12. Assign user only to 1, 3, 6, 7 and 9.
-13. Synchronize.
-14. Physically verify credentials fail at unassigned stations.
-15. If per-lock permission is confirmed, grant only Relay 2 at station 9.
-16. Verify Relay 1 access is denied and Relay 2 succeeds.
-17. Disconnect station 7 from Ethernet.
-18. Delete user globally.
-19. Verify successful delete on online targets.
-20. UI shows deletion pending on station 7.
-21. Reconnect station 7.
-22. Automatic reconcile removes the user.
-23. Restart Home Assistant.
-24. Verify central data and sync/tombstone state persist.
-25. Download diagnostics and confirm no PIN/card secret exists.
+Run applicable scenarios on the configured 1–X stations. Do not wait for a particular hardware count. Use simulation to expand coverage and label it as simulation; record the actual size of each hardware observation.
+
+1. Add the available stations to HA and verify independent identities.
+2. Configure only the active, owner-approved relay for each station.
+3. Verify unwanted lock entities, controls and permission targets do not exist.
+4. Press the bell on a selected station and observe its event, ringing state and highlighted camera.
+5. Unlock its configured relay and verify operation.
+6. Create a test person with one PIN and two test cards.
+7. Assign the person to a chosen subset of configured stations.
+8. Verify access at assigned stations and denial at unassigned stations where present.
+9. Disconnect a selected target and remove its access centrally.
+10. Verify other available stations continue independently and the disconnected target stays pending.
+11. Restart HA, reconnect the target and verify reconciliation and retained central state.
+12. Remove one test card and verify its denial while the other credential remains valid.
+13. Download diagnostics and verify secret redaction.
+14. Repeat relevant add/remove, recovery and sustained-load scenarios at representative sizes; publish the size and limitations of each observation.
 
 ---
 
@@ -2612,7 +2606,7 @@ Deliver:
 - secret redaction
 - capacity errors
 - rate limiting
-- soak tests on all nine stations
+- soak tests on all configured stations
 - documentation
 - HACS release workflow
 
@@ -2677,7 +2671,7 @@ These requirements are release blockers.
 
 # 60. Definition of Done
 
-- [ ] 9 stations work independently.
+- [excluded] Fixed-count fleet acceptance retired by the owner amendment; dynamic station independence remains required under section 3.
 - [ ] Station online state.
 - [ ] Ring state.
 - [ ] Doorbell event.
@@ -2716,7 +2710,7 @@ These requirements are release blockers.
 - [ ] GitHub tags/releases and `manifest.json` use consistent Semantic Versions.
 - [ ] Git history contains reviewable phase/feature commits with no secrets.
 - [ ] Actual DS-KV6124-E1 lab test suite passes.
-- [ ] Nine-device soak test passes.
+- [ ] Sustained stability test passes at the relevant deployment/load size; no fixed station count.
 
 ---
 

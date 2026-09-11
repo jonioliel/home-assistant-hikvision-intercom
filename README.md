@@ -2,6 +2,7 @@
 
 Published runtime: **[0.34.0-beta.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.34.0-beta.1)** — saved camera layouts, fleet clock comparison and opt-in operational sensors. [Upgrade notes](docs/BETA_034_HE.md), [verified checks](docs/VALIDATION.md), [development checkpoint](docs/DEVELOPMENT_CONTINUATION_HE.md), [remaining roadmap](docs/ROADMAP_ADDITIONAL_40_HE.md). Beta prerelease; physical commissioning remains open.
 
+Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
@@ -188,7 +189,7 @@ physical acceptance.
 The active relay, existing card and initial six-digit local PIN were physically accepted.
 PIN modification returned success and exact readback, but the first supervised attempts failed;
 later events included the documented password-attempt limit. The follow-up permission test,
-PIN cleanup, card CRUD, successful call/answer sequence and nine-station soak remain open.
+PIN cleanup, card CRUD, successful call/answer sequence and sustained stability at the relevant deployment size remain open.
 No unverified behavior is counted as passing.
 
 [Manufacturer reference review](docs/MANUFACTURER_PROTOCOL.md) ·
