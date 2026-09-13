@@ -1,5 +1,12 @@
 # Published validation — 0.34.0-beta.1
 
+## Published validation — 0.35.1-beta.1
+
+Runtime `237aa1e83d5ac02bcb6816180946a59ac50c68ff` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34784029303): **1,021 Python cases per version, 314 Home Assistant cases and 372 browser cases**, static checks, bundle reproducibility, HACS and Hassfest. Tag and artifact bytes match the runtime commit. [Evidence](evidence/release_0.35.1-beta.1.json), [instructions](STATION_CARD_EDITOR_HE.md).
+
+Station capture is in the Cards fieldset, alongside USB. Local capture backend checks passed 31 cases; editor and existing capture flows passed, with one new test's Add-user selector corrected to account for its leading plus icon. Three targeted cases then passed and the entire release suite passed. No protocol, storage or physical acceptance changes.
+
+
 ## Published validation — 0.35.0-beta.1
 
 Runtime `2864aff7164c48f446c02baad9dc2419579a0412` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34777297344): **1,021 Python cases per version (3.12/3.14), 314 Home Assistant cases and 369 browser cases**, including static checks, reproducible bundle, HACS and Hassfest. The release tag and packaged bytes were verified against the runtime commit. [Evidence](evidence/release_0.35.0-beta.1.json), [delivery notes](CONTACT_HEADER_HE.md).

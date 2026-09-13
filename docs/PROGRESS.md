@@ -5,7 +5,11 @@
 Nine stations are not a target, capacity limit or release prerequisite. DoD 1's separate fixed-count gate is excluded; station independence remains mandatory. DoD 40 remains a sustained stability test at the relevant deployment/load size. Current core acceptance is **31/37 = 83.8%; six open**. This is a scope correction, not new test evidence. [Decision and recalculated paths](SCALABLE_SCOPE_HE.md). Prior release evidence retains its historical denominator.
 
 
-## Current release — 0.35.0-beta.1
+## Current release — 0.35.1-beta.1
+
+Station card capture is now directly discoverable in the user Cards editor alongside USB and manual entry. New-user and unsaved-edit guidance retain the existing explicit capture approval flow. All seven release jobs passed. [Instructions](STATION_CARD_EDITOR_HE.md), [evidence](evidence/release_0.35.1-beta.1.json). Core acceptance remains 31/37; no additional physical validation or roadmap items are claimed.
+
+## Previous release — 0.35.0-beta.1
 
 All three owner-requested interface/contact changes are delivered: a 60 px user photo without internal scrolling, a persistent mobile phone field with table/mobile/search/CSV support, and horizontal header navigation in both designs. [Delivery](CONTACT_HEADER_HE.md), [release evidence](evidence/release_0.35.0-beta.1.json). All seven release jobs passed. Access storage is schema 7; profile settings remain schema 2. This UI update closes no additional physical acceptance items: 31/37 (83.8%), six open. Phase 5 remains open; the earlier roadmap counts below are unchanged.
 
