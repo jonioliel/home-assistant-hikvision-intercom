@@ -43,6 +43,7 @@ USER_FIELDS = {
     "profile",
     "group_ids",
     "photo",
+    "phone",
     "employee_no",
     "display_name",
     "active",

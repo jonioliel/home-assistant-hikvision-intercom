@@ -425,7 +425,7 @@ class AccessManager:
                 if before != after:
                     validate_csv_targets(user, rules)
                 fields = [key for key in after if before.get(key) != after[key]]
-                for key in ("profile", "group_ids", "permission_overrides"):
+                for key in ("profile", "group_ids", "permission_overrides", "phone"):
                     if getattr(previous, key, None) != getattr(user, key) and (
                         previous or getattr(user, key)
                     ):

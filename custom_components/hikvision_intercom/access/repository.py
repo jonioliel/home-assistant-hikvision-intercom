@@ -29,7 +29,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 6,
+            "schema": 7,
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
@@ -48,7 +48,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6)
+            require_overrides = data.get("schema") in (5, 6, 7)
             legacy_keys = set(self._state) - {
                 "admin_audit",
                 "operation_receipts",
@@ -74,8 +74,11 @@ class AccessRepository:
             if data.get("schema") == 5 and set(data) == set(self._state):
                 data = {**deepcopy(data), "schema": 6}
                 migrated = True
+            if data.get("schema") == 6:
+                data = {**deepcopy(data), "schema": 7}
+                migrated = True
             try:
-                if data.get("schema") != 6 or set(data) != set(self._state):
+                if data.get("schema") != 7 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -594,7 +597,7 @@ class AccessRepository:
             for station in item["targets"]
         }
         # Revocation needs credentials, never local portraits or organizational metadata.
-        record = {**record, "photo": None, "profile": {}, "group_ids": []}
+        record = {**record, "photo": None, "profile": {}, "group_ids": [], "phone": ""}
         if targets:
             state["tombstones"][user_id] = {
                 "user_id": user_id,

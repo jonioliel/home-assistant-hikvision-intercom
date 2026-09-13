@@ -1,4 +1,9 @@
 const en = {
+  phone: "Mobile phone",
+  invalid_phone:
+    "Enter a phone number with 7–15 digits; a leading +, spaces, parentheses and hyphens are allowed.",
+  audit_field_phone: "Mobile phone",
+  csv_field_phone: "Mobile phone",
   report_stored_time: "Stored timestamp",
   report_time_source: "Timestamp source",
   report_current_group: "Current group",
@@ -1307,7 +1312,7 @@ const en = {
   edit_user: "Edit user",
   import_existing: "Import existing",
   sync_all: "Sync all",
-  search: "Search name, employee ID or last 4 card digits",
+  search: "Search name, phone, employee ID or last 4 card digits",
   total_users: "People",
   online_stations: "Stations online",
   pending_sync: "Pending sync",
@@ -1468,6 +1473,11 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  phone: "טלפון נייד",
+  invalid_phone:
+    "יש להזין מספר טלפון בן 7–15 ספרות. אפשר להוסיף + בתחילת המספר, רווחים, סוגריים ומקפים.",
+  audit_field_phone: "טלפון נייד",
+  csv_field_phone: "טלפון נייד",
   report_stored_time: "חותמת זמן שמורה",
   report_time_source: "מקור חותמת הזמן",
   report_current_group: "קבוצה נוכחית",
@@ -2721,7 +2731,7 @@ const he: Record<keyof typeof en, string> = {
   edit_user: "עריכת משתמש",
   import_existing: "ייבוא קיימים",
   sync_all: "סנכרון הכול",
-  search: "חיפוש לפי שם, מזהה עובד או 4 ספרות אחרונות בכרטיס",
+  search: "חיפוש לפי שם, טלפון, מזהה עובד או 4 ספרות אחרונות בכרטיס",
   total_users: "משתמשים",
   online_stations: "תחנות מחוברות",
   pending_sync: "ממתינים לסנכרון",

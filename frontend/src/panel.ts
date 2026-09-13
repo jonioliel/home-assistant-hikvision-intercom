@@ -13,6 +13,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { live } from "lit/directives/live.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
+import { headerStyles } from "./header-styles";
 import { modernStyles } from "./modern-styles";
 import { AppearancePicker, readAppearance, saveAppearance, type Appearance } from "./appearance";
 import { icon } from "./icons";
@@ -100,7 +101,7 @@ const releaseErrors = new Set([
 ]);
 
 export class IntercomManagerPanel extends LitElement {
-  static styles = [styles, interfaceStyles, modernStyles];
+  static styles = [styles, interfaceStyles, modernStyles, headerStyles];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -810,6 +811,7 @@ export class IntercomManagerPanel extends LitElement {
     }
     const data: Record<string, unknown> = {
       employee_no: draft.employee_no,
+      phone: draft.phone ?? "",
       display_name: draft.display_name,
       active: draft.active,
       valid_from: draft.timed ? draft.valid_from : null,
@@ -1166,6 +1168,7 @@ export class IntercomManagerPanel extends LitElement {
     return [
       "employee_no",
       "display_name",
+      "phone",
       "active",
       "valid_from",
       "valid_until",
@@ -2087,7 +2090,7 @@ export class IntercomManagerPanel extends LitElement {
                   <thead>
                     <tr>
                       <th>${this.t("select_user")}</th>
-                      ${["name", "employee_id"].map((key) => html`<th>${this.t(key)}</th>`)}
+                      ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
                       ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
                       ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
                       ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
@@ -2124,6 +2127,7 @@ export class IntercomManagerPanel extends LitElement {
                             </div>
                           </td>
                           <td><bdi>${user.employee_no}</bdi></td>
+                          <td><bdi dir="ltr">${user.phone || "—"}</bdi></td>
                           ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
                           ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
                           <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
@@ -2155,6 +2159,7 @@ export class IntercomManagerPanel extends LitElement {
                         ${this.badge(this.personStatus(user))}
                       </div>
                       <p class="sub">
+                        ${this.t("phone")}: <bdi dir="ltr">${user.phone || "—"}</bdi> ·
                         ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
                         ${this.t(user.active ? "active" : "inactive")}
                       </p>
@@ -2526,6 +2531,15 @@ export class IntercomManagerPanel extends LitElement {
                   @input=${(event: Event) => this.patchDraft("employee_no", value(event))}
               /></label>
             </div>
+            <label
+              >${this.t("phone")}<input
+                type="tel"
+                autocomplete="tel"
+                dir="ltr"
+                maxlength="32"
+                .value=${draft.phone ?? ""}
+                @input=${(event: Event) => this.patchDraft("phone", value(event))}
+            /></label>
             ${draft.identity_locked ? html`<p class="field-note">${this.t("employee_locked")}</p>` : nothing}
             <p>
               <label class="check"
@@ -3141,6 +3155,7 @@ export class IntercomManagerPanel extends LitElement {
             <h1>${this.t("title")}</h1>
             <div class="version">${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi></div>
           </div>
+          ${this.navigation()}
           <div class="spacer"></div>
           <button
             @click=${() => {
@@ -3152,7 +3167,6 @@ export class IntercomManagerPanel extends LitElement {
             ${icon("sync")} <span class="refresh-label">${this.t("refresh")}</span>
           </button>
         </div>
-        ${this.navigation()}
       </header>
       <main tabindex="-1">
         ${!["overview", "users", "events", "tools"].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}

@@ -11,9 +11,12 @@ export class UserPhoto extends LitElement {
       :host {
         display: block;
         min-width: 0;
+        height: auto;
+        overflow: visible;
       }
       img,
       video {
+        display: block;
         width: min(100%, 256px);
         aspect-ratio: 1;
         object-fit: cover;
@@ -21,12 +24,18 @@ export class UserPhoto extends LitElement {
         background: #e8edf5;
       }
       :host([compact]) {
-        width: 40px;
-        height: 40px;
+        width: 60px;
+        height: 60px;
+        flex: 0 0 60px;
+        overflow: hidden;
+        line-height: 0;
       }
       :host([compact]) img {
-        width: 40px;
-        height: 40px;
+        width: 60px;
+        height: 60px;
+        flex: 0 0 60px;
+        overflow: hidden;
+        line-height: 0;
         border-radius: 50%;
       }
       .row {

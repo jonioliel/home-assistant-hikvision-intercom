@@ -18,6 +18,7 @@ export interface Assignment {
   last_sync_at?: string | null;
 }
 export interface Person {
+  phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
   permission_overrides?: Record<string, "allow" | "deny">;
@@ -213,6 +214,7 @@ export interface Hass {
   };
 }
 export interface Draft {
+  phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
   permission_overrides?: Record<string, "allow" | "deny">;

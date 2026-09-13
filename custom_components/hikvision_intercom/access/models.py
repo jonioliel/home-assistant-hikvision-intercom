@@ -159,12 +159,14 @@ class ManagedUser:
     group_ids: list[str] = field(default_factory=list)
     photo: str | None = field(default=None, repr=False)
     permission_overrides: dict[str, str] = field(default_factory=dict)
+    phone: str = ""
 
     def private(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "employee_no": self.employee_no,
             "display_name": self.display_name,
+            "phone": self.phone,
             "active": self.active,
             "user_type": self.user_type,
             "valid_from": self.valid_from,
@@ -228,6 +230,18 @@ class ManagedUser:
             return user
         except (KeyError, TypeError, AttributeError, HikvisionValidationError):
             raise AccessError("invalid_storage") from None
+
+
+def phone_value(value: Any) -> str:
+    """Local contact number; preserve international prefixes and leading zeros."""
+    if not isinstance(value, str) or len(value) > 32:
+        raise AccessError("invalid_phone")
+    if value and (
+        not re.fullmatch(r"\+?[0-9 ()-]+", value)
+        or not 7 <= len(re.sub(r"[^0-9]", "", value)) <= 15
+    ):
+        raise AccessError("invalid_phone")
+    return value.strip()
 
 
 def build_user(
@@ -340,6 +354,7 @@ def build_user(
                     else {sid: "allow" if a.enabled else "deny" for sid, a in assignments.items()},
                 )
             ),
+            phone=phone_value(data.get("phone", previous.phone if previous else "")),
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

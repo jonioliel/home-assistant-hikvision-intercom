@@ -29,7 +29,12 @@ export function matchingUsers(
         return false;
       if (
         text &&
-        !`${u.display_name} ${u.employee_no}`.toLocaleLowerCase().includes(text) &&
+        !`${u.display_name} ${u.employee_no} ${u.phone ?? ""}`.toLocaleLowerCase().includes(text) &&
+        !(
+          /^[+0-9 ()-]+$/.test(text) &&
+          text.replace(/[^0-9]/g, "").length >= 3 &&
+          (u.phone ?? "").replace(/[^0-9]/g, "").includes(text.replace(/[^0-9]/g, ""))
+        ) &&
         !(/^[0-9]{4}$/.test(text) && u.cards.some((card) => card.masked_number?.slice(-4) === text))
       )
         return false;

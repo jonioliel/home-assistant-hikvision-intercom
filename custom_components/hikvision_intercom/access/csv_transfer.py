@@ -16,7 +16,15 @@ from .normalize import desired_cards, desired_person
 
 MAX_CSV_BYTES = 262_144
 MAX_CSV_ROWS = 500
-COLUMNS = ("employee_no", "display_name", "active", "valid_from", "valid_until", "stations")
+COLUMNS = (
+    "employee_no",
+    "display_name",
+    "active",
+    "valid_from",
+    "valid_until",
+    "stations",
+    "phone",
+)
 IMPORT_COLUMNS = {*COLUMNS, "pin", "cards", "group_ids", "permission_overrides"}
 
 
@@ -54,6 +62,7 @@ def export_users(users: list[ManagedUser], fields: list[str] | None = None) -> s
                 u.valid_from or "CLEAR",
                 u.valid_until or "CLEAR",
                 "",
+                json.dumps(u.phone),
                 json.dumps(u.group_ids, ensure_ascii=False),
                 json.dumps(u.permission_overrides, ensure_ascii=False, sort_keys=True),
                 # JSON strings preserve empty values, CLEAR, leading quotes and formula text.
@@ -167,6 +176,8 @@ def row_patch(
     policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {key: row[key] for key in ("employee_no", "display_name")}
+    if phone := row.get("phone"):
+        data["phone"] = "" if phone == "CLEAR" else _json(phone) if phone.startswith('"') else phone
     if active := row.get("active"):
         if active not in {"true", "false"}:
             raise AccessError("invalid_boolean")
@@ -344,6 +355,7 @@ def desired_fields(user: ManagedUser) -> dict[str, Any]:
             "group_ids",
             "permission_overrides",
             "photo",
+            "phone",
         }
     }
 

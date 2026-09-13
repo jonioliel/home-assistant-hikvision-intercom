@@ -2,6 +2,16 @@
 
 Semantic Versioning is used throughout the project.
 
+## [0.35.0-beta.1] - 2026-09-13
+
+- Move WisKey navigation into its header in both designs, with four compact navigation items on a second row on smaller screens. Preserve Home Assistant's separate menu.
+- Enlarge user photos to 60 px and remove internal scrolling caused by inherited panel sizing.
+- Add a dedicated mobile phone field to the user editor, desktop table, mobile cards and search. Preserve leading zeros and international prefixes; validate 7–15 digits without assuming a country.
+- Include phone numbers in CSV import/export. Empty cells retain existing numbers; CLEAR removes a number; exported JSON string cells preserve prefixes and empty values.
+- Keep phone numbers local to WisKey: changing contact details does not change device intent or trigger immediate access synchronization. Audit records contain the changed field name, not the phone number.
+- Migrate access storage from schema 6 to 7 atomically. Existing users start with an empty phone field. Back up Home Assistant before updating; restoring an older version requires its matching data backup.
+- Physical acceptance and speaker audibility are unchanged by this interface/contact-data release.
+
 ## [Unreleased]
 
 ## [0.34.0-beta.1] - 2026-09-11
