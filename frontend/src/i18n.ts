@@ -1,4 +1,8 @@
 const en = {
+  capture_from_editor_hint:
+    "Choose an intercom, present the card to its reader, then approve adding it. Save any user edits before starting.",
+  capture_save_user_first:
+    "Save the new user first, then reopen Edit to read a card from an intercom.",
   phone: "Mobile phone",
   invalid_phone:
     "Enter a phone number with 7–15 digits; a leading +, spaces, parentheses and hyphens are allowed.",
@@ -1473,6 +1477,10 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  capture_from_editor_hint:
+    "בחר אינטרקום, הצמד את הכרטיס לקורא שלו ואשר את הוספתו. יש לשמור שינויים במשתמש לפני תחילת הקריאה.",
+  capture_save_user_first:
+    "יש לשמור תחילה את המשתמש החדש, ואז לפתוח עריכה כדי לקרוא כרטיס מהאינטרקום.",
   phone: "טלפון נייד",
   invalid_phone:
     "יש להזין מספר טלפון בן 7–15 ספרות. אפשר להוסיף + בתחילת המספר, רווחים, סוגריים ומקפים.",

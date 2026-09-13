@@ -2,6 +2,12 @@
 
 Semantic Versioning is used throughout the project.
 
+## [0.35.1-beta.1] - 2026-09-14
+
+- Place "Read card from station" directly in the user editor's Cards section beside manual and USB entry, instead of the general user actions section.
+- Explain station selection, presenting the card and approving its assignment. New users show the same option disabled with a save-first explanation; unsaved edits remain protected.
+- Preserve the existing capability check, capture cancellation and explicit approval flow. No storage, ISAPI or device configuration changes.
+
 ## [0.35.0-beta.1] - 2026-09-13
 
 - Move WisKey navigation into its header in both designs, with four compact navigation items on a second row on smaller screens. Preserve Home Assistant's separate menu.

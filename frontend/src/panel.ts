@@ -1672,13 +1672,6 @@ export class IntercomManagerPanel extends LitElement {
         <button
           type="button"
           ?disabled=${this._busy}
-          @click=${() => this.editorAction((u) => this.openCapture(u))}
-        >
-          ${this.t("capture_card")}
-        </button>
-        <button
-          type="button"
-          ?disabled=${this._busy}
           @click=${() =>
             this.editorAction((u) => {
               this._auditUser = u.id;
@@ -2733,6 +2726,18 @@ export class IntercomManagerPanel extends LitElement {
             >
               + ${this.t("add_card")}
             </button>
+            <div class="station-card-capture">
+              <button
+                type="button"
+                ?disabled=${this._busy || !draft.id}
+                @click=${() => this.editorAction((u) => this.openCapture(u))}
+              >
+                ${this.t("capture_card")}
+              </button>
+              <p class="field-note">
+                ${this.t(draft.id ? "capture_from_editor_hint" : "capture_save_user_first")}
+              </p>
+            </div>
             <wiskey-usb-card-input
               .hass=${this.hass}
               .locked=${this._busy}
