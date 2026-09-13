@@ -1,5 +1,14 @@
 # Published validation — 0.34.0-beta.1
 
+## Published validation — 0.35.0-beta.1
+
+Runtime `2864aff7164c48f446c02baad9dc2419579a0412` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34777297344): **1,021 Python cases per version (3.12/3.14), 314 Home Assistant cases and 369 browser cases**, including static checks, reproducible bundle, HACS and Hassfest. The release tag and packaged bytes were verified against the runtime commit. [Evidence](evidence/release_0.35.0-beta.1.json), [delivery notes](CONTACT_HEADER_HE.md).
+
+The local initial browser run found a phone field accidentally added to device reconciliation. It was removed: contact data is local only. All 70 focused panel/contact cases passed after correction, followed by the full passing release suite. Desktop and mobile screenshots were visually reviewed. Access storage migrates atomically from schema 6 to 7; profile settings stay at schema 2. Core acceptance remains 31/37 under the owner-approved 1–X scope; no physical device configuration was changed.
+
+The following entries retain their historical results.
+
+
 Published code: `c9d74a493d71b5102f37c4bf524d0cfbbb97c8ec`. [All seven release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34540617437) passed: **1008 Python tests per version (3.12/3.14), 314 HA tests and 361 browser tests**, static checks, reproducible bundles, HACS and Hassfest. Counts were verified from the release job logs. The public tag, manifest and bundles match the tested commit. [Evidence](evidence/release_0.34.0-beta.1.json), [delivery](BETA_034_HE.md). No physical device actions were performed; core acceptance remains 31/38.
 
 ## Published validation — 0.33.0-beta.1

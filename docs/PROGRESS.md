@@ -5,7 +5,11 @@
 Nine stations are not a target, capacity limit or release prerequisite. DoD 1's separate fixed-count gate is excluded; station independence remains mandatory. DoD 40 remains a sustained stability test at the relevant deployment/load size. Current core acceptance is **31/37 = 83.8%; six open**. This is a scope correction, not new test evidence. [Decision and recalculated paths](SCALABLE_SCOPE_HE.md). Prior release evidence retains its historical denominator.
 
 
-## Current release — 0.34.0-beta.1
+## Current release — 0.35.0-beta.1
+
+All three owner-requested interface/contact changes are delivered: a 60 px user photo without internal scrolling, a persistent mobile phone field with table/mobile/search/CSV support, and horizontal header navigation in both designs. [Delivery](CONTACT_HEADER_HE.md), [release evidence](evidence/release_0.35.0-beta.1.json). All seven release jobs passed. Access storage is schema 7; profile settings remain schema 2. This UI update closes no additional physical acceptance items: 31/37 (83.8%), six open. Phase 5 remains open; the earlier roadmap counts below are unchanged.
+
+## Previous release — 0.34.0-beta.1
 
 N65 (named camera layouts) and N77 (fleet clock comparison) are implemented and release-validated. N73 has four opt-in diagnostic entities; reliable pending-work age remains open. The additional forty-task batch has 2 complete, 1 partial, and 37 not yet implemented. No N01–N40 work is closed by this delivery. [Release](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.34.0-beta.1), [evidence](evidence/release_0.34.0-beta.1.json), [continuation](DEVELOPMENT_CONTINUATION_HE.md). Current owner-adjusted core acceptance is 31/37 (83.8%); Phase 5 remains open. Storage schemas unchanged from the previous Beta.
 
