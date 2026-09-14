@@ -254,9 +254,34 @@ export class IntercomManagerPanel extends LitElement {
   private _refreshing = false;
   private _refreshAgain = false;
   private _timer?: ReturnType<typeof setInterval>;
+  private dialogResize?: ResizeObserver;
+  private fitDialog = () => {
+    const dialog = this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]");
+    if (!dialog) return;
+    // CSS zoom is not included consistently in top-layer percentage/vh sizing.
+    // Traverse shadow hosts too: HA can scale the containing view independently.
+    let zoom = 1;
+    let element: Element | null = dialog;
+    while (element) {
+      const scale = Number.parseFloat(getComputedStyle(element).zoom);
+      if (Number.isFinite(scale) && scale > 0) zoom *= scale;
+      const root = element.getRootNode();
+      element = element.parentElement ?? (root instanceof ShadowRoot ? root.host : null);
+    }
+    const height = Math.min(
+      window.innerHeight,
+      window.visualViewport?.height ?? window.innerHeight,
+    );
+    const limit = `min(90dvh, ${Math.max(80, height / zoom - 24)}px)`;
+    if (dialog.style.maxHeight !== limit) dialog.style.maxHeight = limit;
+  };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   connectedCallback() {
     super.connectedCallback();
+    window.addEventListener("resize", this.fitDialog);
+    window.visualViewport?.addEventListener("resize", this.fitDialog);
+    this.dialogResize = new ResizeObserver(this.fitDialog);
+    this.dialogResize.observe(this);
     this._timer = setInterval(() => {
       if (!document.hidden && this.hass?.user?.is_admin) {
         this.requestUpdate();
@@ -270,6 +295,10 @@ export class IntercomManagerPanel extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("resize", this.fitDialog);
+    window.visualViewport?.removeEventListener("resize", this.fitDialog);
+    this.dialogResize?.disconnect();
+    this.dialogResize = undefined;
     this._epoch++;
     this._busy = false;
     this._notice = "";
@@ -362,6 +391,7 @@ export class IntercomManagerPanel extends LitElement {
     }
     const dialog = this.renderRoot.querySelector("dialog");
     if (dialog && !dialog.open) dialog.showModal();
+    this.fitDialog();
   }
   private async connect() {
     if (this._unsubscribe || this._connecting || !this.isConnected || !this._haConnected) return;

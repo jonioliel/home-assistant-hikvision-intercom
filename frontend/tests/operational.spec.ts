@@ -141,6 +141,13 @@ for (const design of ["current", "modern"]) {
     const box = await button.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(1441);
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await expect
+      .poll(async () => {
+        const resized = await button.boundingBox();
+        return !!resized && resized.y >= 0 && resized.y + resized.height <= 801;
+      })
+      .toBe(true);
     await button.focus();
     await page.keyboard.press("Enter");
     await expect(dialog).toHaveCount(0);
