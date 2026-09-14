@@ -131,20 +131,42 @@ for (const design of ["current", "modern"]) {
     await dialog.getByLabel("Name", { exact: true }).fill("Long resident display name");
     await dialog.getByLabel("New PIN", { exact: true }).fill("847291");
     await dialog.getByLabel("Confirm PIN", { exact: true }).fill("847292");
-    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    const bounds = await dialog.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewport: innerHeight,
+        maxHeight: getComputedStyle(element).maxHeight,
+        zoom: getComputedStyle(document.body).zoom,
+      };
+    });
+    expect(bounds.top, JSON.stringify(bounds)).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom, JSON.stringify(bounds)).toBeLessThanOrEqual(1001);
+    const saveBounds = await dialog
+      .getByRole("button", { name: "Save", exact: true })
+      .evaluate((element) => element.getBoundingClientRect().toJSON());
+    expect(saveBounds.top).toBeGreaterThanOrEqual(0);
+    expect(saveBounds.bottom).toBeLessThanOrEqual(1001);
+    // Keyboard activation exercises the enlarged form without relying on protocol
+    // coordinate conversion. DOM bounds independently verify that controls fit.
+    await dialog.getByRole("button", { name: "Save", exact: true }).focus();
+    await page.keyboard.press("Enter");
     await expect(dialog.getByRole("alert")).toBeVisible();
     await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue(
       "Long resident display name",
     );
     const button = dialog.getByRole("button", { name: "Cancel", exact: true });
     await button.scrollIntoViewIfNeeded();
-    const box = await button.boundingBox();
+    const box = await button.evaluate((element) => element.getBoundingClientRect().toJSON());
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(1441);
     await page.setViewportSize({ width: 1440, height: 800 });
     await expect
       .poll(async () => {
-        const resized = await button.boundingBox();
+        const resized = await button.evaluate((element) =>
+          element.getBoundingClientRect().toJSON(),
+        );
         return !!resized && resized.y >= 0 && resized.y + resized.height <= 801;
       })
       .toBe(true);

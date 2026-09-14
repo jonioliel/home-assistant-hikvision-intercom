@@ -1,4 +1,5 @@
 const en = {
+  operation_removed_user: "Removed or unavailable user",
   sync_operations_title: "Saved sync operations",
   sync_operations_hint:
     "Latest operation per user and station; up to 200 rows shown. Verified means device readback, not physical unlocking. Legacy wait times may be unknown.",
@@ -1497,6 +1498,7 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  operation_removed_user: "משתמש שהוסר או אינו זמין",
   sync_operations_title: "מעקב פעולות סנכרון שנשמרו",
   sync_operations_hint:
     "הפעולה האחרונה לכל משתמש ותחנה; עד 200 שורות. אימות הוא קריאה חוזרת מהציוד ולא פתיחה פיזית. זמן המתנה ישן עשוי להיות לא ידוע.",

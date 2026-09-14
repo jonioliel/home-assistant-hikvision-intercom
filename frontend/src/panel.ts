@@ -2452,7 +2452,7 @@ export class IntercomManagerPanel extends LitElement {
                   (op) =>
                     html`<tr>
                       <td>
-                        ${data.users.find((user) => user.id === op.user_id)?.display_name ?? this.t("deleted")}
+                        ${data.users.find((user) => user.id === op.user_id)?.display_name ?? this.t("operation_removed_user")}
                       </td>
                       <td>
                         ${data.stations.find((station) => station.id === op.station_id)?.name ?? this.t("unknown")}
