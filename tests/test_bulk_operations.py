@@ -183,13 +183,14 @@ async def test_background_child_does_not_inherit_admin_attribution(batch):
 async def test_schema_two_migrates_without_inventing_past_audit(batch):
     state = batch.repository.snapshot()
     state["schema"] = 2
+    state.pop("sync_operations")
     state.pop("profile_settings")
     del state["admin_audit"]
     del state["operation_receipts"]
     saver = AsyncMock()
     restored = AccessRepository(saver)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 7
+    assert restored.snapshot()["schema"] == 8
     assert restored.snapshot()["admin_audit"] == {"next": 1, "records": []}
     assert restored.get(batch.repository.users()[0].id).pin == batch.repository.users()[0].pin
     assert saver.await_count == 1

@@ -90,7 +90,9 @@ export const styles = css`
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
-  select:focus-visible {
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
   }

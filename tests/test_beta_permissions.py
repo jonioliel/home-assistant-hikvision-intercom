@@ -269,10 +269,11 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     manager, user, _ = managed
     state = manager.repository.snapshot()
     state["schema"] = 5
+    state.pop("sync_operations")
     save = AsyncMock()
     restored = AccessRepository(save)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 7
+    assert restored.snapshot()["schema"] == 8
     assert restored.get(user.id).private() == manager.repository.get(user.id).private()
     save.assert_awaited_once()
 
@@ -310,6 +311,7 @@ async def test_modern_schema_missing_explicit_exceptions_is_rejected_before_save
     manager, user, _ = managed
     state = manager.repository.snapshot()
     state["schema"] = schema
+    state.pop("sync_operations")
     del state["users"][user.id]["permission_overrides"]
     save = AsyncMock()
     restored = AccessRepository(save)

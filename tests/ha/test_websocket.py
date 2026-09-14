@@ -830,3 +830,51 @@ async def test_csv_header_mapping_and_review_are_enforced_by_real_websocket(
     assert saved["success"] and get_manager(hass).repository.users()[0].employee_no == "9401"
     device_io["write_person"].assert_not_called()
     device_io["unlock"].assert_not_called()
+
+
+@pytest.mark.parametrize("contract_version", [0, 1, 2])
+async def test_api_contract_metadata_and_incompatible_write(
+    hass, loaded_entry, hass_ws_client, contract_version
+):
+    client = await hass_ws_client(hass)
+    result = await request(client, "overview", api_contract=contract_version)
+    assert result["success"]
+    assert result["result"]["api"]["version"] == 1
+    assert "sync_tracking" in result["result"]["api"]["capabilities"]
+    result = await request(
+        client,
+        "users/create",
+        api_contract=contract_version,
+        data={"display_name": "Contract test"},
+        sync_now=False,
+    )
+    assert result["success"] == (contract_version <= 1)
+    if contract_version > 1:
+        assert result["error"]["code"] == "api_incompatible"
+        assert get_manager(hass).repository.users() == []
+
+
+async def test_notification_storm_coalesces_without_buffering_private_events(hass, loaded_entry):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    from custom_components.hikvision_intercom.access_runtime import SIGNAL_ACCESS_CHANGED
+    from custom_components.hikvision_intercom.websocket import subscribe
+
+    connection = SimpleNamespace(
+        user=SimpleNamespace(is_admin=True), subscriptions={}, send_event=Mock(), send_result=Mock()
+    )
+    # Decorated command validates/admin-checks the same fake active connection.
+    subscribe(hass, connection, {"id": 123, "type": f"{DOMAIN}/subscribe"})
+    for _ in range(12000):
+        async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
+    await asyncio.sleep(0.35)
+    assert connection.send_event.call_count == 1
+    assert connection.send_event.call_args.args == (123, {"kind": "refresh"})
+    connection.subscriptions[123]()
+    async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
+    await asyncio.sleep(0.35)
+    assert connection.send_event.call_count == 1

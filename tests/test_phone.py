@@ -54,6 +54,7 @@ async def test_schema_six_phone_migration_is_atomic():
     user = await repo.async_create({"display_name": "Legacy"})
     raw = repo.snapshot()
     raw["schema"] = 6
+    raw.pop("sync_operations")
     raw["users"][user.id].pop("phone")
     save = AsyncMock(side_effect=OSError("disk"))
     restored = AccessRepository(save)
@@ -62,4 +63,4 @@ async def test_schema_six_phone_migration_is_atomic():
     save.side_effect = None
     await restored.async_load(raw)
     assert restored.get(user.id).phone == ""
-    assert restored.snapshot()["schema"] == 7
+    assert restored.snapshot()["schema"] == 8

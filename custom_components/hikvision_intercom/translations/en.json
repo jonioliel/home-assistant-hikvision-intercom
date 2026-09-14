@@ -147,6 +147,9 @@
       },
       "last_reconciled": {
         "name": "Last reconciliation completed"
+      },
+      "pending_age": {
+        "name": "Oldest pending work age"
       }
     },
     "camera": {

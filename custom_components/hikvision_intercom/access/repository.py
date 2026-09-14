@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any, TypeVar
 from uuid import uuid4
 
+from . import sync_tracking
 from .admin_audit import append_changes, current_actor, validate_storage
 from .models import AccessError, ManagedUser, build_user, utc_now
 
@@ -29,7 +30,8 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 7,
+            "schema": 8,
+            "sync_operations": {},
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
             "users": {},
@@ -48,8 +50,9 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7)
-            legacy_keys = set(self._state) - {
+            require_overrides = data.get("schema") in (5, 6, 7, 8)
+            legacy_state = set(self._state) - {"sync_operations"}
+            legacy_keys = legacy_state - {
                 "admin_audit",
                 "operation_receipts",
                 "profile_settings",
@@ -65,20 +68,23 @@ class AccessRepository:
                     "operation_receipts": {},
                 }
                 migrated = True
-            if data.get("schema") == 3 and set(data) == set(self._state) - {"profile_settings"}:
+            if data.get("schema") == 3 and set(data) == legacy_state - {"profile_settings"}:
                 data = {**deepcopy(data), "schema": 4}
                 migrated = True
-            if data.get("schema") == 4 and set(data) == set(self._state) - {"profile_settings"}:
+            if data.get("schema") == 4 and set(data) == legacy_state - {"profile_settings"}:
                 data = {**deepcopy(data), "schema": 5, "profile_settings": None}
                 migrated = True
-            if data.get("schema") == 5 and set(data) == set(self._state):
+            if data.get("schema") == 5 and set(data) == legacy_state:
                 data = {**deepcopy(data), "schema": 6}
                 migrated = True
             if data.get("schema") == 6:
                 data = {**deepcopy(data), "schema": 7}
                 migrated = True
+            if data.get("schema") == 7 and set(data) == legacy_state:
+                data = {**deepcopy(data), "schema": 8, "sync_operations": {}}
+                migrated = True
             try:
-                if data.get("schema") != 7 or set(data) != set(self._state):
+                if data.get("schema") != 8 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -143,6 +149,9 @@ class AccessRepository:
                     ):
                         raise AccessError("invalid_storage")
                 validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
+                sync_tracking.validate(normalized["sync_operations"])
+                if migrated:
+                    sync_tracking.update(normalized, migrated=True)
                 self._validate_journal(normalized)
                 self._validate_collisions(normalized)
                 # No worker survives a process restart. Keep ownership/removal intent,
@@ -238,6 +247,7 @@ class AccessRepository:
                 candidate = deepcopy(self._state)
                 result = change(candidate)
                 self._validate_collisions(candidate)
+                sync_tracking.update(candidate)
                 append_changes(self._state, candidate, actor, action)
                 return candidate, result
 
@@ -316,6 +326,7 @@ class AccessRepository:
         return deepcopy(
             {
                 "users": [user.public() for user in self.users()],
+                "sync_operations": sync_tracking.public(self._state),
                 "revocations": [
                     {
                         "station_id": station,
@@ -796,6 +807,8 @@ class AccessRepository:
                 elif assignment:
                     assignment["sync_state"] = "pending"
 
+            sync_tracking.verified(state, user_id, station)
+
         await self._commit(observed)
 
     async def async_mark(
@@ -872,6 +885,8 @@ class AccessRepository:
                         last_sync_at=utc_now(),
                         last_error=None,
                     )
+
+            sync_tracking.verified(state, user_id, station)
 
         await self._commit(absent)
 

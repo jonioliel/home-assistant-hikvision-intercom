@@ -31,7 +31,7 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
     repo = AccessRepository(AsyncMock())
     await repo.async_load(data)
     expected = deepcopy(data)
-    expected["schema"] = 7
+    expected["schema"] = 8
     expected["profile_settings"] = None
     for record in expected["users"].values():
         record.update(
@@ -55,7 +55,10 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
         for station in tombstone.get("stations", {}).values():
             if station.get("sync_state") == "syncing":
                 station["sync_state"] = "pending"
-    assert repo.snapshot() == expected
+    actual = repo.snapshot()
+    operations = actual.pop("sync_operations")
+    assert operations and all(item["queued_at"] is None for item in operations.values())
+    assert actual == expected
     assert fixture == upgrade_fixture(), "Loading cannot modify the source backup"
     assert repo.get(fixture["expected"]["resident"]).pin.value == "654322"
     assert "654322" not in str(repo.public())

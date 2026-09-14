@@ -55,8 +55,9 @@ jobs:
       # index can be mid-publication and fail Ubuntu dependency installation.
       - name: Remove unused Chrome APT source from the ephemeral runner
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
-      - run: pnpm --dir frontend exec playwright install --with-deps chromium
+      - run: pnpm --dir frontend exec playwright install --with-deps chromium firefox webkit
       - run: pnpm --dir frontend run test
+      - run: pnpm --dir frontend run test:cross
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

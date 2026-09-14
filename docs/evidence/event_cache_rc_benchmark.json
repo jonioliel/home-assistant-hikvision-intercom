@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-14",
+  "method": "12,000 synthetic live access events across four station IDs, 5,000 cache limit, tracemalloc enabled; local Windows run, concurrent work can affect timing; not a fleet capacity guarantee",
+  "before": {
+    "events": 12000,
+    "stations": 4,
+    "retained": 5000,
+    "seconds": 454.984,
+    "peak_bytes": 5072023,
+    "p95_add_ms": 111.789
+  },
+  "after": {
+    "events": 12000,
+    "stations": 4,
+    "retained": 5000,
+    "seconds": 2.909,
+    "peak_bytes": 4927529,
+    "p95_add_ms": 0.12
+  },
+  "reproduce": "python -m tools.event_cache_benchmark --events 12000",
+  "after_repeat": {
+    "events": 12000,
+    "stations": 4,
+    "retained": 5000,
+    "seconds": 3.671,
+    "peak_bytes": 4926049,
+    "p95_add_ms": 0.163
+  }
+}

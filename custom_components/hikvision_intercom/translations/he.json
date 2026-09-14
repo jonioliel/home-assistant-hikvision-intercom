@@ -147,6 +147,9 @@
       },
       "last_reconciled": {
         "name": "סיום סבב סנכרון אחרון"
+      },
+      "pending_age": {
+        "name": "גיל עבודה ממתינה"
       }
     },
     "camera": {

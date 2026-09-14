@@ -626,30 +626,9 @@ class AccessManager:
 
     @staticmethod
     def _pending_users(state: dict[str, Any], station_id: str) -> set[str]:
-        """Count user/station reconciliation work once, including credential revocations."""
-        pending = {
-            user_id
-            for user_id, user in state["users"].items()
-            if (assignment := user["assignments"].get(station_id))
-            and (
-                assignment["sync_state"] != "synced"
-                or assignment["applied_revision"] != assignment["desired_revision"]
-            )
-        }
-        pending.update(
-            user_id
-            for user_id, binding in state["bindings"].get(station_id, {}).items()
-            if binding.get("intent") is not None
-            or binding.get("sync_state") != "synced"
-            or station_id not in state["users"].get(user_id, {}).get("assignments", {})
-        )
-        for collection in ("tombstones", "retired_cards", "retired_pins"):
-            pending.update(
-                item["user_id"]
-                for item in state[collection].values()
-                if station_id in item["targets"] and station_id not in item["confirmed"]
-            )
-        return pending
+        from .sync_tracking import pending_users
+
+        return pending_users(state, station_id)
 
     def public(self) -> dict[str, Any]:
         state = self.repository.snapshot()
@@ -707,6 +686,8 @@ class AccessManager:
         if self._closed or station is None:
             return None
         state = self.repository._state
+        from .sync_tracking import pending_age
+
         pending = len(self._pending_users(state, station_id))
         owned = {b["employee_no"] for b in state["bindings"].get(station_id, {}).values()}
         status = station.status if station.status in SYNC_STATES else "unknown"
@@ -718,6 +699,7 @@ class AccessManager:
             if station.inventory is not None
             else None,
             "pending_users": pending,
+            "pending_age": pending_age(state, station_id),
             "sync_health": status,
             "last_reconciled": station.reconciled_at,
             "inventory_sampled_at": station.scanned_at,

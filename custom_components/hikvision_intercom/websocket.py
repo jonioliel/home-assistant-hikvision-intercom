@@ -23,6 +23,7 @@ from .access.schedules import ScheduleLibrary, preview
 from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
 from .admin_operations_api import dispatch_admin
+from .api_contract import contract, validate_client
 from .client.schedule_dependencies import inspect_dependencies
 from .client.schedule_inventory import inspect_inventory
 from .client.schedule_readiness import inspect_readiness as inspect_schedules
@@ -239,6 +240,7 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
     data["media_settings"] = media.public() if media else None
     profiles = hass.data[DOMAIN].get("profile_settings")
     data["profile_settings"] = profiles.public() if profiles else None
+    data["api"] = contract(list(COMMANDS))
     data["version"] = VERSION
     return data
 
@@ -645,6 +647,7 @@ async def _dispatch_inner(
 def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., None]:
     schema = vol.Schema(
         {
+            vol.Optional("api_contract"): int,
             vol.Required("id"): int,
             vol.Required("type"): str,
             **{vol.Required(key): kind for key, kind in fields.items()},
@@ -677,6 +680,7 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
         try:
             # Validate here so HA's humanized schema errors cannot echo credential inputs.
             schema(msg)
+            validate_client(msg.get("api_contract", 0), command=command)
             for key, kind in fields.items():
                 if kind in {int, bool} and type(msg[key]) is not kind:
                     raise AccessError("invalid_fields")

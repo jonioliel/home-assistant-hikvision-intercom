@@ -26,7 +26,7 @@ def entity_id(hass, domain, key):
 async def test_entities_states_and_diagnostics(hass, loaded_entry):
     registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(registry, loaded_entry.entry_id)
-    assert len(entities) == 11
+    assert len(entities) == 12
     assert {item.domain for item in entities} == {
         "binary_sensor",
         "sensor",
@@ -414,7 +414,7 @@ async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_e
     from custom_components.hikvision_intercom.access_runtime import get_manager
 
     registry = er.async_get(hass)
-    keys = ("managed_users", "pending_users", "sync_health", "last_reconciled")
+    keys = ("managed_users", "pending_users", "pending_age", "sync_health", "last_reconciled")
     ids = {key: entity_id(hass, "sensor", key) for key in keys}
     for eid in ids.values():
         record = registry.async_get(eid)
@@ -433,6 +433,7 @@ async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_e
         await station.task
     await hass.async_block_till_done()
     assert hass.states.get(ids["managed_users"]).state == "0"
+    assert hass.states.get(ids["pending_age"]).state == "0"
     assert hass.states.get(ids["pending_users"]).state == "0"
     assert hass.states.get(ids["sync_health"]).state == "synced"
     assert hass.states.get(ids["last_reconciled"]).state not in ("unknown", "unavailable")
@@ -442,6 +443,7 @@ async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_e
     manager._changed()
     await hass.async_block_till_done()
     assert hass.states.get(ids["managed_users"]).state == "unknown"
+    assert hass.states.get(ids["pending_age"]).state == "0"
     assert hass.states.get(ids["pending_users"]).state == "0"
     assert hass.states.get(ids["sync_health"]).state == "offline"
     assert device_io["inventory"].await_count == calls

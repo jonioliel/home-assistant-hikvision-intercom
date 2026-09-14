@@ -1,12 +1,13 @@
 """Expose exact call enums without guessing unanswered transitions."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 
 from .access.models import SYNC_STATES
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
@@ -25,7 +26,13 @@ async def async_setup_entry(
             IntercomCallStatus(entry),
             *(
                 IntercomSyncSensor(entry, key)
-                for key in ("managed_users", "pending_users", "sync_health", "last_reconciled")
+                for key in (
+                    "managed_users",
+                    "pending_users",
+                    "pending_age",
+                    "sync_health",
+                    "last_reconciled",
+                )
             ),
         ]
     )
@@ -61,6 +68,9 @@ class IntercomSyncSensor(IntercomEntity, SensorEntity):
         if key == "sync_health":
             self._attr_device_class = SensorDeviceClass.ENUM
             self._attr_options = sorted(SYNC_STATES | {"unknown"})
+        elif key == "pending_age":
+            self._attr_device_class = SensorDeviceClass.DURATION
+            self._attr_native_unit_of_measurement = "s"
         elif key == "last_reconciled":
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
 
@@ -69,6 +79,12 @@ class IntercomSyncSensor(IntercomEntity, SensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(self.hass, SIGNAL_ACCESS_CHANGED, self._refresh_metrics)
         )
+        if self._key == "pending_age":
+            self.async_on_remove(
+                async_track_time_interval(
+                    self.hass, lambda _now: self._refresh_metrics(), timedelta(seconds=30)
+                )
+            )
         self._refresh_metrics()
 
     @callback

@@ -1,4 +1,5 @@
 import "./saved-user-views";
+import { compatible, contractHass } from "./api-contract";
 import type { UserView } from "./saved-user-views";
 import "./usb-card-input";
 import "./camera-wall";
@@ -136,6 +137,15 @@ export class IntercomManagerPanel extends LitElement {
     _onboarding: { state: true },
   };
   hass?: Hass;
+  private contractSource?: Hass;
+  private contractProxy?: Hass;
+  private get protectedHass(): Hass | undefined {
+    if (this.contractSource !== this.hass) {
+      this.contractSource = this.hass;
+      this.contractProxy = contractHass(this.hass, () => this._data?.api);
+    }
+    return this.contractProxy;
+  }
   narrow = false;
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
@@ -395,7 +405,8 @@ export class IntercomManagerPanel extends LitElement {
       throw { code: "panel_read_interrupted" };
     const hass = this.hass,
       epoch = this._epoch;
-    const send = () => hass.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
+    const send = () =>
+      this.protectedHass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
     const timeout =
       command === "overview"
         ? 20000
@@ -1494,7 +1505,7 @@ export class IntercomManagerPanel extends LitElement {
   };
   private callControls(station: Station, compact = false) {
     return html`<hikvision-intercom-call-controls
-      .hass=${this.hass}
+      .hass=${this.protectedHass}
       .station=${station}
       .compact=${compact}
       .blocked=${this._callBusy.has(station.id)}
@@ -1505,7 +1516,7 @@ export class IntercomManagerPanel extends LitElement {
     return html`<hikvision-intercom-camera
       .stationId=${station.id}
       .media=${this._data?.media_settings}
-      .hass=${this.hass}
+      .hass=${this.protectedHass}
       .entity=${station.entities.camera ?? ""}
       .version=${this._data?.version ?? ""}
       .live=${live}
@@ -1652,7 +1663,7 @@ export class IntercomManagerPanel extends LitElement {
       ${
         policy.photo_enabled
           ? html`<hikvision-user-photo
-              .hass=${this.hass}
+              .hass=${this.protectedHass}
               .userId=${draft.id ?? ""}
               .configured=${draft.photo_configured ?? false}
               .revision=${draft.revision ?? 0}
@@ -1919,7 +1930,7 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <wiskey-saved-user-views
-        .hass=${this.hass}
+        .hass=${this.protectedHass}
         .fields=${this._data?.profile_settings?.fields ?? []}
         .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
         @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
@@ -2065,7 +2076,7 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <hikvision-bulk-users
-        .hass=${this.hass}
+        .hass=${this.protectedHass}
         .policy=${this._data?.profile_settings}
         .users=${this._data?.users ?? []}
         .selected=${[...this._selectedUsers]}
@@ -2102,7 +2113,7 @@ export class IntercomManagerPanel extends LitElement {
                                 this._data?.profile_settings?.photo_enabled && user.photo_configured
                                   ? html`<hikvision-user-photo
                                       compact
-                                      .hass=${this.hass}
+                                      .hass=${this.protectedHass}
                                       .userId=${user.id}
                                       .configured=${true}
                                       .revision=${user.revision}
@@ -2147,7 +2158,7 @@ export class IntercomManagerPanel extends LitElement {
                     html`<article class="person">
                       <div class="row between">
                         ${this.userSelection(user)}
-                        ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
+                        ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
                         <h3>${user.display_name}</h3>
                         ${this.badge(this.personStatus(user))}
                       </div>
@@ -2389,6 +2400,45 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
       </div>
+      <details class="sync-operations">
+        <summary>${this.t("sync_operations_title")}</summary>
+        <p class="sub">${this.t("sync_operations_hint")}</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                ${["name", "devices", "status", "sync_queued", "sync_verified", "sync_operation_id"].map((key) => html`<th scope="col">${this.t(key)}</th>`)}
+              </tr>
+            </thead>
+            <tbody>
+              ${(data.sync_operations ?? [])
+                .filter(
+                  (op) =>
+                    (!this._syncStation || op.station_id === this._syncStation) &&
+                    (!this._syncAttention || ["pending", "failed"].includes(op.state)),
+                )
+                .slice(0, 200)
+                .map(
+                  (op) =>
+                    html`<tr>
+                      <td>
+                        ${data.users.find((user) => user.id === op.user_id)?.display_name ?? this.t("deleted")}
+                      </td>
+                      <td>
+                        ${data.stations.find((station) => station.id === op.station_id)?.name ?? this.t("unknown")}
+                      </td>
+                      <td>${this.t("operation_" + op.state)}</td>
+                      <td>
+                        <bdi>${op.queued_at ? this.dateText(op.queued_at) : this.t("unknown")}</bdi>
+                      </td>
+                      <td><bdi>${op.verified_at ? this.dateText(op.verified_at) : "—"}</bdi></td>
+                      <td><bdi>${op.id}</bdi></td>
+                    </tr>`,
+                )}
+            </tbody>
+          </table>
+        </div>
+      </details>
       <div class="toolbar sync-filters">
         <label
           >${this.t("sync_search")}<input
@@ -2739,7 +2789,7 @@ export class IntercomManagerPanel extends LitElement {
               </p>
             </div>
             <wiskey-usb-card-input
-              .hass=${this.hass}
+              .hass=${this.protectedHass}
               .locked=${this._busy}
               @card-reviewed=${(e: CustomEvent<{ card_no: string }>) => {
                 if (!draft.cards.some((c) => c.card_no === e.detail.card_no)) {
@@ -3089,7 +3139,7 @@ export class IntercomManagerPanel extends LitElement {
         ${this.callControls(station)}
         <hikvision-intercom-audio-controls
           .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
-          .hass=${this.hass}
+          .hass=${this.protectedHass}
           .station=${station}
         ></hikvision-intercom-audio-controls>
         ${this.releaseFeedback(station)}
@@ -3175,6 +3225,7 @@ export class IntercomManagerPanel extends LitElement {
         </div>
       </header>
       <main tabindex="-1">
+        ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
         ${!["overview", "users", "events", "tools"].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
         ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
         ${
@@ -3198,7 +3249,7 @@ export class IntercomManagerPanel extends LitElement {
               </p>`
             : this._tab === "camera_wall"
               ? html`<wiskey-camera-wall
-                  .hass=${this.hass}
+                  .hass=${this.protectedHass}
                   .stations=${this._data.stations}
                   .media=${this._data.media_settings}
                   .version=${this._data.version}
@@ -3210,7 +3261,7 @@ export class IntercomManagerPanel extends LitElement {
                 ></wiskey-camera-wall>`
               : this._tab === "permission_directory"
                 ? html`<hikvision-permission-directory
-                    .hass=${this.hass}
+                    .hass=${this.protectedHass}
                     .stations=${this._data.stations}
                     .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
                     @edit-person=${(e: CustomEvent<string>) => {
@@ -3220,7 +3271,7 @@ export class IntercomManagerPanel extends LitElement {
                   ></hikvision-permission-directory>`
                 : this._tab === "profile_options"
                   ? html`<hikvision-profile-settings
-                      .hass=${this.hass}
+                      .hass=${this.protectedHass}
                       .settings=${this._data.profile_settings}
                       .stations=${this._data.stations}
                       @profile-saved=${(e: CustomEvent) => {
@@ -3229,7 +3280,7 @@ export class IntercomManagerPanel extends LitElement {
                     ></hikvision-profile-settings>`
                   : this._tab === "media_options"
                     ? html`<hikvision-media-settings
-                        .hass=${this.hass}
+                        .hass=${this.protectedHass}
                         .settings=${this._data.media_settings}
                         @media-saved=${(e: CustomEvent) => {
                           if (this._data) this._data = { ...this._data, media_settings: e.detail };
@@ -3247,7 +3298,7 @@ export class IntercomManagerPanel extends LitElement {
                               ? this.syncView()
                               : this._tab === "audit"
                                 ? html`<hikvision-admin-audit
-                                    .hass=${this.hass}
+                                    .hass=${this.protectedHass}
                                     .users=${this._data.users}
                                     .stations=${this._data.stations}
                                     .focusUser=${this._auditUser}
@@ -3258,17 +3309,17 @@ export class IntercomManagerPanel extends LitElement {
                                   ? html`<hikvision-intercom-health
                                       .callBusy=${this._callBusy}
                                       .onCallBusy=${this.setCallBusy}
-                                      .hass=${this.hass}
+                                      .hass=${this.protectedHass}
                                       .stations=${this._data.stations}
                                     ></hikvision-intercom-health>`
                                   : this._tab === "schedules"
                                     ? html`<hikvision-intercom-schedules
-                                        .hass=${this.hass}
+                                        .hass=${this.protectedHass}
                                         .stations=${this._data.stations}
                                       ></hikvision-intercom-schedules>`
                                     : html`<hikvision-intercom-events
                                         .policy=${this._data.profile_settings}
-                                        .hass=${this.hass}
+                                        .hass=${this.protectedHass}
                                         .stations=${this._data.stations}
                                         .defaultZone=${this._data.default_zone ?? UTC_ZONE}
                                       ></hikvision-intercom-events>`

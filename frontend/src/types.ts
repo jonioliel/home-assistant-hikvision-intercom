@@ -1,3 +1,4 @@
+import type { ApiContract } from "./api-contract";
 import type { MediaPolicy } from "./media-settings";
 import type { DisplayZone } from "./time";
 export interface Card {
@@ -125,6 +126,16 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  api?: ApiContract;
+  sync_operations?: {
+    id: string;
+    user_id: string;
+    station_id: string;
+    state: "pending" | "failed" | "verified" | "settled";
+    queued_at: string | null;
+    updated_at: string;
+    verified_at: string | null;
+  }[];
   media_settings?: MediaPolicy | null;
   profile_settings?: import("./profile-settings").ProfilePolicy | null;
   default_zone?: DisplayZone;

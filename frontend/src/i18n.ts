@@ -1,4 +1,16 @@
 const en = {
+  sync_operations_title: "Saved sync operations",
+  sync_operations_hint:
+    "Latest operation per user and station; up to 200 rows shown. Verified means device readback, not physical unlocking. Legacy wait times may be unknown.",
+  sync_queued: "Waiting since",
+  sync_verified: "Readback verified",
+  sync_operation_id: "Operation ID",
+  operation_pending: "Saved · waiting",
+  operation_failed: "Saved · needs attention",
+  operation_verified: "Applied and verified",
+  operation_settled: "No pending work · not verified",
+  api_incompatible:
+    "This panel and server use incompatible API versions. Your draft is retained. Copy or finish reviewing it before reloading the page after updating. Incompatible writes are blocked.",
   audio_talk_mode: "Microphone control (all stations)",
   audio_mode_ptt: "Hold to talk (PTT)",
   audio_mode_toggle: "Click to start / stop talking",
@@ -1485,6 +1497,18 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  sync_operations_title: "מעקב פעולות סנכרון שנשמרו",
+  sync_operations_hint:
+    "הפעולה האחרונה לכל משתמש ותחנה; עד 200 שורות. אימות הוא קריאה חוזרת מהציוד ולא פתיחה פיזית. זמן המתנה ישן עשוי להיות לא ידוע.",
+  sync_queued: "ממתין מאז",
+  sync_verified: "אומת בקריאה חוזרת",
+  sync_operation_id: "מזהה פעולה",
+  operation_pending: "נשמר · ממתין",
+  operation_failed: "נשמר · דורש טיפול",
+  operation_verified: "הוחל ונבדק",
+  operation_settled: "אין עבודה ממתינה · ללא אימות",
+  api_incompatible:
+    "הממשק והשרת משתמשים בגרסאות API שאינן תואמות. הטיוטה נשמרת במסך. העתק אותה לפני רענון הדף לאחר העדכון. כתיבות שאינן תואמות נחסמו.",
   audio_talk_mode: "שליטה במיקרופון — כל התחנות",
   audio_mode_ptt: "החזק כדי לדבר (PTT)",
   audio_mode_toggle: "לחיצה להתחלת ולסיום דיבור",

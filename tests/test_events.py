@@ -365,3 +365,39 @@ def test_employee_identifiers_preserve_significant_zeroes(value, expected):
 def test_explicit_string_employee_field_keeps_precedence():
     assert normalized(payload(employeeNoString="00042", employeeNo=42))["employee_no"] == "00042"
     assert normalized(payload(employeeNoString="", employeeNo="00042"))["employee_no"] == "00042"
+
+
+def test_event_expiry_handles_out_of_order_arrivals_and_clock_jump():
+    from datetime import timedelta
+
+    cache = EventCache(limit=3)
+    for serial, age in [(1, 0), (2, 29), (3, 2), (4, 1)]:
+        row = normalized(payload(serialNo=serial))
+        row["received_at"] = (NOW - timedelta(days=age)).isoformat()
+        cache.add(row, NOW)
+    assert len(cache.rows) == 3
+    cache.prune(NOW + timedelta(days=2))
+    assert len(cache.rows) == 2
+    cache.prune(NOW + timedelta(days=40))
+    assert not cache.rows
+    cache.add(normalized(payload(serialNo=5)), NOW)
+    assert len(cache.rows) == 1
+
+
+def test_event_burst_keeps_fixed_capacity_and_historical_source():
+    cache = EventCache(limit=128)
+    for serial in range(2000):
+        row = normalize_event(
+            {"major": 5, "minor": 181, "time": NOW.isoformat(), "serialNo": serial},
+            f"station-{serial % 4}",
+            KEY,
+            received=NOW,
+            selected_api=1,
+            historical=True,
+        )
+        assert row["recovered"]
+        cache.add(row, NOW)
+    assert len(cache.rows) == 128
+    restored = EventCache(limit=128)
+    restored.load(cache.dump(), NOW)
+    assert all(row["recovered"] and row["source"] == "query" for row in restored.rows.values())

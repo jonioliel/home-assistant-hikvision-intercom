@@ -178,8 +178,10 @@ class EventCache:
     def __init__(self, *, limit: int = 5000) -> None:
         self.limit = limit
         self.rows: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self._expires_at: datetime | None = None
 
     def load(self, data: dict[str, Any] | None, now: datetime) -> None:
+        self._expires_at = None
         if data is None:
             return
         rows = data.get("records")
@@ -220,11 +222,18 @@ class EventCache:
         self.prune(now)
 
     def prune(self, now: datetime) -> None:
-        cutoff = now - timedelta(days=30)
-        for key, row in list(self.rows.items()):
-            received = timestamp(row["received_at"])
-            if received is None or received < cutoff:
-                self.rows.pop(key)
+        # Received timestamps determine retention; arrival order need not be sorted.
+        # Cache the earliest expiry instead of scanning all 5,000 rows per packet.
+        if self._expires_at is None or now > self._expires_at:
+            cutoff = now - timedelta(days=30)
+            expires = []
+            for key, row in list(self.rows.items()):
+                received = timestamp(row["received_at"])
+                if received is None or received < cutoff:
+                    self.rows.pop(key)
+                else:
+                    expires.append(received + timedelta(days=30))
+            self._expires_at = min(expires) if expires else None
         while len(self.rows) > self.limit:
             self.rows.popitem(last=False)
 
@@ -233,6 +242,9 @@ class EventCache:
         if row["id"] in self.rows:
             return False
         self.rows[row["id"]] = copy.deepcopy(row)
+        received = timestamp(row["received_at"])
+        expiry = received + timedelta(days=30) if received else now - timedelta(seconds=1)
+        self._expires_at = min(self._expires_at, expiry) if self._expires_at else expiry
         self.prune(now)
         return True
 

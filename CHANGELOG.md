@@ -2,6 +2,16 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.1] - 2026-09-14
+
+- Explicit panel API contract: compatible legacy clients remain supported; incompatible writes fail safely, reads remain available, and open drafts are retained with a refresh explanation.
+- Durable per-user/per-station operation IDs, pending timestamps, readback verification and bounded completed-operation retention. The Sync page shows the latest operations. No physical unlock is inferred from readback.
+- Opt-in diagnostic HA sensor reports oldest pending work age every 30 seconds, including offline stations; migrated unknown ages remain unknown.
+- Access storage schema 8 migrates schemas 1–7 atomically. Restore requires the matching pre-upgrade HA backup and integration version; downgrading code alone is unsupported.
+- Event history expiry avoids full-cache scans on every packet while preserving the 5,000-record / 30-day bounds, deduplication and historical-event classification.
+- Added repeatable combined edit/revoke/lost-ack/restart tests, cross-browser operational workflows and 200% CSS zoom/keyboard checks in both designs. Firefox and WebKit are required by release CI.
+- RC remains a prerelease: limited validity, coordinated HA restore/restart acceptance and sustained field stability are still pending. Previously confirmed PIN, card, audio, video and ringing checks remain accepted. Supports 1–X stations; sample counts are not product gates.
+
 ## [0.36.0-beta.1] - 2026-09-14
 
 - Add a fleet-wide microphone control preference: existing hold-to-talk (PTT), or explicit click-to-start/click-to-stop talking. Nothing enables the microphone automatically. Backgrounding, disconnects, closing the camera, changing mode and the existing server session limit still stop capture.
