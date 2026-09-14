@@ -1,5 +1,8 @@
 # Project progress
 
+> עדכון קבלה 2026-09-14: הבעלים אישר שני כרטיסים והסרת אחד; DoD17 נסגר. הספירה כעת 32/37 (86.5%). צלצול דווח כתקין, ופרטי שלושת חיוויי WisKey ממתינים להשלמת רישום; לאחר אישורם 35/37 (94.6%). [מסלול מבצעי ואישורי השטח](OPERATIONAL_READINESS_HE.md). הספירות הישנות להלן מתארות את מצב המסמך הקודם.
+
+
 ## Current owner scope — 1–X intercoms
 
 Nine stations are not a target, capacity limit or release prerequisite. DoD 1's separate fixed-count gate is excluded; station independence remains mandatory. DoD 40 remains a sustained stability test at the relevant deployment/load size. Current core acceptance is **31/37 = 83.8%; six open**. This is a scope correction, not new test evidence. [Decision and recalculated paths](SCALABLE_SCOPE_HE.md). Prior release evidence retains its historical denominator.
