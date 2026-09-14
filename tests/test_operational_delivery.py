@@ -149,3 +149,71 @@ async def test_tracking_write_failure_does_not_publish_operation(setup):
     with pytest.raises(OSError):
         await create_user(repo)
     assert not repo.public()["sync_operations"]
+
+
+async def test_repeated_absence_readback_does_not_rewrite_completed_operation(setup, monkeypatch):
+    repo, device, driver, engine = setup
+    await create_user(repo, active=False)
+    await engine.async_reconcile("a", driver)
+    operation = deepcopy(repo.public()["sync_operations"])
+    calls = repo._save.await_count
+    monkeypatch.setattr(
+        "custom_components.hikvision_intercom.access.sync_tracking.utc_now",
+        lambda: "2030-01-01T00:00:00+00:00",
+    )
+    await engine.async_reconcile("a", driver)
+    assert repo.public()["sync_operations"] == operation
+    assert repo._save.await_count == calls
+
+
+async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
+    from test_profiles import PHOTO
+
+    from custom_components.hikvision_intercom.profile_settings import ProfileSettings
+
+    repo = AccessRepository(AsyncMock())
+    policy = ProfileSettings(repo.async_profile_settings, lambda: None, repo.profile_settings)
+    await policy.update(
+        0,
+        {
+            "photo_enabled": True,
+            "fields": [{"id": "department", "label": "Department", "enabled": True, "options": []}],
+            "groups": [
+                {"id": "staff", "label": "Staff", "enabled": True, "station_ids": ["a", "b"]}
+            ],
+        },
+    )
+    user = await repo.async_create(
+        {
+            "display_name": "Resident",
+            "employee_no": "1001",
+            "phone": "0501234567",
+            "photo": PHOTO,
+            "profile": {"department": "Operations"},
+            "group_ids": ["staff"],
+            "permission_overrides": {"b": "deny"},
+            "pin": "847291",
+            "cards": [{"card_no": "000011112222"}],
+        }
+    )
+    await repo.async_bind("a", user.id, fingerprint="observed", adopted=True)
+    user = await repo.async_update(
+        user.id, {"pin": None, "cards": []}, expected_revision=user.revision
+    )
+    backup = repo.snapshot()
+    backup["schema"] = 7
+    backup.pop("sync_operations")
+    original = deepcopy(backup)
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(backup)
+    assert backup == original
+    assert restored.get(user.id).private() == user.private()
+    assert restored.get(user.id).photo == PHOTO
+    assert restored.get(user.id).assignments["a"].enabled
+    assert (
+        not restored.get(user.id).assignments.get("b")
+        or not restored.get(user.id).assignments["b"].enabled
+    )
+    for key in ("bindings", "retired_cards", "retired_pins", "profile_settings"):
+        assert restored.snapshot()[key] == backup[key]
+    assert restored.snapshot()["retired_pins"] and restored.snapshot()["retired_cards"]

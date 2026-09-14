@@ -113,7 +113,7 @@ def update(state: dict[str, Any], *, migrated: bool = False) -> None:
 def verified(state: dict[str, Any], uid: str, station: str) -> None:
     """Only repository device-readback paths call this, after all revocations settle."""
     item = state["sync_operations"].get(f"{uid}/{station}")
-    if item and uid not in pending_users(state, station):
+    if item and item["state"] != "verified" and uid not in pending_users(state, station):
         now = utc_now()
         item.update(state="verified", updated_at=now, verified_at=now)
 
