@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[0.36.0-beta.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v0.36.0-beta.1)** — fleet-wide PTT or click-to-talk controls and verified employee portraits in the event journal. [Instructions and owner field results](docs/TALK_MODE_EVENT_PHOTOS_HE.md), [verified checks](docs/VALIDATION.md). Beta prerelease; remaining physical commissioning stays open.
+Published runtime: **[1.0.0-rc.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.1)** — explicit API compatibility, durable per-station sync tracking, live pending-age diagnostics, event-load hardening and cross-browser operational checks. [RC upgrade/restore and acceptance guide](docs/RC_OPERATIONS_HE.md), [verified checks](docs/VALIDATION.md). RC prerelease; limited-validity/commissioning and sustained field stability remain open.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.

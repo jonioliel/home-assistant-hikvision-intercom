@@ -1,4 +1,14 @@
-# Published validation — 0.34.0-beta.1
+# Published validation
+
+## Published validation — 1.0.0-rc.1
+
+Runtime `aa05517c8341dc280be6a55aeea3dd7c03a4278f` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34835757608): **1,053 Python tests per version (3.12 and 3.14), 318 real Home Assistant tests, 389 Chromium tests and 24 Firefox/WebKit workflow tests** (413 browser tests total). Ruff, mypy, TypeScript, formatting, reproducible bundle, HACS and Hassfest passed. Manifest, panel and audio-worklet bytes on the published tag match the tested commit. [Evidence](evidence/release_1.0.0-rc.1.json).
+
+The three operational deliveries include API mismatch/write protection without draft loss; schema-8 durable operation IDs/unknown legacy age; opt-in pending-age sensor; seeded lost-ack/restart/revocation sequences; migrations from schemas 1–7 including rich profiles and pending credential removals; event storm/retention tests; keyboard and 200% CSS zoom workflows in both designs. The enlarged-dialog tests found a real off-screen footer in Chrome and WebKit; viewport-aware width/height sizing, the HA container bound and resize cleanup fixed it. A retention regression found by real HA tests was fixed by retaining full expiry scans for explicit history reads, while packet insertion uses cached expiry. Repeated absence readback no longer rewrites completed-operation timestamps.
+
+A first RC workflow was cancelled before publishing after WebKit failed; only the final all-green run above is publication evidence. Local Firefox could not launch and WebKit lacked Windows libraries, so their release verification was performed on Linux CI, not claimed locally. CSS zoom is not native OS zoom, a screen-reader audit or a physical iPhone media test. [Reproducible synthetic event measurements](evidence/event_cache_rc_benchmark.json), `python -m tools.event_cache_benchmark --events 12000`. Timing depends on host load; the four-station sample is not a product target or capacity guarantee.
+
+Owner-confirmed ringing indication/event/camera, two-card behavior, PIN lifecycle, audible outgoing audio, event portrait and reconnect behavior remain accepted. **35/37 acceptance criteria; DoD39 and DoD40 remain open.** Limited validity, coordinated restore/restart and sustained operation are not replaced by these software tests. No persistent station configuration writes were performed in this delivery. [RC operations and remaining acceptance](RC_OPERATIONS_HE.md).
 
 ## Published validation — 0.36.0-beta.1
 
