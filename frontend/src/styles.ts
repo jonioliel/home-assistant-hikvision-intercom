@@ -432,7 +432,7 @@ export const styles = css`
   }
   dialog {
     width: min(780px, calc(100vw - 32px));
-    max-height: 90vh;
+    max-height: min(90vh, calc(100% - 24px));
     border: 1px solid var(--divider-color, #dce5e6);
     background: var(--surface);
     color: var(--ink);
@@ -742,7 +742,7 @@ export const styles = css`
       padding: 14px 18px;
     }
     dialog {
-      max-height: 94vh;
+      max-height: min(94vh, calc(100% - 16px));
     }
     .brand {
       width: 34px;

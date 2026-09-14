@@ -679,7 +679,7 @@ export const interfaceStyles = css`
     }
     .editor-dialog {
       width: calc(100vw - 16px);
-      max-height: 96dvh;
+      max-height: min(96dvh, calc(100% - 16px));
     }
     .editor-dialog .dialog-head {
       padding: 16px;

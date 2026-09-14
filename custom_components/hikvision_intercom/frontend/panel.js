@@ -433,7 +433,7 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
   }
   dialog {
     width: min(780px, calc(100vw - 32px));
-    max-height: 90vh;
+    max-height: min(90vh, calc(100% - 24px));
     border: 1px solid var(--divider-color, #dce5e6);
     background: var(--surface);
     color: var(--ink);
@@ -743,7 +743,7 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
       padding: 14px 18px;
     }
     dialog {
-      max-height: 94vh;
+      max-height: min(94vh, calc(100% - 16px));
     }
     .brand {
       width: 34px;
@@ -2344,7 +2344,7 @@ Schedule: ${l.map(m=>Je(m))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
     }
     .editor-dialog {
       width: calc(100vw - 16px);
-      max-height: 96dvh;
+      max-height: min(96dvh, calc(100% - 16px));
     }
     .editor-dialog .dialog-head {
       padding: 16px;
@@ -3039,7 +3039,7 @@ Schedule: ${l.map(m=>Je(m))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
     }
     :host([data-appearance="modern"]) .editor-dialog {
       width: calc(100vw - 16px);
-      max-height: calc(100dvh - 16px);
+      max-height: min(calc(100dvh - 16px), calc(100% - 16px));
     }
     :host([data-appearance="modern"]) .editor-dialog .dialog-head {
       padding: 14px;

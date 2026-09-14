@@ -128,13 +128,13 @@ for (const design of ["current", "modern"]) {
     await navigate(page, "Users");
     await page.getByRole("button", { name: "+ Add user", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Name", { exact: true }).fill("Resident with a long display name");
+    await dialog.getByLabel("Name", { exact: true }).fill("Long resident display name");
     await dialog.getByLabel("New PIN", { exact: true }).fill("847291");
     await dialog.getByLabel("Confirm PIN", { exact: true }).fill("847292");
     await dialog.getByRole("button", { name: "Save", exact: true }).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
     await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue(
-      "Resident with a long display name",
+      "Long resident display name",
     );
     const button = dialog.getByRole("button", { name: "Cancel", exact: true });
     await button.scrollIntoViewIfNeeded();

@@ -578,7 +578,7 @@ export const modernStyles = css`
     }
     :host([data-appearance="modern"]) .editor-dialog {
       width: calc(100vw - 16px);
-      max-height: calc(100dvh - 16px);
+      max-height: min(calc(100dvh - 16px), calc(100% - 16px));
     }
     :host([data-appearance="modern"]) .editor-dialog .dialog-head {
       padding: 14px;

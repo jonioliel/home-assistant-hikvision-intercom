@@ -221,10 +221,10 @@ class EventCache:
             self.rows[row["id"]] = copy.deepcopy(row)
         self.prune(now)
 
-    def prune(self, now: datetime) -> None:
+    def prune(self, now: datetime, *, cached: bool = False) -> None:
         # Received timestamps determine retention; arrival order need not be sorted.
         # Cache the earliest expiry instead of scanning all 5,000 rows per packet.
-        if self._expires_at is None or now > self._expires_at:
+        if not cached or self._expires_at is None or now > self._expires_at:
             cutoff = now - timedelta(days=30)
             expires = []
             for key, row in list(self.rows.items()):
@@ -238,14 +238,14 @@ class EventCache:
             self.rows.popitem(last=False)
 
     def add(self, row: dict[str, Any], now: datetime) -> bool:
-        self.prune(now)
+        self.prune(now, cached=True)
         if row["id"] in self.rows:
             return False
         self.rows[row["id"]] = copy.deepcopy(row)
         received = timestamp(row["received_at"])
         expiry = received + timedelta(days=30) if received else now - timedelta(seconds=1)
         self._expires_at = min(self._expires_at, expiry) if self._expires_at else expiry
-        self.prune(now)
+        self.prune(now, cached=True)
         return True
 
     def dump(self) -> dict[str, Any]:
