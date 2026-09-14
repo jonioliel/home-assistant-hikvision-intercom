@@ -1,5 +1,12 @@
 # Published validation — 0.34.0-beta.1
 
+## Published validation — 0.36.0-beta.1
+
+Runtime `1a9cdbed49f1e66930f4d174a2ce4777e4dfa954` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34825646793): **1,023 Python cases per version (3.12/3.14), 314 Home Assistant cases and 377 browser cases**, static checks, bundle reproducibility, HACS and Hassfest. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_0.36.0-beta.1.json).
+
+New coverage includes explicit toggle activation, pointer release keeping speech active, stopping on second click/background/mode change, global preference persistence and legacy-client preservation, and portraits restricted to observed station ownership at event time. Existing PTT tests continue to pass. Local full Python execution overlapped the version bump, so its single stale-import version assertion was rerun successfully; the full release jobs then passed from the final commit. Owner confirms audible speaker output, employee recognition and reconnect synchronization; expiry and ringing remain pending. [Scope and user report](TALK_MODE_EVENT_PHOTOS_HE.md).
+
+
 ## Published validation — 0.35.1-beta.1
 
 Runtime `237aa1e83d5ac02bcb6816180946a59ac50c68ff` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34784029303): **1,021 Python cases per version, 314 Home Assistant cases and 372 browser cases**, static checks, bundle reproducibility, HACS and Hassfest. Tag and artifact bytes match the runtime commit. [Evidence](evidence/release_0.35.1-beta.1.json), [instructions](STATION_CARD_EDITOR_HE.md).

@@ -5,7 +5,11 @@
 Nine stations are not a target, capacity limit or release prerequisite. DoD 1's separate fixed-count gate is excluded; station independence remains mandatory. DoD 40 remains a sustained stability test at the relevant deployment/load size. Current core acceptance is **31/37 = 83.8%; six open**. This is a scope correction, not new test evidence. [Decision and recalculated paths](SCALABLE_SCOPE_HE.md). Prior release evidence retains its historical denominator.
 
 
-## Current release — 0.35.1-beta.1
+## Current release — 0.36.0-beta.1
+
+Global microphone control supports PTT or explicit start/stop; event portraits use verified station identity and current profile photos. [Delivery and owner confirmations](TALK_MODE_EVENT_PHOTOS_HE.md), [release evidence](evidence/release_0.36.0-beta.1.json). Audible speech at the intercom speaker, employee identification and reconnect synchronization are owner-confirmed. Limited validity is deferred; ringing awaits the indoor screen. These confirmations do not close all of DoD39 or the stability gate, so core acceptance remains 31/37.
+
+## Previous release — 0.35.1-beta.1
 
 Station card capture is now directly discoverable in the user Cards editor alongside USB and manual entry. New-user and unsaved-edit guidance retain the existing explicit capture approval flow. All seven release jobs passed. [Instructions](STATION_CARD_EDITOR_HE.md), [evidence](evidence/release_0.35.1-beta.1.json). Core acceptance remains 31/37; no additional physical validation or roadmap items are claimed.
 
