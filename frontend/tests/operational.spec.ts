@@ -136,26 +136,33 @@ for (const design of ["current", "modern"]) {
       return {
         top: rect.top,
         bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right,
         viewport: innerHeight,
         maxHeight: getComputedStyle(element).maxHeight,
         zoom: getComputedStyle(document.body).zoom,
       };
     });
+    expect(bounds.left, JSON.stringify(bounds)).toBeGreaterThanOrEqual(0);
+    expect(bounds.right, JSON.stringify(bounds)).toBeLessThanOrEqual(1441);
     expect(bounds.top, JSON.stringify(bounds)).toBeGreaterThanOrEqual(0);
     expect(bounds.bottom, JSON.stringify(bounds)).toBeLessThanOrEqual(1001);
     const saveBounds = await dialog
       .getByRole("button", { name: "Save", exact: true })
       .evaluate((element) => element.getBoundingClientRect().toJSON());
+    expect(saveBounds.left).toBeGreaterThanOrEqual(0);
+    expect(saveBounds.right).toBeLessThanOrEqual(1441);
     expect(saveBounds.top).toBeGreaterThanOrEqual(0);
     expect(saveBounds.bottom).toBeLessThanOrEqual(1001);
-    // Keyboard activation exercises the enlarged form without relying on protocol
-    // coordinate conversion. DOM bounds independently verify that controls fit.
+    // Verify keyboard and pointer activation, plus independent rendered bounds.
     await dialog.getByRole("button", { name: "Save", exact: true }).focus();
     await page.keyboard.press("Enter");
     await expect(dialog.getByRole("alert")).toBeVisible();
     await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue(
       "Long resident display name",
     );
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(dialog.getByRole("alert")).toBeVisible();
     const button = dialog.getByRole("button", { name: "Cancel", exact: true });
     await button.scrollIntoViewIfNeeded();
     const box = await button.evaluate((element) => element.getBoundingClientRect().toJSON());
