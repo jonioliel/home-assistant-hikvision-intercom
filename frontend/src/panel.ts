@@ -275,7 +275,7 @@ export class IntercomManagerPanel extends LitElement {
     const limit = `min(90dvh, ${Math.max(80, height / zoom - 24)}px)`;
     if (dialog.style.maxHeight !== limit) dialog.style.maxHeight = limit;
     const width = Math.min(window.innerWidth, window.visualViewport?.width ?? window.innerWidth);
-    const widthLimit = `${Math.max(80, width / zoom - 24)}px`;
+    const widthLimit = `min(${Math.max(80, width / zoom - 24)}px, calc(100cqw - 16px))`;
     if (dialog.style.maxWidth !== widthLimit) dialog.style.maxWidth = widthLimit;
   };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
