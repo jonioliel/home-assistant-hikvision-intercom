@@ -588,3 +588,32 @@ for (const action of ["close", "change", "background"]) {
     expect(await page.evaluate(() => window.audio.sent.length)).toBe(0);
   });
 }
+
+for (const ending of ["click", "background", "mode change"]) {
+  test(`toggle microphone stays active after release and stops on ${ending}`, async ({ page }) => {
+    const audio = await setup(page);
+    await page.evaluate(() => {
+      window.demoData.media_settings = { ...window.demoData.media_settings, talk_mode: "toggle" };
+      window.demoNotify();
+    });
+    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
+    await audio.getByRole("button", { name: "Start talking", exact: true }).click();
+    const stop = audio.getByRole("button", { name: "Stop talking", exact: true });
+    await expect(stop).toHaveAttribute("aria-pressed", "true");
+    await stop.dispatchEvent("pointerup");
+    await expect(stop).toHaveAttribute("aria-pressed", "true");
+    if (ending === "click") await stop.click();
+    else if (ending === "background")
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    else
+      await page.evaluate(() => {
+        window.demoData.media_settings.talk_mode = "ptt";
+        window.demoNotify();
+      });
+    await expect.poll(() => page.evaluate(() => (window as any).audio.stopped)).toBe(1);
+  });
+}

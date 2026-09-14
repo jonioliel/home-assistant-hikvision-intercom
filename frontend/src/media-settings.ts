@@ -5,6 +5,7 @@ import { translate } from "./i18n";
 import type { Hass } from "./types";
 
 export interface MediaPolicy {
+  talk_mode?: "ptt" | "toggle";
   revision: number;
   transport: "hls" | "webrtc";
   webrtc_mode: "rtc" | "mse";
@@ -12,6 +13,7 @@ export interface MediaPolicy {
   go2rtc_url: string;
 }
 export const DEFAULT_MEDIA: MediaPolicy = {
+  talk_mode: "ptt",
   revision: 0,
   transport: "webrtc",
   webrtc_mode: "rtc",
@@ -153,6 +155,17 @@ export class MediaSettingsPanel extends LitElement {
           void this.save();
         }}
       >
+        <label
+          >${this.t("audio_talk_mode")}<select
+            .value=${draft.talk_mode ?? "ptt"}
+            ?disabled=${this.busy}
+            @change=${(e: Event) => this.change("talk_mode", (e.target as HTMLSelectElement).value)}
+          >
+            <option value="ptt">${this.t("audio_mode_ptt")}</option>
+            <option value="toggle">${this.t("audio_mode_toggle")}</option>
+          </select></label
+        >
+        <p>${this.t("audio_toggle_hint")}</p>
         <label
           >${this.t("media_transport")}<select
             aria-label=${this.t("media_transport")}

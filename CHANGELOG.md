@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [0.36.0-beta.1] - 2026-09-14
+
+- Add a fleet-wide microphone control preference: existing hold-to-talk (PTT), or explicit click-to-start/click-to-stop talking. Nothing enables the microphone automatically. Backgrounding, disconnects, closing the camera, changing mode and the existing server session limit still stop capture.
+- Suppress text selection and long-press callouts on the PTT button for mobile use.
+- Show current employee portraits beside access events only for a uniquely observed station owner whose binding predates the device event. Deleted, unverified and older identities receive no guessed portrait. Existing administrator-only photo access and global photo preference apply; image data is not embedded in event history or exports.
+- Keep old media preferences readable with PTT as their default; updates from older clients preserve the saved microphone mode.
+- Record owner confirmation of audible speech at the intercom speaker, recognized employee names and revocation synchronization after reconnect. Validity and ringing acceptance remain pending.
+
 ## [0.35.1-beta.1] - 2026-09-14
 
 - Place "Read card from station" directly in the user editor's Cards section beside manual and USB entry, instead of the general user actions section.

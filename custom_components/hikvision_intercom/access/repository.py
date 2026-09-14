@@ -675,6 +675,37 @@ class AccessRepository:
                 }
         return {key: value for key, value in result.items() if key not in ambiguous}
 
+    def event_portrait(
+        self, station: str, employee_no: str, occurred_at: str
+    ) -> dict[str, Any] | None:
+        """Current portrait only when station ownership is proven at the event time."""
+        policy = self.profile_settings()
+        if not policy or not policy["values"].get("photo_enabled"):
+            return None
+        try:
+            when = datetime.fromisoformat(occurred_at)
+            if when.tzinfo is None:
+                return None
+        except (ValueError, TypeError):
+            return None
+        candidates = []
+        for uid, binding in self._state["bindings"].get(station, {}).items():
+            raw = self._state["users"].get(uid)
+            observed = binding.get("identity_observed_at")
+            if (
+                raw
+                and raw["employee_no"] == employee_no
+                and binding["employee_no"] == employee_no
+                and binding.get("fingerprint")
+                and observed
+                and datetime.fromisoformat(observed) <= when
+            ):
+                candidates.append(raw)
+        if len(candidates) != 1 or not candidates[0].get("photo"):
+            return None
+        raw = candidates[0]
+        return {"user_id": raw["id"], "revision": raw["revision"]}
+
     def event_person_name(self, station: str, employee_no: str, occurred_at: str) -> str | None:
         """Resolve only an observed owner on this station, never a pending ID collision.
 

@@ -82,11 +82,18 @@ export class IntercomAudioControls extends LitElement {
       cursor: pointer;
       padding-block: 8px;
     }
+    .talk-button {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+    }
     .error {
       color: var(--error-color, #b32b25);
     }
   `;
   static properties = {
+    talkMode: { attribute: false },
     hass: { attribute: false },
     station: { attribute: false },
     _state: { state: true },
@@ -103,6 +110,7 @@ export class IntercomAudioControls extends LitElement {
     backendSampledAt: { state: true },
     _haConnected: { state: true },
   };
+  talkMode: "ptt" | "toggle" = "ptt";
   hass?: Hass;
   station?: Station;
   private _state = "idle";
@@ -195,6 +203,7 @@ export class IntercomAudioControls extends LitElement {
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
+    if (changed.has("talkMode")) this.releaseTalk();
     if (
       changed.has("station") &&
       (changed.get("station") as Station | undefined)?.id !== this.station?.id
@@ -631,7 +640,7 @@ export class IntercomAudioControls extends LitElement {
     if (!this.hass?.user?.is_admin || !this.station) return nothing;
     return html`<section aria-label=${this.t("audio_title")}>
       <h3>${this.t("audio_title")}</h3>
-      <p>${this.t("audio_hint")}</p>
+      <p>${this.t(this.talkMode === "toggle" ? "audio_toggle_hint" : "audio_hint")}</p>
       <wiskey-microphone-input
         .hass=${this.hass}
         .locked=${this._talking || this._micPending}
@@ -701,32 +710,45 @@ export class IntercomAudioControls extends LitElement {
               </button>`
             : html` <button
                   ?disabled=${this._state !== "listening" || !window.isSecureContext}
+                  class="talk-button"
                   aria-pressed=${this._talking}
+                  @contextmenu=${(e: Event) => e.preventDefault()}
+                  @click=${() => {
+                    if (this.talkMode === "toggle") {
+                      if (this.pressed || this._micPending) this.releaseTalk();
+                      else void this.talk();
+                    }
+                  }}
                   @pointerdown=${(e: PointerEvent) => {
+                    if (this.talkMode === "toggle") return;
                     e.preventDefault();
                     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                     void this.talk();
                   }}
-                  @blur=${() => this.releaseTalk()}
-                  @pointerup=${() => this.releaseTalk()}
+                  @blur=${() => {
+                    if (this.talkMode === "ptt") this.releaseTalk();
+                  }}
+                  @pointerup=${() => {
+                    if (this.talkMode === "ptt") this.releaseTalk();
+                  }}
                   @pointercancel=${() => this.releaseTalk()}
                   @lostpointercapture=${() => {
-                    if (this.pressed) this.releaseTalk();
+                    if (this.talkMode === "ptt" && this.pressed) this.releaseTalk();
                   }}
                   @keydown=${(e: KeyboardEvent) => {
-                    if ([" ", "Enter"].includes(e.key)) {
+                    if (this.talkMode === "ptt" && [" ", "Enter"].includes(e.key)) {
                       e.preventDefault();
                       if (!e.repeat) void this.talk();
                     }
                   }}
                   @keyup=${(e: KeyboardEvent) => {
-                    if ([" ", "Enter"].includes(e.key)) {
+                    if (this.talkMode === "ptt" && [" ", "Enter"].includes(e.key)) {
                       e.preventDefault();
                       this.releaseTalk();
                     }
                   }}
                 >
-                  ${this.t(this._micPending ? "audio_microphone_wait" : this._talking ? "audio_talking" : "audio_push_to_talk")}
+                  ${this.t(this._micPending ? "audio_microphone_wait" : this.talkMode === "toggle" ? (this._talking ? "audio_end_talk" : "audio_begin_talk") : this._talking ? "audio_talking" : "audio_push_to_talk")}
                 </button>
                 <button @click=${() => this.stop()}>${this.t("audio_stop")}</button>`
         }

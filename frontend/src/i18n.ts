@@ -1,4 +1,12 @@
 const en = {
+  audio_talk_mode: "Microphone control (all stations)",
+  audio_mode_ptt: "Hold to talk (PTT)",
+  audio_mode_toggle: "Click to start / stop talking",
+  audio_begin_talk: "Start talking",
+  audio_end_talk: "Stop talking",
+  audio_toggle_hint:
+    "Click Start talking to open the microphone, then Stop talking to close it. Leaving the window or switching to the background closes audio. The session time limit still applies.",
+  event_current_photo: "Current employee photo",
   capture_from_editor_hint:
     "Choose an intercom, present the card to its reader, then approve adding it. Save any user edits before starting.",
   capture_save_user_first:
@@ -1477,6 +1485,15 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  audio_talk_mode: "שליטה במיקרופון — כל התחנות",
+  audio_mode_ptt: "החזק כדי לדבר (PTT)",
+  audio_mode_toggle: "לחיצה להתחלת ולסיום דיבור",
+  audio_begin_talk: "פתח דיבור",
+  audio_end_talk: "סגור דיבור",
+  audio_toggle_hint:
+    "לחץ על פתח דיבור להפעלת המיקרופון ועל סגור דיבור לסיום. יציאה מהחלון או מעבר לרקע סוגרים את השמע. מגבלת משך החיבור עדיין חלה.",
+  event_current_photo: "תמונת העובד הנוכחית",
+
   capture_from_editor_hint:
     "בחר אינטרקום, הצמד את הכרטיס לקורא שלו ואשר את הוספתו. יש לשמור שינויים במשתמש לפני תחילת הקריאה.",
   capture_save_user_first:

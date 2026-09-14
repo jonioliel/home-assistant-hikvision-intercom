@@ -3088,6 +3088,7 @@ export class IntercomManagerPanel extends LitElement {
       <div class="camera-controls">
         ${this.callControls(station)}
         <hikvision-intercom-audio-controls
+          .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
           .hass=${this.hass}
           .station=${station}
         ></hikvision-intercom-audio-controls>

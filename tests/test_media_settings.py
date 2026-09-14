@@ -84,3 +84,20 @@ def test_corrupt_settings_not_silently_reset(data):
 def test_exact_options(values):
     with pytest.raises(AccessError):
         normalize(values)
+
+
+async def test_talk_mode_legacy_load_preserved_by_old_client_and_failed_save():
+    save = AsyncMock()
+    store = MediaSettings(save, Mock())
+    legacy = {k: v for k, v in DEFAULTS.items() if k != "talk_mode"}
+    store.load({"schema": 1, "revision": 3, "values": legacy})
+    assert store.public()["talk_mode"] == "ptt"
+    await store.update(3, {**DEFAULTS, "talk_mode": "toggle"})
+    await store.update(4, {**legacy, "transport": "hls"})
+    assert store.public()["talk_mode"] == "toggle"
+    save.side_effect = OSError()
+    with pytest.raises(OSError):
+        await store.update(5, {**DEFAULTS, "talk_mode": "ptt"})
+    assert store.public()["talk_mode"] == "toggle"
+    with pytest.raises(AccessError):
+        normalize({**DEFAULTS, "talk_mode": "always"})

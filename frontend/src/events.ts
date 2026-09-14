@@ -1,3 +1,4 @@
+import "./user-photo";
 import { formatTime, localInput, resolveLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
@@ -10,6 +11,7 @@ import type { ProfilePolicy } from "./profile-settings";
 import type { Hass, Station } from "./types";
 
 interface AuditEvent {
+  portrait?: { user_id: string; revision: number } | null;
   received_at?: string;
   time_source?: string;
   evidence?: { identity_state: string; origin: string; arrival_delay_seconds: number | null };
@@ -67,6 +69,12 @@ export class IntercomEvents extends LitElement {
         height: auto;
         overflow: visible;
       }
+      .record-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
       .form-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -84,6 +92,12 @@ export class IntercomEvents extends LitElement {
         width: 100%;
       }
       @container intercom-panel (max-width: 650px) {
+        .record-person {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
         .form-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -809,10 +823,11 @@ export class IntercomEvents extends LitElement {
                   >${this.stations.find((s) => s.id === row.station_id)?.name ?? this.t("removed_station")}</strong
                 >
               </div>
-              <p class="record-person">
+              <div class="record-person">
+                ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
                 ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
                 · ${this.t("door")}: ${row.door ?? this.t("unknown")}
-              </p>
+              </div>
               <p>
                 ${this.t(row.authentication)} ·
                 <span class="badge ${row.result === "denied" ? "error" : ""}"

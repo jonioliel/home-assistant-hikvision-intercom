@@ -10,13 +10,23 @@ from urllib.parse import urlsplit
 
 from .access.models import AccessError
 
-DEFAULTS = {"transport": "webrtc", "webrtc_mode": "rtc", "fallback_hls": True, "go2rtc_url": ""}
+DEFAULTS = {
+    "transport": "webrtc",
+    "webrtc_mode": "rtc",
+    "fallback_hls": True,
+    "go2rtc_url": "",
+    "talk_mode": "ptt",
+}
 
 
 def normalize(values: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(values, dict) and set(values) == set(DEFAULTS) - {"talk_mode"}:
+        values = {**values, "talk_mode": "ptt"}
     if not isinstance(values, dict) or set(values) != set(DEFAULTS):
         raise AccessError("invalid_fields")
     if values["transport"] not in ("hls", "webrtc") or values["webrtc_mode"] not in ("rtc", "mse"):
+        raise AccessError("invalid_fields")
+    if values["talk_mode"] not in ("ptt", "toggle"):
         raise AccessError("invalid_fields")
     if type(values["fallback_hls"]) is not bool:
         raise AccessError("invalid_fields")
@@ -73,8 +83,10 @@ class MediaSettings:
         return {"revision": self.data["revision"], **deepcopy(self.data["values"])}
 
     async def update(self, revision: int, values: dict[str, Any]) -> dict[str, Any]:
-        values = normalize(values)
         async with self.lock:
+            if isinstance(values, dict) and "talk_mode" not in values:
+                values = {**values, "talk_mode": self.data["values"]["talk_mode"]}
+            values = normalize(values)
             if type(revision) is not int or revision != self.data["revision"]:
                 raise AccessError("revision_conflict")
             if values != self.data["values"]:

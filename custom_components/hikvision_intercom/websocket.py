@@ -451,7 +451,19 @@ async def _dispatch_inner(
         )
     if command == "events/list":
         try:
-            return get_events(hass).query(msg["filters"])
+            result = get_events(hass).query(msg["filters"])
+            result["records"] = [
+                {
+                    **row,
+                    "portrait": manager.repository.event_portrait(
+                        row["station_id"], row["employee_no"], row["timestamp"]
+                    )
+                    if row.get("employee_no") and row.get("time_source") == "device"
+                    else None,
+                }
+                for row in result["records"]
+            ]
+            return result
         except HikvisionValidationError:
             raise AccessError("invalid_fields") from None
     if command in {"overview", "sync/status"}:
