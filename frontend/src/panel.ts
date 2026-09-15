@@ -576,7 +576,9 @@ export class IntercomManagerPanel extends LitElement {
     return station.integrated_locks.find((lock) => lock.physical_index === physical)?.name;
   }
   private unlockLabel(station: Station, physical = 1) {
-    const name = this.lockName(station, physical);
+    const name =
+      this.lockName(station, physical) ??
+      (station.integrated_locks.length > 1 ? `${this.t("physical_lock")} ${physical}` : undefined);
     return name ? this.t("open_named_lock").replace("{name}", name) : this.t("open_door");
   }
   private validitySummary(user: Person) {

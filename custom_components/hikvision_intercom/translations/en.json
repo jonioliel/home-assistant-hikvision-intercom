@@ -160,6 +160,9 @@
     "lock": {
       "door_1": {
         "name": "Active lock"
+      },
+      "door_2": {
+        "name": "Relay 2"
       }
     },
     "event": {

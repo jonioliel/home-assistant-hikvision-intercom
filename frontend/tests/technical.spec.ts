@@ -91,3 +91,36 @@ test("hold-open draft is per door, copied explicitly and cannot activate a stati
   expect(calls[0].policy.timezone).toBe("Asia/Jerusalem");
   expect(calls[0]).not.toHaveProperty("enabled");
 });
+
+test("two relays have distinct labels and independent pending commands", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const w = window as any;
+    w.demoData.stations[0].integrated_locks = [
+      { physical_index: 1, api_id: 2 },
+      { physical_index: 2, api_id: 1 },
+    ];
+    const base = w.demoHass.callWS.bind(w.demoHass);
+    w.relayWrites = [];
+    w.demoHass.callWS = (m: any) => {
+      if (m.type.endsWith("stations/test_unlock")) {
+        w.relayWrites.push(m);
+        return new Promise(() => {});
+      }
+      return base(m);
+    };
+    return (document.querySelector("hikvision-intercom-panel") as any).refresh();
+  });
+  const card = page.locator("article.station").first();
+  const buttons = card.locator("button[aria-label^='Open ']");
+  await expect(buttons).toHaveCount(2);
+  expect(await buttons.nth(0).getAttribute("aria-label")).not.toBe(
+    await buttons.nth(1).getAttribute("aria-label"),
+  );
+  await buttons.nth(1).click();
+  await expect(buttons.nth(1)).toBeDisabled();
+  await expect(buttons.nth(0)).toBeEnabled();
+  expect(await page.evaluate(() => (window as any).relayWrites)).toEqual([
+    { type: "hikvision_intercom/stations/test_unlock", station_id: "station-0", lock: 2 },
+  ]);
+});
