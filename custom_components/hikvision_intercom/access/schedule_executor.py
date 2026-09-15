@@ -1,6 +1,7 @@
 """Readback-driven schedule executor, usable only with a verified transport adapter.
 
-There is deliberately no production adapter in this release. In particular, a proposal,
+There is no automatically registered production adapter. The separate commissioning
+transport requires explicit authorization and a trusted fresh observer. In particular, a proposal,
 successful capability read, or readback alone cannot establish ownership or write support.
 """
 

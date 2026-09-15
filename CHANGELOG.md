@@ -2,6 +2,12 @@
 
 Semantic Versioning is used throughout the project.
 
+## [Unreleased]
+
+- Prepare user-local weekly/date drafts as native schedule candidates and capability-checked per-door RightPlan bindings. Selected dates use a deny-all base week; adjacent dates are coalesced without bridging gaps. Current UTC offset is not accepted as station timezone evidence.
+- Add an explicitly authorized commissioning-only native schedule transport: documented PUT routes, shared station write lock, durable intent, exact payload/context checks, dependency-order readback, and no replay of ambiguous writes after restart. It is not registered in the running integration and does not activate user drafts.
+- Native user binding, managed synchronization lifecycle and physical inside/outside-window commissioning remain open. No station writes or claims of enforced access accompany this preparation.
+
 ## [1.0.0-rc.4] - 2026-09-16
 
 - Separate user synchronization status from station connectivity in desktop and mobile user lists. An offline station with the same verified applied/desired revision no longer labels the person offline. Unapplied or unknown revisions remain pending; conflicts and actual synchronization errors retain priority.
