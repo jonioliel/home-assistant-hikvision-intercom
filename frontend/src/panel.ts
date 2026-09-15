@@ -567,11 +567,19 @@ export class IntercomManagerPanel extends LitElement {
     return html`<span class="status ${status}">${this.t(status)}</span>`;
   }
   private personStatus(user: Person) {
-    const values = Object.values(user.assignments).map((item) => item.sync_state ?? "pending");
+    const values = Object.values(user.assignments).map((item) => {
+      if (item.sync_state !== "offline") return item.sync_state ?? "pending";
+      // Connectivity belongs to the station. Keep verified revisions synced, but
+      // never hide changes that still need to reach an unavailable station.
+      return Number.isInteger(item.desired_revision) &&
+        item.desired_revision! > 0 &&
+        item.applied_revision === item.desired_revision
+        ? "synced"
+        : "pending";
+    });
     return (
-      ["conflict", "error", "offline", "syncing", "pending"].find((item) =>
-        values.includes(item),
-      ) ?? (values.length ? "synced" : "inactive")
+      ["conflict", "error", "syncing", "pending"].find((item) => values.includes(item)) ??
+      (values.length ? "synced" : "inactive")
     );
   }
   private lockName(station: Station, physical = 1) {
@@ -2215,7 +2223,9 @@ export class IntercomManagerPanel extends LitElement {
                           </td>
                           <td>${this.validitySummary(user)}</td>
                           <td>
-                            ${this.badge(this.personStatus(user))}
+                            <span title=${this.t("user_sync_hint")}
+                              >${this.badge(this.personStatus(user))}</span
+                            >
                             <div class="sub">${this.t(user.active ? "active" : "inactive")}</div>
                           </td>
                           <td><div class="row">${this.userActions(user)}</div></td>
@@ -2234,7 +2244,9 @@ export class IntercomManagerPanel extends LitElement {
                         ${this.userSelection(user)}
                         ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
                         <h3>${user.display_name}</h3>
-                        ${this.badge(this.personStatus(user))}
+                        <span title=${this.t("user_sync_hint")}
+                          >${this.badge(this.personStatus(user))}</span
+                        >
                       </div>
                       <p class="sub">
                         ${this.t("phone")}: <bdi dir="ltr">${user.phone || "—"}</bdi> ·

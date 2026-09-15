@@ -1,4 +1,6 @@
 const en = {
+  user_sync_hint:
+    "Synchronization according to the last verified user revision. Station connectivity is shown separately; undelivered changes remain pending.",
   audit_field_access_timing_draft: "User timing draft (not enforced)",
   user_timing_single_day: "Quick selection: one entire day",
   user_timing_mode: "When may this person enter?",
@@ -1558,6 +1560,8 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  user_sync_hint:
+    "מצב הסנכרון לפי גרסת המשתמש האחרונה שאומתה. תקשורת התחנה מוצגת בנפרד; שינויים שטרם הוחלו נשארים בהמתנה.",
   audit_field_access_timing_draft: "טיוטת זמנים למשתמש (אינה נאכפת)",
   user_timing_single_day: "בחירה מהירה: יום מלא אחד",
   user_timing_mode: "מתי מותר למשתמש להיכנס?",

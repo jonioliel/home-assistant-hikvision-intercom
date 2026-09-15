@@ -2,6 +2,11 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.4] - 2026-09-16
+
+- Separate user synchronization status from station connectivity in desktop and mobile user lists. An offline station with the same verified applied/desired revision no longer labels the person offline. Unapplied or unknown revisions remain pending; conflicts and actual synchronization errors retain priority.
+- Preserve offline indicators and detailed diagnostics on station and synchronization screens. This is a presentation fix: no permission changes, additional writes or automatic retries are introduced.
+
 ## [1.0.0-rc.3] - 2026-09-16
 
 - Reorganize station management into responsive identity and relay cards, compact status counts, independent per-relay opening feedback, and expandable technical, clock and capability sections. Relay display names can be edited alongside verified mapping.
