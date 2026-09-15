@@ -1,0 +1,86 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.4",
+  "tag": "v1.0.0-rc.4",
+  "sha": "37f40982944d37efbfbf5f7dd49e663a9b2fe17d",
+  "prerelease": true,
+  "published_at": "2026-09-15T21:22:31Z",
+  "manifest_version": "1.0.0-rc.4",
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35024884544",
+  "release_jobs_passed": 7,
+  "jobs": [
+    {
+      "id": 104569412231,
+      "name": "python / frontend",
+      "conclusion": "success"
+    },
+    {
+      "id": 104569412444,
+      "name": "python / home-assistant",
+      "conclusion": "success"
+    },
+    {
+      "id": 104569412476,
+      "name": "hassfest / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104569412478,
+      "name": "hacs / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104569412542,
+      "name": "python / tests (3.14)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104569412641,
+      "name": "python / tests (3.12)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104570532838,
+      "name": "publish",
+      "conclusion": "success"
+    }
+  ],
+  "python_tests_per_version": 1086,
+  "home_assistant_tests": 328,
+  "browser_tests": 401,
+  "cross_browser_tests": 24,
+  "total_browser_tests": 425,
+  "test_counts_from_release_logs": {
+    "Firefox and WebKit operational workflows": 24,
+    "python / frontend": 401,
+    "python / home-assistant": 328,
+    "python / tests (3.14)": 1086,
+    "python / tests (3.12)": 1086
+  },
+  "artifacts": {
+    "custom_components/hikvision_intercom/manifest.json": {
+      "bytes": 524,
+      "sha256": "03b0c8f520837afa209cc8afc12cd7e75dfa2c6c6de78d8df219341ba6094971"
+    },
+    "custom_components/hikvision_intercom/frontend/panel.js": {
+      "bytes": 1365044,
+      "sha256": "abb21baa716719fb576fcf8a97db151e90c1bb36a10fb4351f48817935a149dc"
+    },
+    "custom_components/hikvision_intercom/frontend/audio-worklet.js": {
+      "bytes": 604,
+      "sha256": "c2cfa40eb531001bdbb7e450210790f39e50ce767d7d6b6d25ecdb7798a3c1ad"
+    }
+  },
+  "access_storage_schema": 9,
+  "profile_settings_schema": 2,
+  "physical_speaker_audibility": "owner_confirmed_2026-09-14",
+  "core_acceptance": "35/37; DoD39 lab and DoD40 sustained stability remain open",
+  "persistent_station_configuration_writes_this_release_session": 0,
+  "hold_open_automatic_execution": false,
+  "hold_open_drafts_schema": 1,
+  "physical_hold_restore_commissioning": "pending",
+  "user_weekly_RightPlan_deployment": "pending",
+  "public_PIN_write_on_observed_firmware": "unsupported",
+  "user_status_independent_of_connectivity": true
+}

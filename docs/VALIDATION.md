@@ -1,5 +1,11 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.4
+
+Runtime `37f40982944d37efbfbf5f7dd49e663a9b2fe17d` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35024884544): **1,086 Python tests per version (3.12/3.14), 328 Home Assistant tests, 401 Chromium tests and 24 Firefox/WebKit workflows** (425 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.4.json).
+
+Desktop and mobile regression tests cover an offline station with an already verified user revision, unapplied changes, unknown revision evidence, and a separate conflict. User rows never inherit the offline label: verified revisions stay synchronized, unknown/undelivered revisions remain pending, and conflict/error priority remains intact. Station and Sync views retain connection diagnostics. This is a presentation-only change; tests assert no user writes or synchronization commands are sent. Timing proposals and physical commissioning limits remain unchanged.
+
 ## Published validation — 1.0.0-rc.3
 
 Runtime `ba5bc5bad01b938895e6535562e89490ad3eb827` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35023254398): **1,086 Python tests per version (3.12/3.14), 328 Home Assistant tests, 399 Chromium tests and 24 Firefox/WebKit workflows** (423 browser tests). Ruff, mypy, TypeScript, formatting, reproducible bundle, HACS and Hassfest passed. The tag resolves to this runtime; downloaded manifest, panel and audio-worklet bytes match Git exactly. [Evidence](evidence/release_1.0.0-rc.3.json).
