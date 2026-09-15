@@ -13,7 +13,7 @@ audit history, recovery and Repairs. HACS installation is owner-confirmed; physi
 Recent updates fix permanent-user synchronization, add private-safe sync reports, show fleet/access health,
 and provide read-only station inspection, deliberate bulk assignments and detailed conflict comparison.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
-publication requires passing CI. Earlier protocol-only releases are retained in the changelog.
+publication requires passing CI. For RC releases, enable prereleases for WisKey in HACS and select the published version tag. [Commit-version download troubleshooting](docs/HACS_RC_SELECTION_REPAIR.md). Earlier protocol-only releases are retained in the changelog.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
