@@ -1,4 +1,23 @@
 const en = {
+  audit_field_access_timing_draft: "User timing draft (not enforced)",
+  user_timing_single_day: "Quick selection: one entire day",
+  user_timing_mode: "When may this person enter?",
+  user_timing_weekly: "Selected weekdays · timing draft",
+  user_timing_dates: "Selected calendar dates · timing draft",
+  user_timing_zone: "Schedule time zone (IANA)",
+  user_timing_all_day: "Entire selected day(s)",
+  user_timing_date: "Calendar date",
+  user_timing_add_date: "Add date",
+  user_timing_add_period: "Add time window",
+  user_timing_midnight:
+    "An end time of 00:00 means the end of the selected day. Split overnight access across both days.",
+  user_timing_draft_notice:
+    "Timing draft — not enforced by the intercom yet. Saving keeps the currently configured access and validity unchanged; it does not restrict entry to these days or hours. Activation requires verified station schedule deployment.",
+  user_timing_current: "Current validity, independent of this draft",
+  user_timing_pending: "Timing draft · not enforced",
+  invalid_user_timing:
+    "Choose valid days or dates, a time zone and at least one non-overlapping time window.",
+
   technical_relays: "Managed relay outputs",
   technical_relays_hint:
     "Select only connected outputs. Existing users keep their current access; selecting a second relay does not grant access to it.",
@@ -1539,6 +1558,24 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  audit_field_access_timing_draft: "טיוטת זמנים למשתמש (אינה נאכפת)",
+  user_timing_single_day: "בחירה מהירה: יום מלא אחד",
+  user_timing_mode: "מתי מותר למשתמש להיכנס?",
+  user_timing_weekly: "ימים קבועים בשבוע · טיוטת זמנים",
+  user_timing_dates: "תאריכים נבחרים · טיוטת זמנים",
+  user_timing_zone: "אזור הזמן של הלוח (IANA)",
+  user_timing_all_day: "כל היום בימים שנבחרו",
+  user_timing_date: "תאריך",
+  user_timing_add_date: "הוספת תאריך",
+  user_timing_add_period: "הוספת טווח שעות",
+  user_timing_midnight:
+    "שעת סיום 00:00 היא סוף היום שנבחר. לכניסה שחוצה חצות יש להגדיר טווח בכל אחד משני הימים.",
+  user_timing_draft_notice:
+    "טיוטת זמנים — עדיין אינה נאכפת באינטרקום. השמירה משאירה את ההרשאות והתוקף הנוכחיים ללא שינוי ואינה מגבילה כניסה לימים ולשעות האלה. ההפעלה דורשת פריסה ואימות של לוח בתחנה.",
+  user_timing_current: "התוקף הנוכחי, שאינו תלוי בטיוטה",
+  user_timing_pending: "טיוטת זמנים · אינה נאכפת",
+  invalid_user_timing: "יש לבחור ימים או תאריכים תקינים, אזור זמן ולפחות טווח שעות אחד ללא חפיפה.",
+
   technical_relays: "ממסרים מנוהלים",
   technical_relays_hint:
     "בחר רק מוצאים מחוברים. משתמשים קיימים שומרים על הרשאותיהם; בחירת ממסר שני אינה מעניקה אליו גישה.",

@@ -18,7 +18,15 @@ export interface Assignment {
   applied_revision?: number | null;
   last_sync_at?: string | null;
 }
+export interface UserTimingDraft {
+  mode: "weekly" | "dates";
+  timezone: string;
+  days: string[];
+  dates: string[];
+  periods: { start: string; end: string }[];
+}
 export interface Person {
+  access_timing_draft?: UserTimingDraft | null;
   phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
@@ -225,6 +233,7 @@ export interface Hass {
   };
 }
 export interface Draft {
+  access_timing_draft?: UserTimingDraft | null;
   phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];

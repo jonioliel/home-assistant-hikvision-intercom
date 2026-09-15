@@ -625,7 +625,9 @@ test("named lock appears in overview camera station and assignments with the sam
     .first()
     .click();
   await navigate(page, "Intercoms");
-  await expect(page.getByText("Garden door", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".station-relay").getByText("Garden door", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Open Garden door", exact: true }).click();
   const writes = await page.evaluate(() =>
     window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),

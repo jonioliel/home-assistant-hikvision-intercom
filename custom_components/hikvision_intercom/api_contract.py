@@ -4,7 +4,13 @@ from .access.models import AccessError
 
 API_VERSION = 1
 MIN_CLIENT = 0  # Legacy clients remain compatible with the existing command shapes.
-CAPABILITIES = ["employee_phone", "talk_mode", "event_portraits", "sync_tracking"]
+CAPABILITIES = [
+    "employee_phone",
+    "talk_mode",
+    "event_portraits",
+    "sync_tracking",
+    "user_timing_draft",
+]
 
 
 def contract(commands: list[str]) -> dict:

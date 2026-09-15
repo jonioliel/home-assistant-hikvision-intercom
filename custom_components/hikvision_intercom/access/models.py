@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -160,6 +161,7 @@ class ManagedUser:
     photo: str | None = field(default=None, repr=False)
     permission_overrides: dict[str, str] = field(default_factory=dict)
     phone: str = ""
+    access_timing_draft: dict[str, Any] | None = None
 
     def private(self) -> dict[str, Any]:
         return {
@@ -167,6 +169,7 @@ class ManagedUser:
             "employee_no": self.employee_no,
             "display_name": self.display_name,
             "phone": self.phone,
+            "access_timing_draft": deepcopy(self.access_timing_draft),
             "active": self.active,
             "user_type": self.user_type,
             "valid_from": self.valid_from,
@@ -250,6 +253,7 @@ def build_user(
     """Patch desired state; absent PIN/card numbers keep existing secret material."""
     from ..profile_settings import group_values, photo_value, profile_values
     from .group_permissions import overrides
+    from .user_timing import timing_draft
 
     try:
         employee_no = validate_identifier(data.get("employee_no", employee_no))
@@ -355,6 +359,9 @@ def build_user(
                 )
             ),
             phone=phone_value(data.get("phone", previous.phone if previous else "")),
+            access_timing_draft=timing_draft(
+                data.get("access_timing_draft", previous.access_timing_draft if previous else None)
+            ),
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

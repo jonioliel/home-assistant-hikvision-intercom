@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.3] - 2026-09-16
+
+- Reorganize station management into responsive identity and relay cards, compact status counts, independent per-relay opening feedback, and expandable technical, clock and capability sections. Relay display names can be edited alongside verified mapping.
+- Put access timing selection inside the user editor: permanent access, start/end validity, recurring weekday proposals and selected calendar-date proposals. Add a full-day shortcut to the existing enforced validity path; local midnight boundaries follow the selected zone, including 23/25-hour days.
+- User-local timing drafts support full days or up to eight non-overlapping windows, an explicit IANA zone, persistence, audit field tracking and a visible not-enforced marker in the user list. Draft-only changes do not enqueue access changes or replace existing station validity. Empty/invalid days, dates, time zones, overlaps and activation fields are rejected server-side.
+- **Weekly and selected-date schedule deployment is still not active.** These are clearly labelled proposals; current access continues unchanged. Native resource allocation/ownership, RightPlan deployment and physical enforcement verification remain required. A single continuous start/end interval uses the existing validity mechanism.
+- Storage remains schema 9 with optional timing-draft metadata; preserve the matching HA backup when rolling back. No station configuration changes or physical opening tests were performed for this UI release.
+
 ## [1.0.0-rc.2] - 2026-09-15
 
 - Administrator station settings: read device capabilities, audit all sixteen public PIN slots without exposing codes, and edit advertised door name, release duration and relay polarity with confirmation, conflict detection and readback. Unsupported public PIN writing remains unavailable.

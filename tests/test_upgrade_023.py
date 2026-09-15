@@ -39,6 +39,7 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
             group_ids=[],
             photo=None,
             phone="",
+            access_timing_draft=None,
             permission_overrides={
                 s: "allow" if a["enabled"] else "deny" for s, a in record["assignments"].items()
             },

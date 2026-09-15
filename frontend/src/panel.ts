@@ -1,4 +1,5 @@
 import "./station-technical";
+import "./user-timing";
 import "./saved-user-views";
 import { compatible, contractHass } from "./api-contract";
 import type { UserView } from "./saved-user-views";
@@ -15,6 +16,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { live } from "lit/directives/live.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
+import { stationSettingsStyles } from "./station-settings-styles";
 import { headerStyles } from "./header-styles";
 import { modernStyles } from "./modern-styles";
 import { AppearancePicker, readAppearance, saveAppearance, type Appearance } from "./appearance";
@@ -103,7 +105,7 @@ const releaseErrors = new Set([
 ]);
 
 export class IntercomManagerPanel extends LitElement {
-  static styles = [styles, interfaceStyles, modernStyles, headerStyles];
+  static styles = [styles, interfaceStyles, modernStyles, headerStyles, stationSettingsStyles];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -602,6 +604,7 @@ export class IntercomManagerPanel extends LitElement {
     return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
       ${state !== "permanent" ? html`<span class="sub">${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span>` : nothing}
       <span>${this.t(state)}</span>
+      ${user.access_timing_draft ? html`<span class="sub">${this.t("user_timing_pending")}</span>` : nothing}
       ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
       ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
     </div>`;
@@ -867,6 +870,9 @@ export class IntercomManagerPanel extends LitElement {
     const data: Record<string, unknown> = {
       employee_no: draft.employee_no,
       phone: draft.phone ?? "",
+      ...(this._data?.api?.capabilities.includes("user_timing_draft")
+        ? { access_timing_draft: draft.access_timing_draft ?? null }
+        : {}),
       display_name: draft.display_name,
       active: draft.active,
       valid_from: draft.timed ? draft.valid_from : null,
@@ -1502,9 +1508,13 @@ export class IntercomManagerPanel extends LitElement {
       ${icon("lock")}${this.releasing(station, physical) ? this.t("releasing") : this.unlockLabel(station, physical)}
     </button>`;
   }
-  private releaseFeedback(station: Station) {
+  private releaseFeedback(station: Station, physical?: number) {
     const state = [...this._releases.entries()]
-      .filter(([key]) => key.startsWith(station.id + "/"))
+      .filter(([key]) =>
+        physical === undefined
+          ? key.startsWith(station.id + "/")
+          : key === `${station.id}/${physical}`,
+      )
       .map(([, value]) => value)
       .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))[0];
     if (!state || !station.lock_enabled) return nothing;
@@ -2315,108 +2325,120 @@ export class IntercomManagerPanel extends LitElement {
           ${this._data?.stations.map((station) => html`<option value=${station.id}>${station.name}</option>`)}
         </select></label
       >
-      <div class="grid device-grid">
-        ${(this._data?.stations ?? []).map(
-          (station) =>
-            html`<article
-              class="station device-station"
-              ?hidden=${this._appearance === "modern" && !!this._deviceFocus && station.id !== this._deviceFocus}
-            >
-              <div class="row between">
-                <h3>${station.name}</h3>
-                ${this.badge(station.online ? "online" : "offline")}
-              </div>
-              <details
-                class="device-information"
-                ?open=${this._appearance === "current" || this._deviceFocus === station.id}
-              >
-                <summary>${this.t("station_details")} · <bdi>${station.model}</bdi></summary>
-                <dl>
-                  ${[
-                    ["model", station.model],
-                    ["firmware", station.firmware],
-                    ["address", station.host],
-                    ["last_seen", this.dateText(station.last_seen, station)],
-                    [
-                      "last_poll",
-                      station.last_poll_ms === null
-                        ? this.t("not_observed")
-                        : `${station.last_poll_ms} ms`,
-                    ],
-                    ["managed_users", station.managed_user_count ?? this.t("not_observed")],
-                    ["pending_users", station.pending_user_count],
-                    ["last_reconciliation", this.dateText(station.reconciled_at, station)],
-                    [
-                      "last_scan",
-                      station.scanned_at ? this.dateText(station.scanned_at, station) : "—",
-                    ],
-                    [
-                      "users",
-                      `${station.user_count ?? "—"} / ${station.capabilities?.max_users ?? "—"}`,
-                    ],
-                    [
-                      "cards",
-                      `${station.card_count ?? "—"} / ${station.capabilities?.max_cards ?? "—"}`,
-                    ],
-                    ["unmanaged", station.unmanaged_count ?? "—"],
-                    [
-                      "pin",
-                      station.capabilities?.pin_writable
-                        ? `${station.capabilities.pin_min}–${station.capabilities.pin_max}`
-                        : this.t("pin_mode_blocked"),
-                    ],
-                  ].map(
-                    ([label, text]) =>
-                      html`<dt>${this.t(String(label))}</dt>
-                        <dd><bdi>${text}</bdi></dd>`,
-                  )}
-                </dl>
-              </details>
-              <div class="device-metrics">
-                <div>
-                  <strong>${station.managed_user_count ?? "—"}</strong>${this.t("managed_users")}
-                </div>
-                <div><strong>${station.pending_user_count}</strong>${this.t("pending_users")}</div>
-                <div>
-                  <strong>${station.integrated_locks.length}</strong>${this.t("integrated_locks")}
-                </div>
-              </div>
-              <details class="device-extra" ?open=${this._appearance === "current"}>
-                <summary>${this.t("clock_title")}</summary>
-                ${this.clockView(station)}
-              </details>
-              <details class="device-extra" ?open=${this._appearance === "current"}>
-                <summary>${this.t("capabilities_title")}</summary>
-                ${this.capabilityDetails(station)}
-              </details>
-              <p class="field-note">${this.t("inspection_hint")}</p>
-              ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}
-              ${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}
-              <p class="sub">${this.t(station.lock_enabled ? "station_access" : "camera_only")}</p>
-              ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
-              <div class="row">
-                <button
-                  @click=${() => this.run(() => this.api("stations/rescan", { station_id: station.id }), "scan_complete")}
-                  ?disabled=${this._busy || station.scanning || !station.loaded}
-                >
-                  ${this.t("rescan")}</button
-                ><button
-                  @click=${() => this.run(() => this.api("sync/station", { station_id: station.id }))}
-                  ?disabled=${this._busy}
-                >
-                  ${this.t("sync_now")}
-                </button>
-                ${station.lock_enabled ? this.releaseButton(station) : nothing}
-                <a href=${settingsPath}>${this.t("configure")}</a>
-              </div>
-              ${this.releaseFeedback(station)}
-              <hikvision-station-technical
-                .hass=${this.protectedHass}
-                .station=${station}
-              ></hikvision-station-technical>
-            </article>`,
-        )}
+      <div class="station-settings-list">
+        ${(this._data?.stations ?? []).filter((station) => !this._deviceFocus || station.id === this._deviceFocus).map((station) => this.stationSettings(station))}
       </div>`;
+  }
+  private stationSettings(station: Station) {
+    return html`<article class="station station-config device-station" aria-label=${station.name}>
+      <header class="station-settings-heading">
+        <div>
+          <h3>${station.name}</h3>
+          <bdi class="sub">${station.model ?? this.t("not_observed")}</bdi>
+        </div>
+        <div class="settings-actions">
+          <button
+            @click=${() => this.run(() => this.api("stations/rescan", { station_id: station.id }), "scan_complete")}
+            ?disabled=${this._busy || station.scanning || !station.loaded}
+          >
+            ${this.t("rescan")}
+          </button>
+          <button
+            class="primary"
+            @click=${() => this.run(() => this.api("sync/station", { station_id: station.id }))}
+            ?disabled=${this._busy}
+          >
+            ${this.t("sync_now")}
+          </button>
+        </div>
+      </header>
+      <div class="station-settings-columns">
+        <section class="station-settings-card">
+          <div class="station-settings-symbol">
+            ${icon("devices")}
+            <div>
+              <h4>${this.t("station_details")}</h4>
+              ${this.badge(station.online ? "online" : "offline")}
+            </div>
+          </div>
+          <dl>
+            ${[
+              ["model", station.model ?? "—"],
+              ["firmware", station.firmware ?? "—"],
+              ["address", station.host ?? "—"],
+              ["last_seen", this.dateText(station.last_seen, station)],
+              [
+                "last_poll",
+                station.last_poll_ms === null
+                  ? this.t("not_observed")
+                  : `${station.last_poll_ms} ms`,
+              ],
+            ].map(
+              ([label, text]) =>
+                html`<dt>${this.t(label)}</dt>
+                  <dd><bdi>${text}</bdi></dd>`,
+            )}
+          </dl>
+          <p class="sub">${this.t(station.lock_enabled ? "station_access" : "camera_only")}</p>
+          <a href=${settingsPath}>${this.t("configure")}</a>
+        </section>
+        <section class="station-settings-card">
+          <h4>${this.t("technical_relays")}</h4>
+          <p class="sub">${this.t("technical_relays_hint")}</p>
+          ${[1, 2].map((physical) => {
+            const lock = station.integrated_locks.find((l) => l.physical_index === physical);
+            return html`<div class="station-relay">
+              <div class="row between">
+                <strong>${this.t("physical_lock")} ${physical}</strong
+                >${this.badge(lock ? "configured" : "not_configured")}
+              </div>
+              ${
+                lock
+                  ? html`<p>
+                        <bdi>${lock.name || this.t("physical_lock") + " " + physical}</bdi> · API
+                        ${lock.api_id}
+                      </p>
+                      <div class="row">${this.relayButton(station, physical, false)}</div>
+                      ${this.releaseFeedback(station, physical)}`
+                  : nothing
+              }
+            </div>`;
+          })}
+        </section>
+      </div>
+      <div class="device-metrics">
+        <div><strong>${station.managed_user_count ?? "—"}</strong>${this.t("managed_users")}</div>
+        <div><strong>${station.pending_user_count}</strong>${this.t("pending_users")}</div>
+        <div><strong>${station.integrated_locks.length}</strong>${this.t("integrated_locks")}</div>
+      </div>
+      ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
+      <hikvision-station-technical
+        .hass=${this.protectedHass}
+        .station=${station}
+      ></hikvision-station-technical>
+      <details class="device-extra" ?open=${this._appearance === "current"}>
+        <summary>${this.t("clock_title")}</summary>
+        ${this.clockView(station)}
+      </details>
+      <details class="device-extra" ?open=${this._appearance === "current"}>
+        <summary>${this.t("capabilities_title")}</summary>
+        ${this.capabilityDetails(station)}
+        <dl>
+          ${[
+            ["last_reconciliation", this.dateText(station.reconciled_at, station)],
+            ["last_scan", this.dateText(station.scanned_at, station)],
+            ["users", `${station.user_count ?? "—"} / ${station.capabilities?.max_users ?? "—"}`],
+            ["cards", `${station.card_count ?? "—"} / ${station.capabilities?.max_cards ?? "—"}`],
+            ["unmanaged", String(station.unmanaged_count ?? "—")],
+          ].map(
+            ([label, text]) =>
+              html`<dt>${this.t(label)}</dt>
+                <dd><bdi>${text}</bdi></dd>`,
+          )}
+        </dl>
+        <p class="field-note">${this.t("inspection_hint")}</p>
+      </details>
+    </article>`;
   }
   private async downloadSyncDiagnostics() {
     await this.run(async () => {
@@ -2665,16 +2687,57 @@ export class IntercomManagerPanel extends LitElement {
           ${this.profileEditor()} ${this.editorActions()}
           <fieldset class="editor-validity">
             <legend>${icon("schedules")}${this.t("validity")}</legend>
-            <label class="check"
-              ><input
-                type="checkbox"
-                .checked=${draft.timed}
+            <label
+              >${this.t("user_timing_mode")}<select
+                aria-label=${this.t("user_timing_mode")}
+                .value=${draft.access_timing_draft?.mode ?? (draft.timed ? "period" : "always")}
                 @change=${(event: Event) => {
-                  draft.timed = checked(event);
+                  const mode = value(event);
+                  if (mode === "always" || mode === "period") {
+                    draft.access_timing_draft = null;
+                    draft.timed = mode === "period";
+                  } else {
+                    draft.access_timing_draft = {
+                      mode: mode as "weekly" | "dates",
+                      timezone: this._data?.default_zone?.name ?? "UTC",
+                      days: mode === "weekly" ? ["Monday"] : [],
+                      dates: [],
+                      periods: [{ start: "00:00", end: "24:00" }],
+                    };
+                  }
                   this.requestUpdate();
                 }}
-              />${this.t("period")}</label
-            >${
+              >
+                <option value="always">${this.t("permanent")}</option>
+                <option value="period">${this.t("period")}</option>
+                <option
+                  value="weekly"
+                  ?disabled=${!this._data?.api?.capabilities.includes("user_timing_draft")}
+                >
+                  ${this.t("user_timing_weekly")}
+                </option>
+                <option
+                  value="dates"
+                  ?disabled=${!this._data?.api?.capabilities.includes("user_timing_draft")}
+                >
+                  ${this.t("user_timing_dates")}
+                </option>
+              </select></label
+            >
+            ${
+              draft.access_timing_draft
+                ? html`<hikvision-user-timing
+                      .language=${this.hass?.language ?? "en"}
+                      .value=${draft.access_timing_draft}
+                      @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
+                    ></hikvision-user-timing>
+                    <p class="field-note">
+                      ${this.t("user_timing_current")}:
+                      ${this.t(draft.timed ? "period" : "permanent")}
+                    </p>`
+                : nothing
+            }
+            ${
               draft.timed
                 ? html`<label
                       >${this.t("clock_validity_basis")}<select
@@ -2693,6 +2756,21 @@ export class IntercomManagerPanel extends LitElement {
                         ${this._data?.stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
                       </select></label
                     >
+                    <label
+                      >${this.t("user_timing_single_day")}<input
+                        type="date"
+                        min="2000-01-01"
+                        max="2037-12-30"
+                        @change=${(event: Event) => {
+                          const day = value(event);
+                          if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+                          const next = new Date(`${day}T00:00:00Z`);
+                          next.setUTCDate(next.getUTCDate() + 1);
+                          this._validityFrom = `${day}T00:00`;
+                          this._validityUntil = `${next.toISOString().slice(0, 10)}T00:00`;
+                          this.requestUpdate();
+                        }}
+                    /></label>
                     <div class="fields" style="margin-top:14px">
                       <label
                         >${this.t("valid_from")}<input
@@ -2967,7 +3045,6 @@ export class IntercomManagerPanel extends LitElement {
                 </div>`,
             )}
           </div>
-          <p class="field-note">${this.t("unsupported_schedule")}</p>
         </fieldset>
       </form>`;
   }

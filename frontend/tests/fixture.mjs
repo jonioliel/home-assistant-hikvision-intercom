@@ -50,6 +50,7 @@ const data = {
     fallback_hls: true,
     go2rtc_url: "",
   },
+  api: { version: 1, min_client: 0, capabilities: ["user_timing_draft"], commands: [] },
   default_zone: { kind: "iana", name: "UTC" },
   version: "0.33.0-beta.1",
   users: [],

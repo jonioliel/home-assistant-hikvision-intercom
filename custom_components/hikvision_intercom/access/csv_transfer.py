@@ -356,6 +356,7 @@ def desired_fields(user: ManagedUser) -> dict[str, Any]:
             "permission_overrides",
             "photo",
             "phone",
+            "access_timing_draft",
         }
     }
 

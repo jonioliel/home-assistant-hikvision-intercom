@@ -85,6 +85,8 @@ two-way microphone audio is available in the camera dialog. Audible audio and ri
 ## Station administration
 
 **Management tools → Intercoms** includes technical settings and public PIN status auditing.
+The responsive station detail layout and user-local timing controls are described in
+[User timing and station layout](docs/USER_TIMING_AND_STATION_LAYOUT_HE.md). Weekly/date proposals are not enforced; existing continuous validity remains separate.
 Only advertised door parameters can be changed; confirmation and readback are required.
 Public PIN writing is unavailable on the observed firmware. HA hold-open drafts copy a
 weekly/dated schedule and an explicit time zone for one door; saving does not activate it.
@@ -164,7 +166,7 @@ and access/event features:
 [HACS custom repository instructions](https://hacs.xyz/docs/faq/custom_repositories/).
 This is a custom repository, not a listing in the HACS default catalogue.
 HACS discovers updates periodically and exposes them under HA **Settings → Updates**.
-Enable the repository's **Pre-release** switch once to include the current alpha releases.
+Enable the repository's **Pre-release** switch once to include the current RC releases.
 Discovery is not instantaneous: the inspected HACS custom-repository interval is 48 hours.
 [Automatic update setup and timing (Hebrew)](docs/HACS_UPDATES_HE.md).
 The local development computer reaching a station over VPN does not establish that the

@@ -46,6 +46,7 @@ USER_FIELDS = {
     "group_ids",
     "photo",
     "phone",
+    "access_timing_draft",
     "employee_no",
     "display_name",
     "active",

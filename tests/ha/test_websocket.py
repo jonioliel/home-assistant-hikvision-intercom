@@ -885,3 +885,43 @@ async def test_notification_storm_coalesces_without_buffering_private_events(has
     async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
     await asyncio.sleep(0.35)
     assert connection.send_event.call_count == 1
+
+
+async def test_user_timing_draft_transport_is_persisted_without_access_activation(
+    hass, loaded_entry, hass_ws_client
+):
+    client = await hass_ws_client(hass)
+    overview = await request(client, "overview")
+    assert "user_timing_draft" in overview["result"]["api"]["capabilities"]
+    timing = {
+        "mode": "weekly",
+        "timezone": "Asia/Jerusalem",
+        "days": ["Monday", "Thursday"],
+        "dates": [],
+        "periods": [{"start": "12:00", "end": "18:00"}],
+    }
+    created = await request(
+        client, "users/create", data={"display_name": "Cleaner", "access_timing_draft": timing}
+    )
+    assert created["success"]
+    user = created["result"]
+    assert user["access_timing_draft"] == timing
+    assert user["valid_from"] is None and user["valid_until"] is None
+    rejected = await request(
+        client,
+        "users/update",
+        user_id=user["id"],
+        revision=user["revision"],
+        data={"access_timing_draft": {**timing, "enabled": True}},
+    )
+    assert not rejected["success"] and rejected["error"]["code"] == "invalid_user_timing"
+    found = await request(client, "users/get", user_id=user["id"])
+    assert found["result"]["revision"] == user["revision"]
+    cleared = await request(
+        client,
+        "users/update",
+        user_id=user["id"],
+        revision=user["revision"],
+        data={"access_timing_draft": None},
+    )
+    assert cleared["success"] and cleared["result"]["access_timing_draft"] is None

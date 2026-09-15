@@ -2850,3 +2850,15 @@ were authorized to run unattended for commissioning: prepare implementation and 
 hold/restore and time-window enforcement tests later. Drafts must never be represented as
 active restrictions or an active hold-open schedule. See
 `docs/STATION_MANAGEMENT_AND_SCHEDULING_HE.md` for implementation and pending verification.
+
+
+## Owner amendment — 2026-09-15: station detail layout and user-local timing
+
+Use the bottom-right station settings reference: station identity and relay cards,
+compact state summaries and expandable advanced controls, with responsive layouts.
+Access timing belongs inside the user editor: permanent, a bounded interval, selected
+weekdays or calendar dates, with full-day and timed windows. RC3 adds that editor and
+persistent, explicitly unactivated timing proposals. Existing start/end validity is
+separate from proposals. Native recurring RightPlan deployment and physical enforcement
+remain open; the new UI does not satisfy that acceptance gate by itself. Implementation
+and limits: `docs/USER_TIMING_AND_STATION_LAYOUT_HE.md`.

@@ -91,7 +91,7 @@ test("validity input stores station-local instant as UTC and rejects gaps and fo
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await page.getByRole("button", { name: "+ Add user", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Time test");
-  await page.getByLabel("Start and end", { exact: true }).check();
+  await page.getByLabel("When may this person enter?", { exact: true }).selectOption("period");
   await expect(page.getByLabel("Time zone for validity input", { exact: true })).toHaveValue(
     "station-0",
   );
@@ -190,7 +190,7 @@ for (const target of ["station", "ha", "removed"]) {
     await page.getByRole("button", { name: "Users", exact: true }).click();
     await page.getByRole("button", { name: "+ Add user", exact: true }).click();
     await page.getByLabel("Name", { exact: true }).fill("Draft time test");
-    await page.getByLabel("Start and end", { exact: true }).check();
+    await page.getByLabel("When may this person enter?", { exact: true }).selectOption("period");
     if (target === "ha")
       await page.getByLabel("Time zone for validity input", { exact: true }).selectOption("");
     await page.getByLabel("Start", { exact: true }).fill("2026-09-10T12:00");
@@ -248,7 +248,7 @@ test("an ambiguous unsaved validity range is cleared when its clock rules change
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await page.getByRole("button", { name: "+ Add user", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Ambiguous time test");
-  await page.getByLabel("Start and end", { exact: true }).check();
+  await page.getByLabel("When may this person enter?", { exact: true }).selectOption("period");
   await page.getByLabel("Start", { exact: true }).fill("2026-10-25T01:30");
   await page.getByLabel("End", { exact: true }).fill("2026-10-26T04:00");
   await page.evaluate(async () => {

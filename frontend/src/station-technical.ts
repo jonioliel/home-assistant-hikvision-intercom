@@ -1,5 +1,5 @@
 import "./hold-open";
-import { LitElement, html, nothing, type PropertyValues } from "lit";
+import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { ScopedRequests } from "./request";
@@ -25,7 +25,53 @@ interface Report {
   features: { family: string; name: string; supported: boolean }[];
 }
 export class StationTechnical extends LitElement {
-  static styles = styles;
+  static styles = [
+    styles,
+    css`
+      :host {
+        height: auto;
+        overflow: visible;
+        background: transparent;
+      }
+      details {
+        border-top: 1px solid var(--divider-color);
+        padding: 14px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      fieldset {
+        margin-block: 16px;
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      label {
+        display: block;
+        margin-block: 10px;
+      }
+      input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-inline-end: 8px;
+        vertical-align: middle;
+      }
+      section {
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        padding: 16px;
+        margin-block: 12px;
+      }
+      section h4 {
+        margin-top: 0;
+      }
+      li,
+      p {
+        overflow-wrap: anywhere;
+      }
+    `,
+  ];
   static properties = {
     hass: { attribute: false },
     station: { attribute: false },
@@ -182,22 +228,35 @@ export class StationTechnical extends LitElement {
           ${
             relay
               ? html`<label
-                  >API ${index}<select
-                    .value=${String(relay.api_id)}
-                    ?disabled=${this.busy}
-                    @change=${(e: Event) => {
-                      this.relays = this.relays.map((r) =>
-                        r === relay
-                          ? { ...r, api_id: Number((e.target as HTMLSelectElement).value) }
-                          : r,
-                      );
-                      this.relayConfirmed = false;
-                    }}
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                  </select></label
-                >`
+                    >${this.t("name")} · ${this.t("physical_lock")} ${index}<input
+                      maxlength="64"
+                      .value=${relay.name ?? ""}
+                      ?disabled=${this.busy}
+                      @input=${(e: Event) => {
+                        this.relays = this.relays.map((r) =>
+                          r === relay
+                            ? { ...r, name: (e.target as HTMLInputElement).value || undefined }
+                            : r,
+                        );
+                        this.relayConfirmed = false;
+                      }} /></label
+                  ><label
+                    >API ${index}<select
+                      .value=${String(relay.api_id)}
+                      ?disabled=${this.busy}
+                      @change=${(e: Event) => {
+                        this.relays = this.relays.map((r) =>
+                          r === relay
+                            ? { ...r, api_id: Number((e.target as HTMLSelectElement).value) }
+                            : r,
+                        );
+                        this.relayConfirmed = false;
+                      }}
+                    >
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                    </select></label
+                  >`
               : nothing
           }`;
       })}
