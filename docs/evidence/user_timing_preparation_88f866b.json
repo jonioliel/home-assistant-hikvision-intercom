@@ -1,0 +1,31 @@
+{
+  "scope": "user_timing_commissioning_preparation",
+  "commit": "88f866b563d488aee706f99e79aa28d7a88eae5d",
+  "release_created": false,
+  "station_writes": 0,
+  "user_timing_enforced": false,
+  "counts": {
+    "python_per_version": 1114,
+    "home_assistant": 328,
+    "chromium": 401,
+    "firefox_webkit": 24
+  },
+  "runs": [
+    {
+      "id": 35028807868,
+      "conclusion": "success",
+      "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35028807868"
+    },
+    {
+      "id": 35028807884,
+      "conclusion": "success",
+      "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35028807884"
+    },
+    {
+      "id": 35028807939,
+      "conclusion": "success",
+      "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35028807939"
+    }
+  ],
+  "local_limit": "Audio soak exceeded deadline both on changed checkout and unchanged a516186; passed in Linux CI."
+}
