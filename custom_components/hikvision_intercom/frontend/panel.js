@@ -850,15 +850,15 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
             />${this.t("physical_lock")} ${t}</label
           >
           ${i?v`<label
-                >API ${t}<select
-                  .value=${String(i.api_id)}
-                  ?disabled=${this.busy}
-                  @change=${s=>{this.relays=this.relays.map(r=>r===i?{...r,api_id:Number(s.target.value)}:r),this.relayConfirmed=!1}}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select></label
-              >`:E}`})}
+                  >API ${t}<select
+                    .value=${String(i.api_id)}
+                    ?disabled=${this.busy}
+                    @change=${s=>{this.relays=this.relays.map(r=>r===i?{...r,api_id:Number(s.target.value)}:r),this.relayConfirmed=!1}}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select></label
+                >`:E}`})}
       <label
         ><input
           type="checkbox"
@@ -870,7 +870,53 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
       <button ?disabled=${this.busy||!this.relayConfirmed} @click=${()=>this.saveRelays()}>
         ${this.t("technical_relays_save")}
       </button>
-    </fieldset>`}render(){return v`<hikvision-hold-open
+    </fieldset>`}field(t,i,s){let r=this.busy||!this.managed(t.door),n=s.type==="boolean"?v`<input
+            type="checkbox"
+            .checked=${this.draft[t.door]?.[i]===!0}
+            ?disabled=${r}
+            @change=${o=>this.change(t.door,i,o.target.checked)}
+          />`:v`<input
+            required
+            type=${s.type==="integer"?"number":"text"}
+            min=${s.min??0}
+            max=${s.max??255}
+            maxlength=${s.max??64}
+            .value=${String(this.draft[t.door]?.[i]??"")}
+            ?disabled=${r}
+            @input=${o=>this.change(t.door,i,s.type==="integer"?Number(o.target.value):o.target.value)}
+          />`;return v`<label>${this.t("technical_"+i)}${n}</label>`}confirmation(t){return this.managed(t.door)?v`<label
+        ><input
+          type="checkbox"
+          .checked=${!!this.confirmed[t.door]}
+          ?disabled=${this.busy}
+          @change=${i=>{this.confirmed={...this.confirmed,[t.door]:i.target.checked}}}
+        />${this.t("technical_confirm")}</label
+      ><button type="submit" ?disabled=${this.busy||!this.confirmed[t.door]}>
+        ${this.t("save")}
+      </button>`:v`<p>${this.t("technical_unmanaged")}</p>`}doorEditor(t){let i=t.error?v`<p>${this.t(t.error)}</p>`:v`<form
+          @submit=${s=>{s.preventDefault(),this.save(t)}}
+        >
+          ${Object.entries(t.constraints??{}).map(([s,r])=>this.field(t,s,r))}${this.confirmation(t)}
+        </form>`;return v`<section>
+      <h4>${this.t("physical_lock")} · API ${t.door}</h4>
+      ${i}
+    </section>`}reportView(){let t=this.report;return t?v`${this.relayEditor()}
+      <h4>${this.t("technical_pin_title")}</h4>
+      <p>${this.t("technical_pin_"+(t.passwords?.public_pin_state??"unknown"))}</p>
+      <p class="sub">${this.t("technical_pin_scope")}</p>
+      <details>
+        <summary>${this.t("technical_pin_details")}</summary>
+        ${Object.entries(t.passwords?.states??{}).map(([i,s])=>v`<p><bdi>${i}</bdi>: ${this.t(s===null?"not_verified":s?"configured":"not_configured")}</p>`)}
+      </details>
+      ${t.doors.map(i=>this.doorEditor(i))}
+      <details>
+        <summary>${this.t("technical_capabilities")}</summary>
+        <p>${this.t("technical_capabilities_hint")}</p>
+        <ul>
+          ${t.features.map(i=>v`<li><bdi>${i.family} · ${i.name}</bdi> ${i.supported?"\u2713":"\u2014"}</li>`)}
+        </ul>
+      </details>
+      <p class="sub"><bdi>${t.checked_at}</bdi></p>`:E}render(){return v`<hikvision-hold-open
         .hass=${this.hass}
         .station=${this.station}
       ></hikvision-hold-open>
@@ -879,42 +925,7 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
         <p>${this.t("technical_intro")}</p>
         <button ?disabled=${this.busy} @click=${()=>this.load()}>
           ${this.t("technical_read")}</button
-        >${this.busy?v`<p role="status">${this.t("wait")}</p>`:E}${this.error?v`<p role="alert">${this.t(this.error)}</p>`:E}${this.report?v` ${this.relayEditor()}
-              <h4>${this.t("technical_pin_title")}</h4>
-              <p>
-                ${this.t("technical_pin_"+(this.report.passwords?.public_pin_state??"unknown"))}
-              </p>
-              <p class="sub">${this.t("technical_pin_scope")}</p>
-              <details>
-                <summary>${this.t("technical_pin_details")}</summary>
-                ${Object.entries(this.report.passwords?.states??{}).map(([t,i])=>v`<p><bdi>${t}</bdi>: ${this.t(i===null?"not_verified":i?"configured":"not_configured")}</p>`)}
-              </details>
-              ${this.report.doors.map(t=>v`<section>
-                    <h4>${this.t("physical_lock")} · API ${t.door}</h4>
-                    ${t.error?v`<p>${this.t(t.error)}</p>`:v` <form
-                            @submit=${i=>{i.preventDefault(),this.save(t)}}
-                          >
-                            ${Object.entries(t.constraints??{}).map(([i,s])=>v`<label>${this.t("technical_"+i)}${s.type==="boolean"?v`<input type="checkbox" .checked=${this.draft[t.door]?.[i]===!0} ?disabled=${this.busy||!this.managed(t.door)} @change=${r=>this.change(t.door,i,r.target.checked)} />`:v`<input required type=${s.type==="integer"?"number":"text"} min=${s.min??0} max=${s.max??255} maxlength=${s.max??64} .value=${String(this.draft[t.door]?.[i]??"")} ?disabled=${this.busy||!this.managed(t.door)} @input=${r=>this.change(t.door,i,s.type==="integer"?Number(r.target.value):r.target.value)} />`}</label>`)}
-                            ${this.managed(t.door)?v`<label
-                         ><input
-                           type="checkbox"
-                           .checked=${!!this.confirmed[t.door]}
-                           ?disabled=${this.busy}
-                           @change=${i=>{this.confirmed={...this.confirmed,[t.door]:i.target.checked}}}
-                         />${this.t("technical_confirm")}</label
-                       ><button type="submit" ?disabled=${this.busy||!this.confirmed[t.door]}>
-                         ${this.t("save")}
-                       </button>`:v`<p>${this.t("technical_unmanaged")}</p>`}
-                          </form>`}
-                  </section>`)}
-              <details>
-                <summary>${this.t("technical_capabilities")}</summary>
-                <p>${this.t("technical_capabilities_hint")}</p>
-                <ul>
-                  ${this.report.features.map(t=>v`<li><bdi>${t.family} · ${t.name}</bdi> ${t.supported?"\u2713":"\u2014"}</li>`)}
-                </ul>
-              </details>
-              <p class="sub"><bdi>${this.report.checked_at}</bdi></p>`:E}
+        >${this.busy?v`<p role="status">${this.t("wait")}</p>`:E}${this.error?v`<p role="alert">${this.t(this.error)}</p>`:E}${this.reportView()}
       </details>`}managed(t){return this.station?.integrated_locks.some(i=>i.api_id===t)??!1}change(t,i,s){this.draft={...this.draft,[t]:{...this.draft[t],[i]:s}},this.confirmed={...this.confirmed,[t]:!1}}};customElements.define("hikvision-station-technical",Vr);function cl(a){let e=a;if(!e||typeof e.query!="string"||e.query.length>128||!e.filters||typeof e.filters!="object"||Array.isArray(e.filters))throw Error();let t={rights:["","assigned","unassigned","disabled"],state:["","active","inactive","expired","upcoming"],credential:["","pin","no_pin","card","no_card"],sort:["employee","name","name_desc"]};for(let[s,r]of Object.entries(t))if(!r.includes(e.filters[s]))throw Error();if(typeof e.filters.station!="string"||e.filters.station.length>128||e.filters.group!==void 0&&(typeof e.filters.group!="string"||e.filters.group.length>48))throw Error();let i=e.filters.profile??{};if(typeof i!="object"||Array.isArray(i)||Object.keys(i).length>12||Object.entries(i).some(([s,r])=>!/^[a-z][a-z0-9_]{0,47}$/.test(s)||typeof r!="string"||r.length>100)||e.columns!==null&&(!Array.isArray(e.columns)||e.columns.length>12||new Set(e.columns).size!==e.columns.length||e.columns.some(s=>typeof s!="string"||!/^[a-z][a-z0-9_]{0,47}$/.test(s))))throw Error();return{query:e.query,filters:{station:e.filters.station,rights:e.filters.rights,state:e.filters.state,credential:e.filters.credential,sort:e.filters.sort,group:e.filters.group,profile:{...i}},columns:e.columns===null?null:[...e.columns]}}var qr=class extends Q{constructor(){super(...arguments);this.fields=[];this.views=[];this.selected="";this.name="";this.error="";this.authorized=!1;this.raw=null;this.t=t=>Z(this.hass?.language??"en",t)}static{this.styles=[de,ee`
       :host {
         display: block;

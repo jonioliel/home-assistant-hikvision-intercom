@@ -106,17 +106,17 @@ async def test_release_failure_does_not_show_success(hass, loaded_entry, device_
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call("lock", "unlock", {"entity_id": lock_id}, blocking=True)
     assert hass.states.get(lock_id).state == "locked"
-    assert loaded_entry.runtime_data._cancel_pulse is None
+    assert not loaded_entry.runtime_data.relay_timers
 
 
 async def test_unload_cancels_poll_and_pulse_and_closes_session(hass, loaded_entry):
     runtime = loaded_entry.runtime_data
     await runtime.async_unlock(1)
-    assert runtime._cancel_pulse is not None
+    assert runtime.relay_timers
     assert await hass.config_entries.async_unload(loaded_entry.entry_id)
     await hass.async_block_till_done()
     assert runtime.session.is_closed
-    assert runtime._cancel_pulse is None
+    assert not runtime.relay_timers
     assert hass.services.has_service(DOMAIN, "unlock_door")
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "unlock_door", {"lock": 1}, blocking=True)
@@ -174,7 +174,7 @@ async def test_admin_action_rejects_non_admin(hass, loaded_entry, device_io):
     device_io["unlock"].assert_not_called()
 
 
-@pytest.mark.parametrize("lock", [2, 65535, True, False, 1.5, "all"])
+@pytest.mark.parametrize("lock", [3, 65535, True, False, 1.5, "all"])
 async def test_service_invalid_lock_never_reaches_device(hass, loaded_entry, device_io, lock):
     import voluptuous as vol
 
@@ -288,7 +288,7 @@ async def test_unload_does_not_recreate_release_pulse_from_late_acknowledgement(
             reply.set()
             shutdown_finish.set()
             await asyncio.gather(opening, unloading, return_exceptions=True)
-    assert runtime._cancel_pulse is None
+    assert not runtime.relay_timers
     assert runtime.released is False
     assert isinstance(result, HomeAssistantError)
     assert result.translation_key == "release_unconfirmed"

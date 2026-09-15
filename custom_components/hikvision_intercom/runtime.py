@@ -62,7 +62,6 @@ class IntercomRuntime:
     relay_timers: dict[int, Callable[[], None]] = field(default_factory=dict)
     unlocking: bool = False
     released: bool = False
-    _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
     _closing: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -107,10 +106,13 @@ class IntercomRuntime:
                 previous_timer()
             self.released_relays.add(physical_index)
             self.released = bool(self.released_relays)
+
+            @callback
+            def finish(now: datetime) -> None:
+                self._finish_relay(physical_index, now)
+
             self.relay_timers[physical_index] = async_call_later(
-                self.hass,
-                self.pulse_seconds,
-                lambda now: self._finish_relay(physical_index, now),
+                self.hass, self.pulse_seconds, finish
             )
         finally:
             self.unlocking_relays.discard(physical_index)
@@ -126,22 +128,12 @@ class IntercomRuntime:
         if not self.is_closed:
             self.coordinator.async_update_listeners()
 
-    @callback
-    def _finish_pulse(self, _now: datetime) -> None:
-        self.released = False
-        self._cancel_pulse = None
-        if not self.is_closed:
-            self.coordinator.async_update_listeners()
-
     async def async_close(self) -> None:
         self._closing = True
         for cancel in self.relay_timers.values():
             cancel()
         self.relay_timers.clear()
         self.released_relays.clear()
-        if self._cancel_pulse:
-            self._cancel_pulse()
-            self._cancel_pulse = None
         self.released = False
         data = self.hass.data.get(DOMAIN, {})
         bridge = data.get("audio_sessions", {}).get(self.station_id)

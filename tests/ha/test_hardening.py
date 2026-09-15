@@ -31,7 +31,7 @@ async def test_entry_migration_preserves_all_credentials_and_permissions(hass):
     [
         (2, 1, DATA),
         (1, 3, DATA),
-        (1, 1, {**DATA, "locks": [{"physical_index": 2, "api_id": 2, "confirmed": True}]}),
+        (1, 1, {**DATA, "locks": [{"physical_index": 2, "api_id": 2, "confirmed": False}]}),
     ],
 )
 async def test_unsupported_migration_does_not_change_saved_data(hass, version, minor, data):

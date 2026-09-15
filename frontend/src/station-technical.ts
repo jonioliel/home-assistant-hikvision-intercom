@@ -172,32 +172,34 @@ export class StationTechnical extends LitElement {
               .checked=${!!relay}
               ?disabled=${this.busy}
               @change=${(e: Event) => {
-              this.relays = (e.target as HTMLInputElement).checked
-                ? [...this.relays, { physical_index: index, api_id: index, confirmed: true }]
-                : this.relays.filter((r) => r.physical_index !== index);
-              this.relayConfirmed = false;
-            }}
+                this.relays = (e.target as HTMLInputElement).checked
+                  ? [...this.relays, { physical_index: index, api_id: index, confirmed: true }]
+                  : this.relays.filter((r) => r.physical_index !== index);
+                this.relayConfirmed = false;
+              }}
             />${this.t("physical_lock")} ${index}</label
           >
           ${
-          relay
-            ? html`<label
-                >API ${index}<select
-                  .value=${String(relay.api_id)}
-                  ?disabled=${this.busy}
-                  @change=${(e: Event) => {
-                this.relays = this.relays.map((r) =>
-                  r === relay ? { ...r, api_id: Number((e.target as HTMLSelectElement).value) } : r,
-                );
-                this.relayConfirmed = false;
-              }}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select></label
-              >`
-            : nothing
-        }`;
+            relay
+              ? html`<label
+                  >API ${index}<select
+                    .value=${String(relay.api_id)}
+                    ?disabled=${this.busy}
+                    @change=${(e: Event) => {
+                      this.relays = this.relays.map((r) =>
+                        r === relay
+                          ? { ...r, api_id: Number((e.target as HTMLSelectElement).value) }
+                          : r,
+                      );
+                      this.relayConfirmed = false;
+                    }}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                  </select></label
+                >`
+              : nothing
+          }`;
       })}
       <label
         ><input
@@ -214,6 +216,84 @@ export class StationTechnical extends LitElement {
       </button>
     </fieldset>`;
   }
+
+  private field(door: Door, key: string, cap: { type: string; min?: number; max?: number }) {
+    const disabled = this.busy || !this.managed(door.door);
+    const control =
+      cap.type === "boolean"
+        ? html`<input
+            type="checkbox"
+            .checked=${this.draft[door.door]?.[key] === true}
+            ?disabled=${disabled}
+            @change=${(e: Event) => this.change(door.door, key, (e.target as HTMLInputElement).checked)}
+          />`
+        : html`<input
+            required
+            type=${cap.type === "integer" ? "number" : "text"}
+            min=${cap.min ?? 0}
+            max=${cap.max ?? 255}
+            maxlength=${cap.max ?? 64}
+            .value=${String(this.draft[door.door]?.[key] ?? "")}
+            ?disabled=${disabled}
+            @input=${(e: Event) => this.change(door.door, key, cap.type === "integer" ? Number((e.target as HTMLInputElement).value) : (e.target as HTMLInputElement).value)}
+          />`;
+    return html`<label>${this.t("technical_" + key)}${control}</label>`;
+  }
+  private confirmation(door: Door) {
+    if (!this.managed(door.door)) return html`<p>${this.t("technical_unmanaged")}</p>`;
+    return html`<label
+        ><input
+          type="checkbox"
+          .checked=${!!this.confirmed[door.door]}
+          ?disabled=${this.busy}
+          @change=${(e: Event) => {
+            this.confirmed = {
+              ...this.confirmed,
+              [door.door]: (e.target as HTMLInputElement).checked,
+            };
+          }}
+        />${this.t("technical_confirm")}</label
+      ><button type="submit" ?disabled=${this.busy || !this.confirmed[door.door]}>
+        ${this.t("save")}
+      </button>`;
+  }
+  private doorEditor(door: Door) {
+    const body = door.error
+      ? html`<p>${this.t(door.error)}</p>`
+      : html`<form
+          @submit=${(e: Event) => {
+            e.preventDefault();
+            void this.save(door);
+          }}
+        >
+          ${Object.entries(door.constraints ?? {}).map(([key, cap]) => this.field(door, key, cap))}${this.confirmation(door)}
+        </form>`;
+    return html`<section>
+      <h4>${this.t("physical_lock")} · API ${door.door}</h4>
+      ${body}
+    </section>`;
+  }
+  private reportView() {
+    const report = this.report;
+    if (!report) return nothing;
+    return html`${this.relayEditor()}
+      <h4>${this.t("technical_pin_title")}</h4>
+      <p>${this.t("technical_pin_" + (report.passwords?.public_pin_state ?? "unknown"))}</p>
+      <p class="sub">${this.t("technical_pin_scope")}</p>
+      <details>
+        <summary>${this.t("technical_pin_details")}</summary>
+        ${Object.entries(report.passwords?.states ?? {}).map(([key, v]) => html`<p><bdi>${key}</bdi>: ${this.t(v === null ? "not_verified" : v ? "configured" : "not_configured")}</p>`)}
+      </details>
+      ${report.doors.map((door) => this.doorEditor(door))}
+      <details>
+        <summary>${this.t("technical_capabilities")}</summary>
+        <p>${this.t("technical_capabilities_hint")}</p>
+        <ul>
+          ${report.features.map((f) => html`<li><bdi>${f.family} · ${f.name}</bdi> ${f.supported ? "✓" : "—"}</li>`)}
+        </ul>
+      </details>
+      <p class="sub"><bdi>${report.checked_at}</bdi></p>`;
+  }
   render() {
     return html`<hikvision-hold-open
         .hass=${this.hass}
@@ -224,65 +304,7 @@ export class StationTechnical extends LitElement {
         <p>${this.t("technical_intro")}</p>
         <button ?disabled=${this.busy} @click=${() => this.load()}>
           ${this.t("technical_read")}</button
-        >${this.busy ? html`<p role="status">${this.t("wait")}</p>` : nothing}${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}${
-        this.report
-          ? html` ${this.relayEditor()}
-              <h4>${this.t("technical_pin_title")}</h4>
-              <p>
-                ${this.t("technical_pin_" + (this.report.passwords?.public_pin_state ?? "unknown"))}
-              </p>
-              <p class="sub">${this.t("technical_pin_scope")}</p>
-              <details>
-                <summary>${this.t("technical_pin_details")}</summary>
-                ${Object.entries(this.report.passwords?.states ?? {}).map(([key, v]) => html`<p><bdi>${key}</bdi>: ${this.t(v === null ? "not_verified" : v ? "configured" : "not_configured")}</p>`)}
-              </details>
-              ${this.report.doors.map(
-                (door) =>
-                  html`<section>
-                    <h4>${this.t("physical_lock")} · API ${door.door}</h4>
-                    ${
-                      door.error
-                        ? html`<p>${this.t(door.error)}</p>`
-                        : html` <form
-                            @submit=${(e: Event) => {
-                 e.preventDefault();
-                 void this.save(door);
-               }}
-                          >
-                            ${Object.entries(door.constraints ?? {}).map(([key, cap]) => html`<label>${this.t("technical_" + key)}${cap.type === "boolean" ? html`<input type="checkbox" .checked=${this.draft[door.door]?.[key] === true} ?disabled=${this.busy || !this.managed(door.door)} @change=${(e: Event) => this.change(door.door, key, (e.target as HTMLInputElement).checked)} />` : html`<input required type=${cap.type === "integer" ? "number" : "text"} min=${cap.min ?? 0} max=${cap.max ?? 255} maxlength=${cap.max ?? 64} .value=${String(this.draft[door.door]?.[key] ?? "")} ?disabled=${this.busy || !this.managed(door.door)} @input=${(e: Event) => this.change(door.door, key, cap.type === "integer" ? Number((e.target as HTMLInputElement).value) : (e.target as HTMLInputElement).value)} />`}</label>`)}
-                            ${
-                 this.managed(door.door)
-                   ? html`<label
-                         ><input
-                           type="checkbox"
-                           .checked=${!!this.confirmed[door.door]}
-                           ?disabled=${this.busy}
-                           @change=${(e: Event) => {
-                             this.confirmed = {
-                               ...this.confirmed,
-                               [door.door]: (e.target as HTMLInputElement).checked,
-                             };
-                           }}
-                         />${this.t("technical_confirm")}</label
-                       ><button type="submit" ?disabled=${this.busy || !this.confirmed[door.door]}>
-                         ${this.t("save")}
-                       </button>`
-                   : html`<p>${this.t("technical_unmanaged")}</p>`
-               }
-                          </form>`
-                    }
-                  </section>`,
-              )}
-              <details>
-                <summary>${this.t("technical_capabilities")}</summary>
-                <p>${this.t("technical_capabilities_hint")}</p>
-                <ul>
-                  ${this.report.features.map((f) => html`<li><bdi>${f.family} · ${f.name}</bdi> ${f.supported ? "✓" : "—"}</li>`)}
-                </ul>
-              </details>
-              <p class="sub"><bdi>${this.report.checked_at}</bdi></p>`
-          : nothing
-      }
+        >${this.busy ? html`<p role="status">${this.t("wait")}</p>` : nothing}${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}${this.reportView()}
       </details>`;
   }
   private managed(door: number) {

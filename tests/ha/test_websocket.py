@@ -21,7 +21,14 @@ async def test_admin_overview_and_panel_registration(hass, loaded_entry, hass_ws
     result = await request(client, "overview")
     assert result["success"]
     station = result["result"]["stations"][0]
-    assert set(station["entities"]) == {"camera", "lock", "call_status", "online", "ringing"}
+    assert set(station["entities"]) == {
+        "camera",
+        "lock",
+        "lock_1",
+        "call_status",
+        "online",
+        "ringing",
+    }
     assert "password" not in json.dumps(result) and "demo-secret" not in json.dumps(result)
     assert hass.data[DOMAIN]["panel_registered"]
     from homeassistant.components.frontend import DATA_PANELS
