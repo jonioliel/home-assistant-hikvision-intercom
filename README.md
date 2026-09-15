@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.2)** — station settings, public PIN audit, two explicitly selected relays and per-door HA hold-open drafts. [Station management and limits](docs/STATION_MANAGEMENT_AND_SCHEDULING_HE.md), [verified checks](docs/VALIDATION.md). Automatic hold-open and user weekly deployment remain unavailable pending implementation/commissioning; this is an RC prerelease.
+Published runtime: **[1.0.0-rc.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.3)** — responsive station settings and user-local timing selection. [User timing and station layout](docs/USER_TIMING_AND_STATION_LAYOUT_HE.md), [verified checks](docs/VALIDATION.md). Continuous start/end validity uses the existing station path; weekly/calendar-date proposals are **not enforced** and leave current access unchanged. This is an RC prerelease.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.

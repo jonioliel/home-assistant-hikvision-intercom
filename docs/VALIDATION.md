@@ -1,5 +1,13 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.3
+
+Runtime `ba5bc5bad01b938895e6535562e89490ad3eb827` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35023254398): **1,086 Python tests per version (3.12/3.14), 328 Home Assistant tests, 399 Chromium tests and 24 Firefox/WebKit workflows** (423 browser tests). Ruff, mypy, TypeScript, formatting, reproducible bundle, HACS and Hassfest passed. The tag resolves to this runtime; downloaded manifest, panel and audio-worklet bytes match Git exactly. [Evidence](evidence/release_1.0.0-rc.3.json).
+
+New coverage verifies timing-draft persistence and separation from access intent, rejection of invalid/overlapping windows and activation fields, full-day local midnight conversion through a 25-hour DST day, old-server capability negotiation, and station layout at RTL widths 390/768/1440. Local full runs passed 1,086 Python and 399 Chromium tests. Earlier UI regression failures from card selectors and changed labels were corrected before this release. Actual HA and cross-browser verification was performed on Linux CI.
+
+Weekly and selected-date proposals remain explicitly **not enforced**; current station rights continue unchanged. Native RightPlan deployment, physical limited-time enforcement, and automatic HA hold-open remain open. No physical station writes were performed. This delivery does not close those acceptance gates. [Implementation and limits](USER_TIMING_AND_STATION_LAYOUT_HE.md).
+
 ## Published validation — 1.0.0-rc.2
 
 Runtime `2bee5a284f89cbeabae15f7bb9841a8c601f022d` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35017546786): **1,074 Python tests per version, 327 Home Assistant tests, 392 Chromium tests and 24 Firefox/WebKit workflows** (416 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Tag and downloaded artifact bytes match the tested commit. [Evidence](evidence/release_1.0.0-rc.2.json).
