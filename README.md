@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.1)** — explicit API compatibility, durable per-station sync tracking, live pending-age diagnostics, event-load hardening and cross-browser operational checks. [RC upgrade/restore and acceptance guide](docs/RC_OPERATIONS_HE.md), [verified checks](docs/VALIDATION.md). RC prerelease; limited-validity/commissioning and sustained field stability remain open.
+Published runtime: **[1.0.0-rc.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.2)** — station settings, public PIN audit, two explicitly selected relays and per-door HA hold-open drafts. [Station management and limits](docs/STATION_MANAGEMENT_AND_SCHEDULING_HE.md), [verified checks](docs/VALIDATION.md). Automatic hold-open and user weekly deployment remain unavailable pending implementation/commissioning; this is an RC prerelease.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -8,12 +8,12 @@ The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmw
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
 **Current releases include the core, access management, admin panel, events and recovery work from phases 0–5.**
-It includes user/card/PIN administration, cameras, one active lock per station, events,
+It includes user/card/PIN administration, cameras, up to two explicitly selected relays per station, events,
 audit history, recovery and Repairs. HACS installation is owner-confirmed; physical commissioning remains open.
 Recent updates fix permanent-user synchronization, add private-safe sync reports, show fleet/access health,
 and provide read-only station inspection, deliberate bulk assignments and detailed conflict comparison.
 Install tagged versions from [GitHub Releases](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases);
-publication requires passing CI. The earlier `0.1.0-alpha.1` contains protocol tools only.
+publication requires passing CI. Earlier protocol-only releases are retained in the changelog.
 See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 [upgrades, diagnostics and recovery](docs/HARDENING.md).
 [דוח מסירה בעברית](docs/DELIVERY_HE.md) · [ספירת משימות ואחוזי השלמה](docs/COMPLETION_HE.md).
@@ -26,12 +26,12 @@ browser; light/dark colors follow Home Assistant. All views adapt to the panel w
 with mobile user cards. **Management tools** groups advanced views and the Appearance picker;
 camera/editor dialogs contain only their relevant controls. See the [guide and screenshots](docs/ALTERNATE_UI_028_HE.md).
 
-## Two-way audio preview (0.26)
+## Two-way audio
 
-Open a camera and select **Start audio** to listen; hold the talk button to transmit.
+Open a camera and select **Start audio** to listen. Management tools selects either hold-to-talk or explicit start/stop microphone control.
 Microphone access requires HTTPS. Audio is scoped to the station and browser connection,
 and closes on disconnect, backgrounding, call termination or after three minutes.
-Protocol transport was verified on two stations; audible field acceptance remains pending.
+Audible output at the intercom speaker is owner-confirmed.
 See the [audio guide and evidence](docs/AUDIO_026_HE.md).
 
 ## Administrator workflows (0.25)
@@ -68,8 +68,7 @@ or earlier requires restoring a matching backup.
 - UI setup in English or Hebrew, reauthentication and reconfiguration.
 - A device per station with online, ringing and call-status entities.
 - A standard HA camera with snapshots and HA-proxied RTSP video.
-- One active physical lock per station, or camera-only mode. The installation owner has
-  excluded the disabled second relay throughout this project.
+- Camera-only mode, one selected relay, or two explicitly mapped relays. Additional relays are never enabled by discovery and existing users do not automatically receive access to them.
 - A supervised mapping wizard: explicitly send a test release, then confirm that the intended
   lock released and returned. No lock is enabled by capability discovery alone.
 - Momentary release through the lock entity and the administrator-only
@@ -81,8 +80,15 @@ The displayed lock return is **optimistic**, based on a configurable display tim
 The intercom controls the actual relay duration; no physical door contact is inferred.
 `onCall` means the device reports busy/in-call, and does not prove that somebody answered.
 Unknown call states remain unknown. Capability-gated call commands are available, while
-two-way microphone audio is available as a preview in the camera dialog. Physical call and
-audible audio acceptance remain open.
+two-way microphone audio is available in the camera dialog. Audible audio and ringing indication/event/camera acceptance are owner-confirmed.
+
+## Station administration
+
+**Management tools → Intercoms** includes technical settings and public PIN status auditing.
+Only advertised door parameters can be changed; confirmation and readback are required.
+Public PIN writing is unavailable on the observed firmware. HA hold-open drafts copy a
+weekly/dated schedule and an explicit time zone for one door; saving does not activate it.
+See [implementation and remaining commissioning](docs/STATION_MANAGEMENT_AND_SCHEDULING_HE.md).
 
 ## Schedule planning
 

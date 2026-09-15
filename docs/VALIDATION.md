@@ -1,5 +1,11 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.2
+
+Runtime `2bee5a284f89cbeabae15f7bb9841a8c601f022d` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35017546786): **1,074 Python tests per version, 327 Home Assistant tests, 392 Chromium tests and 24 Firefox/WebKit workflows** (416 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Tag and downloaded artifact bytes match the tested commit. [Evidence](evidence/release_1.0.0-rc.2.json).
+
+Tests cover configuration readback/conflicts, complete versus unknown public PIN status, independent relays, persisted multi-relay permissions, event mapping/cache reload, and offline hold-open recovery/fault injection. CI caught an unsafe timer callback and obsolete single-relay assertions; these were corrected before publication. An earlier RC2 release run was cancelled before publishing to add distinct relay labels. No physical station configuration writes were made. Hold-open remains draft-only; weekly user deployment and unsupported public PIN writing remain open. [Scope and commissioning](STATION_MANAGEMENT_AND_SCHEDULING_HE.md).
+
 ## Published validation — 1.0.0-rc.1
 
 Runtime `aa05517c8341dc280be6a55aeea3dd7c03a4278f` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/34835757608): **1,053 Python tests per version (3.12 and 3.14), 318 real Home Assistant tests, 389 Chromium tests and 24 Firefox/WebKit workflow tests** (413 browser tests total). Ruff, mypy, TypeScript, formatting, reproducible bundle, HACS and Hassfest passed. Manifest, panel and audio-worklet bytes on the published tag match the tested commit. [Evidence](evidence/release_1.0.0-rc.1.json).

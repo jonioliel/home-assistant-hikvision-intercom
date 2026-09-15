@@ -7,9 +7,9 @@
 
 Nine is neither a target nor a release prerequisite. Station independence remains mandatory, tested with relevant samples rather than a fixed fleet gate. Core acceptance is **35/37 = 94.6%; DoD39 (lab/commissioning) and DoD40 (sustained stability) remain open**. This is an acceptance count, not a percentage of remaining engineering effort. [Scope decision](SCALABLE_SCOPE_HE.md).
 
-## Candidate in preparation — 1.0.0-rc.2
+## Current published release — 1.0.0-rc.2
 
-Station administration, two explicitly selected relays, per-user relay rights, and HA hold-open drafts are implemented. The prepared hold/restore worker is **not connected to production timers**; coordinated physical commissioning and runtime integration are still open. User weekly RightPlan deployment and unsupported public PIN writing are not claimed complete. [Scope, evidence and remaining steps](STATION_MANAGEMENT_AND_SCHEDULING_HE.md). No new physical acceptance items are closed.
+Station administration, two explicitly selected relays, per-user relay rights, and HA hold-open drafts are implemented. The prepared hold/restore worker is **not connected to production timers**; coordinated physical commissioning and runtime integration are still open. User weekly RightPlan deployment and unsupported public PIN writing are not claimed complete. [Scope, evidence and remaining steps](STATION_MANAGEMENT_AND_SCHEDULING_HE.md). No new physical acceptance items are closed. All seven release jobs passed; [release evidence](evidence/release_1.0.0-rc.2.json).
 
 ## Published release — 1.0.0-rc.1
 
