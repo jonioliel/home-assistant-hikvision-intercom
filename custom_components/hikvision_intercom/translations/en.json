@@ -185,7 +185,7 @@
       "fields": {
         "lock": {
           "name": "Physical lock",
-          "description": "Only the configured active lock (1) can be operated."
+          "description": "Only a selected relay with a confirmed mapping can be operated."
         }
       }
     },

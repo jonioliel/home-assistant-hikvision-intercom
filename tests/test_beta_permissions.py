@@ -273,7 +273,7 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     save = AsyncMock()
     restored = AccessRepository(save)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 8
+    assert restored.snapshot()["schema"] == 9
     assert restored.get(user.id).private() == manager.repository.get(user.id).private()
     save.assert_awaited_once()
 
@@ -318,3 +318,20 @@ async def test_modern_schema_missing_explicit_exceptions_is_rejected_before_save
     with pytest.raises(AccessError, match="invalid_storage"):
         await restored.async_load(state)
     save.assert_not_awaited()
+
+
+async def test_second_relay_is_explicit_and_survives_metadata_and_restart(managed):
+    manager, user, _ = managed
+    repo = manager.repository
+    assert repo.get(user.id).assignments["a"].allowed_locks == frozenset({1})
+    updated = await repo.async_update(
+        user.id, {"door_permissions": {"a": [1, 2]}}, expected_revision=user.revision
+    )
+    assert updated.assignments["a"].allowed_locks == frozenset({1, 2})
+    updated = await repo.async_update(
+        user.id, {"display_name": "Renamed"}, expected_revision=updated.revision
+    )
+    assert updated.assignments["a"].allowed_locks == frozenset({1, 2})
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(repo.snapshot())
+    assert restored.get(user.id).assignments["a"].allowed_locks == frozenset({1, 2})

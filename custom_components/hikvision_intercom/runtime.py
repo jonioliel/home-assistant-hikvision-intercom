@@ -57,6 +57,9 @@ class IntercomRuntime:
     station_id: str
     events: StationEvents | None = None
     clock: StationClock | None = None
+    unlocking_relays: set[int] = field(default_factory=set)
+    released_relays: set[int] = field(default_factory=set)
+    relay_timers: dict[int, Callable[[], None]] = field(default_factory=dict)
     unlocking: bool = False
     released: bool = False
     _cancel_pulse: Callable[[], None] | None = field(default=None, repr=False)
@@ -79,11 +82,12 @@ class IntercomRuntime:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="lock_not_managed"
             )
-        if self.unlocking:
+        if physical_index in self.unlocking_relays:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="release_in_progress"
             )
-        self.unlocking = True
+        self.unlocking_relays.add(physical_index)
+        self.unlocking = bool(self.unlocking_relays)
         self.coordinator.async_update_listeners()
         try:
             await self.client.async_unlock(selected.api_id)
@@ -98,14 +102,29 @@ class IntercomRuntime:
                 raise HomeAssistantError(
                     translation_domain=DOMAIN, translation_key="release_unconfirmed"
                 )
-            if self._cancel_pulse:
-                self._cancel_pulse()
-            self.released = True
-            self._cancel_pulse = async_call_later(self.hass, self.pulse_seconds, self._finish_pulse)
+            previous_timer = self.relay_timers.pop(physical_index, None)
+            if previous_timer:
+                previous_timer()
+            self.released_relays.add(physical_index)
+            self.released = bool(self.released_relays)
+            self.relay_timers[physical_index] = async_call_later(
+                self.hass,
+                self.pulse_seconds,
+                lambda now: self._finish_relay(physical_index, now),
+            )
         finally:
-            self.unlocking = False
+            self.unlocking_relays.discard(physical_index)
+            self.unlocking = bool(self.unlocking_relays)
             if not self.is_closed:
                 self.coordinator.async_update_listeners()
+
+    @callback
+    def _finish_relay(self, physical_index: int, _now: datetime) -> None:
+        self.relay_timers.pop(physical_index, None)
+        self.released_relays.discard(physical_index)
+        self.released = bool(self.released_relays)
+        if not self.is_closed:
+            self.coordinator.async_update_listeners()
 
     @callback
     def _finish_pulse(self, _now: datetime) -> None:
@@ -116,6 +135,10 @@ class IntercomRuntime:
 
     async def async_close(self) -> None:
         self._closing = True
+        for cancel in self.relay_timers.values():
+            cancel()
+        self.relay_timers.clear()
+        self.released_relays.clear()
         if self._cancel_pulse:
             self._cancel_pulse()
             self._cancel_pulse = None
@@ -178,6 +201,7 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
         settings,
         enabled_doors=frozenset(lock.api_id for lock in locks),
         expected_identity=entry.unique_id,
+        physical_doors={lock.physical_index: lock.api_id for lock in locks},
     )
     coordinator = IntercomCoordinator(hass, entry, client)
     manager = get_manager(hass)
@@ -224,8 +248,8 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
             entry.entry_id,
         )
         registry = er.async_get(hass)
-        if not locks:
-            old = registry.async_get_entity_id("lock", DOMAIN, f"{entry.unique_id}_door_1")
+        for index in {1, 2} - {lock.physical_index for lock in locks}:
+            old = registry.async_get_entity_id("lock", DOMAIN, f"{entry.unique_id}_door_{index}")
             if old:
                 registry.async_remove(old)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -303,13 +327,13 @@ def async_register_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     translation_domain=DOMAIN, translation_key="target_unloaded"
                 )
-            if not runtime.locks or call.data["lock"] != 1:
+            if call.data["lock"] not in {lock.physical_index for lock in runtime.locks}:
                 raise ServiceValidationError(
                     translation_domain=DOMAIN, translation_key="target_lock_not_managed"
                 )
             targets.append(runtime)
         for runtime in targets:
-            await runtime.async_unlock(1)
+            await runtime.async_unlock(call.data["lock"])
 
     async_register_admin_service(
         hass,
@@ -327,6 +351,6 @@ def async_register_services(hass: HomeAssistant) -> None:
 
 def _physical_lock(value: object) -> int:
     """Accept the UI's string selection or exact integer; never coerce booleans/floats."""
-    if (type(value) is int and value == 1) or (type(value) is str and value == "1"):
-        return 1
-    raise vol.Invalid("Only physical lock 1 is managed")
+    if (type(value) is int and value in {1, 2}) or (type(value) is str and value in {"1", "2"}):
+        return int(value)
+    raise vol.Invalid("Invalid physical relay")

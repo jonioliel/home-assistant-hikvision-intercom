@@ -708,6 +708,7 @@ export class IntercomEvents extends LitElement {
             >${this.t("door")}<select name="door" aria-label=${this.t("door")}>
               <option value="">${this.t("all")}</option>
               <option value="1">1</option>
+              <option value="2">2</option>
             </select></label
           >
           <label>${this.t("from_time")}<input type="datetime-local" name="start" /></label>

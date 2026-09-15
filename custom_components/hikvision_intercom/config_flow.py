@@ -266,7 +266,7 @@ class HikvisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 lock["name"] = self._lock_name
             else:
                 lock.pop("name", None)
-            self._data["locks"] = [lock]
+            self._data["locks"] = [lock, *self._data["locks"][1:]]
         managed_locks(self._data)
         if self.source == config_entries.SOURCE_RECONFIGURE:
             return self.async_update_reload_and_abort(

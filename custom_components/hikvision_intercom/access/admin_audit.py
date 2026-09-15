@@ -262,8 +262,8 @@ def validate_storage(audit: Any, receipts: Any) -> None:
                     or type(a["enabled"]) is not bool
                     or not isinstance(a["allowed_locks"], list)
                     or any(type(lock) is not int for lock in a["allowed_locks"])
-                    or a["allowed_locks"] not in ([], [1])
-                    or (a["enabled"] and a["allowed_locks"] != [1])
+                    or a["allowed_locks"] not in ([], [1], [2], [1, 2])
+                    or (a["enabled"] and not a["allowed_locks"])
                 ):
                     raise AccessError("invalid_storage")
         if any(

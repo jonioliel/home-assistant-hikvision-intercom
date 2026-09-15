@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.2] - 2026-09-15
+
+- Administrator station settings: read device capabilities, audit all sixteen public PIN slots without exposing codes, and edit advertised door name, release duration and relay polarity with confirmation, conflict detection and readback. Unsupported public PIN writing remains unavailable.
+- Support two explicitly mapped relays per station, independent release indicators/entities, per-user door selection and correct event mapping. Existing users retain their original door permissions; group grants do not automatically add relay 2.
+- Access storage schema 9 atomically migrates schemas 1–8. Restore the matching pre-upgrade HA backup and integration version when rolling back; code-only downgrade is unsupported.
+- Add per-door HA hold-open drafts using copied weekly/dated schedules and an explicit IANA time zone. Prepared write-ahead transition logic handles lost responses and restart recovery in offline tests. **Automatic execution is not enabled**: coordinated physical hold/restore commissioning and runtime scheduling integration remain required. HA/network outages can leave a held door unlocked.
+- Remove the obsolete preview label from two-way audio; retain useful microphone controls and diagnostics.
+- User weekly access deployment, fixed PIN writes on unsupported firmware, and physical relay/hold-open commissioning are not claimed as completed or verified by this release.
+
 ## [1.0.0-rc.1] - 2026-09-14
 
 - Explicit panel API contract: compatible legacy clients remain supported; incompatible writes fail safely, reads remain available, and open drafts are retained with a refresh explanation.

@@ -2837,3 +2837,16 @@ production feature enabled
 ```
 
 This approach prevents a fragile integration that appears correct in code but fails on the installed firmware.
+
+
+## Owner amendment — 2026-09-15: station administration and HA fallback
+
+The owner requests optional relay 2 management with explicit mapping, per-door user rights,
+public PIN status/management where actually supported, weekly/dated user restrictions,
+and weekly/dated hold-open periods. Existing single-relay defaults remain unchanged.
+The owner approved preparing an HA-managed hold-open alternative where native station
+schedules are unsupported, acknowledging its HA/network dependency. No physical writes
+were authorized to run unattended for commissioning: prepare implementation and coordinate
+hold/restore and time-window enforcement tests later. Drafts must never be represented as
+active restrictions or an active hold-open schedule. See
+`docs/STATION_MANAGEMENT_AND_SCHEDULING_HE.md` for implementation and pending verification.

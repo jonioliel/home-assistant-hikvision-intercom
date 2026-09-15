@@ -312,11 +312,11 @@ def build_user(
             locks = raw.get("allowed_locks", [1])
             if (
                 not isinstance(locks, list)
-                or any(type(lock) is not int or lock != 1 for lock in locks)
+                or any(type(lock) is not int or lock not in {1, 2} for lock in locks)
                 or len(locks) != len(set(locks))
             ):
                 raise AccessError("unmanaged_lock")
-            if enabled and locks != [1]:
+            if enabled and not locks:
                 raise AccessError("unmanaged_lock")
             if raw.get("schedule_template") is not None:
                 raise AccessError("schedule_unverified")

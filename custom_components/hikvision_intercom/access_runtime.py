@@ -92,6 +92,13 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "profile_settings_storage_corrupt", active=False)
         hass.data[DOMAIN]["profile_settings"] = profiles
 
+    from .access.hold_open import HoldOpenDrafts
+
+    hold_store = AccessStore(hass, key=f"{DOMAIN}.hold_open_drafts")
+    hold_drafts = HoldOpenDrafts(hold_store.async_save)
+    hold_drafts.load(await hold_store.async_load())
+    hass.data[DOMAIN]["hold_open_drafts"] = hold_drafts
+
     schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
     schedules = ScheduleLibrary(schedule_store.async_save, changed)
     try:

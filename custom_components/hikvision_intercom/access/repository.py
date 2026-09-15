@@ -30,7 +30,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 8,
+            "schema": 9,
             "sync_operations": {},
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
@@ -50,7 +50,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8)
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9)
             legacy_state = set(self._state) - {"sync_operations"}
             legacy_keys = legacy_state - {
                 "admin_audit",
@@ -83,8 +83,11 @@ class AccessRepository:
             if data.get("schema") == 7 and set(data) == legacy_state:
                 data = {**deepcopy(data), "schema": 8, "sync_operations": {}}
                 migrated = True
+            if data.get("schema") == 8 and set(data) == set(self._state):
+                data = {**deepcopy(data), "schema": 9}
+                migrated = True
             try:
-                if data.get("schema") != 8 or set(data) != set(self._state):
+                if data.get("schema") != 9 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -997,7 +1000,20 @@ class AccessRepository:
             from .models import StationAssignment
 
             user.assignments[station] = StationAssignment(
-                station, True, frozenset({1}), desired_revision=user.revision
+                station,
+                True,
+                build_user(
+                    {
+                        **data,
+                        "assignments": data.get("assignments", {station: {"allowed_locks": [1]}}),
+                    },
+                    employee_no=data["employee_no"],
+                    now=utc_now(),
+                    previous=previous,
+                )
+                .assignments[station]
+                .allowed_locks,
+                desired_revision=user.revision,
             )
             user.permission_overrides[station] = "allow"
             user.identity_locked = True

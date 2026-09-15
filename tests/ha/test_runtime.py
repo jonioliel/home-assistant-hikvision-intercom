@@ -91,9 +91,7 @@ async def test_custom_service_and_unselected_rejection(hass, loaded_entry, devic
         DOMAIN, "unlock_door", {"device_id": device_id, "lock": 1}, blocking=True
     )
     device_io["unlock"].assert_awaited_once_with(1)
-    import voluptuous as vol
-
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
             DOMAIN, "unlock_door", {"device_id": device_id, "lock": 2}, blocking=True
         )
@@ -453,3 +451,29 @@ async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_e
     await hass.async_block_till_done()
     for eid in ids.values():
         assert hass.states.get(eid) is None or hass.states.get(eid).state == "unavailable"
+
+
+async def test_two_selected_relays_have_independent_entities_and_pulses(hass, device_io):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="DEMO-SERIAL",
+        data={
+            **DATA,
+            "locks": [
+                {"physical_index": 1, "api_id": 2, "confirmed": True},
+                {"physical_index": 2, "api_id": 1, "confirmed": True},
+            ],
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    first, second = entity_id(hass, "lock", "door_1"), entity_id(hass, "lock", "door_2")
+    await hass.services.async_call("lock", "unlock", {"entity_id": second}, blocking=True)
+    device_io["unlock"].assert_awaited_once_with(1)
+    assert hass.states.get(first).state == "locked"
+    assert hass.states.get(second).state == "unlocked"
+    await hass.services.async_call("lock", "unlock", {"entity_id": first}, blocking=True)
+    assert device_io["unlock"].await_args.args == (2,)
+    assert hass.states.get(first).state == "unlocked"
+    await hass.config_entries.async_unload(entry.entry_id)

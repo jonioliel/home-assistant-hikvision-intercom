@@ -83,7 +83,7 @@ def normalize_event(
     key: bytes,
     *,
     received: datetime,
-    selected_api: int | None,
+    selected_api: int | dict[int, int] | None,
     historical: bool = False,
     occurrence: int = 0,
 ) -> dict[str, Any] | None:
@@ -159,7 +159,13 @@ def normalize_event(
         "time_source": "device" if when else "received",
         "employee_no": employee,
         "person_name": _text(row.get("name")),
-        "door": 1 if api_door is not None and api_door == selected_api else None,
+        "door": (
+            (selected_api.get(api_door) if api_door is not None else None)
+            if isinstance(selected_api, dict)
+            else 1
+            if api_door is not None and api_door == selected_api
+            else None
+        ),
         "api_door": api_door,
         "authentication": authentication,
         "result": result,
@@ -216,7 +222,7 @@ class EventCache:
                 number = row[field]
                 if number is not None and (type(number) is not int or number < 0):
                     raise HikvisionValidationError("Invalid audit number")
-            if row["door"] not in {None, 1} or row["api_door"] not in {None, 1, 2}:
+            if row["door"] not in {None, 1, 2} or row["api_door"] not in {None, 1, 2}:
                 raise HikvisionValidationError("Invalid audit door")
             self.rows[row["id"]] = copy.deepcopy(row)
         self.prune(now)
@@ -324,7 +330,9 @@ class EventCache:
                 not isinstance(filters[field], str) or filters[field] not in values
             ):
                 raise HikvisionValidationError("Invalid event filter")
-        if "door" in filters and (type(filters["door"]) is not int or filters["door"] != 1):
+        if "door" in filters and (
+            type(filters["door"]) is not int or filters["door"] not in {1, 2}
+        ):
             raise HikvisionValidationError("Invalid door filter")
         for field in ("station_id", "person", "before"):
             if field in filters and _text(filters[field]) is None:

@@ -1,3 +1,4 @@
+import "./station-technical";
 import "./saved-user-views";
 import { compatible, contractHass } from "./api-contract";
 import type { UserView } from "./saved-user-views";
@@ -484,7 +485,9 @@ export class IntercomManagerPanel extends LitElement {
             this.refreshValidityZone();
             this._refreshFailed = false;
             const configured = new Set(data.stations.map((station) => station.id));
-            this._releases = new Map([...this._releases].filter(([id]) => configured.has(id)));
+            this._releases = new Map(
+              [...this._releases].filter(([id]) => configured.has(id.split("/")[0])),
+            );
           }
         } catch {
           if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
@@ -569,11 +572,11 @@ export class IntercomManagerPanel extends LitElement {
       ) ?? (values.length ? "synced" : "inactive")
     );
   }
-  private lockName(station: Station) {
-    return station.integrated_locks.find((lock) => lock.physical_index === 1)?.name;
+  private lockName(station: Station, physical = 1) {
+    return station.integrated_locks.find((lock) => lock.physical_index === physical)?.name;
   }
-  private unlockLabel(station: Station) {
-    const name = this.lockName(station);
+  private unlockLabel(station: Station, physical = 1) {
+    const name = this.lockName(station, physical);
     return name ? this.t("open_named_lock").replace("{name}", name) : this.t("open_door");
   }
   private validitySummary(user: Person) {
@@ -800,7 +803,13 @@ export class IntercomManagerPanel extends LitElement {
       const mode = draft.permission_overrides?.[id];
       const enabled = mode === "allow" || (mode !== "deny" && this.inheritedGroups(id).length > 0);
       if (enabled)
-        draft.assignments[id] = { ...draft.assignments[id], enabled: true, allowed_locks: [1] };
+        draft.assignments[id] = {
+          ...draft.assignments[id],
+          enabled: true,
+          allowed_locks: draft.assignments[id]?.allowed_locks?.length
+            ? draft.assignments[id].allowed_locks
+            : [1],
+        };
       else delete draft.assignments[id];
     }
   }
@@ -863,6 +872,11 @@ export class IntercomManagerPanel extends LitElement {
       ...(this._data?.profile_settings
         ? {
             permission_overrides: draft.permission_overrides ?? {},
+            door_permissions: Object.fromEntries(
+              Object.entries(draft.assignments)
+                .filter(([, a]) => a.enabled)
+                .map(([id, a]) => [id, a.allowed_locks]),
+            ),
             access_policy_revision: this._editorPolicyRevision,
           }
         : { assignments: draft.assignments }),
@@ -1462,25 +1476,35 @@ export class IntercomManagerPanel extends LitElement {
     });
     if (success) this.close();
   }
-  private releasing(station: Station) {
+  private releasing(station: Station, physical = 1) {
     return (
-      !!this._releases.get(station.id)?.pending ||
-      this.hass?.states[station.entities.lock]?.state === "unlocking"
+      !!this._releases.get(`${station.id}/${physical}`)?.pending ||
+      this.hass?.states[
+        station.entities[`lock_${physical}`] ?? (physical === 1 ? station.entities.lock : "")
+      ]?.state === "unlocking"
     );
   }
   private releaseButton(station: Station, primary = false) {
+    return station.integrated_locks.map((lock) =>
+      this.relayButton(station, lock.physical_index, primary),
+    );
+  }
+  private relayButton(station: Station, physical: number, primary: boolean) {
     return html`<button
       class=${primary ? "primary" : ""}
-      aria-label=${this.unlockLabel(station)}
-      aria-busy=${this.releasing(station) ? "true" : "false"}
-      ?disabled=${!this._haConnected || !station.online || !station.lock_enabled || this.releasing(station)}
-      @click=${() => this.unlock(station)}
+      aria-label=${this.unlockLabel(station, physical)}
+      aria-busy=${this.releasing(station, physical) ? "true" : "false"}
+      ?disabled=${!this._haConnected || !station.online || !station.lock_enabled || this.releasing(station, physical)}
+      @click=${() => this.unlock(station, physical)}
     >
-      ${icon("lock")}${this.releasing(station) ? this.t("releasing") : this.unlockLabel(station)}
+      ${icon("lock")}${this.releasing(station, physical) ? this.t("releasing") : this.unlockLabel(station, physical)}
     </button>`;
   }
   private releaseFeedback(station: Station) {
-    const state = this._releases.get(station.id);
+    const state = [...this._releases.entries()]
+      .filter(([key]) => key.startsWith(station.id + "/"))
+      .map(([, value]) => value)
+      .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))[0];
     if (!state || !station.lock_enabled) return nothing;
     return html`<div
       class="release-feedback ${!state.pending && state.code !== "release_sent" ? "danger" : ""}"
@@ -1493,7 +1517,7 @@ export class IntercomManagerPanel extends LitElement {
       <p>${this.t(state.code)}</p>
     </div>`;
   }
-  private async unlock(station: Station) {
+  private async unlock(station: Station, physical = 1) {
     const current = this._data?.stations.find((item) => item.id === station.id);
     if (
       !this.hass?.user?.is_admin ||
@@ -1502,7 +1526,8 @@ export class IntercomManagerPanel extends LitElement {
       this.hass.connection.connected === false ||
       !current?.online ||
       !current.lock_enabled ||
-      this.releasing(current)
+      !current.integrated_locks.some((lock) => lock.physical_index === physical) ||
+      this.releasing(current, physical)
     )
       return;
     const epoch = this._epoch;
@@ -1512,10 +1537,10 @@ export class IntercomManagerPanel extends LitElement {
       requestedAt: new Date().toISOString(),
     };
     // Record synchronously, before awaiting I/O, to reject double clicks across views.
-    this._releases = new Map(this._releases).set(current.id, state);
+    this._releases = new Map(this._releases).set(`${current.id}/${physical}`, state);
     let code = "release_sent";
     try {
-      await this.api("stations/test_unlock", { station_id: current.id, lock: 1 });
+      await this.api("stations/test_unlock", { station_id: current.id, lock: physical });
     } catch (error) {
       const candidate = (error as { code?: string })?.code;
       code = candidate && releaseErrors.has(candidate) ? candidate : "release_unconfirmed";
@@ -1524,9 +1549,13 @@ export class IntercomManagerPanel extends LitElement {
       epoch === this._epoch &&
       this.isConnected &&
       this.hass?.user?.is_admin &&
-      this._releases.get(current.id) === state
+      this._releases.get(`${current.id}/${physical}`) === state
     ) {
-      this._releases = new Map(this._releases).set(current.id, { ...state, pending: false, code });
+      this._releases = new Map(this._releases).set(`${current.id}/${physical}`, {
+        ...state,
+        pending: false,
+        code,
+      });
       // A slow overview refresh must not extend the release button's pending state.
       void this.refresh();
     }
@@ -2379,6 +2408,10 @@ export class IntercomManagerPanel extends LitElement {
                 <a href=${settingsPath}>${this.t("configure")}</a>
               </div>
               ${this.releaseFeedback(station)}
+              <hikvision-station-technical
+                .hass=${this.protectedHass}
+                .station=${station}
+              ></hikvision-station-technical>
             </article>`,
         )}
       </div>`;
@@ -2899,6 +2932,35 @@ export class IntercomManagerPanel extends LitElement {
                     }</small
                   >
                   ${draft.permission_overrides?.[station.id] ? html`<button type="button" class="permission-reset" @click=${() => this.setPersonalPermission(station.id, "inherit")}>${this.t("permission_reset")}</button>` : nothing}
+                  ${
+                    draft.assignments[station.id]?.enabled && station.integrated_locks.length > 1
+                      ? html`<div class="row">
+                          ${station.integrated_locks.map(
+                            (lock) =>
+                              html`<label class="check"
+                                ><input
+                                  type="checkbox"
+                                  .checked=${draft.assignments[station.id].allowed_locks.includes(lock.physical_index)}
+                                  @change=${(e: Event) => {
+                                    const assignment = draft.assignments[station.id];
+                                    const selected = checked(e)
+                                      ? [...assignment.allowed_locks, lock.physical_index]
+                                      : assignment.allowed_locks.filter(
+                                          (i) => i !== lock.physical_index,
+                                        );
+                                    if (!selected.length)
+                                      this.setPersonalPermission(station.id, "deny");
+                                    else {
+                                      assignment.allowed_locks = selected;
+                                      this.requestUpdate();
+                                    }
+                                  }}
+                                />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label
+                              >`,
+                          )}
+                        </div>`
+                      : nothing
+                  }
                   ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
                 </div>`,
             )}

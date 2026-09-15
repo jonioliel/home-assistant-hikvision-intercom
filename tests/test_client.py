@@ -84,7 +84,7 @@ def test_bad_call_enum(raw):
     [
         None,
         {},
-        [{"physical_index": 2, "api_id": 2, "confirmed": True}],
+        [{"physical_index": 2, "api_id": 2, "confirmed": False}],
         [{"physical_index": True, "api_id": 1, "confirmed": True}],
         [{"physical_index": 1, "api_id": True, "confirmed": True}],
         [{"physical_index": 1, "api_id": 65535, "confirmed": True}],

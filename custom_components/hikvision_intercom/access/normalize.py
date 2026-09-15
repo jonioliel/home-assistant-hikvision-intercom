@@ -66,7 +66,12 @@ def canonical(
     return {"person": person, "cards": sorted(cards, key=lambda card: card["cardNo"])}
 
 
-def desired_person(user: ManagedUser, api_id: int, caps: AccessCapabilities) -> dict[str, Any]:
+def desired_person(
+    user: ManagedUser, api_id: int | tuple[int, ...], caps: AccessCapabilities
+) -> dict[str, Any]:
+    ids = (api_id,) if isinstance(api_id, int) else api_id
+    if not ids or any(type(i) is not int or i not in {1, 2} for i in ids):
+        raise AccessError("unmanaged_lock")
     if len(user.employee_no) > caps.employee_max or len(user.display_name) > caps.name_max:
         raise AccessError("person_exceeds_capabilities")
     if user.user_type not in caps.user_types:
@@ -92,7 +97,7 @@ def desired_person(user: ManagedUser, api_id: int, caps: AccessCapabilities) -> 
         "name": user.display_name,
         "userType": user.user_type,
         "Valid": validity,
-        "doorRight": str(api_id),
+        "doorRight": ",".join(str(i) for i in sorted(ids)),
         "RightPlan": [],
         "localUIRight": False,
     }
@@ -146,3 +151,10 @@ def merge_person(inventory: StationInventory, employee_no: str, observed: Statio
         if card["employeeNo"] == employee_no:
             del inventory.cards[key]
     inventory.cards.update(deepcopy(observed.cards))
+
+
+def assignment_doors(user: ManagedUser, station: str, mapping: dict[int, int]) -> tuple[int, ...]:
+    assignment = user.assignments.get(station)
+    if assignment is None or not assignment.allowed_locks <= mapping.keys():
+        raise AccessError("unmanaged_lock")
+    return tuple(sorted(mapping[i] for i in assignment.allowed_locks))

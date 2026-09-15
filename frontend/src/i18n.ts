@@ -1,4 +1,45 @@
 const en = {
+  technical_relays: "Managed relay outputs",
+  technical_relays_hint:
+    "Select only connected outputs. Existing users keep their current access; selecting a second relay does not grant access to it.",
+  technical_relays_confirm:
+    "I verified the physical relay mapping. Save and reload this integration.",
+  technical_relays_save: "Save relay selection",
+
+  hold_title: "Scheduled hold-open · Home Assistant",
+  hold_dependency:
+    "HA and network connectivity are required throughout the opening window. During an outage the door may remain unlocked until communication returns; this does not replace a local station schedule.",
+  hold_blocked:
+    "Draft only. Automatic operation awaits a coordinated hold-open and restore test on this station.",
+  hold_load: "Load door draft",
+  hold_current: "Saved draft",
+  hold_library:
+    "Choose a schedule from the schedule library. Weekly periods and dated exceptions are copied into this door draft; later library edits do not change it.",
+  hold_schedule: "Schedule to copy",
+  hold_timezone: "Time zone (IANA)",
+  hold_save: "Save draft only",
+  technical_title: "Technical settings and fixed PIN audit",
+  technical_intro: "Read settings before editing. Changes apply to the selected door.",
+  technical_read: "Read station settings",
+  technical_read_failed: "Could not read settings. PIN absence is unknown.",
+  technical_write_unknown: "Change not confirmed. Read the station before retrying.",
+  technical_pin_title: "Public fixed PINs",
+  technical_pin_absent: "All 16 public PIN slots are reported unconfigured.",
+  technical_pin_configured: "At least one public PIN is configured.",
+  technical_pin_unknown: "Public PIN status is unknown.",
+  technical_pin_scope:
+    "This covers reported public PIN slots, not personal PINs. Creating or removing codes requires a verified interface.",
+  technical_pin_details: "Other reported code statuses",
+  technical_doorName: "Door name on station",
+  technical_openDuration: "Unlock duration (seconds)",
+  technical_relayReverseEnabled: "Reverse relay output",
+  technical_confirm:
+    "Apply these settings. Reversing the relay may change the physical lock state.",
+  technical_unmanaged: "Configure and confirm relay mapping before editing this unmanaged output.",
+  technical_capabilities: "Reported ISAPI capabilities",
+  technical_capabilities_hint:
+    "A capability flag does not prove a tested write operation. Only supported editors are enabled.",
+
   operation_removed_user: "Removed or unavailable user",
   sync_operations_title: "Saved sync operations",
   sync_operations_hint:
@@ -322,7 +363,7 @@ const en = {
     "The change may have been saved, but its result did not arrive. Refresh Users and Sync before trying again. The editor was closed and entered credentials were cleared.",
   panel_read_interrupted:
     "The response did not arrive or Home Assistant disconnected. Refresh after the connection returns.",
-  audio_title: "Two-way audio · Preview",
+  audio_title: "Two-way audio",
   audio_hint:
     "Start listening, then hold to talk. Audio stops when this window closes or goes into the background; each session lasts up to 3 minutes.",
   audio_start: "Start audio",
@@ -1498,6 +1539,45 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  technical_relays: "ממסרים מנוהלים",
+  technical_relays_hint:
+    "בחר רק מוצאים מחוברים. משתמשים קיימים שומרים על הרשאותיהם; בחירת ממסר שני אינה מעניקה אליו גישה.",
+  technical_relays_confirm: "אימתתי את מיפוי הממסרים הפיזי. שמור וטען מחדש את האינטגרציה.",
+  technical_relays_save: "שמירת בחירת ממסרים",
+
+  hold_title: "פתיחה קבועה מתוזמנת · Home Assistant",
+  hold_dependency:
+    "נדרשת זמינות HA והרשת לאורך חלון הפתיחה. בזמן ניתוק הדלת עלולה להישאר פתוחה עד חזרת התקשורת; החלופה אינה מחליפה לוח מקומי בתחנה.",
+  hold_blocked:
+    "טיוטה בלבד. הפעלה אוטומטית ממתינה לבדיקה מתואמת של החזקה פתוחה וחזרה למצב רגיל בתחנה זו.",
+  hold_load: "טעינת טיוטת דלת",
+  hold_current: "טיוטה שמורה",
+  hold_library:
+    "בחר תוכנית מספריית לוחות הזמנים. שעות שבועיות וחריגים לתאריכים יועתקו לדלת זו; שינוי מאוחר בספרייה לא ישנה את הטיוטה.",
+  hold_schedule: "תוכנית להעתקה",
+  hold_timezone: "אזור זמן (IANA)",
+  hold_save: "שמירת טיוטה בלבד",
+  technical_title: "הגדרות טכניות ובדיקת קודים קבועים",
+  technical_intro: "קרא הגדרות לפני עריכה. השינוי חל רק על הדלת שנבחרה.",
+  technical_read: "קריאת הגדרות התחנה",
+  technical_read_failed: "לא ניתן לקרוא הגדרות. אין להסיק שאין קוד מוגדר.",
+  technical_write_unknown: "השינוי לא אומת. קרא שוב את התחנה לפני ניסיון נוסף.",
+  technical_pin_title: "קודים ציבוריים קבועים",
+  technical_pin_absent: "כל 16 מקומות הקוד הציבורי מדווחים כלא מוגדרים.",
+  technical_pin_configured: "מוגדר קוד ציבורי אחד לפחות.",
+  technical_pin_unknown: "מצב הקודים הציבוריים אינו ידוע.",
+  technical_pin_scope:
+    "הבדיקה מכסה קודים ציבוריים מדווחים ולא קודים אישיים. יצירה והסרה דורשות ממשק מאומת.",
+  technical_pin_details: "מצבי קודים נוספים",
+  technical_doorName: "שם הדלת בתחנה",
+  technical_openDuration: "משך פתיחה בשניות",
+  technical_relayReverseEnabled: "היפוך פעולת ממסר",
+  technical_confirm: "החל הגדרות אלה. היפוך הממסר עלול לשנות את מצב המנעול הפיזי.",
+  technical_unmanaged: "יש להגדיר ולאשר מיפוי ממסר לפני עריכת מוצא שאינו מנוהל.",
+  technical_capabilities: "יכולות ISAPI שפורסמו",
+  technical_capabilities_hint:
+    "דיווח על יכולת אינו הוכחת כתיבה שנבדקה. רק מסכי עריכה נתמכים מופעלים.",
+
   operation_removed_user: "משתמש שהוסר או אינו זמין",
   sync_operations_title: "מעקב פעולות סנכרון שנשמרו",
   sync_operations_hint:
@@ -1805,7 +1885,7 @@ const he: Record<keyof typeof en, string> = {
     "ייתכן שהשינוי נשמר, אך התשובה לא התקבלה. יש לרענן את המשתמשים והסנכרון לפני ניסיון נוסף. חלון העריכה נסגר ופרטי הזיהוי שהוקלדו נוקו.",
   panel_read_interrupted:
     "התשובה לא התקבלה או שהחיבור ל־Home Assistant נותק. יש לרענן לאחר חידוש החיבור.",
-  audio_title: "שמע דו־כיווני · גרסת ניסיון",
+  audio_title: "שמע דו־כיווני",
   audio_hint:
     "הפעל האזנה ולחץ ברצף כדי לדבר. השמע נפסק בסגירת החלון או במעבר לרקע; כל חיבור מוגבל ל־3 דקות.",
   audio_start: "הפעל שמע",

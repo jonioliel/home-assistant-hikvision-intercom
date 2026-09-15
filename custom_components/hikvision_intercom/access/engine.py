@@ -16,7 +16,7 @@ from ..exceptions import (
 )
 from .diagnostics import SyncDiagnostics, error_code
 from .models import AccessError, ManagedUser
-from .normalize import canonical, desired_cards, desired_person, merge_person
+from .normalize import assignment_doors, canonical, desired_cards, desired_person, merge_person
 from .repository import AccessRepository
 
 
@@ -144,7 +144,8 @@ class SyncEngine:
         if not driver.client.enabled_doors:
             raise AccessError("station_has_no_managed_lock")
         if assignment and (
-            assignment.allowed_locks != frozenset({1}) or assignment.schedule_template is not None
+            not assignment.allowed_locks <= driver.client.physical_doors.keys()
+            or assignment.schedule_template is not None
         ):
             raise AccessError("unmanaged_lock")
         binding = state["bindings"].get(station, {}).get(user_id)
@@ -187,7 +188,7 @@ class SyncEngine:
         if not present:
             await self._remove(station, user, driver, inventory, current)
             return
-        api_id = next(iter(driver.client.enabled_doors))
+        api_id = assignment_doors(user, station, driver.client.physical_doors)
         person = desired_person(user, api_id, caps)
         cards = desired_cards(user, caps)
         if not current.users and len(inventory.users) >= caps.max_users:

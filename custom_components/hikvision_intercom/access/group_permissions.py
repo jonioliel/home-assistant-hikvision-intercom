@@ -72,11 +72,28 @@ def prepare(
     stations = allowed | set(personal)
     if len(stations) > 100:
         raise AccessError("invalid_assignments")
+    door_permissions = data.get("door_permissions", {})
+    if not isinstance(door_permissions, dict) or set(door_permissions) - stations:
+        raise AccessError("invalid_assignments")
+    for locks in door_permissions.values():
+        if (
+            not isinstance(locks, list)
+            or not locks
+            or any(type(i) is not int or i not in {1, 2} for i in locks)
+            or len(locks) != len(set(locks))
+        ):
+            raise AccessError("unmanaged_lock")
     result = {**data, "group_ids": groups, "permission_overrides": personal}
+    result.pop("door_permissions", None)
     result["assignments"] = {
         s: {
             "enabled": s in allowed,
-            "allowed_locks": [1]
+            "allowed_locks": door_permissions.get(
+                s,
+                sorted(previous.assignments[s].allowed_locks)
+                if previous and s in previous.assignments and previous.assignments[s].allowed_locks
+                else data.get("assignments", {}).get(s, {}).get("allowed_locks", [1]),
+            )
             if s in allowed
             else (
                 sorted(previous.assignments[s].allowed_locks)

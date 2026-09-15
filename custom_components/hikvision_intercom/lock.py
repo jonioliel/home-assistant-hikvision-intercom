@@ -18,31 +18,36 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     if entry.runtime_data.locks:
-        async_add_entities([IntercomLock(entry)])
+        async_add_entities(
+            [IntercomLock(entry, lock.physical_index) for lock in entry.runtime_data.locks]
+        )
 
 
 class IntercomLock(IntercomEntity, LockEntity):
     _attr_supported_features = LockEntityFeature.OPEN
 
-    def __init__(self, entry: IntercomConfigEntry) -> None:
-        super().__init__(entry, "door_1")
-        if name := self.runtime.locks[0].name:
+    def __init__(self, entry: IntercomConfigEntry, physical_index: int = 1) -> None:
+        super().__init__(entry, f"door_{physical_index}")
+        self.physical_index = physical_index
+        if name := next(
+            lock.name for lock in self.runtime.locks if lock.physical_index == physical_index
+        ):
             self._attr_name = name
 
     @property
     def is_locked(self) -> bool:
-        return not self.runtime.released
+        return self.physical_index not in self.runtime.released_relays
 
     @property
     def is_unlocking(self) -> bool:
-        return self.runtime.unlocking
+        return self.physical_index in self.runtime.unlocking_relays
 
     @property
     def extra_state_attributes(self) -> dict[str, str | float]:
         return {"state_source": "optimistic", "display_pulse_seconds": self.runtime.pulse_seconds}
 
     async def async_unlock(self, **kwargs: Any) -> None:
-        await self.runtime.async_unlock(1)
+        await self.runtime.async_unlock(self.physical_index)
 
     async def async_open(self, **kwargs: Any) -> None:
         await self.async_unlock(**kwargs)

@@ -137,13 +137,12 @@ class HikvisionClient:
         *,
         enabled_doors: frozenset[int] = frozenset(),
         expected_identity: str | None = None,
+        physical_doors: dict[int, int] | None = None,
     ) -> None:
-        if len(enabled_doors) > 1 or any(
+        if len(enabled_doors) > 2 or any(
             type(i) is not int or i not in {1, 2} for i in enabled_doors
         ):
-            raise HikvisionValidationError(
-                "Exactly one active relay or camera-only mode is supported"
-            )
+            raise HikvisionValidationError("At most two explicitly selected relays are supported")
         if expected_identity is not None and (
             not isinstance(expected_identity, str) or not 1 <= len(expected_identity) <= 256
         ):
@@ -153,9 +152,21 @@ class HikvisionClient:
         self._session = session
         self.settings = settings
         self.enabled_doors = enabled_doors
+        self.physical_doors = (
+            dict(physical_doors)
+            if physical_doors is not None
+            else dict(enumerate(sorted(enabled_doors), 1))
+        )
+        if (
+            set(self.physical_doors.values()) != set(enabled_doors)
+            or any(type(k) is not int or k not in {1, 2} for k in self.physical_doors)
+            or len(self.physical_doors) != len(enabled_doors)
+        ):
+            raise HikvisionValidationError("Invalid physical relay map")
         self._io_lock = asyncio.Lock()
         self._write_lock = asyncio.Lock()
         self._last_unlock = float("-inf")
+        self._last_unlock_by_door: dict[int, float] = {}
         self._snapshot: tuple[float, bytes] | None = None
         self._snapshot_lock = asyncio.Lock()
 
@@ -340,9 +351,10 @@ class HikvisionClient:
         if type(door_id) is not int or door_id not in self.enabled_doors:
             raise HikvisionValidationError("Door is not enabled in this integration")
         async with self._write_lock:
-            if time.monotonic() - self._last_unlock < 1:
+            if time.monotonic() - self._last_unlock_by_door.get(door_id, float("-inf")) < 1:
                 raise HikvisionBusyError("A door command was just attempted")
             self._last_unlock = time.monotonic()
+            self._last_unlock_by_door[door_id] = self._last_unlock
             await self.async_confirm_identity()
             body = (
                 b'<RemoteControlDoor version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'

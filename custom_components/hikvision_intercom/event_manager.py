@@ -322,7 +322,7 @@ class StationEvents:
     ) -> None:
         if not self._active:
             return
-        selected = self.runtime.locks[0].api_id if self.runtime.locks else None
+        selected = {lock.api_id: lock.physical_index for lock in self.runtime.locks}
         row = normalize_event(
             payload,
             self.runtime.station_id,

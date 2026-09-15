@@ -213,7 +213,7 @@ def test_cache_dedupe_persistence_bounds_and_filters():
         {"limit": True},
         {"limit": 100000},
         {"pin": "secret"},
-        {"door": 2},
+        {"door": 3},
         {"start": "bad"},
         {"before": "missing"},
         {"result": "invented"},
@@ -401,3 +401,19 @@ def test_event_burst_keeps_fixed_capacity_and_historical_source():
     restored = EventCache(limit=128)
     restored.load(cache.dump(), NOW)
     assert all(row["recovered"] and row["source"] == "query" for row in restored.rows.values())
+
+
+def test_event_maps_second_physical_relay_without_aliasing_first():
+    row = normalize_event(
+        payload(doorNo=1), "station", KEY, received=NOW, selected_api={2: 1, 1: 2}
+    )
+    assert row["door"] == 2 and row["api_door"] == 1
+
+
+def test_second_relay_event_survives_cache_reload_and_filter():
+    row = normalize_event(
+        payload(doorNo=2), "station", KEY, received=NOW, selected_api={1: 1, 2: 2}
+    )
+    cache = EventCache()
+    cache.load({"schema": 1, "records": [row]}, NOW)
+    assert next(iter(cache.rows.values()))["door"] == 2

@@ -10,7 +10,10 @@ from .normalize import canonical, desired_cards, desired_person
 
 
 def desired_view(
-    user: ManagedUser | None, station_id: str, api_id: int, caps: AccessCapabilities
+    user: ManagedUser | None,
+    station_id: str,
+    api_id: int | tuple[int, ...],
+    caps: AccessCapabilities,
 ) -> dict[str, Any]:
     assignment = user.assignments.get(station_id) if user else None
     if user is None or not user.active or not assignment or not assignment.enabled:

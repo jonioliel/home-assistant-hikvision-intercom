@@ -186,7 +186,7 @@ async def test_adoption_and_assignment_are_atomic(repo):
 @pytest.mark.parametrize(
     "change",
     [
-        {"assignments": {"station": {"allowed_locks": [2]}}},
+        {"assignments": {"station": {"allowed_locks": [3]}}},
         {"assignments": {"station": {"allowed_locks": [True]}}},
         {"assignments": {"station": {"schedule_template": "65535"}}},
         {"pin": "not-numeric"},
@@ -216,7 +216,7 @@ def test_validity_requires_explicit_timezone_and_documented_range(start, end):
 async def test_corrupt_storage_never_defaults_to_empty(repo):
     user = await person(repo)
     corrupted = deepcopy(repo.snapshot())
-    corrupted["users"][user.id]["assignments"]["station-a"]["allowed_locks"] = [2]
+    corrupted["users"][user.id]["assignments"]["station-a"]["allowed_locks"] = [3]
     restored = AccessRepository(AsyncMock())
     with pytest.raises(AccessError):
         await restored.async_load(corrupted)

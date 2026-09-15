@@ -371,9 +371,15 @@ class AccessClient:
             raise HikvisionValidationError("Person type exceeds device capabilities")
         if create or "doorRight" in person:
             door_right = person.get("doorRight")
-            if not isinstance(door_right, str) or door_right not in {
-                str(door) for door in self.client.enabled_doors
-            }:
+            if (
+                not isinstance(door_right, str)
+                or not door_right
+                or any(
+                    part not in {str(door) for door in self.client.enabled_doors}
+                    for part in door_right.split(",")
+                )
+                or len(set(door_right.split(","))) != len(door_right.split(","))
+            ):
                 raise HikvisionValidationError("Person permissions target an unmanaged relay")
         # Modify fields are optional in the manufacturer's contract (p.466).
         # Never resubmit a PIN, schedule or permission merely because the name changed.

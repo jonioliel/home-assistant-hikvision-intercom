@@ -39,7 +39,7 @@ from .models import (
     build_user,
     utc_now,
 )
-from .normalize import canonical, desired_cards, desired_person
+from .normalize import assignment_doors, canonical, desired_cards, desired_person
 from .repository import AccessRepository
 from .review import compare, desired_view, public_view
 
@@ -330,7 +330,9 @@ class AccessManager:
             if not station.lock_enabled:
                 raise AccessError("station_has_no_managed_lock")
             if station.driver and (caps := station.driver.capabilities):
-                desired_person(user, next(iter(station.driver.client.enabled_doors)), caps)
+                desired_person(
+                    user, assignment_doors(user, key, station.driver.client.physical_doors), caps
+                )
                 desired_cards(user, caps)
 
     def _csv_profile_fields(self) -> list[str]:
@@ -363,7 +365,7 @@ class AccessManager:
             key: (
                 station.name,
                 station.lock_enabled,
-                next(iter(station.driver.client.enabled_doors), None) if station.driver else None,
+                station.driver.client.physical_doors.get(1) if station.driver else None,
                 station.driver.capabilities if station.driver else None,
             )
             for key, station in self.stations.items()
@@ -776,8 +778,15 @@ class AccessManager:
             raise AccessError("device_user_missing")
         if person["RightPlan"] != []:
             raise AccessError("schedule_unverified")
-        if person["doorRight"] != str(next(iter(driver.client.enabled_doors))):
+        reverse = {str(api): physical for physical, api in driver.client.physical_doors.items()}
+        door_ids = str(person["doorRight"]).split(",")
+        if (
+            not door_ids
+            or any(door not in reverse for door in door_ids)
+            or len(set(door_ids)) != len(door_ids)
+        ):
             raise AccessError("unmanaged_lock")
+        imported_locks = sorted(reverse[door] for door in door_ids)
         if person["localUIRight"] is not False or any(
             raw.get(key, 0) for key in ("numOfFace", "numOfFP")
         ):
@@ -798,7 +807,7 @@ class AccessManager:
                 {"card_no": card["cardNo"], "card_type": card["cardType"]}
                 for card in normal["cards"]
             ],
-            "assignments": {station.id: {"allowed_locks": [1]}},
+            "assignments": {station.id: {"allowed_locks": imported_locks}},
         }
 
     async def async_adopt(
@@ -919,7 +928,14 @@ class AccessManager:
         desired = None
         comparison: dict[str, Any] = {"differences": [], "plan": None}
         try:
-            desired = desired_view(user, station_id, next(iter(driver.client.enabled_doors)), caps)
+            desired = desired_view(
+                user,
+                station_id,
+                assignment_doors(user, station_id, driver.client.physical_doors)
+                if user and user.assignments.get(station_id)
+                else (),
+                caps,
+            )
             comparison = compare(desired, normal)
         except AccessError as err:
             reasons["central"] = reasons["central"] or err.code

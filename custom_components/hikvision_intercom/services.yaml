@@ -11,6 +11,7 @@ unlock_door:
         select:
           options:
             - "1"
+            - "2"
 
 sync_user:
   fields:

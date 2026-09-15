@@ -39,6 +39,7 @@ from .schedule_plan_api import dispatch_plans
 
 _LOGGER = logging.getLogger(__name__)
 USER_FIELDS = {
+    "door_permissions",
     "permission_overrides",
     "access_policy_revision",
     "profile",
@@ -57,6 +58,22 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "stations/technical_hold_get": {"station_id": str, "door": int},
+    "stations/technical_hold_save": {
+        "station_id": str,
+        "door": int,
+        "revision": int,
+        "policy": dict,
+    },
+    "stations/technical_relays": {"station_id": str, "expected": list, "locks": list},
+    "stations/technical_get": {"station_id": str},
+    "stations/technical_update": {
+        "station_id": str,
+        "door": int,
+        "expected": dict,
+        "changes": dict,
+        "confirmed": bool,
+    },
     "profiles/settings_get": {},
     "profiles/settings_update": {"revision": int, "values": dict},
     "profiles/settings_preview": {"revision": int, "values": dict},
@@ -218,6 +235,12 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
             }
             for lock in locks
         ]
+        for lock in locks:
+            entity = registry.async_get_entity_id(
+                "lock", DOMAIN, f"{entry.unique_id}_door_{lock.physical_index}"
+            )
+            if entity:
+                station["entities"][f"lock_{lock.physical_index}"] = entity
         station["event_status"] = runtime.events.status() if runtime and runtime.events else None
         station.update(
             online=bool(
@@ -262,6 +285,10 @@ async def _dispatch_inner(
         "profiles/settings_apply",
     }:
         return await dispatch_admin(hass, command, msg, actor)
+    if command.startswith("stations/technical_"):
+        from .technical_api import dispatch_technical
+
+        return await dispatch_technical(hass, command, msg)
     manager = get_manager(hass)
     if command == "events/history_inspect":
         from .client.history_diagnostics import inspect_history
