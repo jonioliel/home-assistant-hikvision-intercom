@@ -88,6 +88,26 @@ class HoldOpenDrafts:
         item = self.state["drafts"].get(self.key(station, door))
         return deepcopy(dict(item)) if item is not None else None
 
+    async def remove(self, station: str, door: int, revision: int) -> None:
+        key = self.key(station, door)
+        async with self.lock:
+            old = self.state["drafts"].get(key)
+            if old is None or old["revision"] != revision:
+                raise AccessError("revision_conflict")
+            state = deepcopy(self.state)
+            del state["drafts"][key]
+
+            async def commit() -> None:
+                await self.save(deepcopy(state))
+                self.state = state
+
+            task = asyncio.create_task(commit())
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                await task
+                raise
+
     async def update(self, station: str, door: int, revision: int, value: Any) -> dict[str, Any]:
         key, parsed = self.key(station, door), policy(value)
         async with self.lock:
@@ -120,7 +140,7 @@ class HoldOpenDrafts:
 
 
 class HoldOpenExecutor:
-    """Prepared per-door worker; not attached to production timers yet.
+    """Durable per-door worker, enabled only by the guarded program manager.
 
     Caller must serialize policy changes and supply an identity-bound transport.
     Recreated workers restore normal control before considering another opening.

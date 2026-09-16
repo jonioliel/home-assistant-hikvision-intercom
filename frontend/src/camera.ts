@@ -88,7 +88,7 @@ export class IntercomCamera extends LitElement {
     video {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: var(--camera-object-fit, cover);
       display: block;
     }
     .player-status {

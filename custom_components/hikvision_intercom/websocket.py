@@ -60,6 +60,21 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "stations/technical_hold_delete": {"station_id": str, "door": int, "revision": int},
+    "stations/technical_program_list": {"station_id": str},
+    "stations/technical_program_save": {
+        "station_id": str,
+        "door": int,
+        "revision": int,
+        "policy": dict,
+        "enabled": bool,
+    },
+    "stations/technical_program_action": {
+        "station_id": str,
+        "door": int,
+        "revision": int,
+        "action": str,
+    },
     "stations/technical_hold_get": {"station_id": str, "door": int},
     "stations/technical_hold_save": {
         "station_id": str,

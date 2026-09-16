@@ -1,5 +1,6 @@
 """Own the central access repository once and expose administrator sync actions."""
 
+import asyncio
 from typing import Any
 
 import voluptuous as vol
@@ -19,6 +20,7 @@ from .access.schedule_operations import ScheduleOperations
 from .access.schedule_plans import SchedulePlans
 from .access.schedule_work_queue import ScheduleWorkQueue
 from .access.schedules import ScheduleLibrary
+from .client.technical import hold_command
 from .configuration import managed_locks
 from .const import DOMAIN
 from .issues import issue
@@ -98,6 +100,39 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     hold_drafts = HoldOpenDrafts(hold_store.async_save)
     hold_drafts.load(await hold_store.async_load())
     hass.data[DOMAIN]["hold_open_drafts"] = hold_drafts
+
+    from datetime import timedelta
+
+    from homeassistant.helpers.event import async_track_time_interval
+
+    from .access.hold_programs import HoldPrograms
+
+    program_store = AccessStore(hass, key=f"{DOMAIN}.hold_programs")
+
+    async def send_hold(item: dict[str, Any], command: str) -> None:
+        entry = hass.config_entries.async_get_entry(item["station_id"])
+        runtime = getattr(entry, "runtime_data", None)
+        if runtime is None or runtime.is_closed or runtime.profile.unique_id != item["identity"]:
+            raise AccessError("station_unloaded")
+        if not any(
+            lock.physical_index == item["door"] and lock.api_id == item["api_id"]
+            for lock in runtime.locks
+        ):
+            raise AccessError("operation_unsupported")
+        await hold_command(runtime.client, item["api_id"], command, commissioned=True)
+
+    programs = HoldPrograms(program_store.async_save, send_hold)
+    programs.load(await program_store.async_load())
+    hass.data[DOMAIN]["hold_programs"] = programs
+    program_tick_lock = asyncio.Lock()
+
+    async def tick_programs(now: Any) -> None:
+        if program_tick_lock.locked():
+            return
+        async with program_tick_lock:
+            await programs.tick(now)
+
+    stop_program_timer = async_track_time_interval(hass, tick_programs, timedelta(seconds=15))
 
     schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
     schedules = ScheduleLibrary(schedule_store.async_save, changed)
@@ -188,6 +223,7 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         manager.register(entry.entry_id, entry.title, bool(managed_locks(entry.data)))
 
     async def stop(_event: Event) -> None:
+        stop_program_timer()
         await queue.close()
         await manager.async_close()
 

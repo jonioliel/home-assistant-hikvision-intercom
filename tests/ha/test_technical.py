@@ -74,3 +74,93 @@ async def test_hold_draft_save_does_not_write_station(
     assert result["success"] and result["result"]["active"] is False
     assert result["result"]["draft"]["revision"] == 1
     device_io["unlock"].assert_not_awaited()
+
+
+async def test_hold_program_inactive_roundtrip_and_removal(hass, loaded_entry, hass_ws_client):
+    from tests.test_hold_open import sample
+
+    client = await hass_ws_client(hass)
+    prefix = "stations/technical_program_"
+    with patch(
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support", AsyncMock()
+    ) as probe:
+        result = await request(
+            client,
+            prefix + "save",
+            station_id=loaded_entry.entry_id,
+            door=1,
+            revision=0,
+            policy=sample(),
+            enabled=False,
+        )
+        assert result["success"], result
+        assert result["result"]["programs"][0]["enabled"] is False
+        probe.assert_not_awaited()
+    listed = await request(client, prefix + "list", station_id=loaded_entry.entry_id)
+    assert listed["success"] and len(listed["result"]["programs"]) == 1
+    assert "identity" not in listed["result"]["programs"][0]
+    removed = await request(
+        client,
+        prefix + "action",
+        station_id=loaded_entry.entry_id,
+        door=1,
+        revision=1,
+        action="remove",
+    )
+    assert removed["success"] and removed["result"]["programs"] == []
+
+
+async def test_hold_program_activation_is_capability_gated(hass, loaded_entry, hass_ws_client):
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from tests.test_hold_open import sample
+
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support",
+        AsyncMock(side_effect=AccessError("operation_unsupported")),
+    ):
+        result = await request(
+            client,
+            "stations/technical_program_save",
+            station_id=loaded_entry.entry_id,
+            door=1,
+            revision=0,
+            policy=sample(),
+            enabled=True,
+        )
+    assert not result["success"]
+    assert hass.data["hikvision_intercom"]["hold_programs"].listing(loaded_entry.entry_id) == []
+
+
+async def test_hold_program_runtime_uses_bound_station_and_restores(
+    hass, loaded_entry, hass_ws_client
+):
+    from datetime import UTC, datetime
+
+    from tests.test_hold_open import sample
+
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support", AsyncMock()
+    ):
+        result = await request(
+            client,
+            "stations/technical_program_save",
+            station_id=loaded_entry.entry_id,
+            door=1,
+            revision=0,
+            policy=sample(),
+            enabled=True,
+        )
+    assert result["success"], result
+    manager = hass.data["hikvision_intercom"]["hold_programs"]
+    with patch(
+        "custom_components.hikvision_intercom.access_runtime.hold_command", AsyncMock()
+    ) as send:
+        await manager.tick(datetime(2026, 9, 14, 10, tzinfo=UTC))
+        send.assert_awaited_once_with(
+            loaded_entry.runtime_data.client, 1, "alwaysOpen", commissioned=True
+        )
+        await manager.action(loaded_entry.entry_id, 1, 1, "pause")
+        assert send.await_args.args[2] == "close"
+    assert manager.listing(loaded_entry.entry_id)[0]["execution"]["owned"] is False

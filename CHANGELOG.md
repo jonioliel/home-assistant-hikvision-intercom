@@ -2,6 +2,16 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.8] - 2026-09-16
+
+- Preserve the full camera frame in the overview, with proportion-aware desktop columns and touch-friendly mobile paging. Eight stations use four columns on a wide screen instead of three shallow cropped rows.
+- Split modern station management into Overview, Opening programs, Public codes and Settings.
+- Add persistent Home Assistant door-opening programs: weekly and date windows, save inactive, activate, pause and remove. Activation requires the station to advertise both alwaysOpen and close; each command rechecks identity and managed relay mapping.
+- Persist command ownership before opening. After restart or uncertain acknowledgement, restore controlled operation before considering a new opening. Offline removal stays pending until restoration is acknowledged.
+- Display existing saved plans and permit deletion. Public PIN slots show configured, empty or unknown without exposing secrets.
+- Native station hold-open deployment and public PIN add/change/delete remain unavailable until their write contracts are verified. HA opening programs depend on HA/network availability; physical hold-open/restore acceptance is still pending.
+
+
 ## [1.0.0-rc.7] - 2026-09-16
 
 - Redesign the modern overview as a viewport-fitted camera grid, with 4/6/9/12 density selection, search, fullscreen, live clock and compact counters.

@@ -171,18 +171,7 @@ async def hold_command(client: Any, door: int, command: str, *, commissioned: bo
         raise AccessError("operation_unsupported")
     async with asyncio.timeout(30), client._write_lock:
         await client.async_confirm_identity()
-        caps = await client._get("/ISAPI/AccessControl/RemoteControl/door/capabilities")
-        root = caps.get("RemoteControlDoor", {})
-        allowed = root.get("cmd", {}).get("@opt", "").split(",")
-        bounds = root.get("doorNo", {})
-        low, high = number(bounds.get("@min")), number(bounds.get("@max"))
-        if (
-            low is None
-            or high is None
-            or not low <= door <= high
-            or not {"alwaysOpen", "close"} <= set(allowed)
-        ):
-            raise AccessError("operation_unsupported")
+        await verify_hold_support(client, door)
         from .parser import find_values, parse_payload
 
         body = (
@@ -197,3 +186,18 @@ async def hold_command(client: Any, door: int, command: str, *, commissioned: bo
         codes = find_values(result, "statusCode")
         if not codes or any(str(code) != "1" for code in codes):
             raise AccessError("ambiguous_write")
+
+
+async def verify_hold_support(client: Any, door: int) -> None:
+    caps = await client._get("/ISAPI/AccessControl/RemoteControl/door/capabilities")
+    root = caps.get("RemoteControlDoor", {})
+    allowed = root.get("cmd", {}).get("@opt", "").split(",")
+    bounds = root.get("doorNo", {})
+    low, high = number(bounds.get("@min")), number(bounds.get("@max"))
+    if (
+        low is None
+        or high is None
+        or not low <= door <= high
+        or not {"alwaysOpen", "close"} <= set(allowed)
+    ):
+        raise AccessError("operation_unsupported")

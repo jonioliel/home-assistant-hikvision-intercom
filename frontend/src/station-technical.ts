@@ -63,6 +63,11 @@ export class StationTechnical extends LitElement {
         padding: 16px;
         margin-block: 12px;
       }
+      .public-code-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
       section h4 {
         margin-top: 0;
       }
@@ -73,6 +78,7 @@ export class StationTechnical extends LitElement {
     `,
   ];
   static properties = {
+    mode: {},
     hass: { attribute: false },
     station: { attribute: false },
     report: { state: true },
@@ -83,6 +89,7 @@ export class StationTechnical extends LitElement {
     relays: { state: true },
     relayConfirmed: { state: true },
   };
+  mode = "all";
   hass?: Hass;
   station?: Station;
   private report?: Report;
@@ -353,7 +360,42 @@ export class StationTechnical extends LitElement {
       </details>
       <p class="sub"><bdi>${report.checked_at}</bdi></p>`;
   }
+  private publicCodes() {
+    return html`<h3>${this.t("station_tab_public_codes")}</h3>
+      <button ?disabled=${this.busy} @click=${() => this.load()}>
+        ${this.t("technical_read")}
+      </button>
+      <p>${this.t("public_codes_readonly")}</p>
+      ${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}
+      ${
+        this.report
+          ? html`<p>
+                ${this.t("technical_pin_" + (this.report.passwords?.public_pin_state ?? "unknown"))}
+              </p>
+              <div class="public-code-list">
+                ${Array.from({ length: 16 }, (_, i) => {
+                  const state = this.report!.passwords?.states[`public${i + 1}Configured`];
+                  return html`<section>
+                    <strong>${this.t("public_code_slot")} ${i + 1}</strong>
+                    <p>
+                      ${this.t(state === true ? "configured" : state === false ? "not_configured" : "not_verified")}
+                    </p>
+                    ${state === true ? html`<span aria-label=${this.t("masked")}>••••••</span>` : nothing}
+                  </section>`;
+                })}
+              </div>
+              <p class="sub"><bdi>${this.report.checked_at}</bdi></p>`
+          : nothing
+      }`;
+  }
   render() {
+    if (this.mode === "public_codes") return this.publicCodes();
+    if (this.mode === "settings")
+      return html`<h3>${this.t("station_tab_settings")}</h3>
+        <p>${this.t("technical_intro")}</p>
+        <button ?disabled=${this.busy} @click=${() => this.load()}>
+          ${this.t("technical_read")}</button
+        >${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}${this.report ? html`${this.relayEditor()}${this.report.doors.map((d) => this.doorEditor(d))}` : nothing}`;
     return html`<hikvision-hold-open
         .hass=${this.hass}
         .station=${this.station}

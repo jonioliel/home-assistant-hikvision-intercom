@@ -1,6 +1,22 @@
 import { css } from "lit";
 
 export const stationSettingsStyles = css`
+  .station-config [hidden] {
+    display: none !important;
+  }
+  .station-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-block: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .station-tabs button[aria-current="page"] {
+    color: white;
+    background: var(--accent);
+  }
+
   .station-settings-list {
     display: grid;
     gap: 24px;

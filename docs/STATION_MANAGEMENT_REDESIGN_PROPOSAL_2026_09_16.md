@@ -1,6 +1,6 @@
 # Station management redesign — proposal, 2026-09-16
 
-Status: UX proposal awaiting owner review. No runtime or station changes in this design pass.
+Status: approved by owner. RC8 implements the navigation, HA program lifecycle and read-only public-slot inspection; see RC8_STATION_MANAGEMENT.md for delivered scope and remaining capability limits. The sections below preserve the original design proposal.
 
 ## Current behavior verified in source
 - `frontend/src/hold-open.ts` reads/saves a per-door HA draft. Saving does not deploy a native plan or activate an HA timer.

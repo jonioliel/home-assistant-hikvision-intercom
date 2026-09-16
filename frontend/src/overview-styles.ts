@@ -65,10 +65,11 @@ export const overviewStyles = css`
   :host([data-appearance="modern"]) .overview-wall {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(var(--wall-columns, 4), minmax(0, 1fr));
+    grid-template-columns: repeat(var(--wall-columns, 4), minmax(0, var(--wall-card-width, 1fr)));
     grid-template-rows: repeat(var(--wall-rows, 3), minmax(190px, 1fr));
     height: var(--wall-height, 660px);
-    align-items: stretch;
+    align-items: start;
+    justify-content: center;
   }
   :host([data-appearance="modern"]) .overview-wall .overview-station {
     position: relative;
@@ -83,9 +84,11 @@ export const overviewStyles = css`
     padding: 7px 10px;
     gap: 8px;
     min-height: 38px;
+    flex-wrap: nowrap;
     flex: 0 0 auto;
   }
   .overview-wall .station-head h3 {
+    min-width: 0;
     margin: 0;
     font-size: 15px;
     overflow: hidden;
@@ -98,8 +101,9 @@ export const overviewStyles = css`
     white-space: nowrap;
   }
   .overview-wall .camera-wrap {
-    flex: 1 1 0;
-    min-height: 80px;
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+    min-height: 0;
     overflow: hidden;
     margin: 0 8px;
     border-radius: 6px;
@@ -107,7 +111,8 @@ export const overviewStyles = css`
   .overview-wall .camera-wrap hikvision-intercom-camera {
     width: 100%;
     height: 100%;
-    aspect-ratio: auto;
+    aspect-ratio: 16 / 9;
+    --camera-object-fit: contain;
     border-radius: 6px;
   }
   :host([data-appearance="modern"]) .overview-wall .camera-wrap > button {

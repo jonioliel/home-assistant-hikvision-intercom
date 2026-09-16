@@ -29,7 +29,54 @@ async def dispatch_technical(hass: HomeAssistant, command: str, msg: dict[str, A
     busy.add(entry.entry_id)
     try:
         async with asyncio.timeout(75):
-            if command in {"stations/technical_hold_get", "stations/technical_hold_save"}:
+            if command.startswith("stations/technical_program_"):
+                from .client.technical import verify_hold_support
+
+                programs = hass.data[DOMAIN]["hold_programs"]
+                if command.endswith("list"):
+                    drafts = hass.data[DOMAIN]["hold_open_drafts"]
+                    return {
+                        "programs": programs.listing(entry.entry_id),
+                        "saved": [
+                            drafts.get(entry.entry_id, lock.physical_index)
+                            for lock in runtime.locks
+                            if drafts.get(entry.entry_id, lock.physical_index)
+                        ],
+                        "timezone": hass.config.time_zone,
+                        "native_supported": False,
+                    }
+                if command.endswith("save"):
+                    lock = next(
+                        (lock for lock in runtime.locks if lock.physical_index == msg["door"]), None
+                    )
+                    if lock is None:
+                        raise AccessError("operation_unsupported")
+                    if msg["enabled"]:
+                        await client.async_confirm_identity()
+                        await verify_hold_support(client, lock.api_id)
+                    await programs.update(
+                        entry.entry_id,
+                        msg["door"],
+                        msg["revision"],
+                        msg["policy"],
+                        runtime.profile.unique_id,
+                        lock.api_id,
+                        msg["enabled"],
+                    )
+                    drafts = hass.data[DOMAIN]["hold_open_drafts"]
+                    previous = drafts.get(entry.entry_id, msg["door"])
+                    if previous:
+                        await drafts.remove(entry.entry_id, msg["door"], previous["revision"])
+                else:
+                    await programs.action(
+                        entry.entry_id, msg["door"], msg["revision"], msg["action"]
+                    )
+                return {"programs": programs.listing(entry.entry_id)}
+            if command in {
+                "stations/technical_hold_get",
+                "stations/technical_hold_save",
+                "stations/technical_hold_delete",
+            }:
                 from .access.hold_open import HoldOpenDrafts
 
                 drafts = hass.data[DOMAIN].get("hold_open_drafts")
@@ -39,6 +86,9 @@ async def dispatch_technical(hass: HomeAssistant, command: str, msg: dict[str, A
                     lock.physical_index for lock in runtime.locks
                 }:
                     raise AccessError("operation_unsupported")
+                if command.endswith("delete"):
+                    await drafts.remove(entry.entry_id, msg["door"], msg["revision"])
+                    return {"deleted": True}
                 if command.endswith("save"):
                     item = await drafts.update(
                         entry.entry_id, msg["door"], msg["revision"], msg["policy"]
@@ -61,6 +111,12 @@ async def dispatch_technical(hass: HomeAssistant, command: str, msg: dict[str, A
                 removed = {(lock.physical_index, lock.api_id) for lock in previous} - {
                     (lock.physical_index, lock.api_id) for lock in selected
                 }
+                if removed and any(
+                    p["door"] == physical
+                    for p in hass.data[DOMAIN]["hold_programs"].listing(entry.entry_id)
+                    for physical, _api in removed
+                ):
+                    raise AccessError("hold_pause_before_edit")
                 if removed and get_manager(hass).has_access(entry.entry_id):
                     raise AccessError("access_removal_pending")
                 hass.config_entries.async_update_entry(
