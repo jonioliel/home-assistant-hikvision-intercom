@@ -1,10 +1,17 @@
 import { LitElement, css, html, nothing } from "lit";
+import { timingValidity, timingPreview } from "./timing-validity";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import type { UserTimingDraft } from "./types";
 
 export class UserTiming extends LitElement {
-  static properties = { value: { attribute: false }, language: {}, date: { state: true } };
+  static properties = {
+    value: { attribute: false },
+    language: {},
+    date: { state: true },
+    previewDate: { state: true },
+    previewTime: { state: true },
+  };
   static styles = [
     styles,
     css`
@@ -43,6 +50,10 @@ export class UserTiming extends LitElement {
         flex: 1 1 110px;
         min-width: 0;
       }
+      .sub {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
       .notice {
         padding: 12px;
         border-inline-start: 3px solid #c58016;
@@ -54,6 +65,8 @@ export class UserTiming extends LitElement {
   value?: UserTimingDraft;
   language = "en";
   private date = "";
+  private previewDate = "";
+  private previewTime = "12:00";
   private t = (key: string) => translate(this.language, key);
   private change(patch: Partial<UserTimingDraft>) {
     this.dispatchEvent(
@@ -71,6 +84,25 @@ export class UserTiming extends LitElement {
       draft.periods.length === 1 &&
       draft.periods[0].start === "00:00" &&
       draft.periods[0].end === "24:00";
+    let convertible = false;
+    try {
+      timingValidity(draft);
+      convertible = true;
+    } catch {
+      /* Keep all gaps restricted. */
+    }
+    let preview = "";
+    if (this.previewDate) {
+      try {
+        preview = this.t(
+          timingPreview(draft, this.previewDate, this.previewTime)
+            ? "user_timing_preview_inside"
+            : "user_timing_preview_outside",
+        );
+      } catch {
+        preview = this.t("user_timing_preview_invalid");
+      }
+    }
     return html`<p class="notice" role="note">${this.t("user_timing_draft_notice")}</p>
       <label
         >${this.t("user_timing_zone")}<input
@@ -130,6 +162,43 @@ export class UserTiming extends LitElement {
               >
                 ${this.t("user_timing_add_period")}
               </button>`
+      }
+      <details>
+        <summary>${this.t("user_timing_preview")}</summary>
+        <p class="sub">${this.t("user_timing_preview_hint")} · <bdi>${draft.timezone}</bdi></p>
+        <div class="period">
+          <label
+            >${this.t("user_timing_preview_date")}<input
+              type="date"
+              min="2000-01-01"
+              max="2037-12-31"
+              .value=${this.previewDate}
+              @input=${(e: Event) => {
+                this.previewDate = (e.target as HTMLInputElement).value;
+              }}
+          /></label>
+          <label
+            >${this.t("user_timing_preview_time")}<input
+              type="time"
+              .value=${this.previewTime}
+              @input=${(e: Event) => {
+                this.previewTime = (e.target as HTMLInputElement).value;
+              }}
+          /></label>
+        </div>
+        <output aria-live="polite">${preview}</output>
+      </details>
+      ${
+        draft.mode === "dates"
+          ? html`<p class="sub">${this.t("user_timing_convert_hint")}</p>
+              <button
+                type="button"
+                ?disabled=${!convertible}
+                @click=${() => this.dispatchEvent(new CustomEvent("timing-convert", { bubbles: true, composed: true }))}
+              >
+                ${this.t("user_timing_convert")}
+              </button>`
+          : nothing
       }`;
   }
   private week(draft: UserTimingDraft) {

@@ -2,7 +2,12 @@
 
 Semantic Versioning is used throughout the project.
 
-## [Unreleased]
+## [1.0.0-rc.5] - 2026-09-16
+
+- Add draft time preview directly inside user editing, with selected-day/window checks, exclusive end boundaries and daylight-saving ambiguity rejection. The preview is clearly a local calculation, not device enforcement evidence.
+- Let administrators convert an exact single calendar interval to the existing station validity workflow, then review and save/synchronize it. Adjacent full days retain local midnight/DST semantics; separated dates, daily gaps, weekly rules and ambiguous times are never broadened into continuous access. Existing validity restrictions are intersected; conversion alone sends no writes.
+- **Recurring weekly and disjoint date schedules remain drafts.** This release does not enable native RightPlan deployment. Use the continuous validity workflow only where it exactly represents the requested restriction; confirm actual station enforcement with an inside/outside-window test.
+
 
 - Prepare user-local weekly/date drafts as native schedule candidates and capability-checked per-door RightPlan bindings. Selected dates use a deny-all base week; adjacent dates are coalesced without bridging gaps. Current UTC offset is not accepted as station timezone evidence.
 - Add an explicitly authorized commissioning-only native schedule transport: documented PUT routes, shared station write lock, durable intent, exact payload/context checks, dependency-order readback, and no replay of ambiguous writes after restart. It is not registered in the running integration and does not activate user drafts.

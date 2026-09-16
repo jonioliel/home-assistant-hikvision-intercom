@@ -13,6 +13,21 @@ const en = {
   user_timing_add_period: "Add time window",
   user_timing_midnight:
     "An end time of 00:00 means the end of the selected day. Split overnight access across both days.",
+  user_timing_preview: "Preview selected times",
+  user_timing_preview_hint: "Calculation of the draft only; not a station enforcement check",
+  user_timing_preview_date: "Date to check",
+  user_timing_preview_time: "Time to check",
+  user_timing_preview_inside: "Inside the selected window (draft only)",
+  user_timing_preview_outside: "Outside the selected window (draft only)",
+  user_timing_preview_invalid:
+    "Check the date, time, time zone and non-overlapping windows. Ambiguous daylight-saving times cannot be evaluated.",
+  user_timing_convert: "Prepare enforced validity interval",
+  user_timing_convert_hint:
+    "A single continuous interval can use the existing station validity mechanism. Separate days, gaps and weekly rules cannot. This applies to all of this person's selected doors; review and save to synchronize.",
+  user_timing_not_continuous:
+    "These selections do not form one continuous interval. Native schedule commissioning is still required.",
+  user_timing_converted:
+    "Validity prepared in UTC, intersected with any existing validity restriction. Review the dates and use Save and sync now to send it to the assigned stations. No change has been sent yet.",
   user_timing_draft_notice:
     "Timing draft — not enforced by the intercom yet. Saving keeps the currently configured access and validity unchanged; it does not restrict entry to these days or hours. Activation requires verified station schedule deployment.",
   user_timing_current: "Current validity, independent of this draft",
@@ -1574,6 +1589,20 @@ const he: Record<keyof typeof en, string> = {
   user_timing_add_period: "הוספת טווח שעות",
   user_timing_midnight:
     "שעת סיום 00:00 היא סוף היום שנבחר. לכניסה שחוצה חצות יש להגדיר טווח בכל אחד משני הימים.",
+  user_timing_preview: "תצוגה מקדימה של הזמנים",
+  user_timing_preview_hint: "חישוב לפי הטיוטה בלבד; אינו בדיקת אכיפה בתחנה",
+  user_timing_preview_date: "תאריך לבדיקה",
+  user_timing_preview_time: "שעה לבדיקה",
+  user_timing_preview_inside: "בתוך הטווח שנבחר (טיוטה בלבד)",
+  user_timing_preview_outside: "מחוץ לטווח שנבחר (טיוטה בלבד)",
+  user_timing_preview_invalid:
+    "יש לבדוק את התאריך, השעה, אזור הזמן והטווחים ללא חפיפה. שעה עמומה במעבר שעון אינה ניתנת לבדיקה.",
+  user_timing_convert: "הכנת טווח תוקף לאכיפה",
+  user_timing_convert_hint:
+    "טווח רציף אחד יכול להשתמש במנגנון התוקף הקיים בתחנה. ימים נפרדים, פערים ולוח שבועי אינם ניתנים להמרה. התוקף חל על כל הדלתות שנבחרו למשתמש; יש לבדוק ולשמור כדי לסנכרן.",
+  user_timing_not_continuous: "הבחירה אינה טווח רציף אחד. עדיין נדרש אימות של לוחות הזמנים בתחנה.",
+  user_timing_converted:
+    "הוכן תוקף ב־UTC, בתוך מגבלת התוקף הקיימת אם הוגדרה. בדוק את המועדים ולחץ שמירה וסנכרון כעת כדי לשלוח לתחנות המשויכות. טרם נשלח שינוי.",
   user_timing_draft_notice:
     "טיוטת זמנים — עדיין אינה נאכפת באינטרקום. השמירה משאירה את ההרשאות והתוקף הנוכחיים ללא שינוי ואינה מגבילה כניסה לימים ולשעות האלה. ההפעלה דורשת פריסה ואימות של לוח בתחנה.",
   user_timing_current: "התוקף הנוכחי, שאינו תלוי בטיוטה",

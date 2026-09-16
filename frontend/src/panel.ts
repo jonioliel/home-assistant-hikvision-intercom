@@ -1,5 +1,6 @@
 import "./station-technical";
 import "./user-timing";
+import { timingValidity } from "./timing-validity";
 import "./saved-user-views";
 import { compatible, contractHass } from "./api-contract";
 import type { UserView } from "./saved-user-views";
@@ -632,6 +633,36 @@ export class IntercomManagerPanel extends LitElement {
     if (this._validityStation === "__utc__") return UTC_ZONE;
     return this.zone(this._data?.stations.find((s) => s.id === this._validityStation));
   }
+  private _timingConverted = false;
+  private convertTiming() {
+    const draft = this._draft;
+    if (!draft?.access_timing_draft || this._busy) return;
+    try {
+      const interval = timingValidity(draft.access_timing_draft);
+      if (draft.timed) {
+        this.readValidity();
+        if (draft.valid_from && Date.parse(draft.valid_from) > Date.parse(interval.start))
+          interval.start = draft.valid_from;
+        if (draft.valid_until && Date.parse(draft.valid_until) < Date.parse(interval.end))
+          interval.end = draft.valid_until;
+      }
+      if (Date.parse(interval.start) >= Date.parse(interval.end))
+        throw new Error("invalid_validity");
+      draft.valid_from = interval.start;
+      draft.valid_until = interval.end;
+      draft.timed = true;
+      draft.access_timing_draft = null;
+      this._validityStation = "__utc__";
+      this._validityInputZone = structuredClone(UTC_ZONE);
+      this._validityFrom = localInput(interval.start, UTC_ZONE);
+      this._validityUntil = localInput(interval.end, UTC_ZONE);
+      this._error = "";
+      this._timingConverted = true;
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+    }
+    this.requestUpdate();
+  }
   private readValidity() {
     const zone = this._validityInputZone;
     // Preserve an existing instant (including seconds and a DST fold) when its
@@ -745,6 +776,7 @@ export class IntercomManagerPanel extends LitElement {
   private _onboarding = "";
   private _editorPolicyRevision?: number;
   private edit(user?: Person) {
+    this._timingConverted = false;
     this._onboarding = "";
     const number = new Uint32Array(1);
     crypto.getRandomValues(number);
@@ -2699,6 +2731,7 @@ export class IntercomManagerPanel extends LitElement {
           ${this.profileEditor()} ${this.editorActions()}
           <fieldset class="editor-validity">
             <legend>${icon("schedules")}${this.t("validity")}</legend>
+            ${this._timingConverted ? html`<p class="field-note" role="status">${this.t("user_timing_converted")}</p>` : nothing}
             <label
               >${this.t("user_timing_mode")}<select
                 aria-label=${this.t("user_timing_mode")}
@@ -2742,6 +2775,7 @@ export class IntercomManagerPanel extends LitElement {
                       .language=${this.hass?.language ?? "en"}
                       .value=${draft.access_timing_draft}
                       @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
+                      @timing-convert=${() => this.convertTiming()}
                     ></hikvision-user-timing>
                     <p class="field-note">
                       ${this.t("user_timing_current")}:
