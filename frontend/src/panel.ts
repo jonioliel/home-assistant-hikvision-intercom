@@ -2336,12 +2336,12 @@ export class IntercomManagerPanel extends LitElement {
                     aria-label=${this.t(label)}
                     .value=${this._userFilters[key]}
                     @change=${(e: Event) => {
-                    this._userFilters = {
-                      ...this._userFilters,
-                      [key]: (e.target as HTMLSelectElement).value,
-                    };
-                    this._selectedUsers = new Set();
-                  }}
+                      this._userFilters = {
+                        ...this._userFilters,
+                        [key]: (e.target as HTMLSelectElement).value,
+                      };
+                      this._selectedUsers = new Set();
+                    }}
                   >
                     ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
                   </select></label
@@ -2358,12 +2358,12 @@ export class IntercomManagerPanel extends LitElement {
                       aria-label=${f.label}
                       .value=${this._userFilters.profile?.[f.id] ?? ""}
                       @change=${(e: Event) => {
-                      this._userFilters = {
-                        ...this._userFilters,
-                        profile: { ...this._userFilters.profile, [f.id]: value(e) },
-                      };
-                      this._selectedUsers = new Set();
-                    }}
+                        this._userFilters = {
+                          ...this._userFilters,
+                          profile: { ...this._userFilters.profile, [f.id]: value(e) },
+                        };
+                        this._selectedUsers = new Set();
+                      }}
                     >
                       <option value="">${this.t("filter_any")}</option>
                       ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
