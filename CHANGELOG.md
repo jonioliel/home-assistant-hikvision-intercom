@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.9] - 2026-09-16
+
+- Recover user synchronization after cancelling timed validity when firmware echoes an owned UTC write with a contradictory local label. Recovery requires an exact managed-record fingerprint matching the durable journal; external changes remain blocked.
+- Rewrite a proven UTC echo using explicit station-local timestamps and verify readback. Conversion uses a fresh measured station clock and its rules at the target dates, rejecting ambiguous DST hours and untrusted clocks.
+- Preserve absolute timestamps in timing status while keeping the device wire representation consistent.
+- Use an unambiguous expired local interval when timing activation fails, preserving the original schedule/clock error instead of masking it with a secondary timezone failure.
+- Cover cancellation recovery, external-change protection, local rewrite, name-only updates, seasonal offsets and DST ambiguity with regression tests.
+
+
 ## [1.0.0-rc.8] - 2026-09-16
 
 - Preserve the full camera frame in the overview, with proportion-aware desktop columns and touch-friendly mobile paging. Eight stations use four columns on a wide screen instead of three shallow cropped rows.

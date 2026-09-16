@@ -186,7 +186,8 @@ async def test_failed_native_activation_expires_previous_managed_grant(setup):
     result = await engine.async_reconcile("a", driver)
     assert result.failed == 1
     assert device.users["1001"]["Valid"]["enable"]
-    assert datetime.fromisoformat(device.users["1001"]["Valid"]["endTime"]) < datetime.now(UTC)
+    assert device.users["1001"]["Valid"]["timeType"] == "local"
+    assert datetime.fromisoformat(device.users["1001"]["Valid"]["endTime"]) < datetime(2001, 1, 1)
     assert repo.get(user.id).assignments["a"].sync_state == "error"
 
 
@@ -234,7 +235,8 @@ async def test_clock_failure_cannot_leave_previous_unlimited_grant(setup, monkey
     result = await engine.async_reconcile("a", driver)
     assert result.last_error == "schedule_station_clock_unverified"
     assert device.users["1001"]["Valid"]["enable"]
-    assert datetime.fromisoformat(device.users["1001"]["Valid"]["endTime"]) < datetime.now(UTC)
+    assert device.users["1001"]["Valid"]["timeType"] == "local"
+    assert datetime.fromisoformat(device.users["1001"]["Valid"]["endTime"]) < datetime(2001, 1, 1)
 
 
 async def test_native_engine_binds_only_verified_plan_and_can_return_to_ha(setup, monkeypatch):

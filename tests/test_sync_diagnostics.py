@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from copy import deepcopy
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from test_access_engine import setup as setup  # noqa: F401
@@ -230,3 +230,103 @@ async def test_documented_missing_time_type_defaults_to_local_for_reading(fleet)
     assert missing == canonical(StationInventory({"1001": explicit}), "1001", driver.capabilities)
     assert missing["person"]["Valid"]["timeType"] == "local"
     assert missing["person"]["Valid"]["beginTime"] == "2026-09-09T12:00:00"
+
+
+async def test_cancel_expiry_recovers_only_owned_utc_echo(fleet):
+    manager, device, _ = fleet
+
+    async def firmware_response():
+        for person in device.users.values():
+            person["Valid"]["timeType"] = "local"
+
+    device.on_write = firmware_response
+    user = await manager.async_create(
+        {
+            "display_name": "Timed",
+            "valid_from": "2026-09-09T09:00:00+00:00",
+            "valid_until": "2026-09-10T09:00:00+00:00",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    assert (
+        manager.repository.get(user["id"]).assignments["a"].last_error
+        == "validity_timezone_mismatch"
+    )
+    await manager.async_update(user["id"], {"valid_from": None, "valid_until": None}, revision=1)
+    await drain(manager)
+    assert manager.repository.get(user["id"]).assignments["a"].sync_state == "synced"
+    assert device.users[user["employee_no"]]["Valid"]["enable"] is False
+    assert manager.stations["a"].error is None
+
+
+async def test_cancel_expiry_does_not_overwrite_external_change(fleet):
+    manager, device, _ = fleet
+
+    async def firmware_response():
+        for person in device.users.values():
+            person["Valid"]["timeType"] = "local"
+
+    device.on_write = firmware_response
+    user = await manager.async_create(
+        {
+            "display_name": "Timed",
+            "valid_from": "2026-09-09T09:00:00+00:00",
+            "valid_until": "2026-09-10T09:00:00+00:00",
+            "assignments": {"a": {"allowed_locks": [1]}},
+        }
+    )
+    await drain(manager)
+    device.users[user["employee_no"]]["name"] = "External change"
+    count = len(device.writes)
+    await manager.async_update(user["id"], {"valid_from": None, "valid_until": None}, revision=1)
+    await drain(manager)
+    assert len(device.writes) == count
+    assert (
+        manager.repository.get(user["id"]).assignments["a"].last_error
+        == "validity_timezone_mismatch"
+    )
+
+
+async def test_utc_echo_is_rewritten_as_verified_local_wall_time(fleet):
+    manager, device, _ = fleet
+
+    async def firmware_response():
+        for person in device.users.values():
+            person["Valid"]["timeType"] = "local"
+
+    device.on_write = firmware_response
+    clock = {
+        "zone": {"kind": "iana", "name": "Asia/Jerusalem"},
+        "measurement": {
+            "status": "measured",
+            "estimated_skew_seconds": 0,
+            "uncertainty_seconds": 1,
+        },
+    }
+    with patch(
+        "custom_components.hikvision_intercom.client.clock.ClockClient.async_read",
+        AsyncMock(return_value=clock),
+    ):
+        user = await manager.async_create(
+            {
+                "display_name": "Timed",
+                "valid_from": "2026-09-09T09:00:00+00:00",
+                "valid_until": "2026-09-10T09:00:00+00:00",
+                "assignments": {"a": {"allowed_locks": [1]}},
+            }
+        )
+        await drain(manager)
+        assert manager.repository.get(user["id"]).assignments["a"].sync_state == "synced"
+        assert device.users[user["employee_no"]]["Valid"] == {
+            "enable": True,
+            "timeType": "local",
+            "beginTime": "2026-09-09T12:00:00",
+            "endTime": "2026-09-10T12:00:00",
+        }
+        await manager.async_update(user["id"], {"display_name": "Edited"}, revision=1)
+        await drain(manager)
+        assert device.writes[-1][2]["UserInfo"] == {
+            "employeeNo": user["employee_no"],
+            "name": "Edited",
+        }

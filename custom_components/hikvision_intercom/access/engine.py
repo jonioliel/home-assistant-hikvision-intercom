@@ -20,6 +20,7 @@ from .models import AccessError, ManagedUser, utc_now
 from .native_timing import NativeTiming
 from .normalize import assignment_doors, canonical, desired_cards, desired_person, merge_person
 from .repository import AccessRepository
+from .validity_transport import local_validity, owned_utc_echo
 
 
 @dataclass(slots=True)
@@ -158,9 +159,38 @@ class SyncEngine:
         self.diagnostics.stage(station, user_id, "person_read")
         current = await driver.async_person(user.employee_no)
         merge_person(inventory, user.employee_no, current)
-        current_fingerprint = self.repository.fingerprint(
-            canonical(current, user.employee_no, caps)
-        )
+        recovered_echo = False
+        try:
+            current_fingerprint = self.repository.fingerprint(
+                canonical(current, user.employee_no, caps)
+            )
+        except AccessError as err:
+            if (
+                err.code != "validity_timezone_mismatch"
+                or not binding
+                or binding["employee_no"] != user.employee_no
+            ):
+                raise
+            intent = binding.get("intent") or {}
+            recovered = owned_utc_echo(
+                current,
+                user.employee_no,
+                caps,
+                self.repository.fingerprint,
+                {
+                    binding["fingerprint"],
+                    intent.get("desired_fingerprint"),
+                    intent.get("before_fingerprint"),
+                },
+            )
+            if recovered is None:
+                raise
+            # This proves record ownership only, not validity enforcement.
+            current = recovered
+            recovered_echo = True
+            current_fingerprint = self.repository.fingerprint(
+                canonical(current, user.employee_no, caps)
+            )
         if binding is None:
             if current.users:
                 raise AccessError("unmanaged_employee")
@@ -223,9 +253,9 @@ class SyncEngine:
                     denied.users[user.employee_no].update(
                         Valid={
                             "enable": True,
-                            "beginTime": "2000-01-01T00:00:00+00:00",
-                            "endTime": "2000-01-01T00:01:00+00:00",
-                            "timeType": "UTC",
+                            "beginTime": "2000-01-01T00:00:00",
+                            "endTime": "2000-01-01T00:01:00",
+                            "timeType": "local",
                         }
                     )
                     if canonical(denied, user.employee_no, caps) != canonical(
@@ -271,6 +301,12 @@ class SyncEngine:
             ):
                 raise AccessError("schedule_unverified")
 
+        absolute_validity = deepcopy(person["Valid"])
+        if person["Valid"]["enable"] and (
+            recovered_echo
+            or current.users.get(user.employee_no, {}).get("Valid", {}).get("timeType") == "local"
+        ):
+            person["Valid"] = await local_validity(driver.client, person["Valid"])
         desired = StationInventory({user.employee_no: person}, cards)
         desired_normal = canonical(desired, user.employee_no, caps)
         actual_normal = canonical(current, user.employee_no, caps)
@@ -341,6 +377,15 @@ class SyncEngine:
                 ),
                 step="create_card" if existing is None else "update_card",
             )
+        if (
+            person["Valid"]["enable"]
+            and current.users.get(user.employee_no, {}).get("Valid", {}).get("timeType") == "local"
+            and person["Valid"]["timeType"] == "UTC"
+        ):
+            person["Valid"] = await local_validity(driver.client, person["Valid"])
+            desired_normal = canonical(
+                StationInventory({user.employee_no: person}, cards), user.employee_no, caps
+            )
         if canonical(current, user.employee_no, caps) != desired_normal:
             raise AccessError("readback_mismatch")
         # A new centrally created user with no credential changes still needs an ownership binding.
@@ -351,8 +396,12 @@ class SyncEngine:
             applied_revision=user.revision,
             timing_readback={
                 "mode": user.access_timing_policy["mode"],
-                "valid_from": person["Valid"]["beginTime"] if person["Valid"]["enable"] else None,
-                "valid_until": person["Valid"]["endTime"] if person["Valid"]["enable"] else None,
+                "valid_from": absolute_validity["beginTime"]
+                if absolute_validity["enable"]
+                else None,
+                "valid_until": absolute_validity["endTime"]
+                if absolute_validity["enable"]
+                else None,
                 "revision": user.revision,
                 "checked_at": utc_now(),
             }
@@ -399,7 +448,46 @@ class SyncEngine:
         self.diagnostics.stage(station, user.id, "readback")
         for attempt in range(4):
             after = await driver.async_person(user.employee_no)
-            observed_hash = self.repository.fingerprint(canonical(after, user.employee_no, caps))
+            try:
+                observed_hash = self.repository.fingerprint(
+                    canonical(after, user.employee_no, caps)
+                )
+            except AccessError as err:
+                if err.code != "validity_timezone_mismatch":
+                    raise
+                echo = owned_utc_echo(
+                    after, user.employee_no, caps, self.repository.fingerprint, {expected_hash}
+                )
+                if echo is None:
+                    raise
+                try:
+                    corrected = deepcopy(echo)
+                    corrected.users[user.employee_no]["Valid"] = await local_validity(
+                        driver.client, expected.users[user.employee_no]["Valid"]
+                    )
+                except Exception:
+                    raise err from None
+                await self.repository.async_record_observation(
+                    station, user.id, fingerprint=expected_hash, applied_revision=None
+                )
+                return await self._step(
+                    station,
+                    user,
+                    driver,
+                    inventory,
+                    echo,
+                    corrected,
+                    "update",
+                    partial(
+                        driver.async_write_person,
+                        {
+                            "employeeNo": user.employee_no,
+                            "Valid": corrected.users[user.employee_no]["Valid"],
+                        },
+                        create=False,
+                    ),
+                    step="update_person",
+                )
             if observed_hash == expected_hash:
                 await self.repository.async_record_observation(
                     station, user.id, fingerprint=observed_hash, applied_revision=None
