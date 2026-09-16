@@ -1114,12 +1114,12 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
                       ${this.t(r?"edit":"public_pin_add")}
                     </button>
                     ${r?m`<button
-                          class="danger"
-                          ?disabled=${n}
-                          @click=${()=>{this.clear(),this.editor={slot:s,action:"remove",expected:!0}}}
-                        >
-                          ${this.t("remove")}
-                        </button>`:E}
+                            class="danger"
+                            ?disabled=${n}
+                            @click=${()=>{this.clear(),this.editor={slot:s,action:"remove",expected:!0}}}
+                          >
+                            ${this.t("remove")}
+                          </button>`:E}
                   </div>
                 </article>`}):E}
       </div>

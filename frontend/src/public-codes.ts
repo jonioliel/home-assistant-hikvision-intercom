@@ -205,30 +205,30 @@ export class PublicCodes extends LitElement {
                     <button
                       ?disabled=${disabled}
                       @click=${() => {
-                      this.clear();
-                      this.editor = {
-                        slot,
-                        action: state ? "replace" : "add",
-                        expected: state === true,
-                      };
-                    }}
+                        this.clear();
+                        this.editor = {
+                          slot,
+                          action: state ? "replace" : "add",
+                          expected: state === true,
+                        };
+                      }}
                     >
                       ${this.t(state ? "edit" : "public_pin_add")}
                     </button>
                     ${
-                    state
-                      ? html`<button
-                          class="danger"
-                          ?disabled=${disabled}
-                          @click=${() => {
-                    this.clear();
-                    this.editor = { slot, action: "remove", expected: true };
-                  }}
-                        >
-                          ${this.t("remove")}
-                        </button>`
-                      : nothing
-                  }
+                      state
+                        ? html`<button
+                            class="danger"
+                            ?disabled=${disabled}
+                            @click=${() => {
+                              this.clear();
+                              this.editor = { slot, action: "remove", expected: true };
+                            }}
+                          >
+                            ${this.t("remove")}
+                          </button>`
+                        : nothing
+                    }
                   </div>
                 </article>`;
               })
