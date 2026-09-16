@@ -2,6 +2,22 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.10] - 2026-09-16
+
+### Added
+- Public PIN administration: list configured public slots, add, replace using the current PIN, and delete one slot using its current PIN. Transient credentials are never persisted or returned in reports.
+- Explicit compatibility option for stations whose public-code capability endpoint reports unsupported. This attempts the vendor web-client contract once; it does not claim support or retry uncertain writes.
+
+### Changed
+- HA opening programs are accessible from both station layouts. Active programs can be opened for editing through a guided pause and restore step; unsuccessful restoration remains pending.
+- Public-code writes verify station identity, selected managed output, fresh slot state, ISAPI acknowledgement and slot readback. An acknowledged replacement is not proof of physical PIN acceptance.
+
+### Verification
+- Automated client and UI lifecycle coverage, including stale status, unsupported capability, lost responses, and no secret echo.
+- Physical public-PIN acceptance and hold/restore remain pending owner testing. No public codes or door outputs were changed automatically for this release.
+- See [HA programs and public codes](docs/HA_PROGRAMS_PUBLIC_CODES_HE.md).
+
+
 ## [1.0.0-rc.9] - 2026-09-16
 
 - Recover user synchronization after cancelling timed validity when firmware echoes an owned UTC write with a contradictory local label. Recovery requires an exact managed-record fingerprint matching the durable journal; external changes remain blocked.

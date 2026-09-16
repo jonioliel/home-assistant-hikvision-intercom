@@ -115,6 +115,9 @@ export class DoorPrograms extends LitElement {
   private requests = new ScopedRequests(() => this.hass);
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   protected updated(_p: PropertyValues) {
+    if (_p.has("editor") && !_p.get("editor") && this.editor) {
+      this.renderRoot.querySelector("form")?.scrollIntoView({ block: "start" });
+    }
     const id = `${this.hass?.user?.id}/${this.station?.id}`;
     if (id !== this.identity) {
       this.identity = id;
@@ -155,6 +158,42 @@ export class DoorPrograms extends LitElement {
       this.error = "";
     } catch {
       if (id === this.identity) this.error = "technical_read_failed";
+    } finally {
+      if (id === this.identity) this.busy = false;
+    }
+  }
+  private async beginEdit(item: Program) {
+    if (this.busy || item.removing) return;
+    if (!item.enabled && !item.execution.owned) {
+      this.edit(item);
+      return;
+    }
+    if (!confirm(this.t("program_edit_pause"))) return;
+    this.busy = true;
+    this.error = "";
+    const id = this.identity;
+    try {
+      const result = await this.requests.run<{ programs: Program[] }>(
+        {
+          type: "hikvision_intercom/stations/technical_program_action",
+          station_id: this.station?.id,
+          door: item.door,
+          revision: item.revision,
+          action: "pause",
+        },
+        70000,
+      );
+      if (id !== this.identity) return;
+      this.programs = result.programs;
+      const paused = result.programs.find((p) => p.door === item.door);
+      if (!paused || paused.enabled || paused.execution.owned || paused.removing) {
+        this.error = "hold_pause_before_edit";
+        return;
+      }
+      this.edit(paused);
+    } catch (e) {
+      if (id === this.identity)
+        this.error = (e as { code?: string }).code ?? "technical_write_unknown";
     } finally {
       if (id === this.identity) this.busy = false;
     }
@@ -291,7 +330,7 @@ export class DoorPrograms extends LitElement {
           </button>
         </div>
       </div>
-      <p class="sub">${this.t("program_native_unavailable")}</p>
+      <p class="sub">${this.t("hold_dependency")}</p>
       ${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}
       ${this.programs.map(
         (p) =>
@@ -313,10 +352,7 @@ export class DoorPrograms extends LitElement {
               ${days.filter((d) => p.policy.schedule.weekly[d]?.length).map((d) => html`<p>${this.t("day_" + d)}: ${p.policy.schedule.weekly[d].map((w) => `${w.start}–${w.end}`).join(", ")}</p>`)}${p.policy.schedule.holidays.map((h) => html`<p><bdi>${h.start}–${h.end}</bdi>: ${h.periods.map((w) => `${w.start}–${w.end}`).join(", ")}</p>`)}
             </details>
             <div class="actions">
-              <button
-                ?disabled=${this.busy || p.enabled || p.execution.owned || p.removing}
-                @click=${() => this.edit(p)}
-              >
+              <button ?disabled=${this.busy || p.removing} @click=${() => this.beginEdit(p)}>
                 ${this.t("edit")}</button
               ><button ?disabled=${this.busy || !p.enabled} @click=${() => this.action(p, "pause")}>
                 ${this.t("program_pause")}</button
@@ -372,8 +408,7 @@ export class DoorPrograms extends LitElement {
                   </select></label
                 >
                 <div class="sources">
-                  <strong>Home Assistant</strong
-                  ><span>${this.t("program_native_unavailable")}</span>
+                  <strong>Home Assistant</strong><span>${this.t("program_ha_storage")}</span>
                 </div>
                 <p>${this.t("hold_dependency")}</p>
                 <label

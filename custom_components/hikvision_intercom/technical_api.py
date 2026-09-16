@@ -29,6 +29,12 @@ async def dispatch_technical(hass: HomeAssistant, command: str, msg: dict[str, A
     busy.add(entry.entry_id)
     try:
         async with asyncio.timeout(75):
+            if command.startswith("stations/technical_codes_"):
+                from .client.public_codes import inspect, mutate
+
+                return (
+                    await inspect(client) if command.endswith("get") else await mutate(client, msg)
+                )
             if command.startswith("stations/technical_program_"):
                 from .client.technical import verify_hold_support
 

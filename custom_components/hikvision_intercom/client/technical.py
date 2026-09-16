@@ -160,7 +160,7 @@ def password_status(payload: Any) -> dict[str, Any]:
 
 
 async def hold_command(client: Any, door: int, command: str, *, commissioned: bool = False) -> None:
-    """Prepared identity-bound adapter. Never called by draft saving or runtime timers."""
+    """Identity-bound adapter for explicitly activated HA opening programs."""
     if not commissioned:
         raise AccessError("schedule_writes_unverified")
     if (

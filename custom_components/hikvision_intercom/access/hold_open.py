@@ -1,7 +1,7 @@
 """HA hold-open preparation and durable transition engine.
 
-Production activation remains unavailable until hold/restore commissioning. Draft
-saving never sends a command. Acknowledgement never proves a physical door state.
+Programs activate through an explicit administrator action. Draft saving never
+sends a command. Acknowledgement never proves a physical door state.
 """
 
 from __future__ import annotations

@@ -1,4 +1,6 @@
 import "./hold-open";
+import "./door-programs";
+import "./public-codes";
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { translate } from "./i18n";
@@ -361,32 +363,10 @@ export class StationTechnical extends LitElement {
       <p class="sub"><bdi>${report.checked_at}</bdi></p>`;
   }
   private publicCodes() {
-    return html`<h3>${this.t("station_tab_public_codes")}</h3>
-      <button ?disabled=${this.busy} @click=${() => this.load()}>
-        ${this.t("technical_read")}
-      </button>
-      <p>${this.t("public_codes_readonly")}</p>
-      ${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}
-      ${
-        this.report
-          ? html`<p>
-                ${this.t("technical_pin_" + (this.report.passwords?.public_pin_state ?? "unknown"))}
-              </p>
-              <div class="public-code-list">
-                ${Array.from({ length: 16 }, (_, i) => {
-                  const state = this.report!.passwords?.states[`public${i + 1}Configured`];
-                  return html`<section>
-                    <strong>${this.t("public_code_slot")} ${i + 1}</strong>
-                    <p>
-                      ${this.t(state === true ? "configured" : state === false ? "not_configured" : "not_verified")}
-                    </p>
-                    ${state === true ? html`<span aria-label=${this.t("masked")}>••••••</span>` : nothing}
-                  </section>`;
-                })}
-              </div>
-              <p class="sub"><bdi>${this.report.checked_at}</bdi></p>`
-          : nothing
-      }`;
+    return html`<wiskey-public-codes
+      .hass=${this.hass}
+      .station=${this.station}
+    ></wiskey-public-codes>`;
   }
   render() {
     if (this.mode === "public_codes") return this.publicCodes();
@@ -396,10 +376,11 @@ export class StationTechnical extends LitElement {
         <button ?disabled=${this.busy} @click=${() => this.load()}>
           ${this.t("technical_read")}</button
         >${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}${this.report ? html`${this.relayEditor()}${this.report.doors.map((d) => this.doorEditor(d))}` : nothing}`;
-    return html`<hikvision-hold-open
+    return html`<wiskey-door-programs
         .hass=${this.hass}
         .station=${this.station}
-      ></hikvision-hold-open>
+      ></wiskey-door-programs>
+      <wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>
       <details>
         <summary>${this.t("technical_title")}</summary>
         <p>${this.t("technical_intro")}</p>

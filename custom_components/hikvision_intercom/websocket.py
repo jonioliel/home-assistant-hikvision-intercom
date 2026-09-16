@@ -60,6 +60,18 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "stations/technical_codes_get": {"station_id": str},
+    "stations/technical_codes_write": {
+        "station_id": str,
+        "slot": int,
+        "action": str,
+        "door": int,
+        "expected": bool,
+        "old_pin": str,
+        "new_pin": str,
+        "compatibility": bool,
+        "confirmed": bool,
+    },
     "stations/technical_hold_delete": {"station_id": str, "door": int, "revision": int},
     "stations/technical_program_list": {"station_id": str},
     "stations/technical_program_save": {

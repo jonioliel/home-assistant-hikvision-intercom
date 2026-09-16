@@ -44,9 +44,11 @@ test("door program can be saved inactive, activated, paused and removed", async 
   await expect(panel.locator("article")).toContainText("Office hours");
   await panel.getByRole("button", { name: "Edit", exact: true }).click();
   await panel.getByRole("button", { name: "Save and activate" }).click();
-  await expect(panel.getByRole("button", { name: "Edit", exact: true })).toBeDisabled();
+  await expect(panel.getByRole("button", { name: "Edit", exact: true })).toBeEnabled();
   page.on("dialog", (dialog) => dialog.accept());
-  await panel.getByRole("button", { name: "Pause", exact: true }).click();
+  await panel.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(panel.locator("form")).toBeVisible();
+  await panel.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Edit", exact: true })).toBeEnabled();
   await panel.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(panel.locator("article")).toHaveCount(0);

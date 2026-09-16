@@ -1,4 +1,20 @@
 const en = {
+  program_edit_pause:
+    "Pause this program and restore normal door control before editing? It remains paused until you save and activate it.",
+  program_ha_storage: "Stored and executed by Home Assistant.",
+  public_pin_intro:
+    "Public codes are stored on the station and are not assigned to a person. The station reports which slots are configured, without returning their digits. Replacing or deleting a code requires the current code.",
+  public_pin_compatibility:
+    "Try the compatible public-code interface even though this station does not advertise it. The station may reject the operation.",
+  public_pin_old: "Current public code",
+  public_pin_new: "New public code",
+  public_pin_repeat: "Repeat new code",
+  public_pin_add: "Add code",
+  public_pin_confirm: "Apply this public-code change to the selected station?",
+  public_pin_mismatch: "The new codes do not match.",
+  public_pin_saved:
+    "The station acknowledged the change and its slot status was read back. Test the code at the station to verify actual access.",
+
   program_delete_saved_confirm:
     "Delete this inactive saved program? No station command will be sent.",
   station_tab_overview: "Overview",
@@ -1659,6 +1675,22 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  program_edit_pause:
+    "להשהות את התוכנית ולהחזיר את הדלת לשליטה רגילה לפני העריכה? התוכנית תישאר מושהית עד לשמירה והפעלה מחדש.",
+  program_ha_storage: "נשמר ומופעל באמצעות Home Assistant.",
+  public_pin_intro:
+    "קודים ציבוריים נשמרים בתחנה ואינם משויכים לאדם. התחנה מציגה אילו מקומות מוגדרים, בלי להחזיר את ספרות הקוד. החלפה או מחיקה דורשות את הקוד הקיים.",
+  public_pin_compatibility:
+    "לנסות את ממשק הקודים התואם גם כשהתחנה אינה מפרסמת תמיכה. התחנה עשויה לדחות את הפעולה.",
+  public_pin_old: "הקוד הציבורי הנוכחי",
+  public_pin_new: "קוד ציבורי חדש",
+  public_pin_repeat: "הקלד שוב את הקוד החדש",
+  public_pin_add: "הוסף קוד",
+  public_pin_confirm: "לבצע את שינוי הקוד הציבורי בתחנה שנבחרה?",
+  public_pin_mismatch: "הקודים החדשים אינם תואמים.",
+  public_pin_saved:
+    "התחנה אישרה את השינוי ומצב הקוד נקרא מחדש. יש לבדוק את הקוד בתחנה כדי לאמת כניסה בפועל.",
+
   program_delete_saved_confirm: "למחוק תוכנית שמורה שלא הופעלה? לא תישלח פקודה לתחנה.",
   station_tab_overview: "סקירה",
   station_tab_programs: "תוכניות פתיחה",
