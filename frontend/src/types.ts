@@ -26,7 +26,22 @@ export interface UserTimingDraft {
   periods: { start: string; end: string }[];
 }
 export interface Person {
+  timing_readbacks?: Record<
+    string,
+    {
+      mode: "ha" | "native";
+      valid_from: string | null;
+      valid_until: string | null;
+      revision: number;
+      checked_at: string;
+    }
+  >;
   access_timing_draft?: UserTimingDraft | null;
+  access_timing_policy?: {
+    mode: "ha" | "native";
+    schedule: UserTimingDraft;
+    bindings: Record<string, unknown>;
+  } | null;
   phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
@@ -234,6 +249,11 @@ export interface Hass {
 }
 export interface Draft {
   access_timing_draft?: UserTimingDraft | null;
+  access_timing_policy?: {
+    mode: "ha" | "native";
+    schedule: UserTimingDraft;
+    bindings: Record<string, unknown>;
+  } | null;
   phone?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
@@ -271,6 +291,7 @@ export interface CsvPreview {
     card_count: number;
     stations: string[];
     access_removed: boolean;
+    access_timing_policy?: Person["access_timing_policy"];
     profile?: Record<string, string>;
     group_ids?: string[];
     permission_overrides?: Record<string, "allow" | "deny">;

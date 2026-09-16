@@ -229,6 +229,7 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             "photo",
             "phone",
             "access_timing_draft",
+            "access_timing_policy",
             "permission_overrides",
         }
         if any(not isinstance(f, str) or f not in allowed_fields for f in row["fields"]):

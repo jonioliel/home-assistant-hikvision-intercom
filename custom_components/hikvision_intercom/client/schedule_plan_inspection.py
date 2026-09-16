@@ -22,6 +22,7 @@ async def inspect_plan(
     fingerprint: Callable[[Any], str],
     *,
     expected: list[dict[str, Any]] | None = None,
+    ignore_employee: str | None = None,
 ) -> dict[str, Any]:
     draft = normalize(draft)
     slots = bindings_for(bindings, len(draft["holidays"]))
@@ -47,7 +48,9 @@ async def inspect_plan(
     if expected is not None:
         candidates = expected
     user_refs: set[int] = set()
-    dependencies = await read_user_dependencies(client, inventory, projected, references=user_refs)
+    dependencies = await read_user_dependencies(
+        client, inventory, projected, references=user_refs, ignore_employee=ignore_employee
+    )
     states = {c["kind"]: c["state"] for c in inventory["checks"]}
     external = {
         "template": user_refs,
@@ -108,6 +111,11 @@ async def inspect_plan(
         blockers.append("schedule_plan_holiday_membership_unknown")
     return {
         # Private bridge input; never forwarded through the public proposal/report API.
+        # Unrelated users/resources may change without invalidating this plan.
+        # Eligibility still rejects incomplete reads and unknown default references.
+        "external_context": fingerprint(
+            {kind: sorted(selected[kind] & external[kind]) for kind in selected}
+        ),
         "observed": {r["key"]: records.get(r["kind"], {}).get(str(r["id"])) for r in candidates},
         "dependency_fingerprint": fingerprint(
             [projected, sorted(user_refs), dependencies["users"]]

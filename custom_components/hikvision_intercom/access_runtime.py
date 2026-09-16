@@ -179,6 +179,10 @@ async def async_setup_access(hass: HomeAssistant) -> None:
             coro, name, eager_start=False
         ),
     )
+    if hass.data[DOMAIN].get("schedule_journal") is not None:
+        from .access.native_timing import NativeTiming
+
+        manager.engine.native_timing = NativeTiming(journal, repository)
     hass.data.setdefault(DOMAIN, {})["access"] = manager
     for entry in hass.config_entries.async_entries(DOMAIN):
         manager.register(entry.entry_id, entry.title, bool(managed_locks(entry.data)))

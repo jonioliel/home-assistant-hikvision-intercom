@@ -1,11 +1,38 @@
 const en = {
+  csv_field_access_timing_policy: "Access timing enforcement (JSON)",
+  invalid_timing_policy: "Invalid access timing policy.",
+  schedule_runtime_unavailable:
+    "Schedule storage is unavailable. Resolve the storage repair before native deployment.",
+  schedule_no_safe_slots:
+    "No safely allocatable station schedule was found. Select HA validity windows.",
+  schedule_deployment_incomplete:
+    "Native deployment is incomplete. No new schedule assignment was granted; inspect schedule recovery or use HA windows.",
+  schedule_station_clock_unverified:
+    "The station clock cannot be verified within ten seconds of HA. Check NTP and resynchronize.",
+  schedule_station_timezone_unverified:
+    "Station DST rules differ from the selected time zone. Use HA windows or correct the station clock rules.",
+
+  user_timing_readback: "Last station readback (configuration)",
+  user_timing_readback_at: "Read back at",
+  user_timing_enforcement: "Enforcement method",
+  user_timing_ha: "Home Assistant · finite validity windows",
+  user_timing_native: "Station-local schedule · ISAPI",
+  user_timing_save_draft: "Save draft only (no enforcement)",
+  user_timing_scheduled: "Scheduled access",
+  user_timing_outer_validity: "Additional overall validity limit",
+  user_timing_ha_notice:
+    "Save and synchronize to apply. The station enforces one finite window at a time; HA renews subsequent windows. If HA or the network is unavailable, the current window still expires and later access may be denied. Check synchronization for every selected station before testing.",
+  user_timing_native_notice:
+    "Save and synchronize to deploy and read back the station-local plan. Unknown resource references, unsupported calendar exceptions or clock differences block activation; an existing managed grant is set to expired when deployment fails. Use HA windows if the station cannot safely accept a native plan.",
+  audit_field_access_timing_policy: "Access timing enforcement",
+
   user_sync_hint:
     "Synchronization according to the last verified user revision. Station connectivity is shown separately; undelivered changes remain pending.",
   audit_field_access_timing_draft: "User timing draft (not enforced)",
   user_timing_single_day: "Quick selection: one entire day",
   user_timing_mode: "When may this person enter?",
-  user_timing_weekly: "Selected weekdays · timing draft",
-  user_timing_dates: "Selected calendar dates · timing draft",
+  user_timing_weekly: "Selected weekdays",
+  user_timing_dates: "Selected calendar dates",
   user_timing_zone: "Schedule time zone (IANA)",
   user_timing_all_day: "Entire selected day(s)",
   user_timing_date: "Calendar date",
@@ -1575,12 +1602,38 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  csv_field_access_timing_policy: "אכיפת זמני כניסה (JSON)",
+  invalid_timing_policy: "הגדרת אכיפת הזמנים אינה תקינה.",
+  schedule_runtime_unavailable: "אחסון הלוחות אינו זמין. יש לטפל בהתראת האחסון לפני פריסה מקומית.",
+  schedule_no_safe_slots:
+    "לא נמצא לוח בתחנה שניתן להקצות ללא השפעה על הרשאות אחרות. בחר חלונות תוקף HA.",
+  schedule_deployment_incomplete:
+    "הפריסה המקומית טרם הושלמה. לא הוענק שיוך חדש ללוח. בדוק שחזור פריסה או בחר חלונות HA.",
+  schedule_station_clock_unverified:
+    "לא ניתן לאמת ששעון התחנה תואם ל־HA בטווח של עשר שניות. בדוק NTP וסנכרן שוב.",
+  schedule_station_timezone_unverified:
+    "כללי אזור הזמן ושעון הקיץ בתחנה אינם תואמים ללוח. בחר חלונות HA או תקן את כללי שעון התחנה.",
+
+  user_timing_readback: "קריאה חוזרת אחרונה מהתחנה (הגדרות)",
+  user_timing_readback_at: "נקרא בחזרה בשעה",
+  user_timing_enforcement: "אופן אכיפת הזמנים",
+  user_timing_ha: "Home Assistant · חלונות תוקף מוגבלים",
+  user_timing_native: "לוח מקומי באינטרקום · ISAPI",
+  user_timing_save_draft: "שמירת טיוטה בלבד (ללא אכיפה)",
+  user_timing_scheduled: "כניסה לפי לוח זמנים",
+  user_timing_outer_validity: "מגבלת תוקף כללית נוספת",
+  user_timing_ha_notice:
+    "יש לשמור ולסנכרן כדי להפעיל. התחנה אוכפת חלון תוקף מוגבל אחד בכל פעם, ו־HA מחדש את החלונות הבאים. אם HA או הרשת אינם זמינים, החלון הנוכחי עדיין יפוג וייתכן שהכניסה הבאה תידחה. לפני בדיקה יש לוודא סנכרון בכל תחנה שנבחרה.",
+  user_timing_native_notice:
+    "שמירה וסנכרון פורסים את הלוח המקומי וקוראים אותו בחזרה מהתחנה. שיוכים לא ידועים, חריגי תאריך שאינם נתמכים או הבדלי שעון חוסמים הפעלה; בכשל פריסה, הרשאה מנוהלת קיימת תוגדר כפגת תוקף. ניתן לבחור חלונות HA כשהתחנה אינה מאפשרת פריסה מקומית מאומתת.",
+  audit_field_access_timing_policy: "אכיפת זמני כניסה",
+
   user_sync_hint:
     "מצב הסנכרון לפי גרסת המשתמש האחרונה שאומתה. תקשורת התחנה מוצגת בנפרד; שינויים שטרם הוחלו נשארים בהמתנה.",
   audit_field_access_timing_draft: "טיוטת זמנים למשתמש (אינה נאכפת)",
   user_timing_single_day: "בחירה מהירה: יום מלא אחד",
   user_timing_mode: "מתי מותר למשתמש להיכנס?",
-  user_timing_weekly: "ימים קבועים בשבוע · טיוטת זמנים",
+  user_timing_weekly: "ימים קבועים בשבוע",
   user_timing_dates: "תאריכים נבחרים · טיוטת זמנים",
   user_timing_zone: "אזור הזמן של הלוח (IANA)",
   user_timing_all_day: "כל היום בימים שנבחרו",

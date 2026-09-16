@@ -25,7 +25,14 @@ COLUMNS = (
     "stations",
     "phone",
 )
-IMPORT_COLUMNS = {*COLUMNS, "pin", "cards", "group_ids", "permission_overrides"}
+IMPORT_COLUMNS = {
+    *COLUMNS,
+    "pin",
+    "cards",
+    "group_ids",
+    "permission_overrides",
+    "access_timing_policy",
+}
 
 
 def csv_text(headers: Iterable[str], rows: Iterable[Iterable[Any]]) -> str:
@@ -51,7 +58,14 @@ def csv_text(headers: Iterable[str], rows: Iterable[Iterable[Any]]) -> str:
 def export_users(users: list[ManagedUser], fields: list[str] | None = None) -> str:
     # IDs, not labels, survive renamed fields. Never flatten group access into exceptions.
     keys = sorted(set(fields or []) | {key for user in users for key in user.profile})
-    headers = (*COLUMNS, "group_ids", "permission_overrides", *("profile:" + key for key in keys))
+    timing_columns = ("access_timing_policy",) if any(u.access_timing_policy for u in users) else ()
+    headers = (
+        *COLUMNS,
+        "group_ids",
+        "permission_overrides",
+        *timing_columns,
+        *("profile:" + key for key in keys),
+    )
     return csv_text(
         headers,
         (
@@ -65,6 +79,11 @@ def export_users(users: list[ManagedUser], fields: list[str] | None = None) -> s
                 json.dumps(u.phone),
                 json.dumps(u.group_ids, ensure_ascii=False),
                 json.dumps(u.permission_overrides, ensure_ascii=False, sort_keys=True),
+                *(
+                    [json.dumps(u.access_timing_policy, ensure_ascii=False)]
+                    if timing_columns
+                    else []
+                ),
                 # JSON strings preserve empty values, CLEAR, leading quotes and formula text.
                 *(
                     json.dumps(u.profile[key], ensure_ascii=False) if key in u.profile else ""
@@ -176,6 +195,10 @@ def row_patch(
     policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {key: row[key] for key in ("employee_no", "display_name")}
+    if timing := row.get("access_timing_policy"):
+        from .timing_policy import policy as timing_policy
+
+        data["access_timing_policy"] = timing_policy(_json(timing))
     if phone := row.get("phone"):
         data["phone"] = "" if phone == "CLEAR" else _json(phone) if phone.startswith('"') else phone
     if active := row.get("active"):
@@ -292,6 +315,7 @@ def column_errors(
             "stations",
             "group_ids",
             "permission_overrides",
+            "access_timing_policy",
         )
         if row.get(key)
     ]

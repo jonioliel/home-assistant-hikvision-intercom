@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.6] - 2026-09-16
+
+- Activate weekly and selected-date user access from the user editor, with an explicit choice of Home Assistant finite validity windows or guarded native ISAPI schedules. Existing saved drafts are not activated by upgrading; choose an enforcement method and save/synchronize.
+- HA-managed schedules install only the current or next allowed UTC validity interval and renew after expiry. Gaps, overall validity bounds and DST are respected; missing/ambiguous local boundaries deny that window. The station retains a finite expiry during HA/network outages. Later windows require HA and connectivity, and renewal can briefly delay access at adjoining windows.
+- Add native resource allocation and durable dependency-order deployment, followed by exact resource and per-door RightPlan readback. Unknown implicit user references, shared/active resources, incomplete relevant inventory, unknown holiday membership and incompatible station clocks block activation. Native calendar exceptions remain unavailable until their membership semantics are verified; HA windows cover those dates. There is no automatic fallback.
+- A failed timing activation expires an existing owned grant when the station accepts the denial write; it does not silently retain unlimited access or create new credentials. A failed/offline write remains an error/pending state, not an enforcement claim. Synchronization success means configuration readback, not physical acceptance evidence.
+- Persist enforcement across restart, profile/card/PIN changes and CSV round-trips. Storage schema 10 prevents older integrations from silently discarding an active policy. Add per-station last verified window information in the user editor and check station clock drift before timed grants.
+- Add a self-service inside/outside-window test guide. No live user credentials or station schedules were changed as part of this release's automated validation.
+
 ## [1.0.0-rc.5] - 2026-09-16
 
 - Add draft time preview directly inside user editing, with selected-day/window checks, exclusive end boundaries and daylight-saving ambiguity rejection. The preview is clearly a local calculation, not device enforcement evidence.

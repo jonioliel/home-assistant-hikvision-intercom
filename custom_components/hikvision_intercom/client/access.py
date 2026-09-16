@@ -165,6 +165,7 @@ class AccessClient:
         self.client = client
         self.capabilities: AccessCapabilities | None = None
         self._owner: asyncio.Task[Any] | None = None
+        self._verified_right_plans: dict[str, list[dict[str, Any]]] = {}
 
     @asynccontextmanager
     async def transaction(self) -> AsyncIterator[None]:
@@ -177,6 +178,7 @@ class AccessClient:
                 yield
             finally:
                 self._owner = None
+                self._verified_right_plans.clear()
 
     def _require_mutation(self, kind: str, operation: str) -> AccessCapabilities:
         if self._owner is not asyncio.current_task() or self._owner is None:
@@ -384,7 +386,9 @@ class AccessClient:
         # Modify fields are optional in the manufacturer's contract (p.466).
         # Never resubmit a PIN, schedule or permission merely because the name changed.
         if (create or "RightPlan" in person) and person.get("RightPlan") != []:
-            raise HikvisionValidationError("Unverified schedules are not allowed")
+            verified = self._verified_right_plans.get(person.get("employeeNo", ""))
+            if not verified or person.get("RightPlan") != verified:
+                raise HikvisionValidationError("Unverified schedules are not allowed")
         if (create or "localUIRight" in person) and person.get("localUIRight") is not False:
             raise HikvisionValidationError("Local administrator rights are not allowed")
         if create or "Valid" in person:

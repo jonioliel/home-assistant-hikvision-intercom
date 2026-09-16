@@ -1,3 +1,7 @@
+## 2026-09-16 — User timing enforcement, release candidate 6
+
+Implemented explicit HA-window/native choice in user editing, finite-window reconciliation and renewal, schema-10 persistence/CSV, readback evidence, guarded native allocation/deployment/RightPlan, and self-service physical checks. Native holiday membership and unknown implicit station references remain explicit blockers; HA windows cover independent weekly/date tests. Publication checks are pending; physical timing acceptance is not claimed. See [RC6 guide](RELEASE_1.0.0_RC6_HE.md).
+
 # Project progress
 
 > עדכון קבלה 2026-09-14: הבעלים אישר חיווי צלצול, אירוע ומצלמה ב־WisKey. DoD3,4,7 נסגרו לצד DoD17: **35/37 (94.6%) סגורים, שני שערים פתוחים — מעבדה ויציבות (39,40)**. [תוכנית ההמשך העדכנית](OPERATIONAL_RELEASE_PLAN_HE.md). הספירות הישנות בהמשך הן היסטוריות.

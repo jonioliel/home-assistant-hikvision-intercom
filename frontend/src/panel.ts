@@ -612,8 +612,10 @@ export class IntercomManagerPanel extends LitElement {
               : "validity_current";
     return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
       ${state !== "permanent" ? html`<span class="sub">${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span>` : nothing}
-      <span>${this.t(state)}</span>
-      ${user.access_timing_draft ? html`<span class="sub">${this.t("user_timing_pending")}</span>` : nothing}
+      <span
+        >${this.t(user.access_timing_policy && state === "permanent" ? "user_timing_scheduled" : state)}</span
+      >
+      ${user.access_timing_policy ? html`<span class="sub">${this.t("user_timing_" + user.access_timing_policy.mode)}</span>` : user.access_timing_draft ? html`<span class="sub">${this.t("user_timing_pending")}</span>` : nothing}
       ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
       ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
     </div>`;
@@ -634,6 +636,7 @@ export class IntercomManagerPanel extends LitElement {
     return this.zone(this._data?.stations.find((s) => s.id === this._validityStation));
   }
   private _timingConverted = false;
+  private _timingEnforcement: "draft" | "ha" | "native" = "draft";
   private convertTiming() {
     const draft = this._draft;
     if (!draft?.access_timing_draft || this._busy) return;
@@ -777,6 +780,7 @@ export class IntercomManagerPanel extends LitElement {
   private _editorPolicyRevision?: number;
   private edit(user?: Person) {
     this._timingConverted = false;
+    this._timingEnforcement = user?.access_timing_policy?.mode ?? "draft";
     this._onboarding = "";
     const number = new Uint32Array(1);
     crypto.getRandomValues(number);
@@ -795,6 +799,8 @@ export class IntercomManagerPanel extends LitElement {
           valid_until: null,
           timed: false,
         };
+    if (this._draft.access_timing_policy)
+      this._draft.access_timing_draft = structuredClone(this._draft.access_timing_policy.schedule);
     this._draft.permission_overrides ??= Object.fromEntries(
       Object.entries(this._draft.assignments).map(([id, a]) => [
         id,
@@ -860,6 +866,8 @@ export class IntercomManagerPanel extends LitElement {
   }
   private setPersonalPermission(stationId: string, mode: "allow" | "deny" | "inherit") {
     if (!this._draft) return;
+    if (this._draft.access_timing_policy)
+      this._draft.access_timing_draft = structuredClone(this._draft.access_timing_policy.schedule);
     this._draft.permission_overrides ??= {};
     if (mode === "inherit") delete this._draft.permission_overrides[stationId];
     else this._draft.permission_overrides[stationId] = mode;
@@ -912,6 +920,21 @@ export class IntercomManagerPanel extends LitElement {
       phone: draft.phone ?? "",
       ...(this._data?.api?.capabilities.includes("user_timing_draft")
         ? { access_timing_draft: draft.access_timing_draft ?? null }
+        : {}),
+      ...(this._data?.api?.capabilities.includes("user_timing_enforcement")
+        ? {
+            access_timing_policy:
+              draft.access_timing_draft && this._timingEnforcement !== "draft"
+                ? {
+                    mode: this._timingEnforcement,
+                    schedule: draft.access_timing_draft,
+                    bindings:
+                      draft.access_timing_policy?.mode === this._timingEnforcement
+                        ? draft.access_timing_policy.bindings
+                        : {},
+                  }
+                : null,
+          }
         : {}),
       display_name: draft.display_name,
       active: draft.active,
@@ -1283,6 +1306,7 @@ export class IntercomManagerPanel extends LitElement {
       "cards",
       "group_ids",
       "permission_overrides",
+      "access_timing_policy",
       ...(this._data?.profile_settings?.fields ?? []).map((field) => `profile:${field.id}`),
     ];
   }
@@ -1426,6 +1450,7 @@ export class IntercomManagerPanel extends LitElement {
                           </p>`
                         : nothing
                     }
+                    ${row.access_timing_policy ? html`<p>${this.t("user_timing_enforcement")}: ${this.t("user_timing_" + row.access_timing_policy.mode)} · <bdi>${row.access_timing_policy.schedule.timezone}</bdi></p>` : nothing}
                     ${row.access_removed ? html`<p class="danger">${this.t("csv_revocation")}</p>` : nothing}
                   </article>`,
               )} `
@@ -2742,6 +2767,11 @@ export class IntercomManagerPanel extends LitElement {
                     draft.access_timing_draft = null;
                     draft.timed = mode === "period";
                   } else {
+                    this._timingEnforcement = this._data?.api?.capabilities.includes(
+                      "user_timing_enforcement",
+                    )
+                      ? "ha"
+                      : "draft";
                     draft.access_timing_draft = {
                       mode: mode as "weekly" | "dates",
                       timezone: this._data?.default_zone?.name ?? "UTC",
@@ -2771,14 +2801,40 @@ export class IntercomManagerPanel extends LitElement {
             >
             ${
               draft.access_timing_draft
-                ? html`<hikvision-user-timing
+                ? html`${
+                      this._data?.api?.capabilities.includes("user_timing_enforcement")
+                        ? html`<label
+                            >${this.t("user_timing_enforcement")}<select
+                              aria-label=${this.t("user_timing_enforcement")}
+                              .value=${this._timingEnforcement}
+                              @change=${(e: Event) => {
+                                this._timingEnforcement = value(e) as "draft" | "ha" | "native";
+                                this.requestUpdate();
+                              }}
+                            >
+                              <option value="ha">${this.t("user_timing_ha")}</option>
+                              <option value="native">${this.t("user_timing_native")}</option>
+                              <option value="draft">${this.t("user_timing_save_draft")}</option>
+                            </select></label
+                          >`
+                        : nothing
+                    }<hikvision-user-timing
+                      .enforcement=${this._timingEnforcement}
                       .language=${this.hass?.language ?? "en"}
                       .value=${draft.access_timing_draft}
                       @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
                       @timing-convert=${() => this.convertTiming()}
                     ></hikvision-user-timing>
+                    ${
+                      this._data?.users.find((u) => u.id === draft.id)?.timing_readbacks
+                        ? html`<details open>
+                            <summary>${this.t("user_timing_readback")}</summary>
+                            ${Object.entries(this._data.users.find((u) => u.id === draft.id)!.timing_readbacks!).map(([sid, r]) => html`<p class="field-note"><b>${this._data?.stations.find((s) => s.id === sid)?.name ?? sid}</b> · ${this.t("user_timing_" + r.mode)} · ${this.t(r.revision === draft.revision && draft.assignments[sid]?.sync_state === "synced" ? "synced" : "pending")}<br />${this.t("user_timing_readback_at")}: ${this.dateText(r.checked_at)}${r.valid_from ? html`<br /><bdi>${this.dateText(r.valid_from)} — ${this.dateText(r.valid_until)}</bdi>` : nothing}</p>`)}
+                          </details>`
+                        : nothing
+                    }
                     <p class="field-note">
-                      ${this.t("user_timing_current")}:
+                      ${this.t(this._timingEnforcement === "draft" ? "user_timing_current" : "user_timing_outer_validity")}:
                       ${this.t(draft.timed ? "period" : "permanent")}
                     </p>`
                 : nothing

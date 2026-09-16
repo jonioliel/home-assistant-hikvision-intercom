@@ -317,6 +317,15 @@ class AccessManager:
             station.task = None
             if not self._closed and station.driver is not None:
                 delay = min(300, 5 * 2 ** min(station.failures, 6)) if retry else 300
+                if not retry:
+                    from .timing_policy import renewal_delay
+
+                    delay = renewal_delay(
+                        self.repository.users(),
+                        station.id,
+                        delay,
+                        self.repository.snapshot()["bindings"].get(station.id, {}),
+                    )
                 station.timer = asyncio.get_running_loop().call_later(
                     delay, self.request, station.id
                 )
@@ -456,6 +465,7 @@ class AccessManager:
                         "profile": user.profile,
                         "group_ids": user.group_ids,
                         "permission_overrides": user.permission_overrides,
+                        "access_timing_policy": user.access_timing_policy,
                         "access_removed": bool(
                             previous
                             and (

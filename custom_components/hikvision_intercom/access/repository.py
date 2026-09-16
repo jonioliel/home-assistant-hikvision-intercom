@@ -30,7 +30,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 9,
+            "schema": 10,
             "sync_operations": {},
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
@@ -50,7 +50,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9)
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10)
             legacy_state = set(self._state) - {"sync_operations"}
             legacy_keys = legacy_state - {
                 "admin_audit",
@@ -86,8 +86,11 @@ class AccessRepository:
             if data.get("schema") == 8 and set(data) == set(self._state):
                 data = {**deepcopy(data), "schema": 9}
                 migrated = True
+            if data.get("schema") == 9 and set(data) == set(self._state):
+                data = {**deepcopy(data), "schema": 10}
+                migrated = True
             try:
-                if data.get("schema") != 9 or set(data) != set(self._state):
+                if data.get("schema") != 10 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -205,6 +208,22 @@ class AccessRepository:
                     raise AccessError("invalid_storage")
                 if binding.get("fingerprint") is not None:
                     text_field(binding["fingerprint"], 128)
+                timing = binding.get("timing_readback")
+                if timing is not None:
+                    from .models import valid_period
+
+                    if (
+                        not isinstance(timing, dict)
+                        or set(timing)
+                        != {"mode", "valid_from", "valid_until", "revision", "checked_at"}
+                        or timing["mode"] not in ("ha", "native")
+                        or type(timing["revision"]) is not int
+                        or not 1 <= timing["revision"] <= user.revision
+                    ):
+                        raise AccessError("invalid_storage")
+                    valid_period(timing["valid_from"], timing["valid_until"])
+                    if datetime.fromisoformat(text_field(timing["checked_at"], 40)).tzinfo is None:
+                        raise AccessError("invalid_storage")
                 observed_at = binding.get("identity_observed_at")
                 if observed_at is not None:
                     if datetime.fromisoformat(text_field(observed_at, 40)).tzinfo is None:
@@ -328,7 +347,17 @@ class AccessRepository:
     def public(self) -> dict[str, Any]:
         return deepcopy(
             {
-                "users": [user.public() for user in self.users()],
+                "users": [
+                    {
+                        **user.public(),
+                        "timing_readbacks": {
+                            sid: deepcopy(binding["timing_readback"])
+                            for sid, bindings in self._state["bindings"].items()
+                            if (binding := bindings.get(user.id)) and binding.get("timing_readback")
+                        },
+                    }
+                    for user in self.users()
+                ],
                 "sync_operations": sync_tracking.public(self._state),
                 "revocations": [
                     {
@@ -774,7 +803,13 @@ class AccessRepository:
         await self._commit(bind)
 
     async def async_record_observation(
-        self, station: str, user_id: str, *, fingerprint: str, applied_revision: int | None
+        self,
+        station: str,
+        user_id: str,
+        *,
+        fingerprint: str,
+        applied_revision: int | None,
+        timing_readback: dict[str, Any] | None = None,
     ) -> None:
         def observed(state: dict[str, Any]) -> None:
             binding = state["bindings"].get(station, {}).get(user_id)
@@ -800,6 +835,7 @@ class AccessRepository:
                 user = state["users"][user_id]
                 assignment = user["assignments"].get(station)
                 if assignment and applied_revision == user["revision"]:
+                    binding["timing_readback"] = deepcopy(timing_readback)
                     binding["sync_state"] = "synced"
                     assignment.update(
                         applied_revision=applied_revision,

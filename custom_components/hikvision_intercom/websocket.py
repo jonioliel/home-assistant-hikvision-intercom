@@ -47,6 +47,7 @@ USER_FIELDS = {
     "photo",
     "phone",
     "access_timing_draft",
+    "access_timing_policy",
     "employee_no",
     "display_name",
     "active",

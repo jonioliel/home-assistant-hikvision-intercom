@@ -8,6 +8,7 @@ export class UserTiming extends LitElement {
   static properties = {
     value: { attribute: false },
     language: {},
+    enforcement: {},
     date: { state: true },
     previewDate: { state: true },
     previewTime: { state: true },
@@ -64,6 +65,7 @@ export class UserTiming extends LitElement {
   ];
   value?: UserTimingDraft;
   language = "en";
+  enforcement = "draft";
   private date = "";
   private previewDate = "";
   private previewTime = "12:00";
@@ -103,7 +105,9 @@ export class UserTiming extends LitElement {
         preview = this.t("user_timing_preview_invalid");
       }
     }
-    return html`<p class="notice" role="note">${this.t("user_timing_draft_notice")}</p>
+    return html`<p class="notice" role="note">
+        ${this.t(this.enforcement === "draft" ? "user_timing_draft_notice" : "user_timing_" + this.enforcement + "_notice")}
+      </p>
       <label
         >${this.t("user_timing_zone")}<input
           dir="ltr"

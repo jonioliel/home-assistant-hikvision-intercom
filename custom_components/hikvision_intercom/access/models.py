@@ -162,6 +162,7 @@ class ManagedUser:
     permission_overrides: dict[str, str] = field(default_factory=dict)
     phone: str = ""
     access_timing_draft: dict[str, Any] | None = None
+    access_timing_policy: dict[str, Any] | None = None
 
     def private(self) -> dict[str, Any]:
         return {
@@ -170,6 +171,7 @@ class ManagedUser:
             "display_name": self.display_name,
             "phone": self.phone,
             "access_timing_draft": deepcopy(self.access_timing_draft),
+            "access_timing_policy": deepcopy(self.access_timing_policy),
             "active": self.active,
             "user_type": self.user_type,
             "valid_from": self.valid_from,
@@ -253,6 +255,7 @@ def build_user(
     """Patch desired state; absent PIN/card numbers keep existing secret material."""
     from ..profile_settings import group_values, photo_value, profile_values
     from .group_permissions import overrides
+    from .timing_policy import policy
     from .user_timing import timing_draft
 
     try:
@@ -359,6 +362,11 @@ def build_user(
                 )
             ),
             phone=phone_value(data.get("phone", previous.phone if previous else "")),
+            access_timing_policy=policy(
+                data.get(
+                    "access_timing_policy", previous.access_timing_policy if previous else None
+                )
+            ),
             access_timing_draft=timing_draft(
                 data.get("access_timing_draft", previous.access_timing_draft if previous else None)
             ),

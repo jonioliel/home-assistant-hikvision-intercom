@@ -128,6 +128,7 @@ async def read_user_dependencies(
     rows: dict[str, list[dict[str, Any]]],
     *,
     references: set[int] | None = None,
+    ignore_employee: str | None = None,
 ) -> dict[str, Any]:
     """Read only user assignments after a caller has already inventoried schedules."""
     users: dict[str, Any] = {
@@ -147,7 +148,16 @@ async def read_user_dependencies(
             await reader.async_confirm_identity()
             access = AccessClient(reader)
             await access.async_capabilities()
-            users.update(user_references(await access._search("UserInfo")), state="complete")
+            users.update(
+                user_references(
+                    [
+                        u
+                        for u in await access._search("UserInfo")
+                        if ignore_employee is None or u.get("employeeNo") != ignore_employee
+                    ]
+                ),
+                state="complete",
+            )
     except (HikvisionError, TimeoutError) as err:
         users["error"] = "connection_failed" if isinstance(err, TimeoutError) else error_code(err)
     if references is not None:

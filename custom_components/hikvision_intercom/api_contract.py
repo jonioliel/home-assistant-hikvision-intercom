@@ -10,6 +10,7 @@ CAPABILITIES = [
     "event_portraits",
     "sync_tracking",
     "user_timing_draft",
+    "user_timing_enforcement",
 ]
 
 

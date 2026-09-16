@@ -92,6 +92,14 @@ def desired_person(
             "endTime": user.valid_until,
             "timeType": "UTC",
         }
+    if user.access_timing_policy and user.access_timing_policy["mode"] == "ha":
+        from .timing_policy import rolling_validity
+
+        validity = rolling_validity(
+            user.access_timing_policy["schedule"],
+            valid_from=user.valid_from,
+            valid_until=user.valid_until,
+        )
     person: dict[str, Any] = {
         "employeeNo": user.employee_no,
         "name": user.display_name,

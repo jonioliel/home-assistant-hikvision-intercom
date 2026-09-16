@@ -165,7 +165,11 @@ async def test_revision_checks_noop_confirmation_and_terminal_conflict():
         await store.async_record(identifier, 2)
 
 
-async def test_journal_limit_stops_preparation_without_discarding_older_transactions():
+async def test_journal_limit_stops_preparation_without_discarding_older_transactions(monkeypatch):
+    from custom_components.hikvision_intercom.access import schedule_journal
+
+    assert schedule_journal.MAX_TRANSACTIONS >= 255
+    monkeypatch.setattr(schedule_journal, "MAX_TRANSACTIONS", 32)
     store = ScheduleJournal(AsyncMock())
     first = None
     for index in range(32):

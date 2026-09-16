@@ -1,7 +1,7 @@
-"""Private write-ahead journal for future, independently verified schedule transports.
+"""Private write-ahead journal for guarded native schedule transports.
 
-No production transport or Home Assistant write entry point is registered. Proposals and
-comparison baselines are not ownership evidence and cannot authorize this journal.
+Explicit user activation checks ownership, dependencies and clock before entry.
+Proposals and comparison baselines alone cannot authorize this journal.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from .schedules import normalize
 
 CONTEXT = {"identity", "capability", "dependencies", "ownership", "source"}
 ISSUES = {None, "read_failed", "write_uncertain", "context_changed", "resource_changed"}
-MAX_TRANSACTIONS = 32
+MAX_TRANSACTIONS = 1024
 
 
 def validate_context(value: Any) -> None:

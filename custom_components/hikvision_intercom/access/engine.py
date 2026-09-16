@@ -9,13 +9,15 @@ from dataclasses import dataclass
 from functools import partial
 
 from ..client.access import AccessClient, StationInventory
+from ..client.clock import ClockClient
 from ..exceptions import (
     HikvisionAuthError,
     HikvisionDeviceError,
     HikvisionError,
 )
 from .diagnostics import SyncDiagnostics, error_code
-from .models import AccessError, ManagedUser
+from .models import AccessError, ManagedUser, utc_now
+from .native_timing import NativeTiming
 from .normalize import assignment_doors, canonical, desired_cards, desired_person, merge_person
 from .repository import AccessRepository
 
@@ -38,6 +40,8 @@ class SyncEngine:
         changed: Callable[[], None] | None = None,
         diagnostics: SyncDiagnostics | None = None,
     ) -> None:
+        self.native_timing: NativeTiming | None = None
+        self._timing_clocks: set[str] = set()
         self.repository = repository
         self.diagnostics = diagnostics or SyncDiagnostics(repository.fingerprint)
         self._slots = asyncio.Semaphore(concurrency)
@@ -61,6 +65,7 @@ class SyncEngine:
 
     async def async_reconcile(self, station: str, driver: AccessClient) -> ReconcileResult:
         result = ReconcileResult()
+        self._timing_clocks.discard(station)
         async with self._slots:
             if driver.capabilities is None:
                 self.diagnostics.stage(station, None, "capabilities")
@@ -190,6 +195,60 @@ class SyncEngine:
             return
         api_id = assignment_doors(user, station, driver.client.physical_doors)
         person = desired_person(user, api_id, caps)
+        timing = user.access_timing_policy
+        if timing:
+            try:
+                if timing["mode"] == "native":
+                    if self.native_timing is None:
+                        raise AccessError("schedule_runtime_unavailable")
+                    person["RightPlan"] = await self.native_timing.ensure(
+                        station, user, driver, api_id
+                    )
+                elif station not in self._timing_clocks:
+                    clock = await ClockClient(driver.client).async_read()
+                    measurement = clock["measurement"]
+                    if (
+                        measurement["status"] != "measured"
+                        or abs(measurement["estimated_skew_seconds"])
+                        + measurement["uncertainty_seconds"]
+                        > 10
+                    ):
+                        raise AccessError("schedule_station_clock_unverified")
+                    self._timing_clocks.add(station)
+            except (AccessError, HikvisionError):
+                # A timing activation failure must not retain a previously unlimited
+                # managed grant. Do not create credentials on a failed deployment.
+                if current.users:
+                    denied = deepcopy(current)
+                    denied.users[user.employee_no].update(
+                        Valid={
+                            "enable": True,
+                            "beginTime": "2000-01-01T00:00:00+00:00",
+                            "endTime": "2000-01-01T00:01:00+00:00",
+                            "timeType": "UTC",
+                        }
+                    )
+                    if canonical(denied, user.employee_no, caps) != canonical(
+                        current, user.employee_no, caps
+                    ):
+                        await self._step(
+                            station,
+                            user,
+                            driver,
+                            inventory,
+                            current,
+                            denied,
+                            "update",
+                            lambda: driver.async_write_person(
+                                {
+                                    "employeeNo": user.employee_no,
+                                    "Valid": denied.users[user.employee_no]["Valid"],
+                                },
+                                create=False,
+                            ),
+                            step="update_person",
+                        )
+                raise
         cards = desired_cards(user, caps)
         if not current.users and len(inventory.users) >= caps.max_users:
             raise AccessError("person_capacity")
@@ -207,7 +266,10 @@ class SyncEngine:
             ):
                 raise AccessError("pin_owned_elsewhere")
         if current.users and current.users[user.employee_no].get("RightPlan") != []:
-            raise AccessError("schedule_unverified")
+            if self.native_timing is None or not self.native_timing.owns(
+                station, user, current.users[user.employee_no].get("RightPlan")
+            ):
+                raise AccessError("schedule_unverified")
 
         desired = StationInventory({user.employee_no: person}, cards)
         desired_normal = canonical(desired, user.employee_no, caps)
@@ -287,6 +349,15 @@ class SyncEngine:
             user.id,
             fingerprint=self.repository.fingerprint(desired_normal),
             applied_revision=user.revision,
+            timing_readback={
+                "mode": user.access_timing_policy["mode"],
+                "valid_from": person["Valid"]["beginTime"] if person["Valid"]["enable"] else None,
+                "valid_until": person["Valid"]["endTime"] if person["Valid"]["enable"] else None,
+                "revision": user.revision,
+                "checked_at": utc_now(),
+            }
+            if user.access_timing_policy
+            else None,
         )
         await self.repository.async_confirm_card_removals(station, user.id, set(current.cards))
         actual_pin = canonical(current, user.employee_no, caps)["person"]["pin"]
