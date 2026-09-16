@@ -9,6 +9,7 @@ export class UserTiming extends LitElement {
     value: { attribute: false },
     language: {},
     enforcement: {},
+    canEnforce: { attribute: false },
     date: { state: true },
     previewDate: { state: true },
     previewTime: { state: true },
@@ -66,6 +67,7 @@ export class UserTiming extends LitElement {
   value?: UserTimingDraft;
   language = "en";
   enforcement = "draft";
+  canEnforce = false;
   private date = "";
   private previewDate = "";
   private previewTime = "12:00";
@@ -98,15 +100,19 @@ export class UserTiming extends LitElement {
       try {
         preview = this.t(
           timingPreview(draft, this.previewDate, this.previewTime)
-            ? "user_timing_preview_inside"
-            : "user_timing_preview_outside",
+            ? this.enforcement === "draft"
+              ? "user_timing_preview_inside"
+              : "user_timing_active_preview_inside"
+            : this.enforcement === "draft"
+              ? "user_timing_preview_outside"
+              : "user_timing_active_preview_outside",
         );
       } catch {
         preview = this.t("user_timing_preview_invalid");
       }
     }
     return html`<p class="notice" role="note">
-        ${this.t(this.enforcement === "draft" ? "user_timing_draft_notice" : "user_timing_" + this.enforcement + "_notice")}
+        ${this.t(this.enforcement === "draft" ? (this.canEnforce ? "user_timing_choose_notice" : "user_timing_draft_notice") : "user_timing_" + this.enforcement + "_notice")}
       </p>
       <label
         >${this.t("user_timing_zone")}<input
@@ -169,7 +175,10 @@ export class UserTiming extends LitElement {
       }
       <details>
         <summary>${this.t("user_timing_preview")}</summary>
-        <p class="sub">${this.t("user_timing_preview_hint")} · <bdi>${draft.timezone}</bdi></p>
+        <p class="sub">
+          ${this.t(this.enforcement === "draft" ? "user_timing_preview_hint" : "user_timing_active_preview_hint")}
+          · <bdi>${draft.timezone}</bdi>
+        </p>
         <div class="period">
           <label
             >${this.t("user_timing_preview_date")}<input
@@ -193,7 +202,7 @@ export class UserTiming extends LitElement {
         <output aria-live="polite">${preview}</output>
       </details>
       ${
-        draft.mode === "dates"
+        draft.mode === "dates" && this.enforcement === "draft" && !this.canEnforce
           ? html`<p class="sub">${this.t("user_timing_convert_hint")}</p>
               <button
                 type="button"

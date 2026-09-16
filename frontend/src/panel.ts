@@ -2812,14 +2812,15 @@ export class IntercomManagerPanel extends LitElement {
                                 this.requestUpdate();
                               }}
                             >
+                              ${this._timingEnforcement === "draft" ? html`<option value="draft" disabled .selected=${true}>${this.t("user_timing_choose_enforcement")}</option>` : nothing}
                               <option value="ha">${this.t("user_timing_ha")}</option>
                               <option value="native">${this.t("user_timing_native")}</option>
-                              <option value="draft">${this.t("user_timing_save_draft")}</option>
                             </select></label
                           >`
                         : nothing
                     }<hikvision-user-timing
                       .enforcement=${this._timingEnforcement}
+                      .canEnforce=${this._data?.api?.capabilities.includes("user_timing_enforcement")}
                       .language=${this.hass?.language ?? "en"}
                       .value=${draft.access_timing_draft}
                       @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}

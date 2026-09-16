@@ -80,3 +80,48 @@ for (const width of [390, 768, 1440]) {
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
   });
 }
+
+test("Hebrew saved draft requires explicit activation and date labels are not drafts", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto("/?lang=he");
+  await page.evaluate(async () => {
+    const data = (window as any).demoData;
+    data.api.capabilities.push("user_timing_enforcement");
+    data.users[0].access_timing_draft = {
+      mode: "weekly",
+      timezone: "Asia/Jerusalem",
+      days: ["Monday"],
+      dates: [],
+      periods: [{ start: "12:00", end: "18:00" }],
+    };
+    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
+  });
+  await navigate(page, "משתמשים");
+  await page.getByRole("button", { name: "עריכה", exact: true }).first().click();
+  await expect(page.getByLabel("אופן אכיפת הזמנים", { exact: true })).toHaveValue("draft");
+  await expect(page.locator("hikvision-user-timing").getByRole("note")).toContainText(
+    "הלוח השמור עדיין לא הופעל",
+  );
+  await page.getByRole("button", { name: /^(שמירה|שמור)$/ }).click();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as any).calls.find((c: any) => c.type.endsWith("users/update")).data
+          .access_timing_policy,
+    ),
+  ).toBeNull();
+  await page.getByRole("button", { name: "עריכה", exact: true }).first().click();
+  await page.getByLabel("אופן אכיפת הזמנים", { exact: true }).selectOption("ha");
+  await expect(page.getByLabel("אופן אכיפת הזמנים", { exact: true }).locator("option")).toHaveCount(
+    2,
+  );
+  const timing = page.locator("hikvision-user-timing");
+  await expect(timing.getByRole("note")).not.toContainText("טיוטת זמנים");
+  await page.getByLabel("מתי מותר למשתמש להיכנס?", { exact: true }).selectOption("dates");
+  await expect(
+    page.getByLabel("מתי מותר למשתמש להיכנס?", { exact: true }).locator("option:checked"),
+  ).toHaveText("תאריכים נבחרים");
+  await expect(timing.getByRole("button", { name: "הכנת טווח תוקף לאכיפה" })).toHaveCount(0);
+});

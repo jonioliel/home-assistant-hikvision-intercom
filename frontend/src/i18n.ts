@@ -1,4 +1,13 @@
 const en = {
+  user_timing_choose_enforcement: "Select an enforcement method to activate",
+  user_timing_choose_notice:
+    "This saved schedule has not been activated. Select HA windows or a station-local plan, then Save & sync. Until you select a method, saving other user details keeps the existing access unchanged.",
+
+  user_timing_active_preview_hint:
+    "Calculation from the selected schedule; check station readback separately after saving.",
+  user_timing_active_preview_inside: "Inside the selected schedule",
+  user_timing_active_preview_outside: "Outside the selected schedule",
+
   csv_field_access_timing_policy: "Access timing enforcement (JSON)",
   invalid_timing_policy: "Invalid access timing policy.",
   schedule_runtime_unavailable:
@@ -1602,6 +1611,15 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  user_timing_choose_enforcement: "בחירת מסלול אכיפה להפעלה",
+  user_timing_choose_notice:
+    "הלוח השמור עדיין לא הופעל. בחר חלונות HA או לוח מקומי, ולחץ שמירה וסנכרון. כל עוד לא נבחר מסלול, שמירת פרטים אחרים של המשתמש אינה משנה את הרשאותיו.",
+
+  user_timing_active_preview_hint:
+    "חישוב לפי הלוח שנבחר; יש לבדוק בנפרד את הקריאה החוזרת מהתחנה לאחר השמירה.",
+  user_timing_active_preview_inside: "בתוך לוח הזמנים שנבחר",
+  user_timing_active_preview_outside: "מחוץ ללוח הזמנים שנבחר",
+
   csv_field_access_timing_policy: "אכיפת זמני כניסה (JSON)",
   invalid_timing_policy: "הגדרת אכיפת הזמנים אינה תקינה.",
   schedule_runtime_unavailable: "אחסון הלוחות אינו זמין. יש לטפל בהתראת האחסון לפני פריסה מקומית.",
@@ -1634,7 +1652,7 @@ const he: Record<keyof typeof en, string> = {
   user_timing_single_day: "בחירה מהירה: יום מלא אחד",
   user_timing_mode: "מתי מותר למשתמש להיכנס?",
   user_timing_weekly: "ימים קבועים בשבוע",
-  user_timing_dates: "תאריכים נבחרים · טיוטת זמנים",
+  user_timing_dates: "תאריכים נבחרים",
   user_timing_zone: "אזור הזמן של הלוח (IANA)",
   user_timing_all_day: "כל היום בימים שנבחרו",
   user_timing_date: "תאריך",
