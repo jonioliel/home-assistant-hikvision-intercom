@@ -34,6 +34,8 @@ const reads = new Set([
   "events/trace_stop",
   "health/get",
   "media/settings_get",
+  "clock/settings_get",
+  "clock/host_status",
   "overview",
   "permissions/directory",
   "profiles/settings_get",

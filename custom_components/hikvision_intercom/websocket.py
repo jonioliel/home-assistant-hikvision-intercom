@@ -108,6 +108,11 @@ COMMANDS = {
     "profiles/settings_preview": {"revision": int, "values": dict},
     "profiles/settings_apply": {"operation_id": str},
     "users/photo_get": {"user_id": str},
+    "clock/settings_get": {},
+    "clock/settings_update": {"revision": int, "values": dict},
+    "clock/host_status": {},
+    "clock/host_apply": {"revision": int},
+    "clock/station_sync": {"station_id": str, "revision": int, "copy_system": bool},
     "media/settings_get": {},
     "media/settings_update": {"revision": int, "values": dict},
     "media/provider_check": {},
@@ -319,6 +324,10 @@ async def _dispatch_inner(
 
         return await dispatch_technical(hass, command, msg)
     manager = get_manager(hass)
+    if command.startswith("clock/"):
+        from .clock_api import dispatch_clock
+
+        return await dispatch_clock(hass, command, msg)
     if command == "events/history_inspect":
         from .client.history_diagnostics import inspect_history
 

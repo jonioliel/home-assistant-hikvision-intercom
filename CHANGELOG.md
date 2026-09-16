@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.11] - 2026-09-16
+
+### Added
+- Central editable NTP server preferences (default time.windows.com), UDP port and poll interval.
+- Per-station and fleet actions to apply NTP or copy Home Assistant time immediately and restore NTP mode, preserving device timezone/DST.
+- Capability and readback checks, separate configuration/clock alignment results, and independent results for offline or failing stations.
+- Home Assistant host NTP configuration via supported Supervisor API, feature-gated for HA OS 18.3+. Older hosts receive explicit setup guidance rather than a false success.
+
 ## [1.0.0-rc.10] - 2026-09-16
 
 ### Added

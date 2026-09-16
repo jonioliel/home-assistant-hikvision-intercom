@@ -1,4 +1,7 @@
 const en = {
+  clock_options: "Time and NTP",
+  tools_clock_options:
+    "Shared time server, station clock synchronization and Home Assistant host settings.",
   program_edit_pause:
     "Pause this program and restore normal door control before editing? It remains paused until you save and activate it.",
   program_ha_storage: "Stored and executed by Home Assistant.",
@@ -1675,6 +1678,8 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  clock_options: "שעונים ושרת NTP",
+  tools_clock_options: "שרת זמן מרכזי, סנכרון שעוני התחנות והגדרת שעון Home Assistant.",
   program_edit_pause:
     "להשהות את התוכנית ולהחזיר את הדלת לשליטה רגילה לפני העריכה? התוכנית תישאר מושהית עד לשמירה והפעלה מחדש.",
   program_ha_storage: "נשמר ומופעל באמצעות Home Assistant.",
