@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.core import SupportsResponse
 
 from custom_components.hikvision_intercom.access.models import AccessError
 from custom_components.hikvision_intercom.access_runtime import get_manager
@@ -17,13 +18,15 @@ async def whatsapp(hass, loaded_entry):
         {"display_name": "Demo", "phone": "0511231234", "pin": "654321"}
     )
     call = AsyncMock()
+    hass.services.async_register("whatsapp", "send_message", call)
+    hass.services.async_register(
+        "whatsapp", "get_chat_messages", call, supports_response=SupportsResponse.OPTIONAL
+    )
     with (
         patch(
             "custom_components.hikvision_intercom.whatsapp_api._accounts",
             return_value=[{"id": "wa", "name": "Test"}],
         ),
-        patch.object(hass.services, "has_service", return_value=True),
-        patch.object(hass.services, "async_call", call),
     ):
         yield user, call, {"user_id": user.id, "account": "wa", "language": "he"}
 
@@ -36,7 +39,7 @@ async def test_preview_never_sends_and_confirmation_consumes_once(hass, whatsapp
     call.assert_not_called()
     send = {**args, "token": preview["token"], "message": "Edited by admin", "confirmed": True}
     await dispatch_whatsapp(hass, "whatsapp/send", send, "admin")
-    assert call.call_args.args[2] == {
+    assert call.call_args.args[0].data == {
         "account": "wa",
         "target": "972511231234",
         "message": "Edited by admin",
@@ -99,7 +102,7 @@ async def test_history_uses_normalized_recipient_and_strips_raw_keys(hass, whats
     assert result["messages"][0]["text"] == "Hello"
     assert result["messages"][0]["media_token"]
     assert "SECRET" not in str(result) and "/media/" not in str(result)
-    assert call.call_args.kwargs["return_response"] is True
+    assert call.call_args.args[0].data["limit"] == 200
 
 
 def test_message_does_not_claim_draft_enforcement():
