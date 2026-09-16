@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { navigate } from "./navigation";
 
-test("phone edits preserve international prefix and appear in table and search", async ({
+test("Israeli international input becomes local display and remains searchable", async ({
   page,
 }) => {
   await page.goto("/");
@@ -10,7 +10,7 @@ test("phone edits preserve international prefix and appear in table and search",
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Mobile phone", { exact: true }).fill("+972 50-123-4567");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.locator(".desktop-users")).toContainText("+972 50-123-4567");
+  await expect(page.locator(".desktop-users")).toContainText("050-123-4567");
   await page.locator('input[type="search"]').first().fill("050");
   await page.locator('input[type="search"]').first().fill("501234567");
   await expect(page.locator(".desktop-users tbody tr")).toHaveCount(1);

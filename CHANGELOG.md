@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.1.0] - 2026-09-17
+
+- Add an administrator user-details dialog with portrait, profile fields, groups, permissions and validity.
+- Integrate the installed FaserF WhatsApp account: editable access-message preview, explicit single-use send confirmation and stored conversation viewer. Nothing sends automatically.
+- Display stored text and supported media through an authenticated HA bridge, with bounded attachment loading and explicit unavailable-history/media states.
+- Normalize Israeli mobile display to `05X-xxx-xxxx`, use international recipients for WhatsApp, and prevent phone-column wrapping.
+- Compact user search, saved views, filters and selection controls.
+- Add recipient-isolation, confirmation, stale-user, duplicate-send, error-redaction and responsive dialog regression tests. See `docs/WHATSAPP_HE.md` for setup and provider limitations.
+
 ## [1.0.0] - 2026-09-16
 
 ### Changed

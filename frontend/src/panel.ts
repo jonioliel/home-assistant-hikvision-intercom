@@ -1,3 +1,6 @@
+import "./user-details";
+import { mobileDisplay } from "./phone";
+import { usersCompactStyles } from "./users-compact-styles";
 import "./clock-settings";
 import "./station-technical";
 import "./door-programs";
@@ -116,6 +119,7 @@ export class IntercomManagerPanel extends LitElement {
     headerStyles,
     stationSettingsStyles,
     overviewStyles,
+    usersCompactStyles,
   ];
   static properties = {
     hass: { attribute: false },
@@ -141,6 +145,7 @@ export class IntercomManagerPanel extends LitElement {
     _selectedUsers: { state: true },
     _auditUser: { state: true },
     _dialog: { state: true },
+    _detailsUser: { state: true },
     _callBusy: { state: true },
     _busy: { state: true },
     _releases: { state: true },
@@ -165,6 +170,7 @@ export class IntercomManagerPanel extends LitElement {
     }
     return this.contractProxy;
   }
+  private _detailsUser = "";
   narrow = false;
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
@@ -2246,7 +2252,8 @@ export class IntercomManagerPanel extends LitElement {
           key !== "sort" &&
           (typeof value === "object" ? Object.values(value).some(Boolean) : !!value),
       );
-    return html`<div class="page-heading users-heading">
+    return html`<section class="users-page">
+      <div class="page-heading users-heading">
         <div>
           <h2>${this.t("users")}</h2>
           <p class="sub">${this.t("users_intro")}</p>
@@ -2275,108 +2282,110 @@ export class IntercomManagerPanel extends LitElement {
           ${this.t("sync_all")}
         </button>
       </div>
-      <wiskey-saved-user-views
-        .hass=${this.protectedHass}
-        .fields=${this._data?.profile_settings?.fields ?? []}
-        .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
-        @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
-        @view-load=${(e: CustomEvent<UserView>) => {
-          this._query = e.detail.query;
-          this._userFilters = e.detail.filters;
-          this._userColumns = e.detail.columns;
-          this._selectedUsers = new Set();
-        }}
-      ></wiskey-saved-user-views>
-      <details class="user-filters">
-        <summary>${this.t("user_filter_controls")}</summary>
-        <div class="toolbar">
-          ${(
-            [
+      <div class="users-filter-strip">
+        <wiskey-saved-user-views
+          .hass=${this.protectedHass}
+          .fields=${this._data?.profile_settings?.fields ?? []}
+          .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
+          @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
+          @view-load=${(e: CustomEvent<UserView>) => {
+            this._query = e.detail.query;
+            this._userFilters = e.detail.filters;
+            this._userColumns = e.detail.columns;
+            this._selectedUsers = new Set();
+          }}
+        ></wiskey-saved-user-views>
+        <details class="user-filters">
+          <summary>${this.t("user_filter_controls")}</summary>
+          <div class="toolbar">
+            ${(
               [
-                "station",
-                "user_filter_station",
-                this._data?.stations.map((st) => [st.id, st.name]) ?? [],
-              ],
-              [
-                "rights",
-                "user_filter_rights",
-                ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
-              ],
-              [
-                "state",
-                "user_filter_state",
-                ["active", "inactive", "expired", "upcoming"].map((v) => [
-                  v,
-                  this.t("filter_" + v),
-                ]),
-              ],
-              [
-                "credential",
-                "user_filter_credential",
-                ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
-              ],
-              [
-                "sort",
-                "user_sort",
-                ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
-              ],
-            ] as [keyof UserFilters, string, string[][]][]
-          ).map(
-            ([key, label, options]) =>
-              html`<label
-                >${this.t(label)}<select
-                  aria-label=${this.t(label)}
-                  .value=${this._userFilters[key]}
-                  @change=${(e: Event) => {
+                [
+                  "station",
+                  "user_filter_station",
+                  this._data?.stations.map((st) => [st.id, st.name]) ?? [],
+                ],
+                [
+                  "rights",
+                  "user_filter_rights",
+                  ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
+                ],
+                [
+                  "state",
+                  "user_filter_state",
+                  ["active", "inactive", "expired", "upcoming"].map((v) => [
+                    v,
+                    this.t("filter_" + v),
+                  ]),
+                ],
+                [
+                  "credential",
+                  "user_filter_credential",
+                  ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
+                ],
+                [
+                  "sort",
+                  "user_sort",
+                  ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
+                ],
+              ] as [keyof UserFilters, string, string[][]][]
+            ).map(
+              ([key, label, options]) =>
+                html`<label
+                  >${this.t(label)}<select
+                    aria-label=${this.t(label)}
+                    .value=${this._userFilters[key]}
+                    @change=${(e: Event) => {
                     this._userFilters = {
                       ...this._userFilters,
                       [key]: (e.target as HTMLSelectElement).value,
                     };
                     this._selectedUsers = new Set();
                   }}
-                >
-                  ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
-                </select></label
-              >`,
-          )}
-        </div>
-        <div class="toolbar profile-filters">
-          ${this._data?.profile_settings?.fields
-            .filter((f) => f.enabled)
-            .map(
-              (f) =>
-                html`<label
-                  >${f.label}<select
-                    aria-label=${f.label}
-                    .value=${this._userFilters.profile?.[f.id] ?? ""}
-                    @change=${(e: Event) => {
+                  >
+                    ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
+                  </select></label
+                >`,
+            )}
+          </div>
+          <div class="toolbar profile-filters">
+            ${this._data?.profile_settings?.fields
+              .filter((f) => f.enabled)
+              .map(
+                (f) =>
+                  html`<label
+                    >${f.label}<select
+                      aria-label=${f.label}
+                      .value=${this._userFilters.profile?.[f.id] ?? ""}
+                      @change=${(e: Event) => {
                       this._userFilters = {
                         ...this._userFilters,
                         profile: { ...this._userFilters.profile, [f.id]: value(e) },
                       };
                       this._selectedUsers = new Set();
                     }}
-                  >
-                    <option value="">${this.t("filter_any")}</option>
-                    ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
-                  </select></label
-                >`,
-            )}
-          <label
-            >${this.t("profile_groups")}<select
-              aria-label=${this.t("profile_groups")}
-              .value=${this._userFilters.group ?? ""}
-              @change=${(e: Event) => {
-                this._userFilters = { ...this._userFilters, group: value(e) };
-                this._selectedUsers = new Set();
-              }}
+                    >
+                      <option value="">${this.t("filter_any")}</option>
+                      ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                    </select></label
+                  >`,
+              )}
+            <label
+              >${this.t("profile_groups")}<select
+                aria-label=${this.t("profile_groups")}
+                .value=${this._userFilters.group ?? ""}
+                @change=${(e: Event) => {
+                  this._userFilters = { ...this._userFilters, group: value(e) };
+                  this._selectedUsers = new Set();
+                }}
+              >
+                <option value="">${this.t("filter_any")}</option>
+                ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+              </select></label
             >
-              <option value="">${this.t("filter_any")}</option>
-              ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
-            </select></label
-          >
-        </div>
-      </details>
+          </div>
+        </details>
+      </div>
       <div class="user-result-bar">
         <p role="status">
           ${this.t("user_results")}:
@@ -2404,7 +2413,7 @@ export class IntercomManagerPanel extends LitElement {
             : nothing
         }
       </div>
-      <div class="toolbar">
+      <div class="toolbar user-selection-tools">
         <button
           ?disabled=${!users.length}
           @click=${() => {
@@ -2473,11 +2482,18 @@ export class IntercomManagerPanel extends LitElement {
                                         .join("")}</span
                                     >`
                               }
-                              <strong>${user.display_name}</strong>
+                              <button
+                                class="user-detail-link"
+                                @click=${() => (this._detailsUser = user.id)}
+                              >
+                                ${user.display_name}
+                              </button>
                             </div>
                           </td>
                           <td><bdi>${user.employee_no}</bdi></td>
-                          <td><bdi dir="ltr">${user.phone || "—"}</bdi></td>
+                          <td class="phone-cell">
+                            <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
+                          </td>
                           ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
                           ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
                           <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
@@ -2507,13 +2523,21 @@ export class IntercomManagerPanel extends LitElement {
                       <div class="row between">
                         ${this.userSelection(user)}
                         ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
-                        <h3>${user.display_name}</h3>
+                        <h3>
+                          <button
+                            class="user-detail-link"
+                            @click=${() => (this._detailsUser = user.id)}
+                          >
+                            ${user.display_name}
+                          </button>
+                        </h3>
                         <span title=${this.t("user_sync_hint")}
                           >${this.badge(this.personStatus(user))}</span
                         >
                       </div>
                       <p class="sub">
-                        ${this.t("phone")}: <bdi dir="ltr">${user.phone || "—"}</bdi> ·
+                        ${this.t("phone")}:
+                        <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
                         ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
                         ${this.t(user.active ? "active" : "inactive")}
                       </p>
@@ -2544,7 +2568,8 @@ export class IntercomManagerPanel extends LitElement {
                     </article>`,
                 )}
               </div>`
-      }`;
+      }
+    </section>`;
   }
   private capabilityDetails(station: Station) {
     return html`<section class="capability-details">
@@ -2902,7 +2927,12 @@ export class IntercomManagerPanel extends LitElement {
                     (user) =>
                       html`<tr>
                         <td class="sync-person">
-                          <strong>${user.display_name}</strong>${
+                          <button
+                            class="user-detail-link"
+                            @click=${() => (this._detailsUser = user.id)}
+                          >
+                            ${user.display_name}</button
+                          >${
                             user.sync_reference
                               ? html`<details class="sync-reference">
                                   <summary
@@ -3015,7 +3045,8 @@ export class IntercomManagerPanel extends LitElement {
                 dir="ltr"
                 maxlength="32"
                 .value=${draft.phone ?? ""}
-                @input=${(event: Event) => this.patchDraft("phone", value(event))}
+                placeholder="05X-xxx-xxxx"
+                @input=${(event: Event) => this.patchDraft("phone", mobileDisplay(value(event)))}
             /></label>
             ${draft.identity_locked ? html`<p class="field-note">${this.t("employee_locked")}</p>` : nothing}
             <p>
@@ -3926,6 +3957,21 @@ export class IntercomManagerPanel extends LitElement {
                                         ></hikvision-intercom-events>`
         }
       </main>
+      ${
+        this._detailsUser && this._data?.users.find((u) => u.id === this._detailsUser)
+          ? html`<wiskey-user-details
+              .hass=${this.protectedHass}
+              .person=${this._data.users.find((u) => u.id === this._detailsUser)}
+              .stations=${this._data.stations}
+              .policy=${this._data.profile_settings}
+              @details-close=${() => (this._detailsUser = "")}
+              @details-edit=${() => {
+                const user = this._data?.users.find((u) => u.id === this._detailsUser);
+                if (user) this.edit(user);
+              }}
+            ></wiskey-user-details>`
+          : nothing
+      }
       ${this.dialogView()}
       <hikvision-appearance-picker
         .language=${this.hass?.language ?? "en"}

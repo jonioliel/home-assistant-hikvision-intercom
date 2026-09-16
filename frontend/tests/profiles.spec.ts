@@ -41,7 +41,7 @@ async function camera(page: Page) {
 test("row has only edit and sync; unsaved edits guard editor actions", async ({ page }) => {
   await configure(page);
   const row = page.locator(".desktop-users tbody tr").first();
-  await expect(row.locator("button")).toHaveText(["Edit", "Sync now"]);
+  await expect(row.locator("td:last-child button")).toHaveText(["Edit", "Sync now"]);
   const dialog = await edit(page);
   await expect(dialog.getByRole("button", { name: "Read card from station" })).toBeVisible();
   await dialog.getByLabel("Department", { exact: true }).fill("Staff");

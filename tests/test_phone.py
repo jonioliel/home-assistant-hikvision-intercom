@@ -13,6 +13,7 @@ from custom_components.hikvision_intercom.access.csv_transfer import (
 )
 from custom_components.hikvision_intercom.access.models import AccessError, build_user, phone_value
 from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.phone import mobile_display
 
 
 @pytest.mark.parametrize("number", ["0501234567", "+972 50-123-4567", "(020) 1234 5678", ""])
@@ -24,19 +25,19 @@ async def test_phone_roundtrip_local_only(number):
     intent = desired_fields(user)
     with audit_actor("admin", "users/update"):
         updated = await repo.async_update(user.id, {"phone": number}, expected_revision=1)
-    assert updated.public()["phone"] == number
+    assert updated.public()["phone"] == mobile_display(number)
     assert desired_fields(updated) == intent
     if number:
         assert number not in str(repo.snapshot()["admin_audit"])
     saved = AccessRepository(AsyncMock())
     await saved.async_load(repo.snapshot())
-    assert saved.get(user.id).phone == number
+    assert saved.get(user.id).phone == mobile_display(number)
     _, row = parse_csv(export_users([updated]))[0]
     patch = row_patch(row, updated, {"s": "Station"})
     rebuilt = build_user(
         patch, employee_no=updated.employee_no, now=updated.updated_at, previous=updated
     )
-    assert rebuilt.phone == number
+    assert rebuilt.phone == mobile_display(number)
     await repo.async_delete(user.id, expected_revision=2)
     assert repo.snapshot()["tombstones"][user.id]["record"]["phone"] == ""
 

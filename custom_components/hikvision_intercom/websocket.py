@@ -60,6 +60,17 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "whatsapp/status": {},
+    "whatsapp/preview": {"user_id": str, "account": str, "language": str},
+    "whatsapp/send": {
+        "user_id": str,
+        "account": str,
+        "token": str,
+        "message": str,
+        "confirmed": bool,
+    },
+    "whatsapp/history": {"user_id": str, "account": str},
+    "whatsapp/media": {"user_id": str, "account": str, "token": str},
     "stations/technical_codes_get": {"station_id": str},
     "stations/technical_codes_write": {
         "station_id": str,
@@ -312,6 +323,10 @@ async def _dispatch(
 async def _dispatch_inner(
     hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
 ) -> Any:
+    if command.startswith("whatsapp/"):
+        from .whatsapp_api import dispatch_whatsapp
+
+        return await dispatch_whatsapp(hass, command, msg, actor)
     if command.startswith(("users/bulk_", "audit/")) or command in {
         "stations/permission_audit",
         "permissions/directory",

@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 
 from ..client.access import validate_card, validate_identifier
 from ..exceptions import HikvisionValidationError
+from ..phone import mobile_display
 
 SYNC_STATES = frozenset(
     {"synced", "pending", "syncing", "offline", "conflict", "error", "delete_pending"}
@@ -246,7 +247,7 @@ def phone_value(value: Any) -> str:
         or not 7 <= len(re.sub(r"[^0-9]", "", value)) <= 15
     ):
         raise AccessError("invalid_phone")
-    return value.strip()
+    return mobile_display(value)
 
 
 def build_user(
