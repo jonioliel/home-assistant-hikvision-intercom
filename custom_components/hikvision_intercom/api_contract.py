@@ -11,6 +11,7 @@ CAPABILITIES = [
     "sync_tracking",
     "user_timing_draft",
     "user_timing_enforcement",
+    "whatsapp_templates",
 ]
 
 
@@ -41,6 +42,7 @@ READ_COMMANDS = frozenset(
         "events/print",
         "events/trace_get",
         "users/photo_get",
+        "whatsapp/templates_get",
         "media/settings_get",
         "profiles/settings_get",
         "health/get",

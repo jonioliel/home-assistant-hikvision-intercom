@@ -63,6 +63,17 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "media_settings_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["media_settings"] = media
 
+    from .whatsapp_templates import WhatsAppTemplates
+
+    template_store = AccessStore(hass, key=f"{DOMAIN}.whatsapp_templates")
+    templates = WhatsAppTemplates(template_store.async_save, changed)
+    try:
+        templates.load(await template_store.async_load())
+    except AccessError:
+        hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = templates
+
     from .ntp_settings import NtpSettings
 
     ntp_store = AccessStore(hass, key=f"{DOMAIN}.ntp_settings")

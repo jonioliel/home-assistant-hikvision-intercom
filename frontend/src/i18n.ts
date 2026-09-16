@@ -410,6 +410,30 @@ const en = {
   photo_storage_full: "Photo storage is full. Remove unused user photos before adding more.",
   photo_disabled: "Photo collection was disabled. Reload user settings.",
 
+  whatsapp_templates: "WhatsApp message templates",
+  tools_whatsapp_templates: "Edit reviewed access-message templates and organization details.",
+  whatsapp_templates_intro:
+    "Customize the message shown before an administrator explicitly sends access details. Separate templates keep unrestricted messages short and add schedules only when enforced.",
+  whatsapp_organization: "Organization name in messages",
+  whatsapp_template_language: "Template language",
+  whatsapp_template_kind: "Access type",
+  whatsapp_template_unrestricted: "No day or time restriction",
+  whatsapp_template_scheduled: "Scheduled or date-limited access",
+  whatsapp_template_variables: "Available variables",
+  whatsapp_template_text: "Message template",
+  whatsapp_template_preview: "Example preview",
+  whatsapp_template_review_hint:
+    "The final message is still shown for review and editing before every send. Template changes never send a message automatically.",
+  whatsapp_template_restore: "Restore built-in templates",
+  whatsapp_template_saved: "WhatsApp message templates were saved.",
+  whatsapp_template_defaults_ready:
+    "Built-in templates were restored in the editor. Save to apply them.",
+  whatsapp_template_invalid:
+    "The template is invalid. Keep the required name and PIN variables; scheduled templates must also include the access-window section.",
+  whatsapp_template_conflict: "Templates changed elsewhere. Reload them before saving.",
+  whatsapp_template_load_failed: "WhatsApp message templates could not be loaded.",
+  whatsapp_template_save_failed:
+    "The template save could not be confirmed. Reload before trying again.",
   media_discover: "Find installed go2rtc add-on",
   media_discovered: "Add-on found. Save to use it for both RTC and MSE.",
   media_discover_failed:
@@ -2079,6 +2103,28 @@ const he: Record<keyof typeof en, string> = {
   invalid_photo: "התמונה אינה תקינה או גדולה מדי. צלם מחדש.",
   photo_storage_full: "אחסון התמונות מלא. הסר תמונות משתמש שאינן נדרשות לפני הוספה.",
   photo_disabled: "קליטת התמונות בוטלה. טען מחדש את הגדרות המשתמש.",
+  whatsapp_templates: "תבניות הודעות WhatsApp",
+  tools_whatsapp_templates: "עריכת הודעות פרטי הגישה ושם הארגון לפני שליחה.",
+  whatsapp_templates_intro:
+    "התאם את ההודעה שמוצגת למנהל לפני שליחת פרטי גישה. תבנית רגילה נשארת קצרה, ותבנית מתוזמנת מוסיפה ימים ושעות רק כאשר הם נאכפים.",
+  whatsapp_organization: "שם הארגון בהודעות",
+  whatsapp_template_language: "שפת התבנית",
+  whatsapp_template_kind: "סוג ההרשאה",
+  whatsapp_template_unrestricted: "ללא הגבלת ימים ושעות",
+  whatsapp_template_scheduled: "הרשאה מתוזמנת או מוגבלת בתאריכים",
+  whatsapp_template_variables: "משתנים זמינים",
+  whatsapp_template_text: "תוכן התבנית",
+  whatsapp_template_preview: "תצוגה מקדימה לדוגמה",
+  whatsapp_template_review_hint:
+    "לפני כל שליחה ההודעה המלאה עדיין מוצגת לעריכה ולאישור. שינוי תבנית לעולם אינו שולח הודעה אוטומטית.",
+  whatsapp_template_restore: "שחזור התבניות המובנות",
+  whatsapp_template_saved: "תבניות הודעות WhatsApp נשמרו.",
+  whatsapp_template_defaults_ready: "התבניות המובנות הוחזרו בעורך. יש לשמור כדי להחיל אותן.",
+  whatsapp_template_invalid:
+    "התבנית אינה תקינה. יש להשאיר את משתני השם והקוד; בתבנית מתוזמנת חובה להשאיר גם את מקטע זמני הגישה.",
+  whatsapp_template_conflict: "התבניות השתנו במקום אחר. יש לטעון אותן מחדש לפני שמירה.",
+  whatsapp_template_load_failed: "לא ניתן לטעון את תבניות הודעות WhatsApp.",
+  whatsapp_template_save_failed: "שמירת התבניות לא אושרה. יש לטעון מחדש לפני ניסיון נוסף.",
   media_discover: "איתור תוסף go2rtc מותקן",
   media_discovered: "התוסף נמצא. שמור כדי להשתמש בו גם ב־RTC וגם ב־MSE.",
   media_discover_failed:

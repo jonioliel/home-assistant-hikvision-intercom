@@ -10,75 +10,117 @@ from importlib import import_module
 import aiohttp
 
 from .access.models import AccessError
-from .access_runtime import get_manager
 from .const import DOMAIN
 from .phone import whatsapp_number
 from .whatsapp_messages import project_messages
+from .whatsapp_templates import DEFAULTS, render_template
 
 
-def access_message(user, stations, language: str) -> str:
+def _display_date(value: str, he: bool) -> str:
+    date = str(value).split("T", 1)[0]
+    if he and len(date) == 10 and date[4] == "-" and date[7] == "-":
+        return f"{date[8:10]}.{date[5:7]}.{date[:4]}"
+    return date
+
+
+def access_message(user, stations, language: str, settings=None) -> str:
     he = language.startswith("he")
-    lines = [f"{'שלום' if he else 'Hello'} {user.display_name},", "WisKey"]
-    lines.append(("מצב המשתמש: " if he else "User status: ") + ("פעיל" if he else "Active"))
-    if not user.active:
-        lines[-1] = "ההרשאה אינה פעילה." if he else "Access is inactive."
-    if user.pin:
-        lines.append(("קוד הגישה שלך: " if he else "Your access code: ") + user.pin.value)
-    else:
-        lines.append("לא הוגדר קוד גישה." if he else "No access code is configured.")
+    values = settings or DEFAULTS
+    door_lines: list[str] = []
+    pending: list[str] = []
     for station_id, assignment in user.assignments.items():
         if not assignment.enabled:
             continue
         station = stations.get(station_id)
         name = station.name if station else ("תחנה לא זמינה" if he else "Unavailable station")
-        locks = ", ".join(str(lock) for lock in assignment.allowed_locks)
-        state = (
-            ("מסונכרן" if he else "Synchronized")
-            if assignment.sync_state == "synced"
-            else ("ממתין לאימות סנכרון" if he else "Synchronization not verified")
-        )
-        lines.append(f"{name} · {'דלתות' if he else 'Doors'} {locks} · {state}")
-    if user.valid_from or user.valid_until:
-        lines.append(
-            f"{'תוקף' if he else 'Validity'}: {user.valid_from or '—'} → {user.valid_until or '—'}"
-        )
+        locks = sorted(assignment.allowed_locks)
+        suffix = ""
+        if len(locks) > 1:
+            suffix = f" ({'דלתות' if he else 'Doors'} {', '.join(str(lock) for lock in locks)})"
+        door_lines.append(f"{len(door_lines) + 1}. {name}{suffix}")
+        if assignment.sync_state != "synced":
+            pending.append(name)
+
     policy = user.access_timing_policy
-    if policy:
-        schedule = policy["schedule"]
-        days = {
-            "monday": "שני",
-            "tuesday": "שלישי",
-            "wednesday": "רביעי",
-            "thursday": "חמישי",
-            "friday": "שישי",
-            "saturday": "שבת",
-            "sunday": "ראשון",
-        }
-        selected = (
-            schedule.get("dates")
-            if schedule["mode"] == "dates"
-            else [days.get(day.lower(), day) if he else day for day in schedule.get("days", [])]
-        )
-        periods = ", ".join(f"{p['start']}–{p['end']}" for p in schedule["periods"])
-        lines.append(
-            f"{'זמני כניסה' if he else 'Access times'}: {', '.join(selected or [])}; "
-            f"{periods}; {schedule['timezone']}"
-        )
-        lines.append(
-            "הזמנים כפופים להשלמת הסנכרון לתחנות."
+    schedule = policy.get("schedule", {}) if policy else {}
+    day_names = {
+        "monday": "שני",
+        "tuesday": "שלישי",
+        "wednesday": "רביעי",
+        "thursday": "חמישי",
+        "friday": "שישי",
+        "saturday": "שבת",
+        "sunday": "ראשון",
+    }
+    raw_days = schedule.get("days", []) if schedule.get("mode") == "weekly" else []
+    days = [day_names.get(str(day).lower(), str(day)) if he else str(day) for day in raw_days]
+    dates = [_display_date(value, he) for value in schedule.get("dates", [])]
+    hours = ", ".join(
+        f"{period['start']}–{period['end']}" for period in schedule.get("periods", [])
+    )
+    validity_parts: list[str] = []
+    if user.valid_from:
+        validity_parts.append(("מ־" if he else "From ") + _display_date(user.valid_from, he))
+    if user.valid_until:
+        validity_parts.append(("עד " if he else "Until ") + _display_date(user.valid_until, he))
+    validity = " ".join(validity_parts)
+
+    window: list[str] = []
+    if validity:
+        window.append(("📆 תוקף ההרשאה:" if he else "📆 Access validity:") + f"\n{validity}")
+    if days:
+        window.append(("📆 ימי הכניסה:" if he else "📆 Access days:") + f"\n{', '.join(days)}")
+    elif dates:
+        window.append(("📆 תאריכי הכניסה:" if he else "📆 Access dates:") + f"\n{', '.join(dates)}")
+    if hours:
+        window.append(("⌚ שעות הכניסה:" if he else "⌚ Access hours:") + f"\n{hours}")
+
+    doors = "\n".join(door_lines)
+    doors_section = (
+        (("דלתות מורשות:" if he else "Authorized doors:") + f"\n\n{doors}\n\n")
+        if doors
+        else (("לא הוגדרו דלתות מורשות." if he else "No authorized doors are configured.") + "\n\n")
+    )
+    access_window_section = "\n\n".join(window) + ("\n\n" if window else "")
+    template_key = ("he_" if he else "en_") + (
+        "scheduled" if policy or user.valid_from or user.valid_until else "unrestricted"
+    )
+    variables = {
+        "name": user.display_name,
+        "organization": values["organization"],
+        "pin": user.pin.value if user.pin else ("לא הוגדר" if he else "Not configured"),
+        "status": ("פעיל" if he else "Active")
+        if user.active
+        else ("לא פעיל" if he else "Inactive"),
+        "doors": doors,
+        "doors_section": doors_section,
+        "days": ", ".join(days),
+        "dates": ", ".join(dates),
+        "hours": hours,
+        "validity": validity,
+        "timezone": str(schedule.get("timezone", "")),
+        "access_window_section": access_window_section,
+    }
+    message = render_template(values[template_key], variables)
+    notices: list[str] = []
+    if not user.active:
+        notices.append("⚠️ ההרשאה אינה פעילה." if he else "⚠️ Access is inactive.")
+    if user.access_timing_draft and not policy:
+        notices.append(
+            "⚠️ טיוטת הזמנים אינה נאכפת ואינה מגבילה כניסה."
             if he
-            else "Times are subject to successful station synchronization."
+            else "⚠️ The draft schedule is not enforced and does not restrict access."
         )
-    elif user.access_timing_draft:
-        lines.append(
-            "קיימת טיוטת זמנים שאינה נאכפת. אין להסתמך עליה כהגבלת כניסה."
-            if he
-            else "A draft schedule exists but is not enforced."
+    if pending:
+        notices.append(
+            (
+                "⚠️ ההרשאה ממתינה להשלמת סנכרון בתחנות: "
+                if he
+                else "⚠️ Access is awaiting synchronization at: "
+            )
+            + ", ".join(pending)
         )
-    elif not user.valid_until:
-        lines.append("ללא מגבלת ימים ושעות." if he else "No weekday or time restriction.")
-    lines.append("אין להעביר את הקוד לאחרים." if he else "Do not share your code.")
-    return "\n".join(lines)
+    return "\n\n".join([*notices, message])
 
 
 def _accounts(hass):
@@ -90,6 +132,14 @@ def _accounts(hass):
 
 
 async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
+    templates = hass.data[DOMAIN].get("whatsapp_templates")
+    if command in {"whatsapp/templates_get", "whatsapp/templates_update"}:
+        if templates is None:
+            raise AccessError("whatsapp_templates_unavailable")
+        if command == "whatsapp/templates_get":
+            return templates.public(defaults=True)
+        return await templates.update(msg["revision"], msg["values"])
+
     accounts = _accounts(hass)
     available = hass.services.has_service("whatsapp", "send_message")
     history = hass.services.has_service("whatsapp", "get_chat_messages")
@@ -97,6 +147,8 @@ async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
         return {"available": available and bool(accounts), "history": history, "accounts": accounts}
     if not available or msg["account"] not in {a["id"] for a in accounts}:
         raise AccessError("whatsapp_unavailable")
+    from .access_runtime import get_manager
+
     manager = get_manager(hass)
     user = manager.repository.get(msg["user_id"])
     number = whatsapp_number(user.phone)
@@ -130,7 +182,12 @@ async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
         return {
             "token": issue("send"),
             "recipient": number,
-            "message": access_message(user, manager.stations, msg["language"]),
+            "message": access_message(
+                user,
+                manager.stations,
+                msg["language"],
+                templates.public() if templates else DEFAULTS,
+            ),
         }
     if command == "whatsapp/send":
         if (

@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.2.0] - 2026-09-17
+
+- Redesign the default WhatsApp access message with a clear organization heading, personal-code block, numbered authorized doors and a prominent no-sharing warning.
+- Keep unrestricted messages concise; add date, weekday and hour sections only for an active enforced access policy.
+- Add administrator-managed Hebrew and English templates for unrestricted and scheduled access, with live preview, safe literal variables, revision-aware saving and built-in reset.
+- Keep final per-user review and editing mandatory before sending; template changes never trigger a message.
+- Preserve explicit inactive, unenforced-draft and pending-synchronization warnings outside customizable marketing text.
+
 ## [1.1.0] - 2026-09-17
 
 - Add an administrator user-details dialog with portrait, profile fields, groups, permissions and validity.

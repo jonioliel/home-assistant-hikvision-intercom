@@ -61,6 +61,8 @@ USER_FIELDS = {
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
     "whatsapp/status": {},
+    "whatsapp/templates_get": {},
+    "whatsapp/templates_update": {"revision": int, "values": dict},
     "whatsapp/preview": {"user_id": str, "account": str, "language": str},
     "whatsapp/send": {
         "user_id": str,

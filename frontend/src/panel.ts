@@ -16,6 +16,7 @@ import { profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
 import "./user-photo";
 import "./media-settings";
+import "./whatsapp-templates";
 import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
@@ -2200,6 +2201,7 @@ export class IntercomManagerPanel extends LitElement {
         ${[
           "clock_options",
           "media_options",
+          "whatsapp_templates",
           "profile_options",
           "permission_directory",
           "camera_wall",
@@ -3905,56 +3907,61 @@ export class IntercomManagerPanel extends LitElement {
                         if (this._data) this._data = { ...this._data, profile_settings: e.detail };
                       }}
                     ></hikvision-profile-settings>`
-                  : this._tab === "media_options"
-                    ? html`<hikvision-media-settings
+                  : this._tab === "whatsapp_templates"
+                    ? html`<wiskey-whatsapp-templates
                         .hass=${this.protectedHass}
-                        .settings=${this._data.media_settings}
-                        @media-saved=${(e: CustomEvent) => {
-                          if (this._data) this._data = { ...this._data, media_settings: e.detail };
-                        }}
-                      ></hikvision-media-settings>`
-                    : this._tab === "clock_options"
-                      ? html`<hikvision-clock-settings
+                      ></wiskey-whatsapp-templates>`
+                    : this._tab === "media_options"
+                      ? html`<hikvision-media-settings
                           .hass=${this.protectedHass}
-                          .stations=${this._data.stations}
-                        ></hikvision-clock-settings>`
-                      : this._tab === "tools"
-                        ? this.toolsView()
-                        : this._tab === "overview"
-                          ? this.overviewView()
-                          : this._tab === "users"
-                            ? this.usersView()
-                            : this._tab === "devices"
-                              ? this.devicesView()
-                              : this._tab === "sync"
-                                ? this.syncView()
-                                : this._tab === "audit"
-                                  ? html`<hikvision-admin-audit
-                                      .hass=${this.protectedHass}
-                                      .users=${this._data.users}
-                                      .stations=${this._data.stations}
-                                      .focusUser=${this._auditUser}
-                                      .zone=${this._data.default_zone ?? UTC_ZONE}
-                                      @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                    ></hikvision-admin-audit>`
-                                  : this._tab === "health"
-                                    ? html`<hikvision-intercom-health
-                                        .callBusy=${this._callBusy}
-                                        .onCallBusy=${this.setCallBusy}
+                          .settings=${this._data.media_settings}
+                          @media-saved=${(e: CustomEvent) => {
+                            if (this._data)
+                              this._data = { ...this._data, media_settings: e.detail };
+                          }}
+                        ></hikvision-media-settings>`
+                      : this._tab === "clock_options"
+                        ? html`<hikvision-clock-settings
+                            .hass=${this.protectedHass}
+                            .stations=${this._data.stations}
+                          ></hikvision-clock-settings>`
+                        : this._tab === "tools"
+                          ? this.toolsView()
+                          : this._tab === "overview"
+                            ? this.overviewView()
+                            : this._tab === "users"
+                              ? this.usersView()
+                              : this._tab === "devices"
+                                ? this.devicesView()
+                                : this._tab === "sync"
+                                  ? this.syncView()
+                                  : this._tab === "audit"
+                                    ? html`<hikvision-admin-audit
                                         .hass=${this.protectedHass}
+                                        .users=${this._data.users}
                                         .stations=${this._data.stations}
-                                      ></hikvision-intercom-health>`
-                                    : this._tab === "schedules"
-                                      ? html`<hikvision-intercom-schedules
+                                        .focusUser=${this._auditUser}
+                                        .zone=${this._data.default_zone ?? UTC_ZONE}
+                                        @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                      ></hikvision-admin-audit>`
+                                    : this._tab === "health"
+                                      ? html`<hikvision-intercom-health
+                                          .callBusy=${this._callBusy}
+                                          .onCallBusy=${this.setCallBusy}
                                           .hass=${this.protectedHass}
                                           .stations=${this._data.stations}
-                                        ></hikvision-intercom-schedules>`
-                                      : html`<hikvision-intercom-events
-                                          .policy=${this._data.profile_settings}
-                                          .hass=${this.protectedHass}
-                                          .stations=${this._data.stations}
-                                          .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                        ></hikvision-intercom-events>`
+                                        ></hikvision-intercom-health>`
+                                      : this._tab === "schedules"
+                                        ? html`<hikvision-intercom-schedules
+                                            .hass=${this.protectedHass}
+                                            .stations=${this._data.stations}
+                                          ></hikvision-intercom-schedules>`
+                                        : html`<hikvision-intercom-events
+                                            .policy=${this._data.profile_settings}
+                                            .hass=${this.protectedHass}
+                                            .stations=${this._data.stations}
+                                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                          ></hikvision-intercom-events>`
         }
       </main>
       ${
