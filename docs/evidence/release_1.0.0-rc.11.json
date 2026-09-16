@@ -1,0 +1,90 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.11",
+  "tag": "v1.0.0-rc.11",
+  "sha": "f917926dd9d5bf7a0fee603eb19752924f5e2c2b",
+  "prerelease": true,
+  "published_at": "2026-09-16T19:08:08Z",
+  "manifest_version": "1.0.0-rc.11",
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35138240929",
+  "release_jobs_passed": 7,
+  "jobs": [
+    {
+      "id": 104935938989,
+      "name": "hacs / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104935939033,
+      "name": "hassfest / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104935939074,
+      "name": "python / frontend",
+      "conclusion": "success"
+    },
+    {
+      "id": 104935939189,
+      "name": "python / tests (3.12)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104935939238,
+      "name": "python / home-assistant",
+      "conclusion": "success"
+    },
+    {
+      "id": 104935939429,
+      "name": "python / tests (3.14)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104937445052,
+      "name": "publish",
+      "conclusion": "success"
+    }
+  ],
+  "python_tests_per_version": 1196,
+  "home_assistant_tests": 348,
+  "browser_tests": 430,
+  "cross_browser_tests": 24,
+  "total_browser_tests": 454,
+  "test_counts_from_release_logs": {
+    "Firefox and WebKit operational workflows": 24,
+    "python / frontend": 430,
+    "python / tests (3.12)": 1196,
+    "python / home-assistant": 348,
+    "python / tests (3.14)": 1196
+  },
+  "artifacts": {
+    "custom_components/hikvision_intercom/manifest.json": {
+      "bytes": 525,
+      "sha256": "431d14e3b3f2678d3dc7c53904361cfb881bdf1da45c7af5fd135eb29353b713"
+    },
+    "custom_components/hikvision_intercom/frontend/panel.js": {
+      "bytes": 1448963,
+      "sha256": "a7ef27af9522ada043a034d40a707394b603f125ef1af448dc74cda63d4d2b65"
+    },
+    "custom_components/hikvision_intercom/frontend/audio-worklet.js": {
+      "bytes": 604,
+      "sha256": "c2cfa40eb531001bdbb7e450210790f39e50ce767d7d6b6d25ecdb7798a3c1ad"
+    }
+  },
+  "access_storage_schema": 10,
+  "profile_settings_schema": 2,
+  "physical_speaker_audibility": "owner_confirmed_2026-09-14",
+  "core_acceptance": "35/37; DoD39 lab and DoD40 sustained stability remain open",
+  "validity_recovery": "exact managed-record journal proof; local-time rewrite with measured clock and readback",
+  "hold_open_automatic_execution": "HA capability-gated; physical acceptance pending",
+  "hold_open_drafts_schema": 1,
+  "physical_hold_restore_commissioning": "pending",
+  "user_weekly_RightPlan_deployment": "guarded activation with fresh resource and user readback; depends on station capabilities, references and clock; holiday membership remains blocked",
+  "user_timing_ha_windows": "enabled by explicit user save and synchronization; finite expiry and periodic renewal",
+  "physical_user_timing_enforcement": "owner independent inside/outside test pending",
+  "public_PIN_write": "vendor-contract add/replace/delete with explicit compatibility option; physical acceptance pending",
+  "ntp_configuration": "capability gated and readback verified on target hardware; timezone preserved",
+  "manual_clock_copy": "automated tests; target hardware acceptance pending",
+  "host_ntp": "Supervisor feature gated; requires supported host; no host write performed during release verification"
+}
