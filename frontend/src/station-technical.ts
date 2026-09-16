@@ -385,16 +385,16 @@ export class StationTechnical extends LitElement {
     return html`<div>
         <details
           @toggle=${(e: Event) => {
-        this.programsOpen = (e.target as HTMLDetailsElement).open;
-      }}
+            this.programsOpen = (e.target as HTMLDetailsElement).open;
+          }}
         >
           <summary>${this.t("station_tab_programs")}</summary>
           ${this.programsOpen ? html`<wiskey-door-programs .hass=${this.hass} .station=${this.station}></wiskey-door-programs>` : nothing}
         </details>
         <details
           @toggle=${(e: Event) => {
-        this.codesOpen = (e.target as HTMLDetailsElement).open;
-      }}
+            this.codesOpen = (e.target as HTMLDetailsElement).open;
+          }}
         >
           <summary>${this.t("station_tab_public_codes")}</summary>
           ${this.codesOpen ? html`<wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>` : nothing}
