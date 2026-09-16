@@ -1,5 +1,13 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.6
+
+Runtime `e304995137187558e089d52fb69655ed52eec738` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35072179515): **1,146 Python tests per version (3.12/3.14), 328 Home Assistant tests, 415 Chromium tests and 24 Firefox/WebKit workflows** (439 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and downloaded manifest/panel/audio-worklet bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.6.json).
+
+New coverage includes finite window renewal, no bridging of gaps, 23/25-hour days, ambiguous/missing local boundaries, overall validity intersection, schema-10 restart/CSV persistence, clock/deployment denial, native write ordering and lost-ack recovery, external reference isolation, and explicit legacy-draft activation. The local full browser suite passed 414 tests before the final Hebrew activation case; the final focused six enforcement tests passed, and all 415 browser cases passed on release CI. The local Python run passed 1,143 cases excluding the previously reproduced Windows audio-soak timeout; added boundary/dependency cases passed locally and the full suite including audio soak passed in Linux release CI.
+
+No live station configuration writes were performed in this release session. Physical inside/outside-window timing acceptance remains pending the owner's independent test. Native activation is conditional on complete relevant inventory, understood references and compatible clocks; unknown holiday membership blocks the native calendar path. HA-window enforcement is available for selected dates and recurring weekdays. [Independent installation/testing guide](RELEASE_1.0.0_RC6_HE.md).
+
 ## Published validation — 1.0.0-rc.5
 
 Runtime `2c0714fad0593fa75381a928938f4231c2ab9d65` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35061566696): **1,114 Python tests per version (3.12/3.14), 328 Home Assistant tests, 409 Chromium tests and 24 Firefox/WebKit workflows** (433 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.5.json).

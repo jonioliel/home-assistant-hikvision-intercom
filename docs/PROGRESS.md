@@ -1,6 +1,6 @@
 ## 2026-09-16 — User timing enforcement, release candidate 6
 
-Implemented explicit HA-window/native choice in user editing, finite-window reconciliation and renewal, schema-10 persistence/CSV, readback evidence, guarded native allocation/deployment/RightPlan, and self-service physical checks. Native holiday membership and unknown implicit station references remain explicit blockers; HA windows cover independent weekly/date tests. Publication checks are pending; physical timing acceptance is not claimed. See [RC6 guide](RELEASE_1.0.0_RC6_HE.md).
+Implemented explicit HA-window/native choice in user editing, finite-window reconciliation and renewal, schema-10 persistence/CSV, readback evidence, guarded native allocation/deployment/RightPlan, and self-service physical checks. Native holiday membership and unknown implicit station references remain explicit blockers; HA windows cover independent weekly/date tests. Published runtime `e304995` passed all seven release jobs ([evidence](evidence/release_1.0.0-rc.6.json)); physical timing acceptance is not claimed. See [RC6 guide](RELEASE_1.0.0_RC6_HE.md).
 
 # Project progress
 

@@ -1,6 +1,6 @@
 # WisKey 1.0.0-rc.6 — אכיפת זמני כניסה ובדיקה עצמאית
 
-מצב מסמך: גרסה מוכנה לבדיקות שחרור; פרסום וראיות יעודכנו לאחר השלמת GitHub Actions.
+פורסמה [גרסה 1.0.0-rc.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.6), commit `e304995`. כל שבע עבודות השחרור עברו: 1,146 בדיקות Python לכל גרסה, 328 בדיקות Home Assistant ו־439 בדיקות דפדפן. [ראיות שחרור](evidence/release_1.0.0-rc.6.json).
 
 ## מה השתנה
 

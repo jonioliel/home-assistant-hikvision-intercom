@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.5](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.5)** — preview user timing drafts and explicitly convert an exact continuous calendar interval to the existing validity/synchronization workflow. Separate dates and weekly rules remain **not enforced**. [Testing guide](docs/RELEASE_1.0.0_RC5_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
+Published runtime: **[1.0.0-rc.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.6)** — activate weekly or selected-date user access through finite HA-managed validity windows, or select guarded native ISAPI deployment on compatible stations. Native activation requires complete resource/reference/clock checks; unknown holiday membership remains blocked. [Independent testing guide](docs/RELEASE_1.0.0_RC6_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -86,7 +86,7 @@ two-way microphone audio is available in the camera dialog. Audible audio and ri
 
 **Management tools → Intercoms** includes technical settings and public PIN status auditing.
 The responsive station detail layout and user-local timing controls are described in
-[User timing and station layout](docs/USER_TIMING_AND_STATION_LAYOUT_HE.md). Weekly/date proposals are not enforced; existing continuous validity remains separate.
+[User timing and station layout](docs/USER_TIMING_AND_STATION_LAYOUT_HE.md). The user editor now offers HA-window enforcement and guarded native activation; existing proposals remain inactive until an enforcement method is selected and saved.
 Only advertised door parameters can be changed; confirmation and readback are required.
 Public PIN writing is unavailable on the observed firmware. HA hold-open drafts copy a
 weekly/dated schedule and an explicit time zone for one door; saving does not activate it.
@@ -104,9 +104,9 @@ Version 0.17 adds [dependency audits, multi-station assessment, portable draft t
 clone/copy editing](docs/SCHEDULE_WORKFLOWS.md). These remain local drafts and read-only checks.
 Version 0.18 adds [candidate compilation, configuration comparison and saved local deployment
 proposals](docs/SCHEDULE_DEPLOYMENT_PLANS.md), with explicit rechecks and per-station reservations.
-Device schedule application and user assignment remain unavailable.
+These standalone planning proposals do not authorize writes. Explicit user-editor activation now deploys a native plan only after safe allocation and verification; HA windows cover weekly and disjoint date restrictions without native plan slots.
 Version 0.19 adds the [write journal, recovery executor and offline fault simulator](docs/SCHEDULE_RECOVERY.md)
-for future deployment. No production schedule writer or new Apply control is enabled.
+used by the guarded user-timing native deployment path. The standalone planning tab still does not automatically apply a proposal.
 
 See [draft editing](docs/ACCESS_SCHEDULES.md) and [compatibility assessment](docs/SCHEDULE_INVENTORY.md).
 
