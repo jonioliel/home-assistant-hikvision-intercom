@@ -124,8 +124,9 @@ for (const [name, width, lang, dark] of [
     await page.goto(`/?lang=${lang}${dark ? "&dark=1" : ""}`);
     await expect(panel(page)).toHaveAttribute("data-appearance", "modern");
     await noOverflow(page);
-    await expect(page.locator(".overview-station")).toHaveCount(9);
-    await expect(page.locator(".station-more").first()).not.toHaveAttribute("open", "");
+    await expect(page.locator(".overview-station").first()).toBeVisible();
+    expect(await page.locator(".overview-station").count()).toBeLessThanOrEqual(9);
+    await expect(page.locator(".wall-details").first()).toBeVisible();
     await page.screenshot({ path: `test-results/alternate-${name}.png`, fullPage: true });
     await nav(page, lang === "he" ? "משתמשים" : "Users");
     await page.getByRole("button", { name: lang === "he" ? "הוספת משתמש" : "Add user" }).click();
@@ -182,8 +183,11 @@ test("station detail selection and user action disclosure retain every operation
 }) => {
   await page.goto("/");
   await choose(page);
-  await page.locator(".station-more > summary").first().click();
-  await page.locator(".station-settings").first().click();
+  await page.locator(".wall-details").first().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Station details", exact: true })
+    .click();
   await expect(page.locator(".device-station:visible")).toHaveCount(1);
   await page.locator(".device-selector select").selectOption("");
   await expect(page.locator(".device-station:visible")).toHaveCount(9);

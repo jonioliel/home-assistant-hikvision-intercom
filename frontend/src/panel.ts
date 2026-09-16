@@ -18,6 +18,7 @@ import { live } from "lit/directives/live.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
 import { stationSettingsStyles } from "./station-settings-styles";
+import { overviewStyles } from "./overview-styles";
 import { headerStyles } from "./header-styles";
 import { modernStyles } from "./modern-styles";
 import { AppearancePicker, readAppearance, saveAppearance, type Appearance } from "./appearance";
@@ -106,12 +107,23 @@ const releaseErrors = new Set([
 ]);
 
 export class IntercomManagerPanel extends LitElement {
-  static styles = [styles, interfaceStyles, modernStyles, headerStyles, stationSettingsStyles];
+  static styles = [
+    styles,
+    interfaceStyles,
+    modernStyles,
+    headerStyles,
+    stationSettingsStyles,
+    overviewStyles,
+  ];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
     _appearance: { attribute: "data-appearance", reflect: true },
     _dark: { type: Boolean, attribute: "data-dark", reflect: true },
+    _wallDensity: { state: true },
+    _wallPage: { state: true },
+    _wallQuery: { state: true },
+    _wallCapacity: { state: true },
     _deviceFocus: { state: true },
     _data: { state: true },
     _haConnected: { state: true },
@@ -154,6 +166,47 @@ export class IntercomManagerPanel extends LitElement {
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
   private _dark = false;
+  private _wallDensity = 0;
+  private _wallPage = 0;
+  private _wallQuery = "";
+  private _wallCapacity = 12;
+  private wallResize?: ResizeObserver;
+  private fitWall = () => {
+    const grid = this.renderRoot.querySelector<HTMLElement>(".overview-wall");
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const height = Math.max(
+      220,
+      (window.visualViewport?.height ?? window.innerHeight) - Math.max(0, rect.top) - 58,
+    );
+    const columns = Math.max(1, Math.min(4, Math.floor((rect.width + 12) / 252)));
+    const rows = Math.max(1, Math.min(3, Math.floor((height + 12) / 202)));
+    this._wallCapacity = columns * rows;
+    const count = Math.min(
+      this._wallDensity || 12,
+      this._wallCapacity,
+      Math.max(1, this.wallStations().length),
+    );
+    const usedColumns = Math.min(columns, count <= 4 ? 2 : count <= 6 ? 3 : count <= 9 ? 3 : 4);
+    grid.style.setProperty("--wall-columns", String(usedColumns));
+    grid.style.setProperty("--wall-rows", String(Math.ceil(count / usedColumns)));
+    grid.style.setProperty("--wall-height", `${height}px`);
+  };
+  private wallStations() {
+    const query = this._wallQuery.trim().toLocaleLowerCase();
+    return (this._data?.stations ?? []).filter(
+      (s) => !query || s.name.toLocaleLowerCase().includes(query),
+    );
+  }
+  private async wallFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await this.requestFullscreen();
+    } catch {
+      this._error = this.t("wall_fullscreen_unavailable");
+    }
+    this.fitWall();
+  }
   private _deviceFocus = "";
   protected willUpdate(changed: PropertyValues) {
     if (changed.has("hass")) {
@@ -286,6 +339,10 @@ export class IntercomManagerPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("resize", this.fitDialog);
+    window.addEventListener("resize", this.fitWall);
+    document.addEventListener("fullscreenchange", this.fitWall);
+    this.wallResize = new ResizeObserver(this.fitWall);
+    this.wallResize.observe(this);
     window.visualViewport?.addEventListener("resize", this.fitDialog);
     this.dialogResize = new ResizeObserver(this.fitDialog);
     this.dialogResize.observe(this);
@@ -303,6 +360,9 @@ export class IntercomManagerPanel extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("resize", this.fitDialog);
+    window.removeEventListener("resize", this.fitWall);
+    document.removeEventListener("fullscreenchange", this.fitWall);
+    this.wallResize?.disconnect();
     window.visualViewport?.removeEventListener("resize", this.fitDialog);
     this.dialogResize?.disconnect();
     this.dialogResize = undefined;
@@ -332,6 +392,7 @@ export class IntercomManagerPanel extends LitElement {
     this._releases = new Map();
   }
   protected updated(changed: PropertyValues) {
+    this.fitWall();
     if (this._viewsActor !== this.hass?.user?.id) {
       this._viewsActor = this.hass?.user?.id;
       this._userColumns = null;
@@ -1557,12 +1618,12 @@ export class IntercomManagerPanel extends LitElement {
       ]?.state === "unlocking"
     );
   }
-  private releaseButton(station: Station, primary = false) {
+  private releaseButton(station: Station, primary = false, compact = false) {
     return station.integrated_locks.map((lock) =>
-      this.relayButton(station, lock.physical_index, primary),
+      this.relayButton(station, lock.physical_index, primary, compact),
     );
   }
-  private relayButton(station: Station, physical: number, primary: boolean) {
+  private relayButton(station: Station, physical: number, primary: boolean, compact = false) {
     return html`<button
       class=${primary ? "primary" : ""}
       aria-label=${this.unlockLabel(station, physical)}
@@ -1570,7 +1631,7 @@ export class IntercomManagerPanel extends LitElement {
       ?disabled=${!this._haConnected || !station.online || !station.lock_enabled || this.releasing(station, physical)}
       @click=${() => this.unlock(station, physical)}
     >
-      ${icon("lock")}${this.releasing(station, physical) ? this.t("releasing") : this.unlockLabel(station, physical)}
+      ${icon("lock")}${this.releasing(station, physical) ? this.t("releasing") : compact && station.integrated_locks.length === 1 ? this.t("wall_open") : this.unlockLabel(station, physical)}
     </button>`;
   }
   private releaseFeedback(station: Station, physical?: number) {
@@ -1846,7 +1907,129 @@ export class IntercomManagerPanel extends LitElement {
       <p class="sub">${this.t("profile_actions_hint")}</p>
     </fieldset>`;
   }
+  private wallView() {
+    const stations = this.wallStations();
+    const size = Math.min(this._wallDensity || 12, this._wallCapacity);
+    const pages = Math.max(1, Math.ceil(stations.length / size));
+    const page = Math.min(this._wallPage, pages - 1);
+    const all = this._data?.stations ?? [];
+    return html`<section class="wall-toolbar">
+        <div class="overview-header">
+          <div class="page-heading"><h2>${this.t("overview_heading")}</h2></div>
+          <section class="metrics" aria-label=${this.t("overview")}>
+            ${[
+              [`${all.filter((s) => s.online).length} / ${all.length}`, "online_stations"],
+              [all.filter((s) => s.call_state === "ringing").length, "ringing_now"],
+              [this._data?.users.length ?? 0, "total_users"],
+              [this.pendingCount(), "pending_sync"],
+            ].map(
+              ([n, k]) =>
+                html`<div class="metric" role="group" aria-label=${`${this.t(String(k))}: ${n}`}>
+                  <bdi>${n}</bdi> ${this.t(String(k))}
+                </div>`,
+            )}
+          </section>
+        </div>
+        <div class="wall-controls">
+          <input
+            type="search"
+            aria-label=${this.t("wall_search")}
+            placeholder=${this.t("wall_search")}
+            .value=${this._wallQuery}
+            @input=${(e: Event) => {
+              this._wallQuery = value(e);
+              this._wallPage = 0;
+            }}
+          />
+          <label
+            >${this.t("wall_density")}
+            <select
+              aria-label=${this.t("wall_density")}
+              .value=${String(this._wallDensity)}
+              @change=${(e: Event) => {
+                this._wallDensity = Number(value(e));
+                this._wallPage = 0;
+              }}
+            >
+              ${[0, 4, 6, 9, 12].map((n) => html`<option value=${n}>${n || this.t("wall_auto")}</option>`)}
+            </select></label
+          >
+          <button @click=${() => this.wallFullscreen()}>${this.t("wall_fullscreen")}</button>
+          <hikvision-live-clock
+            .language=${this.hass?.language ?? "en"}
+            .zone=${this._data?.default_zone ?? UTC_ZONE}
+          ></hikvision-live-clock>
+        </div>
+      </section>
+      <div class="overview-wall grid">
+        ${repeat(
+          stations.slice(page * size, (page + 1) * size),
+          (s) => s.id,
+          (s) =>
+            html`<article
+              class="station overview-station ${s.call_state === "ringing" ? "ringing" : ""}"
+            >
+              <div class="station-head row between">
+                <h3 title=${s.name}>${s.name}</h3>
+                ${this.badge(s.call_state === "ringing" ? "ringing" : s.online ? "online" : "offline")}
+              </div>
+              <div class="camera-wrap">
+                ${s.online ? this.camera(s) : html`<div class="wall-offline">${icon("camera")}${this.t("offline")}</div>`}<button
+                  aria-label=${`${this.t("enlarge")} · ${s.name}`}
+                  title=${this.t("enlarge")}
+                  @click=${() => {
+                    this._cameraStation = s;
+                    this._dialog = "camera";
+                  }}
+                  ?disabled=${!s.entities.camera}
+                >
+                  ${icon("camera")}
+                </button>
+              </div>
+              <div class="wall-actions">
+                <div class="door-action">
+                  ${s.lock_enabled ? this.releaseButton(s, true, true) : html`<span>${this.t("camera_only")}</span>`}
+                </div>
+                <button
+                  class="wall-details"
+                  aria-label=${`${this.t("station_activity")} · ${s.name}`}
+                  @click=${() => {
+                    this._cameraStation = s;
+                    this._dialog = "station_activity";
+                  }}
+                >
+                  ⋯
+                </button>
+              </div>
+              ${this.releaseFeedback(s)}
+            </article>`,
+        )}
+      </div>
+      ${!stations.length ? html`<p class="empty">${this.t("no_stations")}</p>` : nothing}
+      <div class="wall-pagination">
+        <span>${this.t("wall_preview_hint")}</span>
+        <div>
+          <button
+            ?disabled=${page === 0}
+            @click=${() => {
+              this._wallPage = page - 1;
+            }}
+          >
+            ${this.t("wall_previous")}</button
+          ><span role="status">${page + 1} / ${pages}</span
+          ><button
+            ?disabled=${page + 1 >= pages}
+            @click=${() => {
+              this._wallPage = page + 1;
+            }}
+          >
+            ${this.t("wall_next")}
+          </button>
+        </div>
+      </div>`;
+  }
   private overviewView() {
+    if (this._appearance === "modern") return this.wallView();
     const stations = [...(this._data?.stations ?? [])].sort(
       (a, b) => Number(b.call_state === "ringing") - Number(a.call_state === "ringing"),
     );
@@ -3437,7 +3620,7 @@ export class IntercomManagerPanel extends LitElement {
             ? this.t("csv_import")
             : this._dialog === "import"
               ? this.t("import_title")
-              : this._dialog === "camera"
+              : ["camera", "station_activity"].includes(this._dialog)
                 ? cameraStation?.name
                 : this.t("review");
     return html`<dialog
@@ -3460,7 +3643,33 @@ export class IntercomManagerPanel extends LitElement {
         </button>
       </div>
       <div class="dialog-body">
-        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._dialog === "capture" ? this.captureBody() : this._dialog === "csv" ? this.csvBody() : this._dialog === "editor" ? this.editorBody() : this._dialog === "import" ? this.importBody() : this._dialog === "review" ? this.reviewBody() : cameraStation ? this.cameraBody(cameraStation) : nothing}
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${
+          this._dialog === "capture"
+            ? this.captureBody()
+            : this._dialog === "csv"
+              ? this.csvBody()
+              : this._dialog === "editor"
+                ? this.editorBody()
+                : this._dialog === "import"
+                  ? this.importBody()
+                  : this._dialog === "review"
+                    ? this.reviewBody()
+                    : this._dialog === "station_activity" && cameraStation
+                      ? html`${this.lastAccess(cameraStation)}
+                          <p>${this.t("pending_users")}: ${cameraStation.pending_user_count}</p>
+                          ${this.badge(cameraStation.sync_state)}${this.callControls(cameraStation, true)}<button
+                            @click=${() => {
+                              this._deviceFocus = cameraStation.id;
+                              this.close();
+                              this.navigate("devices");
+                            }}
+                          >
+                            ${this.t("station_details")}
+                          </button>`
+                      : cameraStation
+                        ? this.cameraBody(cameraStation)
+                        : nothing
+        }
       </div>
       <div class="dialog-foot">
         ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}

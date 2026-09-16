@@ -47,7 +47,8 @@ for (const [name, width, lang, dark] of [
       expect(summary!.height).toBeLessThanOrEqual(74);
       expect(summary!.y).toBeGreaterThan(title!.y + title!.height);
     }
-    expect(cards!.y - (header!.y + header!.height)).toBeLessThanOrEqual(22);
+    const toolbar = await page.locator(".wall-toolbar").boundingBox();
+    expect(cards!.y - (toolbar!.y + toolbar!.height)).toBeLessThanOrEqual(22);
     expect(
       await page.locator(".app-shell").evaluate((el) => el.scrollWidth <= el.clientWidth),
     ).toBe(true);
@@ -69,7 +70,7 @@ test("existing design retains its metric row when toggling appearance", async ({
   await navigate(page, "Overview");
   await expect(counters).toHaveText(["8 / 9", "1", "6", "3"]);
   const compactCard = await page.locator(".overview-station").first().boundingBox();
-  expect(oldCard!.y - compactCard!.y).toBeGreaterThan(60);
+  expect(compactCard!.y).toBeLessThan(oldCard!.y);
   await openAppearance(page);
   await picker.getByRole("radio", { name: "Existing", exact: true }).check();
   await picker.getByRole("button", { name: "Apply design" }).click();

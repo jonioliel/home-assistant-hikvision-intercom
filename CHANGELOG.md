@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.7] - 2026-09-16
+
+- Redesign the modern overview as a viewport-fitted camera grid, with 4/6/9/12 density selection, search, fullscreen, live clock and compact counters.
+- Keep station positions stable during ringing; show only configured door actions and move activity/details into a keyboard-accessible dialog.
+- Page stations on smaller displays instead of shrinking controls; support any fleet size without treating 12 as a device limit. The existing appearance remains available.
+- Preserve authenticated camera previews and explicit live-video opening; no station settings or access rules are changed by this release.
+
 ## [1.0.0-rc.6] - 2026-09-16
 
 - Activate weekly and selected-date user access from the user editor, with an explicit choice of Home Assistant finite validity windows or guarded native ISAPI schedules. Existing saved drafts are not activated by upgrading; choose an enforcement method and save/synchronize.

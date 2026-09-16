@@ -1,4 +1,14 @@
 const en = {
+  wall_open: "Open door",
+  wall_search: "Search entrances",
+  wall_density: "Tiles per view",
+  wall_auto: "Automatic",
+  wall_fullscreen: "Fullscreen",
+  wall_fullscreen_unavailable: "Fullscreen is unavailable in this browser.",
+  wall_preview_hint: "Camera previews · select a camera for live video",
+  wall_previous: "Previous",
+  wall_next: "Next",
+
   user_timing_choose_enforcement: "Select an enforcement method to activate",
   user_timing_choose_notice:
     "This saved schedule has not been activated. Select HA windows or a station-local plan, then Save & sync. Until you select a method, saving other user details keeps the existing access unchanged.",
@@ -1611,6 +1621,16 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  wall_open: "פתח דלת",
+  wall_search: "חיפוש כניסות",
+  wall_density: "תחנות בתצוגה",
+  wall_auto: "אוטומטי",
+  wall_fullscreen: "מסך מלא",
+  wall_fullscreen_unavailable: "מסך מלא אינו זמין בדפדפן זה.",
+  wall_preview_hint: "תמונות מקדימות · פתח מצלמה לצפייה בווידאו",
+  wall_previous: "הקודם",
+  wall_next: "הבא",
+
   user_timing_choose_enforcement: "בחירת מסלול אכיפה להפעלה",
   user_timing_choose_notice:
     "הלוח השמור עדיין לא הופעל. בחר חלונות HA או לוח מקומי, ולחץ שמירה וסנכרון. כל עוד לא נבחר מסלול, שמירת פרטים אחרים של המשתמש אינה משנה את הרשאותיו.",
