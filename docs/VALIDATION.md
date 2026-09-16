@@ -1,5 +1,13 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.5
+
+Runtime `2c0714fad0593fa75381a928938f4231c2ab9d65` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35061566696): **1,114 Python tests per version (3.12/3.14), 328 Home Assistant tests, 409 Chromium tests and 24 Firefox/WebKit workflows** (433 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.5.json).
+
+New coverage verifies local draft preview, exclusive end boundaries, exact continuous conversion, no writes before save, rejection of separated days/daily gaps/DST ambiguity, preservation of prior validity restrictions, and Hebrew controls at widths 390/768/1440. All 33 focused local timing/clock browser cases passed. The earlier commissioning preparation adds 28 Python cases; its local audio-soak timeout reproduced on unchanged code and passes in Linux release CI.
+
+No physical station writes were performed in this release session. Weekly/disjoint date RightPlan deployment remains inactive. Continuous validity still requires the owner to test inside/outside-window enforcement; successful software tests do not close that gate. [Installation and test instructions](RELEASE_1.0.0_RC5_HE.md).
+
 ## Published validation — 1.0.0-rc.4
 
 Runtime `37f40982944d37efbfbf5f7dd49e663a9b2fe17d` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35024884544): **1,086 Python tests per version (3.12/3.14), 328 Home Assistant tests, 401 Chromium tests and 24 Firefox/WebKit workflows** (425 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.4.json).

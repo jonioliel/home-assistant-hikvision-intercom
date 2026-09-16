@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.4](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.4)** — user synchronization status is independent of station connectivity. Already verified revisions stay synchronized; undelivered changes remain pending. [Verified checks](docs/VALIDATION.md). Includes the RC3 responsive station layout and user timing editor; weekly/calendar-date proposals remain **not enforced**. This is an RC prerelease.
+Published runtime: **[1.0.0-rc.5](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.5)** — preview user timing drafts and explicitly convert an exact continuous calendar interval to the existing validity/synchronization workflow. Separate dates and weekly rules remain **not enforced**. [Testing guide](docs/RELEASE_1.0.0_RC5_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
