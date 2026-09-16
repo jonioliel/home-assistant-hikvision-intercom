@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0] - 2026-09-16
+
+### Changed
+- Promoted the tested RC13 build to the first stable WisKey release so standard HACS update tracking can discover it without enabling pre-release versions.
+
+### Verification
+- The promoted build passed HACS and Hassfest validation, Python tests on 3.12 and 3.14, Home Assistant tests, and desktop/mobile browser suites.
+- The release contains the approved intercom call-view redesign and compact synchronization labels from RC13 without behavioral changes.
+
 ## [1.0.0-rc.13] - 2026-09-16
 
 ### Changed

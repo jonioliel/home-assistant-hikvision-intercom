@@ -20,7 +20,7 @@ def test_versions_and_hacs_layout():
     assert manifest["version"] == project["project"]["version"] == VERSION
     assert release_metadata(ROOT)[0] == VERSION
     assert AwesomeVersion(VERSION).valid
-    assert AwesomeVersion(VERSION).release_candidate
+    assert not AwesomeVersion(VERSION).release_candidate
     assert AwesomeVersion(VERSION) > AwesomeVersion("0.36.0-beta.1")
     assert manifest["codeowners"] == ["@jonioliel"]
     assert manifest["documentation"].endswith("/home-assistant-hikvision-intercom")
