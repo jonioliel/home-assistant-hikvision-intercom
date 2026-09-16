@@ -81,6 +81,8 @@ export class StationTechnical extends LitElement {
   ];
   static properties = {
     mode: {},
+    programsOpen: { state: true },
+    codesOpen: { state: true },
     hass: { attribute: false },
     station: { attribute: false },
     report: { state: true },
@@ -92,6 +94,8 @@ export class StationTechnical extends LitElement {
     relayConfirmed: { state: true },
   };
   mode = "all";
+  private programsOpen = false;
+  private codesOpen = false;
   hass?: Hass;
   station?: Station;
   private report?: Report;
@@ -110,6 +114,8 @@ export class StationTechnical extends LitElement {
       this.identity = key;
       this.requests.cancel();
       this.report = undefined;
+      this.programsOpen = false;
+      this.codesOpen = false;
       this.draft = {};
       this.relays = [];
       this.relayConfirmed = false;
@@ -376,11 +382,24 @@ export class StationTechnical extends LitElement {
         <button ?disabled=${this.busy} @click=${() => this.load()}>
           ${this.t("technical_read")}</button
         >${this.error ? html`<p role="alert">${this.t(this.error)}</p>` : nothing}${this.report ? html`${this.relayEditor()}${this.report.doors.map((d) => this.doorEditor(d))}` : nothing}`;
-    return html`<wiskey-door-programs
-        .hass=${this.hass}
-        .station=${this.station}
-      ></wiskey-door-programs>
-      <wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>
+    return html`<div>
+        <details
+          @toggle=${(e: Event) => {
+        this.programsOpen = (e.target as HTMLDetailsElement).open;
+      }}
+        >
+          <summary>${this.t("station_tab_programs")}</summary>
+          ${this.programsOpen ? html`<wiskey-door-programs .hass=${this.hass} .station=${this.station}></wiskey-door-programs>` : nothing}
+        </details>
+        <details
+          @toggle=${(e: Event) => {
+        this.codesOpen = (e.target as HTMLDetailsElement).open;
+      }}
+        >
+          <summary>${this.t("station_tab_public_codes")}</summary>
+          ${this.codesOpen ? html`<wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>` : nothing}
+        </details>
+      </div>
       <details>
         <summary>${this.t("technical_title")}</summary>
         <p>${this.t("technical_intro")}</p>

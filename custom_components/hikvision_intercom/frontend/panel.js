@@ -1166,7 +1166,7 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
                   ><button type="button" @click=${()=>this.clear()}>${this.t("cancel")}</button>
                 </div>
               </fieldset>
-            </form>`:E}`}};customElements.define("wiskey-public-codes",zr);var jr=class extends X{constructor(){super(...arguments);this.mode="all";this.relays=[];this.relayConfirmed=!1;this.busy=!1;this.error="";this.draft={};this.confirmed={};this.requests=new $e(()=>this.hass);this.identity="";this.t=e=>Z(this.hass?.language??"en",e)}static{this.styles=[ae,Y`
+            </form>`:E}`}};customElements.define("wiskey-public-codes",zr);var jr=class extends X{constructor(){super(...arguments);this.mode="all";this.programsOpen=!1;this.codesOpen=!1;this.relays=[];this.relayConfirmed=!1;this.busy=!1;this.error="";this.draft={};this.confirmed={};this.requests=new $e(()=>this.hass);this.identity="";this.t=e=>Z(this.hass?.language??"en",e)}static{this.styles=[ae,Y`
       :host {
         height: auto;
         overflow: visible;
@@ -1214,7 +1214,7 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
       p {
         overflow-wrap: anywhere;
       }
-    `]}static{this.properties={mode:{},hass:{attribute:!1},station:{attribute:!1},report:{state:!0},busy:{state:!0},error:{state:!0},draft:{state:!0},confirmed:{state:!0},relays:{state:!0},relayConfirmed:{state:!0}}}updated(e){let i=`${this.hass?.user?.id}/${this.station?.id}`;i!==this.identity&&(this.identity=i,this.requests.cancel(),this.report=void 0,this.draft={},this.relays=[],this.relayConfirmed=!1,this.confirmed={},this.error="",this.busy=!1)}disconnectedCallback(){super.disconnectedCallback(),this.requests.cancel()}async load(){if(this.busy)return;this.busy=!0,this.error="",this.report=void 0;let e=this.identity;try{let i=await this.requests.run({type:"hikvision_intercom/stations/technical_get",station_id:this.station?.id},8e4);if(e!==this.identity)return;this.report=i,this.relays=structuredClone(i.relay_selection??[]),this.relayConfirmed=!1,this.draft=Object.fromEntries(i.doors.filter(s=>s.values).map(s=>[s.door,{...s.values}])),this.confirmed={}}catch{e===this.identity&&(this.error="technical_read_failed")}finally{e===this.identity&&(this.busy=!1)}}async save(e){if(this.busy||!this.confirmed[e.door]||!e.values)return;let i=Object.fromEntries(Object.entries(this.draft[e.door]).filter(([r,n])=>n!==e.values[r]));if(!Object.keys(i).length)return;this.busy=!0,this.error="";let s=this.identity;try{let r=await this.requests.run({type:"hikvision_intercom/stations/technical_update",station_id:this.station?.id,door:e.door,expected:e.values,changes:i,confirmed:!0},5e4);if(s!==this.identity)return;this.report={...this.report,doors:this.report.doors.map(n=>n.door===e.door?r:n)},this.draft={...this.draft,[e.door]:{...r.values}},this.confirmed={...this.confirmed,[e.door]:!1}}catch{s===this.identity&&(this.error="technical_write_unknown",this.report=void 0,this.draft={},this.confirmed={})}finally{s===this.identity&&(this.busy=!1)}}async saveRelays(){if(this.busy||!this.relayConfirmed||!this.report)return;this.busy=!0,this.error="";let e=this.identity;try{if(await this.requests.run({type:"hikvision_intercom/stations/technical_relays",station_id:this.station?.id,expected:this.report.relay_selection,locks:this.relays},15e3),e!==this.identity)return;this.report=void 0}catch{if(e!==this.identity||(this.error="technical_write_unknown",e!==this.identity))return;this.report=void 0}finally{e===this.identity&&(this.busy=!1,this.relayConfirmed=!1)}}relayEditor(){return m`<fieldset>
+    `]}static{this.properties={mode:{},programsOpen:{state:!0},codesOpen:{state:!0},hass:{attribute:!1},station:{attribute:!1},report:{state:!0},busy:{state:!0},error:{state:!0},draft:{state:!0},confirmed:{state:!0},relays:{state:!0},relayConfirmed:{state:!0}}}updated(e){let i=`${this.hass?.user?.id}/${this.station?.id}`;i!==this.identity&&(this.identity=i,this.requests.cancel(),this.report=void 0,this.programsOpen=!1,this.codesOpen=!1,this.draft={},this.relays=[],this.relayConfirmed=!1,this.confirmed={},this.error="",this.busy=!1)}disconnectedCallback(){super.disconnectedCallback(),this.requests.cancel()}async load(){if(this.busy)return;this.busy=!0,this.error="",this.report=void 0;let e=this.identity;try{let i=await this.requests.run({type:"hikvision_intercom/stations/technical_get",station_id:this.station?.id},8e4);if(e!==this.identity)return;this.report=i,this.relays=structuredClone(i.relay_selection??[]),this.relayConfirmed=!1,this.draft=Object.fromEntries(i.doors.filter(s=>s.values).map(s=>[s.door,{...s.values}])),this.confirmed={}}catch{e===this.identity&&(this.error="technical_read_failed")}finally{e===this.identity&&(this.busy=!1)}}async save(e){if(this.busy||!this.confirmed[e.door]||!e.values)return;let i=Object.fromEntries(Object.entries(this.draft[e.door]).filter(([r,n])=>n!==e.values[r]));if(!Object.keys(i).length)return;this.busy=!0,this.error="";let s=this.identity;try{let r=await this.requests.run({type:"hikvision_intercom/stations/technical_update",station_id:this.station?.id,door:e.door,expected:e.values,changes:i,confirmed:!0},5e4);if(s!==this.identity)return;this.report={...this.report,doors:this.report.doors.map(n=>n.door===e.door?r:n)},this.draft={...this.draft,[e.door]:{...r.values}},this.confirmed={...this.confirmed,[e.door]:!1}}catch{s===this.identity&&(this.error="technical_write_unknown",this.report=void 0,this.draft={},this.confirmed={})}finally{s===this.identity&&(this.busy=!1)}}async saveRelays(){if(this.busy||!this.relayConfirmed||!this.report)return;this.busy=!0,this.error="";let e=this.identity;try{if(await this.requests.run({type:"hikvision_intercom/stations/technical_relays",station_id:this.station?.id,expected:this.report.relay_selection,locks:this.relays},15e3),e!==this.identity)return;this.report=void 0}catch{if(e!==this.identity||(this.error="technical_write_unknown",e!==this.identity))return;this.report=void 0}finally{e===this.identity&&(this.busy=!1,this.relayConfirmed=!1)}}relayEditor(){return m`<fieldset>
       <legend>${this.t("technical_relays")}</legend>
       <p>${this.t("technical_relays_hint")}</p>
       ${[1,2].map(e=>{let i=this.relays.find(s=>s.physical_index===e);return m`<label
@@ -1305,11 +1305,20 @@ var os=globalThis,ls=os.ShadowRoot&&(os.ShadyCSS===void 0||os.ShadyCSS.nativeSha
         <p>${this.t("technical_intro")}</p>
         <button ?disabled=${this.busy} @click=${()=>this.load()}>
           ${this.t("technical_read")}</button
-        >${this.error?m`<p role="alert">${this.t(this.error)}</p>`:E}${this.report?m`${this.relayEditor()}${this.report.doors.map(e=>this.doorEditor(e))}`:E}`:m`<wiskey-door-programs
-        .hass=${this.hass}
-        .station=${this.station}
-      ></wiskey-door-programs>
-      <wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>
+        >${this.error?m`<p role="alert">${this.t(this.error)}</p>`:E}${this.report?m`${this.relayEditor()}${this.report.doors.map(e=>this.doorEditor(e))}`:E}`:m`<div>
+        <details
+          @toggle=${e=>{this.programsOpen=e.target.open}}
+        >
+          <summary>${this.t("station_tab_programs")}</summary>
+          ${this.programsOpen?m`<wiskey-door-programs .hass=${this.hass} .station=${this.station}></wiskey-door-programs>`:E}
+        </details>
+        <details
+          @toggle=${e=>{this.codesOpen=e.target.open}}
+        >
+          <summary>${this.t("station_tab_public_codes")}</summary>
+          ${this.codesOpen?m`<wiskey-public-codes .hass=${this.hass} .station=${this.station}></wiskey-public-codes>`:E}
+        </details>
+      </div>
       <details>
         <summary>${this.t("technical_title")}</summary>
         <p>${this.t("technical_intro")}</p>
