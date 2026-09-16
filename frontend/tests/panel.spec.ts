@@ -257,6 +257,11 @@ test("sync error explains the failure and exports only backend diagnostics", asy
     window.demoNotify();
   });
   await navigate(page, "Sync");
+  await page
+    .locator(".matrix details.sync-error")
+    .filter({ hasText: "The station rejected the validity dates." })
+    .locator("summary")
+    .click();
   await expect(
     page.getByText("The station rejected the validity dates.", { exact: false }),
   ).toBeVisible();
@@ -283,6 +288,11 @@ test("Hebrew sync error stays visible when the station is offline", async ({ pag
     window.demoNotify();
   });
   await navigate(page, "סנכרון");
+  await page
+    .locator(".matrix details.sync-error")
+    .filter({ hasText: "הציוד דחה את תאריכי התוקף." })
+    .locator("summary")
+    .click();
   await expect(page.getByText("הציוד דחה את תאריכי התוקף.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "הורד דוח אבחון סנכרון" })).toBeEnabled();
 });
