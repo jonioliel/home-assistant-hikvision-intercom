@@ -1,0 +1,83 @@
+{
+  "published": true,
+  "url": "https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.12",
+  "tag": "v1.0.0-rc.12",
+  "sha": "d6540de0e156f25cd9c9fbee8763a100f5ab9bc6",
+  "prerelease": true,
+  "published_at": "2026-09-16T19:28:14Z",
+  "manifest_version": "1.0.0-rc.12",
+  "tag_content_verified": true,
+  "release_run": "https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35140354058",
+  "release_jobs_passed": 7,
+  "jobs": [
+    {
+      "id": 104943034348,
+      "name": "hassfest / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104943034563,
+      "name": "python / tests (3.12)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104943034601,
+      "name": "python / tests (3.14)",
+      "conclusion": "success"
+    },
+    {
+      "id": 104943034674,
+      "name": "python / home-assistant",
+      "conclusion": "success"
+    },
+    {
+      "id": 104943034677,
+      "name": "python / frontend",
+      "conclusion": "success"
+    },
+    {
+      "id": 104943034791,
+      "name": "hacs / validate",
+      "conclusion": "success"
+    },
+    {
+      "id": 104944301829,
+      "name": "publish",
+      "conclusion": "success"
+    }
+  ],
+  "python_tests_per_version": 1203,
+  "home_assistant_tests": 348,
+  "browser_tests": 432,
+  "cross_browser_tests": 24,
+  "total_browser_tests": 456,
+  "test_counts_from_release_logs": {
+    "python / tests (3.12)": 1203,
+    "python / tests (3.14)": 1203,
+    "python / home-assistant": 348,
+    "Firefox and WebKit operational workflows": 24,
+    "python / frontend": 432
+  },
+  "artifacts": {
+    "custom_components/hikvision_intercom/access/engine.py": {
+      "bytes": 24862,
+      "sha256": "213ff42a431b834143fb5e84857b6eba9da4280b07701ccfb6f980bb74ed942b"
+    },
+    "custom_components/hikvision_intercom/access/manager.py": {
+      "bytes": 43105,
+      "sha256": "b26e58a91a2c69bc97a33adb9cb23e385740ad089e8408c279e5d39adcad8bef"
+    },
+    "custom_components/hikvision_intercom/manifest.json": {
+      "bytes": 525,
+      "sha256": "915ea1a0b49b6560b323ab5ff956591c39718dae38ef1d16b31c06e919b0e47c"
+    },
+    "custom_components/hikvision_intercom/frontend/panel.js": {
+      "bytes": 1449706,
+      "sha256": "5c80e60c69fbadce3a050592e28ae5f2f748b39c4edc76011bc0362a48fdb868"
+    },
+    "custom_components/hikvision_intercom/frontend/audio-worklet.js": {
+      "bytes": 604,
+      "sha256": "c2cfa40eb531001bdbb7e450210790f39e50ce767d7d6b6d25ecdb7798a3c1ad"
+    }
+  }
+}
