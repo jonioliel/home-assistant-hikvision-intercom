@@ -23,7 +23,7 @@ test("camera exposes state-gated commands and requires refresh after uncertain d
   });
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
   const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
-  await expect(controls.getByRole("button", { name: "Hang up signal" })).toBeDisabled();
+  await expect(controls.getByRole("button", { name: "Hang up signal" })).toHaveCount(0);
   await controls.getByRole("button", { name: "Reject signal" }).click();
   await expect(controls).toContainText("Command delivery is uncertain");
   await expect(controls).toContainText("Observed state: Idle");
@@ -131,7 +131,7 @@ test("switching station during a slow call read cannot leave the next station lo
       busy: false,
     }),
   );
-  await expect(controls.getByRole("button", { name: "Answer signal" })).toBeDisabled();
+  await expect(controls.getByRole("button", { name: "Answer signal" })).toHaveCount(0);
 });
 
 test("a lost call read becomes retryable and cannot overwrite a newer result", async ({ page }) => {

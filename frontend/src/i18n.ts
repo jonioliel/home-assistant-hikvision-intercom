@@ -1,4 +1,8 @@
 const en = {
+  camera_microphone_active: "Microphone is live",
+  sync_diagnostic_reference: "Diagnostic reference",
+  camera_audio_options: "Audio settings and diagnostics",
+  camera_fullscreen_failed: "Full screen is unavailable in this browser.",
   sync_error_details: "Error details",
   clock_options: "Time and NTP",
   tools_clock_options:
@@ -513,7 +517,7 @@ const en = {
   audio_microphone_wait: "Allow microphone access",
   audio_state_idle: "Audio is off.",
   audio_state_opening: "Connecting audio…",
-  audio_state_listening: "Audio connected. Microphone transmits only while held.",
+  audio_state_listening: "Audio connected. Microphone is off.",
   audio_https_required:
     "Microphone access requires Home Assistant over HTTPS. Listening is available here.",
   audio_busy:
@@ -1679,6 +1683,10 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  camera_microphone_active: "המיקרופון פעיל",
+  sync_diagnostic_reference: "מזהה אבחון",
+  camera_audio_options: "הגדרות שמע ואבחון",
+  camera_fullscreen_failed: "מסך מלא אינו זמין בדפדפן זה.",
   sync_error_details: "פרטי השגיאה",
   clock_options: "שעונים ושרת NTP",
   tools_clock_options: "שרת זמן מרכזי, סנכרון שעוני התחנות והגדרת שעון Home Assistant.",
@@ -2170,7 +2178,7 @@ const he: Record<keyof typeof en, string> = {
   audio_microphone_wait: "אשר גישה למיקרופון",
   audio_state_idle: "השמע כבוי.",
   audio_state_opening: "מחבר שמע…",
-  audio_state_listening: "השמע מחובר. המיקרופון משדר רק במהלך לחיצה.",
+  audio_state_listening: "השמע מחובר. המיקרופון כבוי.",
   audio_https_required: "גישה למיקרופון מחייבת פתיחת Home Assistant דרך HTTPS. ניתן להאזין כאן.",
   audio_busy: "לתחנה או לדפדפן כבר יש חיבור שמע. עצור אותו לפני פתיחת חיבור נוסף.",
   audio_unsupported: "התחנה אינה מדווחת על פורמט השמע הנתמך בגרסה זו.",

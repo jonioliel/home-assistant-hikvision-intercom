@@ -1,4 +1,5 @@
 import "./microphone-input";
+import { icon } from "./icons";
 import type { MicrophoneInput } from "./microphone-input";
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { downloadText } from "./download";
@@ -18,6 +19,79 @@ interface AudioEvent {
 /** A visible, connection-owned session. Microphone access always needs a press. */
 export class IntercomAudioControls extends LitElement {
   static styles = css`
+    :host([dock]) {
+      margin: 0;
+    }
+    :host([dock]) section {
+      border: 0;
+      padding: 12px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    :host([dock]) .buttons {
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    :host([dock]) .session-buttons {
+      order: -2;
+    }
+    :host([dock]) .session-buttons > button {
+      min-width: 72px;
+      min-height: 72px;
+      border: 0;
+      border-radius: 36px;
+      background: #edf0f7;
+      color: #27334b;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    :host([dock]) .session-buttons > button[aria-pressed="true"] {
+      background: #2869ee;
+      color: white;
+    }
+    :host([dock]) .session-status {
+      order: -3;
+      text-align: center;
+      min-height: 18px;
+    }
+    :host([dock]) .session-status.talking {
+      color: #2869ee;
+      font-weight: 600;
+    }
+    .microphone-level {
+      order: -3;
+      width: 90px;
+      align-self: center;
+      height: 8px;
+      margin-bottom: 8px;
+      accent-color: #2869ee;
+    }
+    :host([dock]) .audio-options {
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    :host([dock]) .audio-options > summary {
+      text-align: center;
+      color: var(--secondary-text-color);
+    }
+    ::slotted(*) {
+      flex: 0 1 auto;
+    }
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid #5675e8;
+      outline-offset: 3px;
+    }
+    @media (max-width: 600px) {
+      :host([dock]) .buttons {
+        gap: 10px;
+      }
+    }
     :host {
       display: block;
       margin-block: 14px;
@@ -93,6 +167,7 @@ export class IntercomAudioControls extends LitElement {
     }
   `;
   static properties = {
+    dock: { type: Boolean, reflect: true },
     talkMode: { attribute: false },
     hass: { attribute: false },
     station: { attribute: false },
@@ -110,6 +185,7 @@ export class IntercomAudioControls extends LitElement {
     backendSampledAt: { state: true },
     _haConnected: { state: true },
   };
+  dock = false;
   talkMode: "ptt" | "toggle" = "ptt";
   hass?: Hass;
   station?: Station;
@@ -639,74 +715,77 @@ export class IntercomAudioControls extends LitElement {
   render() {
     if (!this.hass?.user?.is_admin || !this.station) return nothing;
     return html`<section aria-label=${this.t("audio_title")}>
-      <h3>${this.t("audio_title")}</h3>
-      <p>${this.t(this.talkMode === "toggle" ? "audio_toggle_hint" : "audio_hint")}</p>
-      <wiskey-microphone-input
-        .hass=${this.hass}
-        .locked=${this._talking || this._micPending}
-        .testingAllowed=${this._state === "idle"}
-        @microphone-selected=${(e: CustomEvent<{ deviceId: string }>) => {
-          this.releaseTalk();
-          this.selectedMicrophone = e.detail.deviceId;
-        }}
-      ></wiskey-microphone-input>
-      <details
-        .open=${this._diagnosticsOpen}
-        @toggle=${(event: Event) => {
-          this._diagnosticsOpen = (event.currentTarget as HTMLDetailsElement).open;
-          if (this._diagnosticsOpen) void this.refreshDiagnostics();
-        }}
-      >
-        <summary>${this.t("audio_diagnostics_title")}</summary>
-        <p>${this.t("audio_path_hint")}</p>
-        <dl>
-          <div>
-            <dt>${this.t("audio_signal")}</dt>
-            <dd>${this._signal}%</dd>
+      ${this.dock ? nothing : html`<h3>${this.t("audio_title")}</h3>`}
+      <details class="audio-options" ?open=${!this.dock}>
+        <summary>${this.t("camera_audio_options")}</summary>
+        <p>${this.t(this.talkMode === "toggle" ? "audio_toggle_hint" : "audio_hint")}</p>
+        <wiskey-microphone-input
+          .hass=${this.hass}
+          .locked=${this._talking || this._micPending}
+          .testingAllowed=${this._state === "idle"}
+          @microphone-selected=${(e: CustomEvent<{ deviceId: string }>) => {
+            this.releaseTalk();
+            this.selectedMicrophone = e.detail.deviceId;
+          }}
+        ></wiskey-microphone-input>
+        <details
+          .open=${this._diagnosticsOpen}
+          @toggle=${(event: Event) => {
+            this._diagnosticsOpen = (event.currentTarget as HTMLDetailsElement).open;
+            if (this._diagnosticsOpen) void this.refreshDiagnostics();
+          }}
+        >
+          <summary>${this.t("audio_diagnostics_title")}</summary>
+          <p>${this.t("audio_path_hint")}</p>
+          <dl>
+            <div>
+              <dt>${this.t("audio_signal")}</dt>
+              <dd>${this._signal}%</dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_peak")}</dt>
+              <dd data-testid="audio-peak">${this._peakSignal}%</dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_packets")}</dt>
+              <dd>${this._acknowledged}</dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_written")}</dt>
+              <dd data-testid="audio-written">
+                ${this.lastBackend?.microphone_bytes_written ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_upload")}</dt>
+              <dd data-testid="audio-upload">${this.lastBackend?.upload_http_status ?? "—"}</dd>
+            </div>
+          </dl>
+          <p>${this.t("audio_sample_hint")}</p>
+          ${this.backendSampledAt ? html`<p>${this.t("audio_sample_time")}: <time datetime=${this.backendSampledAt}>${new Date(this.backendSampledAt).toLocaleTimeString(this.hass?.language)}</time></p>` : nothing}
+          ${this._diagnosticError ? html`<p role="status">${this.t("audio_diagnostics_failed")}</p>` : nothing}
+          <p>${this.t("audio_speaker_unverified")}</p>
+          <div class="buttons">
+            <button
+              ?disabled=${!this.token || this._diagnosticLoading}
+              @click=${() => this.refreshDiagnostics()}
+            >
+              ${this.t("audio_refresh_diagnostics")}
+            </button>
+            <button ?disabled=${this._diagnosticLoading} @click=${() => this.exportDiagnostics()}>
+              ${this.t("audio_diagnostics")}
+            </button>
           </div>
-          <div>
-            <dt>${this.t("audio_peak")}</dt>
-            <dd data-testid="audio-peak">${this._peakSignal}%</dd>
-          </div>
-          <div>
-            <dt>${this.t("audio_packets")}</dt>
-            <dd>${this._acknowledged}</dd>
-          </div>
-          <div>
-            <dt>${this.t("audio_written")}</dt>
-            <dd data-testid="audio-written">
-              ${this.lastBackend?.microphone_bytes_written ?? "—"}
-            </dd>
-          </div>
-          <div>
-            <dt>${this.t("audio_upload")}</dt>
-            <dd data-testid="audio-upload">${this.lastBackend?.upload_http_status ?? "—"}</dd>
-          </div>
-        </dl>
-        <p>${this.t("audio_sample_hint")}</p>
-        ${this.backendSampledAt ? html`<p>${this.t("audio_sample_time")}: <time datetime=${this.backendSampledAt}>${new Date(this.backendSampledAt).toLocaleTimeString(this.hass?.language)}</time></p>` : nothing}
-        ${this._diagnosticError ? html`<p role="status">${this.t("audio_diagnostics_failed")}</p>` : nothing}
-        <p>${this.t("audio_speaker_unverified")}</p>
-        <div class="buttons">
-          <button
-            ?disabled=${!this.token || this._diagnosticLoading}
-            @click=${() => this.refreshDiagnostics()}
-          >
-            ${this.t("audio_refresh_diagnostics")}
-          </button>
-          <button ?disabled=${this._diagnosticLoading} @click=${() => this.exportDiagnostics()}>
-            ${this.t("audio_diagnostics")}
-          </button>
-        </div>
+        </details>
       </details>
-      <div class="buttons">
+      <div class="buttons session-buttons">
         ${
           this._state === "idle"
             ? html`<button
                 ?disabled=${!this.station.online || !this._haConnected || this.hass.connection.connected === false}
                 @click=${() => this.start()}
               >
-                ${this.t("audio_start")}
+                ${this.dock ? icon("speaker") : nothing}${this.t("audio_start")}
               </button>`
             : html` <button
                   ?disabled=${this._state !== "listening" || !window.isSecureContext}
@@ -748,12 +827,18 @@ export class IntercomAudioControls extends LitElement {
                     }
                   }}
                 >
-                  ${this.t(this._micPending ? "audio_microphone_wait" : this.talkMode === "toggle" ? (this._talking ? "audio_end_talk" : "audio_begin_talk") : this._talking ? "audio_talking" : "audio_push_to_talk")}
+                  ${this.dock ? icon("microphone") : nothing}${this.t(this._micPending ? "audio_microphone_wait" : this.talkMode === "toggle" ? (this._talking ? "audio_end_talk" : "audio_begin_talk") : this._talking ? "audio_talking" : "audio_push_to_talk")}
                 </button>
-                <button @click=${() => this.stop()}>${this.t("audio_stop")}</button>`
+                <button @click=${() => this.stop()}>
+                  ${this.dock ? icon("speaker") : nothing}${this.t("audio_stop")}
+                </button>`
         }
+        <slot></slot>
       </div>
-      <p role="status">${this.t("audio_state_" + this._state)}</p>
+      <p class="session-status ${this._talking ? "talking" : ""}" role="status">
+        ${this.t(this._talking ? "camera_microphone_active" : "audio_state_" + this._state)}
+      </p>
+      ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}
       ${this._error ? html`<p class="error" role="alert">${this.t(this._error)}</p>` : nothing}
     </section>`;

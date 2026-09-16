@@ -26,24 +26,25 @@ for (const [width, height, language] of [
       };
       return {
         head: box(".dialog-head"),
-        foot: box(".dialog-foot"),
+
         video: box(".camera-video"),
-        controls: box(".camera-controls"),
+        controls: box("hikvision-intercom-audio-controls"),
         width: node.scrollWidth,
         client: node.clientWidth,
       };
     });
+    expect(bounds.video.right - bounds.video.left).toBeGreaterThanOrEqual(159);
     expect(bounds.head.top).toBeGreaterThanOrEqual(0);
-    expect(bounds.foot.bottom).toBeLessThanOrEqual(height);
+    await expect(dialog.locator(".dialog-foot")).toBeHidden();
     expect(bounds.width).toBe(bounds.client);
-    if (width > 850) {
-      expect(Math.abs(bounds.video.top - bounds.controls.top)).toBeLessThan(2);
-      expect(bounds.controls.bottom).toBeLessThanOrEqual(bounds.foot.top + 1);
-    }
+    expect(bounds.controls.top).toBeGreaterThanOrEqual(bounds.video.bottom);
+    await expect(dialog.locator(".camera-door-actions button").first()).toBeVisible();
+    await expect(dialog.locator(".camera-fullscreen")).toBeVisible();
     const start = dialog.getByRole("button", {
       name: language === "he" ? "הפעל שמע" : "Start audio",
       exact: true,
     });
+    await dialog.locator(".audio-options > summary").click();
     await dialog.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
     const exportButton = dialog.getByRole("button", {
       name: language === "he" ? "הורד קובץ אבחון" : "Download audio diagnostics",

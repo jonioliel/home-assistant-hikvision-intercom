@@ -612,56 +612,103 @@ export const styles = css`
     font-size: 15px;
   }
   .camera-dialog {
-    width: min(1050px, calc(100vw - 24px));
+    width: min(1080px, calc(100vw - 24px));
   }
   .camera-dialog[open] {
     display: flex;
     flex-direction: column;
     max-height: calc(100dvh - 24px);
   }
-  .camera-dialog .dialog-head,
-  .camera-dialog .dialog-foot {
+  .camera-dialog .dialog-head {
     flex-shrink: 0;
+    padding: 14px 22px;
+  }
+  .camera-dialog h2 {
+    margin: 0;
   }
   .camera-dialog .dialog-body {
     min-height: 0;
     max-height: none;
+    padding: 12px 20px;
+  }
+  .camera-dialog .dialog-foot[hidden] {
+    display: none;
+  }
+  .camera-connection {
+    font-size: 12px;
+    color: var(--muted);
   }
   .camera-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
-    gap: 20px;
-    align-items: start;
-  }
-  .camera-video,
-  .camera-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     min-width: 0;
   }
-  .camera-controls {
-    max-block-size: max(80px, calc(100dvh - 280px));
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
   .camera-video {
-    position: sticky;
-    top: 0;
+    width: 100%;
+    min-width: 0;
+    margin-inline: auto;
+    max-width: min(100%, max(160px, calc((100dvh - 400px) * 16 / 9)));
+    --camera-object-fit: contain;
   }
   .camera-video hikvision-intercom-camera {
     width: 100%;
   }
-  @container intercom-panel (max-width: 850px) {
-    .camera-layout {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
+  .camera-door-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .camera-door-actions button {
+    min-height: 60px;
+    border-radius: 14px;
+  }
+  .camera-fullscreen {
+    display: flex;
+    flex-direction: column;
+    min-height: 64px;
+    border: 0;
+    border-radius: 32px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  .camera-layout:fullscreen {
+    padding: 16px;
+    box-sizing: border-box;
+    background: var(--card-background-color, white);
+    overflow: auto;
+  }
+  .sync-reference {
+    display: inline-block;
+    margin-inline-start: 6px;
+    font-size: 11px;
+    font-weight: normal;
+    margin-top: 5px;
+    color: var(--muted);
+  }
+  .sync-reference summary {
+    cursor: pointer;
+  }
+  .sync-reference bdi {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 600px) {
+    .camera-dialog .dialog-body {
+      padding: 8px;
     }
-    .camera-controls {
-      max-block-size: none;
-      overflow: visible;
-      scrollbar-gutter: auto;
+    .camera-dialog .dialog-head {
+      padding: 12px;
     }
     .camera-video {
-      position: static;
+      max-width: 100%;
+    }
+    .camera-door-actions {
+      width: 100%;
+    }
+    .camera-door-actions button {
+      flex: 1;
     }
   }
   .loader {

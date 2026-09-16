@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.13] - 2026-09-16
+
+### Changed
+- Redesigned the intercom viewer around a central, aspect-preserving video and a responsive control dock below it.
+- Rounded answer/reject/end-call icons, separate speaker and microphone controls, explicit microphone-live status and input meter, door actions and fullscreen.
+- Audio setup and diagnostics are collapsible; existing PTT/toggle preferences, transport selection and session cleanup remain intact.
+- Call actions remain capability/state-gated. Signaling acknowledgement remains distinct from actual call state and microphone transmission.
+- Synchronization headers show readable station names; station/person diagnostic references are available through compact disclosure controls.
+
 ## [1.0.0-rc.12] - 2026-09-16
 
 ### Fixed

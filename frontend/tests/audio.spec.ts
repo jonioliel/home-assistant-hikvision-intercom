@@ -414,6 +414,7 @@ test("audio diagnostics report actual worklet counters without sound or session 
     .poll(() => page.evaluate(() => (window as any).audio.sent.length))
     .toBeGreaterThan(2);
   await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
+  await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   const download = page.waitForEvent("download");
   await audio.getByRole("button", { name: "Download audio diagnostics" }).click();
@@ -436,6 +437,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
 }) => {
   const audio = await setup(page);
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
   await expect(audio.getByTestId("audio-written")).toHaveText("0");
@@ -459,6 +461,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
 test("failed diagnostics retain a labelled old sample without stopping audio", async ({ page }) => {
   const audio = await setup(page);
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
   await page.evaluate(() => {
@@ -481,6 +484,7 @@ test("late diagnostic results cannot populate a replacement audio session", asyn
     (window as any).audio.delayDiagnostics = true;
   });
   await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => typeof (window as any).audio.resolveDiagnostics))
@@ -513,6 +517,7 @@ for (const width of [390, 1440])
       document.querySelector("hikvision-intercom-panel")!.hass = { ...window.demoHass };
     });
     await audio.getByRole("button", { name: "הפעל שמע", exact: true }).click();
+    await audio.locator(".audio-options > summary").click();
     await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
     await expect(audio.getByTestId("audio-upload")).toHaveText("200");
     const downloadButton = audio.getByRole("button", { name: "הורד קובץ אבחון", exact: true });
@@ -542,6 +547,7 @@ test("local microphone meter sends no audio and selected device is used only on 
       { kind: "audioinput", deviceId: "mic-b", label: "Headset" },
     ];
   });
+  await audio.locator(".audio-options > summary").click();
   const mic = audio.locator("wiskey-microphone-input");
   await mic.locator("summary").click();
   await mic.getByRole("button", { name: "Refresh microphones" }).click();
@@ -571,6 +577,7 @@ test("local microphone meter sends no audio and selected device is used only on 
 for (const action of ["close", "change", "background"]) {
   test(`local microphone test releases tracks on ${action}`, async ({ page }) => {
     const audio = await setup(page);
+    await audio.locator(".audio-options > summary").click();
     const mic = audio.locator("wiskey-microphone-input");
     await mic.locator("summary").click();
     await mic.getByRole("button", { name: "Test microphone locally" }).click();

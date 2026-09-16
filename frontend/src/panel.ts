@@ -1725,11 +1725,12 @@ export class IntercomManagerPanel extends LitElement {
     busy ? next.add(stationId) : next.delete(stationId);
     this._callBusy = next;
   };
-  private callControls(station: Station, compact = false) {
+  private callControls(station: Station, compact = false, dock = false) {
     return html`<hikvision-intercom-call-controls
       .hass=${this.protectedHass}
       .station=${station}
       .compact=${compact}
+      .dock=${dock}
       .blocked=${this._callBusy.has(station.id)}
       .onBusy=${this.setCallBusy}
     ></hikvision-intercom-call-controls>`;
@@ -2878,7 +2879,19 @@ export class IntercomManagerPanel extends LitElement {
                       (station) =>
                         html`<th scope="col">
                           ${station.name}
-                          ${station.sync_reference ? html`<small class="sub"><bdi>${station.sync_reference}</bdi></small>` : nothing}
+                          ${
+                            station.sync_reference
+                              ? html`<details class="sync-reference">
+                                  <summary
+                                    aria-label=${this.t("sync_diagnostic_reference")}
+                                    title=${this.t("sync_diagnostic_reference")}
+                                  >
+                                    ⓘ
+                                  </summary>
+                                  <bdi>${station.sync_reference}</bdi>
+                                </details>`
+                              : nothing
+                          }
                           ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
                         </th>`,
                     )}
@@ -2889,8 +2902,19 @@ export class IntercomManagerPanel extends LitElement {
                     (user) =>
                       html`<tr>
                         <td class="sync-person">
-                          <strong>${user.display_name}</strong
-                          >${user.sync_reference ? html`<p class="sub"><bdi>${user.sync_reference}</bdi></p>` : nothing}
+                          <strong>${user.display_name}</strong>${
+                            user.sync_reference
+                              ? html`<details class="sync-reference">
+                                  <summary
+                                    aria-label=${this.t("sync_diagnostic_reference")}
+                                    title=${this.t("sync_diagnostic_reference")}
+                                  >
+                                    ⓘ
+                                  </summary>
+                                  <bdi>${user.sync_reference}</bdi>
+                                </details>`
+                              : nothing
+                          }
                         </td>
                         ${stations.map((station) => {
                           const assignment = user.assignments[station.id];
@@ -3660,18 +3684,33 @@ export class IntercomManagerPanel extends LitElement {
       </ul>
       ${[review.deletion_pending ? "delete" : "central", ...(!review.deletion_pending ? ["device"] : [])].map((action) => (review.actions[action]?.reason ? html`<p class="notice error">${this.t(action === "delete" ? "resolve_delete" : action)}: ${this.t(review.actions[action].reason!)}</p>` : nothing))} `;
   }
+  private async cameraFullscreen() {
+    const target = this.renderRoot.querySelector<HTMLElement>(".camera-layout");
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await target?.requestFullscreen();
+    } catch {
+      this._error = this.t("camera_fullscreen_failed");
+    }
+  }
   private cameraBody(station: Station) {
     return html`<div class="camera-layout">
       <div class="camera-video">${this.camera(station, true)}</div>
-      <div class="camera-controls">
-        ${this.callControls(station)}
-        <hikvision-intercom-audio-controls
-          .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
-          .hass=${this.protectedHass}
-          .station=${station}
-        ></hikvision-intercom-audio-controls>
-        ${this.releaseFeedback(station)}
-      </div>
+      <hikvision-intercom-audio-controls
+        .dock=${true}
+        .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
+        .hass=${this.protectedHass}
+        .station=${station}
+      >
+        ${this.callControls(station, false, true)}
+        <div class="camera-door-actions">
+          ${station.lock_enabled ? this.releaseButton(station, true, true) : nothing}
+        </div>
+        <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
+          ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
+        </button>
+      </hikvision-intercom-audio-controls>
+      ${this.releaseFeedback(station)}
     </div>`;
   }
   private dialogView() {
@@ -3700,7 +3739,10 @@ export class IntercomManagerPanel extends LitElement {
       }}
     >
       <div class="dialog-head">
-        <h2>${title}</h2>
+        <div>
+          <h2>${title}</h2>
+          ${this._dialog === "camera" && cameraStation ? html`<span class="camera-connection">${this.badge(cameraStation.online ? "online" : "offline")} · ${this.t(cameraStation.call_state)}</span>` : nothing}
+        </div>
         <button
           class="quiet"
           @click=${() => this.close()}
@@ -3739,7 +3781,7 @@ export class IntercomManagerPanel extends LitElement {
                         : nothing
         }
       </div>
-      <div class="dialog-foot">
+      <div class="dialog-foot" ?hidden=${this._dialog === "camera"}>
         ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;

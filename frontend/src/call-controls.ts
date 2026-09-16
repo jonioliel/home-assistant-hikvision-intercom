@@ -1,4 +1,5 @@
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { icon } from "./icons";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { formatTime, UTC_ZONE } from "./time";
@@ -31,6 +32,40 @@ export class IntercomCallControls extends LitElement {
   static styles = [
     styles,
     css`
+      :host([dock]) .call-controls {
+        background: transparent;
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+      :host([dock]) .toolbar {
+        justify-content: center;
+        gap: 10px;
+      }
+      :host([dock]) .toolbar button {
+        border: 0;
+        border-radius: 30px;
+        min-width: 64px;
+        min-height: 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 10px;
+        font-size: 12px;
+      }
+      :host([dock]) .toolbar button.answer {
+        background: #12853d;
+        color: white;
+      }
+      :host([dock]) .toolbar button.reject,
+      :host([dock]) .toolbar button.hangUp {
+        background: #dc3545;
+        color: white;
+      }
+      :host([dock]) p {
+        max-width: 300px;
+        font-size: 12px;
+      }
       .call-controls.compact {
         padding: 0;
         margin: 0 0 10px;
@@ -78,6 +113,7 @@ export class IntercomCallControls extends LitElement {
     hass: { attribute: false },
     station: { attribute: false },
     compact: { type: Boolean },
+    dock: { type: Boolean, reflect: true },
     blocked: { type: Boolean },
     _context: { state: true },
     _busy: { state: true },
@@ -90,6 +126,7 @@ export class IntercomCallControls extends LitElement {
   hass?: Hass;
   station?: Station;
   compact = false;
+  dock = false;
   blocked = false;
   private _context?: CallContext;
   private _busy = false;
@@ -346,14 +383,16 @@ export class IntercomCallControls extends LitElement {
       class="call-controls ${this.compact ? "compact" : ""}"
       aria-label=${this.t("media_signals")}
     >
-      <p>${this.t(this.compact ? "call_compact_hint" : "media_signal_hint")}</p>
+      ${this.dock ? nothing : html`<p>${this.t(this.compact ? "call_compact_hint" : "media_signal_hint")}</p>`}
       <div class="toolbar">
-        ${["answer", "reject", "hangUp"].filter((command) => this._context?.call_commands.includes(command) && (!this.compact || (command === "hangUp" ? s.call_state === "in_call" : s.call_state === "ringing"))).map((command) => html`<button aria-label=${this.t("media_" + command)} ?disabled=${!this.allowed(command)} @click=${() => this.signal(command)}>${this.t(this.compact ? "call_action_" + command : "media_" + command)}</button>`)}
+        ${["answer", "reject", "hangUp"].filter((command) => this._context?.call_commands.includes(command) && (!(this.compact || this.dock) || (command === "hangUp" ? s.call_state === "in_call" : s.call_state === "ringing"))).map((command) => html`<button class=${command} aria-label=${this.t("media_" + command)} ?disabled=${!this.allowed(command)} @click=${() => this.signal(command)}>${this.dock ? icon(command === "answer" ? "phone" : "hangup") : nothing}${this.t(this.compact || this.dock ? "call_action_" + command : "media_" + command)}</button>`)}
         <button
+          aria-label=${this.t("call_refresh")}
+          title=${this.t("call_refresh")}
           ?disabled=${this._busy || !s.online || !this._haConnected}
           @click=${() => this.refresh()}
         >
-          ${this.t("call_refresh")}
+          ${this.dock ? icon("sync") : this.t("call_refresh")}
         </button>
       </div>
       ${!this._haConnected ? html`<p role="status">${this.t("call_connection_lost")}</p>` : nothing}
