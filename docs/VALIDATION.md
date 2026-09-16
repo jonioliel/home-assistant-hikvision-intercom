@@ -1,5 +1,11 @@
 # Published validation
 
+## Published validation — 1.0.0-rc.7
+
+Runtime `4fd6552` passed all seven release jobs: 1,146 Python tests on each of 3.12/3.14, 328 Home Assistant tests, 421 Chromium tests and 24 Firefox/WebKit workflows. Published tag and artifact bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.7.json).
+
+New overview tests cover 4/6/9/12 stations in a 1440×900 viewport, mobile paging/search, stable ringing order and activity dialogs. Existing responsive appearance tests were updated for the approved replacement of expandable cards with dialogs. The first publication attempt was blocked by mismatched runtime version metadata; no release was published from that attempt. The corrected commit passed the complete release gate. No station writes were performed.
+
 ## Published validation — 1.0.0-rc.6
 
 Runtime `e304995137187558e089d52fb69655ed52eec738` passed all seven [release jobs](https://github.com/jonioliel/home-assistant-hikvision-intercom/actions/runs/35072179515): **1,146 Python tests per version (3.12/3.14), 328 Home Assistant tests, 415 Chromium tests and 24 Firefox/WebKit workflows** (439 browser tests). Static checks, reproducible bundle, HACS and Hassfest passed. Published tag and downloaded manifest/panel/audio-worklet bytes match the tested runtime. [Evidence](evidence/release_1.0.0-rc.6.json).

@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.6)** — activate weekly or selected-date user access through finite HA-managed validity windows, or select guarded native ISAPI deployment on compatible stations. Native activation requires complete resource/reference/clock checks; unknown holiday membership remains blocked. [Independent testing guide](docs/RELEASE_1.0.0_RC6_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
+Published runtime: **[1.0.0-rc.7](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.7)** — redesigned modern overview with viewport-fitted camera tiles, density selection, search, fullscreen and mobile paging. Existing appearance and access-timing enforcement remain available. [Screen guide](docs/MAIN_SCREEN_RC7_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
