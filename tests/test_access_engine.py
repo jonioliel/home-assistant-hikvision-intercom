@@ -175,7 +175,8 @@ async def test_lost_create_ack_recovers_by_readback_without_duplicate(setup):
     user = await create_user(repo)
     device.fail_after = ("UserInfo", "Record")
     result = await engine.async_reconcile("a", driver)
-    assert result.offline and repo.snapshot()["bindings"]["a"][user.id]["intent"]
+    assert result.retry and not result.offline
+    assert repo.snapshot()["bindings"]["a"][user.id]["intent"]
     recovered = AccessRepository(AsyncMock())
     await recovered.async_load(repo.snapshot())
     result = await SyncEngine(recovered).async_reconcile("a", driver)
@@ -364,3 +365,66 @@ async def test_unchanged_periodic_reconciliation_does_not_rewrite_storage(setup)
     repo._save.reset_mock()
     await engine.async_reconcile("a", driver)
     repo._save.assert_not_awaited()
+
+
+@pytest.mark.parametrize("kind", ["busy", "timeout", "conflict", "deadline"])
+async def test_failed_first_person_does_not_block_remaining_people(setup, kind):
+    from custom_components.hikvision_intercom.exceptions import (
+        HikvisionBusyError,
+        HikvisionConflictError,
+        HikvisionTimeoutError,
+    )
+
+    repo, device, driver, engine = setup
+    for number in range(3):
+        await create_user(repo, employee_no=str(2000 + number), pin=str(123450 + number), cards=[])
+    first, *remaining = engine.jobs("a")
+    person = engine._person
+
+    async def fault(station, user_id, access, inventory):
+        if user_id == first:
+            if kind == "deadline":
+                await asyncio.sleep(5)
+            raise {
+                "busy": HikvisionBusyError,
+                "timeout": HikvisionTimeoutError,
+                "conflict": HikvisionConflictError,
+            }.get(kind, HikvisionTimeoutError)("test")
+        await person(station, user_id, access, inventory)
+
+    engine._person = fault
+    if kind == "deadline":
+        engine.PERSON_TIMEOUT = 0.05
+    result = await engine.async_reconcile("a", driver)
+    assert result.failed == 1 and result.completed == 2 and not result.offline
+    assert repo.get(first).assignments["a"].sync_state in {"pending", "conflict"}
+    assert all(repo.get(key).assignments["a"].sync_state == "synced" for key in remaining)
+    assert len(device.users) == 2
+    assert not driver.client._write_lock.locked()
+
+
+async def test_real_connection_loss_stops_writes_but_keeps_remaining_people_pending(setup):
+    repo, device, driver, engine = setup
+    for number in range(2):
+        await create_user(repo, employee_no=str(3000 + number), cards=[], pin=str(223450 + number))
+    first, second = engine.jobs("a")
+
+    async def fail(*args):
+        device.offline = True
+        raise HikvisionConnectionError("offline")
+
+    engine._person = fail
+    result = await engine.async_reconcile("a", driver)
+    assert result.offline and result.retry and result.failed == 1
+    assert repo.get(first).assignments["a"].sync_state == "offline"
+    assert repo.get(second).assignments["a"].sync_state == "pending"
+    assert not device.writes
+
+
+async def test_unexpected_storage_timeout_still_halts_writes(setup):
+    repo, device, driver, engine = setup
+    await create_user(repo)
+    repo.async_mark = AsyncMock(side_effect=TimeoutError())
+    with pytest.raises(TimeoutError):
+        await engine.async_reconcile("a", driver)
+    assert not device.writes

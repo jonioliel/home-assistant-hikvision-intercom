@@ -2896,7 +2896,23 @@ export class IntercomManagerPanel extends LitElement {
                           const assignment = user.assignments[station.id];
                           return html`<td class=${assignment ? "sync-assigned" : "sync-unassigned"}>
                             <span class="sync-cell-station">${station.name}</span>
-                            ${assignment ? html`<button @click=${() => this.inspect(user.id, station.id)} ?disabled=${this._busy || !station.online}>${this.badge(assignment.sync_state ?? "pending")}</button>${assignment.last_error ? html`<p class="danger sync-error">${this.t(assignment.last_error)}</p>` : nothing}` : html`<span class="sub">—</span>`}
+                            ${
+                              assignment
+                                ? html`<button
+                                      @click=${() => this.inspect(user.id, station.id)}
+                                      ?disabled=${this._busy || !station.online}
+                                    >
+                                      ${this.badge(assignment.sync_state ?? "pending")}</button
+                                    >${
+                                      assignment.last_error
+                                        ? html`<details class="sync-error">
+                                            <summary>${this.t("sync_error_details")}</summary>
+                                            <p class="danger">${this.t(assignment.last_error)}</p>
+                                          </details>`
+                                        : nothing
+                                    }`
+                                : html`<span class="sub">—</span>`
+                            }
                           </td>`;
                         })}
                       </tr>`,

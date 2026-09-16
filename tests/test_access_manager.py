@@ -901,3 +901,32 @@ async def test_station_metrics_deduplicate_pending_removals(fleet):
     manager.request("a")
     await drain(manager)
     assert manager.station_metrics("a")["pending_users"] == 0
+
+
+async def test_person_failure_is_not_broadcast_as_station_error(fleet):
+    from custom_components.hikvision_intercom.exceptions import HikvisionBusyError
+
+    manager, device, _ = fleet
+    for index in range(3):
+        await manager.async_create(
+            {"display_name": f"Resident {index}", "assignments": {"a": {"allowed_locks": [1]}}},
+            sync_now=False,
+        )
+    first, *remaining = manager.engine.jobs("a")
+    person = manager.engine._person
+
+    async def fault(station, user_id, driver, inventory):
+        if user_id == first:
+            raise HikvisionBusyError("test")
+        await person(station, user_id, driver, inventory)
+
+    manager.engine._person = fault
+    manager.request("a")
+    await drain(manager)
+    assert manager.stations["a"].status == "error"
+    assert manager.stations["a"].error is None
+    assert manager.repository.get(first).assignments["a"].last_error == "device_busy"
+    assert all(
+        manager.repository.get(key).assignments["a"].sync_state == "synced" for key in remaining
+    )
+    assert len(device.users) == 2

@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.0.0-rc.12] - 2026-09-16
+
+### Fixed
+- A busy user no longer stops later users in the station synchronization pass.
+- Bounded person reconciliation; a timeout triggers fresh identity/inventory checks before continuing other users, preserving uncertain-write journals for retry.
+- Actual station outages, authentication failures and persistence failures still stop unsafe writes; other stations remain independent.
+- Person errors remain in their own synchronization cell instead of being repeated in the station heading. Expandable, wrapping error details keep the matrix compact on desktop and mobile.
+
 ## [1.0.0-rc.11] - 2026-09-16
 
 ### Added

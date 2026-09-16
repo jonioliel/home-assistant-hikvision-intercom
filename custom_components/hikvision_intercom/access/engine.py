@@ -12,8 +12,10 @@ from ..client.access import AccessClient, StationInventory
 from ..client.clock import ClockClient
 from ..exceptions import (
     HikvisionAuthError,
+    HikvisionConnectionError,
     HikvisionDeviceError,
     HikvisionError,
+    HikvisionTimeoutError,
 )
 from .diagnostics import SyncDiagnostics, error_code
 from .models import AccessError, ManagedUser, utc_now
@@ -33,6 +35,8 @@ class ReconcileResult:
 
 
 class SyncEngine:
+    PERSON_TIMEOUT = 180
+
     def __init__(
         self,
         repository: AccessRepository,
@@ -78,8 +82,9 @@ class SyncEngine:
                 self.diagnostics.stage(station, user_id, "identity")
                 failure: Exception | None = None
                 outcome = "succeeded"
+                deadline = asyncio.timeout(self.PERSON_TIMEOUT)
                 try:
-                    async with driver.transaction():
+                    async with deadline, driver.transaction():
                         state = self.repository.snapshot()
                         raw = state["users"].get(user_id)
                         assignment = raw["assignments"].get(station) if raw else None
@@ -91,9 +96,17 @@ class SyncEngine:
                             await self.repository.async_mark(station, user_id, "syncing")
                             self._changed()
                         await self._person(station, user_id, driver, inventory)
-                except (AccessError, HikvisionError) as err:
+                except (AccessError, HikvisionError, TimeoutError) as err:
                     failure = err
-                    code = error_code(err)
+                    if isinstance(err, TimeoutError) and not deadline.expired():
+                        # Unexpected failures (including persistence) must not permit more writes.
+                        raise
+                    failure = (
+                        HikvisionTimeoutError("Person reconciliation deadline exceeded")
+                        if isinstance(err, TimeoutError)
+                        else err
+                    )
+                    code = error_code(failure)
                     result.last_error = result.last_error or code
                     if code == "revision_conflict":
                         result.retry = True
@@ -102,8 +115,19 @@ class SyncEngine:
                         result.failed += 1
                         status = "error"
                         if code == "connection_failed":
-                            status = "offline"
-                            result.retry = result.offline = True
+                            # A timed-out person operation is not proof the station is offline.
+                            # Refresh inventory before proceeding after an uncertain write.
+                            result.retry = True
+                            try:
+                                async with asyncio.timeout(20):
+                                    await driver.client.async_confirm_identity()
+                                    inventory = await driver.async_inventory()
+                            except HikvisionAuthError:
+                                raise
+                            except (HikvisionConnectionError, HikvisionTimeoutError, TimeoutError):
+                                result.offline = True
+                                result.last_error = code
+                            status = "offline" if result.offline else "pending"
                         elif code == "device_busy":
                             status = "pending"
                             result.retry = True
@@ -119,7 +143,7 @@ class SyncEngine:
                         await self.repository.async_mark(station, user_id, status, code)
                         if isinstance(err, HikvisionAuthError):
                             raise
-                        if result.offline or code == "device_busy":
+                        if result.offline:
                             break
                 except asyncio.CancelledError:
                     outcome = "cancelled"

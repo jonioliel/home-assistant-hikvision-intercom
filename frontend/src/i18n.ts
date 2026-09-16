@@ -1,4 +1,5 @@
 const en = {
+  sync_error_details: "Error details",
   clock_options: "Time and NTP",
   tools_clock_options:
     "Shared time server, station clock synchronization and Home Assistant host settings.",
@@ -1678,6 +1679,7 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  sync_error_details: "פרטי השגיאה",
   clock_options: "שעונים ושרת NTP",
   tools_clock_options: "שרת זמן מרכזי, סנכרון שעוני התחנות והגדרת שעון Home Assistant.",
   program_edit_pause:

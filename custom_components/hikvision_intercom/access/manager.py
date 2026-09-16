@@ -263,7 +263,8 @@ class AccessManager:
                             station.id, self._driver(station)
                         )
                         retry = result.retry
-                        station.error = result.last_error
+                        # Person failures belong to their matrix cell, not every station user.
+                        station.error = result.last_error if result.offline else None
                         station.status = (
                             "offline"
                             if result.offline

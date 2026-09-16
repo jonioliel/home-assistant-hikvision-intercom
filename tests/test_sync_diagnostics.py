@@ -50,7 +50,7 @@ async def test_date_rejection_visible_and_retry_recovers_saved_intent(fleet, cap
         }
     )
     await drain(manager)
-    assert manager.stations["a"].error == "validity_rejected"
+    assert manager.stations["a"].error is None
     assert manager.repository.get(user["id"]).assignments["a"].last_error == "validity_rejected"
     report = manager.sync_diagnostics()
     failure = next(row for row in report["recent"] if row.get("error") == "validity_rejected")
@@ -125,7 +125,7 @@ async def test_contradictory_timed_validity_is_not_inferred_as_synced(fleet, mis
         manager.repository.get(user["id"]).assignments["a"].last_error
         == "validity_timezone_mismatch"
     )
-    assert manager.stations["a"].error == "validity_timezone_mismatch"
+    assert manager.stations["a"].error is None
     assert manager.sync_diagnostics()["recent"][-4:]
     with pytest.raises(AccessError, match="validity_timezone_mismatch"):
         canonical(

@@ -481,6 +481,17 @@ export const interfaceStyles = css`
   .matrix {
     max-height: 65vh;
   }
+  .matrix .sync-error {
+    max-width: 260px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: start;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .matrix .sync-error summary {
+    cursor: pointer;
+  }
   .matrix th {
     position: sticky;
     top: 0;
