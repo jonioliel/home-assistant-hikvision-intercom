@@ -7,8 +7,6 @@ import base64
 import secrets
 from importlib import import_module
 
-import aiohttp
-
 from .access.models import AccessError
 from .const import DOMAIN
 from .phone import whatsapp_number
@@ -238,6 +236,8 @@ async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
             message["media_token"] = issue("media", path=path) if path else None
         return {"recipient": number, "messages": messages}
     if command == "whatsapp/media":
+        import aiohttp
+
         item = consume(msg["token"], "media")
         try:
             provider = import_module("custom_components.whatsapp")
