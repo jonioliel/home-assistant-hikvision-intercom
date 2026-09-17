@@ -725,3 +725,50 @@ test("audio transport exemption preserves management authorization and compatibi
     mute: "allowed",
   });
 });
+
+test("restored microphone selection matches its label and can be reset to browser default", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("wiskey:microphone:v1:demo-admin", "old-device"),
+  );
+  const audio = await setup(page);
+  await audio.locator(".audio-options > summary").click();
+  const mic = audio.locator("wiskey-microphone-input");
+  await mic.locator("summary").click();
+  const select = mic.getByRole("combobox", { name: "Microphone", exact: true });
+  await expect(select).toHaveValue("old-device");
+  await expect(select.locator("option:checked")).toHaveText("Saved selection");
+  await page.evaluate(() => {
+    const base = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.enumerateDevices = async () =>
+      [
+        { kind: "audioinput", deviceId: "new-device", label: "Connected microphone" },
+      ] as MediaDeviceInfo[];
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      window.audio.constraints = constraints;
+      if ((constraints.audio as MediaTrackConstraints).deviceId)
+        throw new DOMException("Gone", "NotFoundError");
+      return base(constraints);
+    };
+  });
+  await mic.getByRole("button", { name: "Refresh microphones" }).click();
+  await expect(select).toHaveValue("old-device");
+  await mic.getByRole("button", { name: "Test microphone locally" }).click();
+  await expect(mic.getByRole("alert")).toContainText("selected microphone");
+  await select.selectOption("");
+  await expect(select).toHaveValue("");
+  expect(
+    await page.evaluate(() => localStorage.getItem("wiskey:microphone:v1:demo-admin")),
+  ).toBeNull();
+  await mic.getByRole("button", { name: "Test microphone locally" }).click();
+  await expect.poll(() => mic.locator("meter").evaluate((el) => el.value)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.audio.constraints.audio.deviceId)).toBeUndefined();
+  await mic.getByRole("button", { name: "Stop local test" }).click();
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
+  await page.keyboard.down("Space");
+  await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(0);
+  await page.keyboard.up("Space");
+  await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+});

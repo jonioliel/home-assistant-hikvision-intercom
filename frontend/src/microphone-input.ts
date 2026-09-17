@@ -153,8 +153,10 @@ export class MicrophoneInput extends LitElement {
       const devices = await navigator.mediaDevices.enumerateDevices();
       if (epoch !== this.enumeration || !this.isConnected) return;
       this.devices = devices.filter((d) => d.kind === "audioinput").slice(0, 64);
-      if (this.selected && !this.devices.some((d) => d.deviceId === this.selected))
-        this.error = "mic_selection_unavailable";
+      this.error =
+        this.selected && !this.devices.some((d) => d.deviceId === this.selected)
+          ? "mic_selection_unavailable"
+          : "";
     } catch {
       if (epoch === this.enumeration) this.error = "audio_microphone_failed";
     }
@@ -239,12 +241,17 @@ export class MicrophoneInput extends LitElement {
     } catch (e) {
       if (epoch !== this.epoch) return;
       this.stopTest();
+      const name = (e as DOMException).name;
       this.error =
-        (e as DOMException).name === "NotAllowedError"
+        name === "NotAllowedError" || name === "SecurityError"
           ? "audio_microphone_denied"
-          : (e as DOMException).name === "OverconstrainedError"
+          : name === "OverconstrainedError" || (name === "NotFoundError" && !!this.selected)
             ? "mic_selection_unavailable"
-            : "audio_microphone_failed";
+            : name === "NotFoundError"
+              ? "audio_microphone_missing"
+              : name === "NotReadableError"
+                ? "audio_microphone_busy"
+                : "audio_microphone_failed";
     }
   }
   render() {
@@ -259,9 +266,9 @@ export class MicrophoneInput extends LitElement {
             ?disabled=${this.locked}
             @change=${(e: Event) => this.choose((e.target as HTMLSelectElement).value)}
           >
-            <option value="">${this.t("mic_default")}</option>
-            ${this.selected && !this.devices.some((d) => d.deviceId === this.selected) ? html`<option value=${this.selected}>${this.t("mic_saved")}</option>` : nothing}
-            ${this.devices.filter((d) => d.deviceId).map((d, i) => html`<option value=${d.deviceId}>${d.label || `${this.t("mic_device")} ${i + 1}`}</option>`)}
+            <option value="" .selected=${!this.selected}>${this.t("mic_default")}</option>
+            ${this.selected && !this.devices.some((d) => d.deviceId === this.selected) ? html`<option value=${this.selected} .selected=${true}>${this.t("mic_saved")}</option>` : nothing}
+            ${this.devices.filter((d) => d.deviceId).map((d, i) => html`<option value=${d.deviceId} .selected=${d.deviceId === this.selected}>${d.label || `${this.t("mic_device")} ${i + 1}`}</option>`)}
           </select></label
         >
         <button type="button" ?disabled=${this.locked} @click=${() => this.refresh()}>

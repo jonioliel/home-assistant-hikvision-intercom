@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.3] - 2026-09-18
+
+- Fix a restored microphone selection displaying "Browser default" while requesting a previously saved device ID. Selected options now reflect the actual device requested, including a saved device that is no longer listed.
+- Preserve explicit device choice: resetting to browser default clears the stored ID and applies to both the local input test and intercom talk. Changing selection clears the previous talk error; refreshing available inputs clears resolved selection warnings.
+- Distinguish an unavailable selected device from a browser with no available microphone in both local testing and talk. Keep permission and busy-device errors separate.
+- Add a regression covering a disconnected saved device, visible selection, local test failure, explicit reset, local input meter and subsequent microphone transmission. No fallback silently switches to a different input.
+
 ## [1.5.2] - 2026-09-17
 
 - Fix audio disconnecting immediately after activation: connection-owned audio packet and diagnostics requests no longer pass through the unrelated management-command allowlist or receive its API envelope. Server-side authorization, session ownership and compatibility checks remain enforced.

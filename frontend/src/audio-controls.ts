@@ -523,11 +523,14 @@ export class IntercomAudioControls extends LitElement {
             ? "audio_worklet_failed"
             : name === "NotAllowedError" || name === "SecurityError"
               ? "audio_microphone_denied"
-              : name === "NotFoundError"
-                ? "audio_microphone_missing"
-                : name === "NotReadableError"
-                  ? "audio_microphone_busy"
-                  : "audio_microphone_failed";
+              : name === "OverconstrainedError" ||
+                  (name === "NotFoundError" && !!this.selectedMicrophone)
+                ? "mic_selection_unavailable"
+                : name === "NotFoundError"
+                  ? "audio_microphone_missing"
+                  : name === "NotReadableError"
+                    ? "audio_microphone_busy"
+                    : "audio_microphone_failed";
       }
     } finally {
       if (this.valid(epoch) && micEpoch === this.micEpoch) this._micPending = false;
@@ -726,6 +729,7 @@ export class IntercomAudioControls extends LitElement {
           @microphone-selected=${(e: CustomEvent<{ deviceId: string }>) => {
             this.releaseTalk();
             this.selectedMicrophone = e.detail.deviceId;
+            this._error = "";
           }}
         ></wiskey-microphone-input>
         <details

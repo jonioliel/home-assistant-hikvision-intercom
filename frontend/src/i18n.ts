@@ -481,7 +481,8 @@ const en = {
     "Talk uses your microphone → Home Assistant → ISAPI. RTC video connectivity does not verify or block this audio path.",
   audio_microphone_denied:
     "Microphone permission was denied. Allow microphone access for this site and hold Talk again.",
-  audio_microphone_missing: "No microphone was found. Connect an input device and try again.",
+  audio_microphone_missing:
+    "No microphone was found by this browser. Check Chrome or browser microphone settings, choose an available input here and try again.",
   audio_microphone_busy:
     "The browser could not open the microphone. Check system permissions and other apps using it.",
   audio_worklet_failed:
@@ -2193,7 +2194,8 @@ const he: Record<keyof typeof en, string> = {
     "הדיבור נשלח מהמיקרופון דרך Home Assistant אל ISAPI. הצלחה או כישלון של וידאו RTC אינם מעידים על תקינות מסלול השמע הזה.",
   audio_microphone_denied:
     "הגישה למיקרופון נדחתה. אפשר גישה למיקרופון באתר זה והחזק שוב את כפתור הדיבור.",
-  audio_microphone_missing: "לא נמצא מיקרופון. חבר התקן קלט ונסה שוב.",
+  audio_microphone_missing:
+    "הדפדפן לא מצא מיקרופון זמין. בדוק את התקן הקלט בהגדרות המיקרופון של הדפדפן, בחר כאן מיקרופון זמין ונסה שוב.",
   audio_microphone_busy:
     "הדפדפן לא הצליח לפתוח את המיקרופון. בדוק הרשאות מערכת ויישומים אחרים שמשתמשים בו.",
   audio_worklet_failed: "מעבד המיקרופון לא הופעל. טען מחדש את Home Assistant לאחר העדכון ונסה שוב.",
