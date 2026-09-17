@@ -1,0 +1,1392 @@
+{
+  "generatedAt": "2026-09-17T14:56:02.280Z",
+  "screenCount": 51,
+  "imageCount": 159,
+  "errors": [],
+  "checks": {
+    "filters": true,
+    "filteredRows": 1,
+    "drawer": true,
+    "closed": true,
+    "simulated": true
+  },
+  "results": [
+    {
+      "screen": "overview",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1110,
+      "missingView": false,
+      "scrollHeight": 1002,
+      "modalScroll": false
+    },
+    {
+      "screen": "doors",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1034,
+      "missingView": false,
+      "scrollHeight": 971,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-detail",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 745,
+      "missingView": false,
+      "scrollHeight": 1038,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-programs",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1010,
+      "missingView": false,
+      "scrollHeight": 1164,
+      "modalScroll": false
+    },
+    {
+      "screen": "program-edit",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 922,
+      "missingView": false,
+      "scrollHeight": 1131,
+      "modalScroll": false
+    },
+    {
+      "screen": "public-codes",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 840,
+      "missingView": false,
+      "scrollHeight": 1033,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-settings",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 811,
+      "missingView": false,
+      "scrollHeight": 1172,
+      "modalScroll": false
+    },
+    {
+      "screen": "camera-wall",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 646,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "call",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 350,
+      "missingView": false,
+      "scrollHeight": 1096,
+      "modalScroll": false
+    },
+    {
+      "screen": "people",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 984,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-details",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1346,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": true
+    },
+    {
+      "screen": "person-edit",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 645,
+      "missingView": false,
+      "scrollHeight": 1065,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-access",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1143,
+      "missingView": false,
+      "scrollHeight": 1285,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-timing",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 820,
+      "missingView": false,
+      "scrollHeight": 1215,
+      "modalScroll": false
+    },
+    {
+      "screen": "credentials",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 664,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "card-enroll",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1358,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "photo-capture",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1211,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "pin-change",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1278,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "groups",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 428,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-edit",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 413,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-review",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 674,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "permission-directory",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 552,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "whatsapp-compose",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1500,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "whatsapp-chat",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1328,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": true
+    },
+    {
+      "screen": "imports",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 508,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "csv-review",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 549,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "bulk-review",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1356,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "activity",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 666,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "event-detail",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 985,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "reports",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 688,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 707,
+      "missingView": false,
+      "scrollHeight": 987,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync-detail",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 698,
+      "missingView": false,
+      "scrollHeight": 1075,
+      "modalScroll": false
+    },
+    {
+      "screen": "recovery",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 662,
+      "missingView": false,
+      "scrollHeight": 961,
+      "modalScroll": false
+    },
+    {
+      "screen": "management",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 764,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "fields",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 903,
+      "missingView": false,
+      "scrollHeight": 1325,
+      "modalScroll": false
+    },
+    {
+      "screen": "templates",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1113,
+      "missingView": false,
+      "scrollHeight": 1196,
+      "modalScroll": false
+    },
+    {
+      "screen": "media",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 915,
+      "missingView": false,
+      "scrollHeight": 1169,
+      "modalScroll": false
+    },
+    {
+      "screen": "clocks",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 818,
+      "missingView": false,
+      "scrollHeight": 1001,
+      "modalScroll": false
+    },
+    {
+      "screen": "appearance",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 924,
+      "missingView": false,
+      "scrollHeight": 1071,
+      "modalScroll": false
+    },
+    {
+      "screen": "ha-permissions",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1186,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "health",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 854,
+      "missingView": false,
+      "scrollHeight": 1179,
+      "modalScroll": false
+    },
+    {
+      "screen": "audit",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 638,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-library",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 778,
+      "missingView": false,
+      "scrollHeight": 1221,
+      "modalScroll": false
+    },
+    {
+      "screen": "deployment",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1118,
+      "missingView": false,
+      "scrollHeight": 1078,
+      "modalScroll": false
+    },
+    {
+      "screen": "restricted",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 752,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "states",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 826,
+      "missingView": false,
+      "scrollHeight": 1347,
+      "modalScroll": false
+    },
+    {
+      "screen": "delete-confirm",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 1264,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-exceptions",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 750,
+      "missingView": false,
+      "scrollHeight": 986,
+      "modalScroll": false
+    },
+    {
+      "screen": "operation-journal",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 853,
+      "missingView": false,
+      "scrollHeight": 960,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-dates",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 806,
+      "missingView": false,
+      "scrollHeight": 1044,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-always",
+      "viewport": "desktop",
+      "rootOverflow": false,
+      "content": 831,
+      "missingView": false,
+      "scrollHeight": 994,
+      "modalScroll": false
+    },
+    {
+      "screen": "overview",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1110,
+      "missingView": false,
+      "scrollHeight": 1191,
+      "modalScroll": false
+    },
+    {
+      "screen": "doors",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1034,
+      "missingView": false,
+      "scrollHeight": 950,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-detail",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 745,
+      "missingView": false,
+      "scrollHeight": 984,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-programs",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1010,
+      "missingView": false,
+      "scrollHeight": 1162,
+      "modalScroll": false
+    },
+    {
+      "screen": "program-edit",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 922,
+      "missingView": false,
+      "scrollHeight": 1110,
+      "modalScroll": false
+    },
+    {
+      "screen": "public-codes",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 840,
+      "missingView": false,
+      "scrollHeight": 1012,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-settings",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 811,
+      "missingView": false,
+      "scrollHeight": 1151,
+      "modalScroll": false
+    },
+    {
+      "screen": "camera-wall",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 542,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "call",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 350,
+      "missingView": false,
+      "scrollHeight": 1036,
+      "modalScroll": false
+    },
+    {
+      "screen": "people",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 887,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-details",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1249,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": true
+    },
+    {
+      "screen": "person-edit",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 645,
+      "missingView": false,
+      "scrollHeight": 1044,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-access",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1143,
+      "missingView": false,
+      "scrollHeight": 1264,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-timing",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 820,
+      "missingView": false,
+      "scrollHeight": 1205,
+      "modalScroll": false
+    },
+    {
+      "screen": "credentials",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 664,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "card-enroll",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1261,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "photo-capture",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1114,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "pin-change",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1181,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "groups",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 428,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-edit",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 413,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-review",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 674,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "permission-directory",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 552,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "whatsapp-compose",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1403,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "whatsapp-chat",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1231,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": true
+    },
+    {
+      "screen": "imports",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 508,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "csv-review",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 549,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "bulk-review",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1259,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "activity",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 666,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "event-detail",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 985,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "reports",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 688,
+      "missingView": false,
+      "scrollHeight": 999,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 707,
+      "missingView": false,
+      "scrollHeight": 966,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync-detail",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 698,
+      "missingView": false,
+      "scrollHeight": 1074,
+      "modalScroll": false
+    },
+    {
+      "screen": "recovery",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 662,
+      "missingView": false,
+      "scrollHeight": 958,
+      "modalScroll": false
+    },
+    {
+      "screen": "management",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 764,
+      "missingView": false,
+      "scrollHeight": 1187,
+      "modalScroll": false
+    },
+    {
+      "screen": "fields",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 903,
+      "missingView": false,
+      "scrollHeight": 1304,
+      "modalScroll": false
+    },
+    {
+      "screen": "templates",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1113,
+      "missingView": false,
+      "scrollHeight": 1194,
+      "modalScroll": false
+    },
+    {
+      "screen": "media",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 915,
+      "missingView": false,
+      "scrollHeight": 1167,
+      "modalScroll": false
+    },
+    {
+      "screen": "clocks",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 818,
+      "missingView": false,
+      "scrollHeight": 980,
+      "modalScroll": false
+    },
+    {
+      "screen": "appearance",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 924,
+      "missingView": false,
+      "scrollHeight": 1050,
+      "modalScroll": false
+    },
+    {
+      "screen": "ha-permissions",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1186,
+      "missingView": false,
+      "scrollHeight": 984,
+      "modalScroll": false
+    },
+    {
+      "screen": "health",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 854,
+      "missingView": false,
+      "scrollHeight": 1158,
+      "modalScroll": false
+    },
+    {
+      "screen": "audit",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 638,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-library",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 778,
+      "missingView": false,
+      "scrollHeight": 1200,
+      "modalScroll": false
+    },
+    {
+      "screen": "deployment",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1118,
+      "missingView": false,
+      "scrollHeight": 1076,
+      "modalScroll": false
+    },
+    {
+      "screen": "restricted",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 752,
+      "missingView": false,
+      "scrollHeight": 1047,
+      "modalScroll": false
+    },
+    {
+      "screen": "states",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 826,
+      "missingView": false,
+      "scrollHeight": 1385,
+      "modalScroll": false
+    },
+    {
+      "screen": "delete-confirm",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 1167,
+      "missingView": false,
+      "scrollHeight": 983,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-exceptions",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 750,
+      "missingView": false,
+      "scrollHeight": 965,
+      "modalScroll": false
+    },
+    {
+      "screen": "operation-journal",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 853,
+      "missingView": false,
+      "scrollHeight": 900,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-dates",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 806,
+      "missingView": false,
+      "scrollHeight": 1042,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-always",
+      "viewport": "tablet",
+      "rootOverflow": false,
+      "content": 831,
+      "missingView": false,
+      "scrollHeight": 1012,
+      "modalScroll": false
+    },
+    {
+      "screen": "overview",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 919,
+      "missingView": false,
+      "scrollHeight": 1854,
+      "modalScroll": false
+    },
+    {
+      "screen": "doors",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 948,
+      "missingView": false,
+      "scrollHeight": 2417,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-detail",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 745,
+      "missingView": false,
+      "scrollHeight": 1619,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-programs",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1010,
+      "missingView": false,
+      "scrollHeight": 1787,
+      "modalScroll": false
+    },
+    {
+      "screen": "program-edit",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 922,
+      "missingView": false,
+      "scrollHeight": 2023,
+      "modalScroll": false
+    },
+    {
+      "screen": "public-codes",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 807,
+      "missingView": false,
+      "scrollHeight": 2210,
+      "modalScroll": false
+    },
+    {
+      "screen": "door-settings",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 811,
+      "missingView": false,
+      "scrollHeight": 2031,
+      "modalScroll": false
+    },
+    {
+      "screen": "camera-wall",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 590,
+      "missingView": false,
+      "scrollHeight": 1245,
+      "modalScroll": false
+    },
+    {
+      "screen": "call",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 350,
+      "missingView": false,
+      "scrollHeight": 897,
+      "modalScroll": false
+    },
+    {
+      "screen": "people",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 774,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-details",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1136,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": true
+    },
+    {
+      "screen": "person-edit",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 566,
+      "missingView": false,
+      "scrollHeight": 1488,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-access",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 998,
+      "missingView": false,
+      "scrollHeight": 2363,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-timing",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 741,
+      "missingView": false,
+      "scrollHeight": 1569,
+      "modalScroll": false
+    },
+    {
+      "screen": "credentials",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 585,
+      "missingView": false,
+      "scrollHeight": 1062,
+      "modalScroll": false
+    },
+    {
+      "screen": "card-enroll",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1148,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": false
+    },
+    {
+      "screen": "photo-capture",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1001,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": false
+    },
+    {
+      "screen": "pin-change",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1068,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": false
+    },
+    {
+      "screen": "groups",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 428,
+      "missingView": false,
+      "scrollHeight": 1356,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-edit",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 413,
+      "missingView": false,
+      "scrollHeight": 1388,
+      "modalScroll": false
+    },
+    {
+      "screen": "group-review",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 642,
+      "missingView": false,
+      "scrollHeight": 1388,
+      "modalScroll": false
+    },
+    {
+      "screen": "permission-directory",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 503,
+      "missingView": false,
+      "scrollHeight": 1557,
+      "modalScroll": false
+    },
+    {
+      "screen": "whatsapp-compose",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1290,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": true
+    },
+    {
+      "screen": "whatsapp-chat",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1118,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": true
+    },
+    {
+      "screen": "imports",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 449,
+      "missingView": false,
+      "scrollHeight": 962,
+      "modalScroll": false
+    },
+    {
+      "screen": "csv-review",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 521,
+      "missingView": false,
+      "scrollHeight": 1535,
+      "modalScroll": false
+    },
+    {
+      "screen": "bulk-review",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1126,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": true
+    },
+    {
+      "screen": "activity",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 610,
+      "missingView": false,
+      "scrollHeight": 1875,
+      "modalScroll": false
+    },
+    {
+      "screen": "event-detail",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 929,
+      "missingView": false,
+      "scrollHeight": 1875,
+      "modalScroll": false
+    },
+    {
+      "screen": "reports",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 653,
+      "missingView": false,
+      "scrollHeight": 1900,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 707,
+      "missingView": false,
+      "scrollHeight": 1173,
+      "modalScroll": false
+    },
+    {
+      "screen": "sync-detail",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 698,
+      "missingView": false,
+      "scrollHeight": 1418,
+      "modalScroll": false
+    },
+    {
+      "screen": "recovery",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 643,
+      "missingView": false,
+      "scrollHeight": 1533,
+      "modalScroll": false
+    },
+    {
+      "screen": "management",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 764,
+      "missingView": false,
+      "scrollHeight": 1557,
+      "modalScroll": false
+    },
+    {
+      "screen": "fields",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 872,
+      "missingView": false,
+      "scrollHeight": 2402,
+      "modalScroll": false
+    },
+    {
+      "screen": "templates",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1113,
+      "missingView": false,
+      "scrollHeight": 2099,
+      "modalScroll": false
+    },
+    {
+      "screen": "media",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 915,
+      "missingView": false,
+      "scrollHeight": 1838,
+      "modalScroll": false
+    },
+    {
+      "screen": "clocks",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 786,
+      "missingView": false,
+      "scrollHeight": 1967,
+      "modalScroll": false
+    },
+    {
+      "screen": "appearance",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 924,
+      "missingView": false,
+      "scrollHeight": 1612,
+      "modalScroll": false
+    },
+    {
+      "screen": "ha-permissions",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1082,
+      "missingView": false,
+      "scrollHeight": 2402,
+      "modalScroll": false
+    },
+    {
+      "screen": "health",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 818,
+      "missingView": false,
+      "scrollHeight": 2062,
+      "modalScroll": false
+    },
+    {
+      "screen": "audit",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 605,
+      "missingView": false,
+      "scrollHeight": 1735,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-library",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 762,
+      "missingView": false,
+      "scrollHeight": 2708,
+      "modalScroll": false
+    },
+    {
+      "screen": "deployment",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1085,
+      "missingView": false,
+      "scrollHeight": 2010,
+      "modalScroll": false
+    },
+    {
+      "screen": "restricted",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 752,
+      "missingView": false,
+      "scrollHeight": 1363,
+      "modalScroll": false
+    },
+    {
+      "screen": "states",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 826,
+      "missingView": false,
+      "scrollHeight": 2402,
+      "modalScroll": false
+    },
+    {
+      "screen": "delete-confirm",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 1054,
+      "missingView": false,
+      "scrollHeight": 1636,
+      "modalScroll": false
+    },
+    {
+      "screen": "schedule-exceptions",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 714,
+      "missingView": false,
+      "scrollHeight": 1924,
+      "modalScroll": false
+    },
+    {
+      "screen": "operation-journal",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 827,
+      "missingView": false,
+      "scrollHeight": 1876,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-dates",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 806,
+      "missingView": false,
+      "scrollHeight": 1724,
+      "modalScroll": false
+    },
+    {
+      "screen": "person-always",
+      "viewport": "mobile",
+      "rootOverflow": false,
+      "content": 831,
+      "missingView": false,
+      "scrollHeight": 1412,
+      "modalScroll": false
+    }
+  ]
+}
