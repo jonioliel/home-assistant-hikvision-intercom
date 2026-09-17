@@ -178,6 +178,8 @@ export class IntercomAudioControls extends LitElement {
     _acknowledged: { state: true },
     _signal: { state: true },
     _peakSignal: { state: true },
+    _receivedSignal: { state: true },
+    _receivedPeakSignal: { state: true },
     _diagnosticsOpen: { state: true },
     _diagnosticLoading: { state: true },
     _diagnosticError: { state: true },
@@ -196,6 +198,8 @@ export class IntercomAudioControls extends LitElement {
   private _acknowledged = 0;
   private _signal = 0;
   private _peakSignal = 0;
+  private _receivedSignal = 0;
+  private _receivedPeakSignal = 0;
   private _diagnosticsOpen = false;
   private _diagnosticLoading = false;
   private _diagnosticError = false;
@@ -254,7 +258,9 @@ export class IntercomAudioControls extends LitElement {
   private onVisibility = () => {
     if (document.hidden) this.stop();
   };
-  private onWindowBlur = () => this.releaseTalk();
+  private onWindowBlur = () => {
+    if (this.talkMode === "ptt") this.releaseTalk();
+  };
   private onPageHide = () => this.stop();
   private onCallEnding = (event: Event) => {
     if ((event as CustomEvent<{ station: string }>).detail?.station === this.station?.id)
@@ -287,6 +293,8 @@ export class IntercomAudioControls extends LitElement {
       this.lastBackend = null;
       this.backendSampledAt = null;
       this._peakSignal = 0;
+      this._receivedSignal = 0;
+      this._receivedPeakSignal = 0;
     }
     const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
     if (this.observedConnection !== connection) this.bindConnection(connection);
@@ -340,6 +348,8 @@ export class IntercomAudioControls extends LitElement {
     this.lastBackend = null;
     this.backendSampledAt = null;
     this._peakSignal = 0;
+    this._receivedSignal = 0;
+    this._receivedPeakSignal = 0;
     this._diagnosticError = false;
     this._diagnosticLoading = false;
     this.startedAt = new Date().toISOString();
@@ -417,6 +427,10 @@ export class IntercomAudioControls extends LitElement {
         const packet = atob(result.data);
         if (packet.length !== 800) throw new Error("invalid packet");
         this.received++;
+        let energy = 0;
+        for (let i = 0; i < packet.length; i++) energy += decodeMuLaw(packet.charCodeAt(i)) ** 2;
+        this._receivedSignal = Math.min(100, Math.round(Math.sqrt(energy / packet.length) * 100));
+        this._receivedPeakSignal = Math.max(this._receivedPeakSignal, this._receivedSignal);
         if (!this._talking) this.play(packet);
       } catch {
         if (this.valid(epoch)) this.stop("audio_connection_lost");
@@ -475,6 +489,7 @@ export class IntercomAudioControls extends LitElement {
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true,
         },
         video: false,
       });
@@ -645,8 +660,10 @@ export class IntercomAudioControls extends LitElement {
         [
           "microphone_packets_accepted",
           "microphone_bytes_written",
+          "microphone_signal_bytes_written",
           "total_bytes_written",
           "received_bytes",
+          "received_signal_bytes",
           "dropped_receive_packets",
           "upload_http_status",
         ]
@@ -700,6 +717,8 @@ export class IntercomAudioControls extends LitElement {
           microphone_packets_dropped_busy: this.dropped,
           microphone_signal_percent: this._signal,
           microphone_peak_percent: this._peakSignal,
+          station_signal_percent: this._receivedSignal,
+          station_peak_percent: this._receivedPeakSignal,
           backend_sampled_at: this.backendSampledAt,
           backend_refresh_failed: this._diagnosticError,
           receive_packets: this.received,
@@ -755,9 +774,29 @@ export class IntercomAudioControls extends LitElement {
               <dd>${this._acknowledged}</dd>
             </div>
             <div>
+              <dt>${this.t("audio_received_signal")}</dt>
+              <dd data-testid="audio-received-signal">${this._receivedSignal}%</dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_received_peak")}</dt>
+              <dd data-testid="audio-received-peak">${this._receivedPeakSignal}%</dd>
+            </div>
+            <div>
               <dt>${this.t("audio_written")}</dt>
               <dd data-testid="audio-written">
                 ${this.lastBackend?.microphone_bytes_written ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_microphone_signal_written")}</dt>
+              <dd data-testid="audio-signal-written">
+                ${this.lastBackend?.microphone_signal_bytes_written ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("audio_received_signal_bytes")}</dt>
+              <dd data-testid="audio-received-signal-bytes">
+                ${this.lastBackend?.received_signal_bytes ?? "—"}
               </dd>
             </div>
             <div>
@@ -842,7 +881,11 @@ export class IntercomAudioControls extends LitElement {
         <slot></slot>
       </div>
       <p class="session-status ${this._talking ? "talking" : ""}" role="status">
-        ${this.t(this._talking ? "camera_microphone_active" : "audio_state_" + this._state)}
+        ${this.t(this._talking ? "camera_microphone_active" : "audio_state_" + this._state)}${
+          this._state === "listening" && !this._talking
+            ? ` · ${this.t("audio_received_signal")}: ${this._receivedSignal}%`
+            : ""
+        }
       </p>
       ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}

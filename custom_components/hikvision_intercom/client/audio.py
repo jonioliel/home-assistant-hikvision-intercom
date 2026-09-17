@@ -109,8 +109,10 @@ class AudioSession:
         self._credit = 2.0
         self.upload_http_status: int | None = None
         self.received_bytes = 0
+        self.received_signal_bytes = 0
         self.sent_bytes = 0
         self.microphone_bytes = 0
+        self.microphone_signal_bytes = 0
         self.dropped_packets = 0
 
     def _path(self, operation: str) -> str:
@@ -250,6 +252,7 @@ class AudioSession:
                     if len(packet) != PACKET_BYTES:
                         raise AudioError("audio_connection_lost")
                     self.received_bytes += len(packet)
+                    self.received_signal_bytes += sum(byte not in (0x7F, 0xFF) for byte in packet)
                     if self.incoming.full():
                         self.incoming.get_nowait()
                         self.dropped_packets += 1
@@ -283,6 +286,7 @@ class AudioSession:
             self.sent_bytes += len(frame)
             if from_microphone:
                 self.microphone_bytes += len(frame)
+                self.microphone_signal_bytes += sum(byte not in (0x7F, 0xFF) for byte in frame)
             deadline += 0.02
             now = time.monotonic()
             if now - deadline > 0.1:

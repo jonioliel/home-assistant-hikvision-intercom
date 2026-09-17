@@ -122,7 +122,24 @@ test("advertised WebRTC uses HA signaling and cleans up peer, tracks and subscri
   page,
 }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
+  const media = await page
+    .getByRole("dialog")
+    .locator("hikvision-intercom-camera")
+    .evaluate((element) => {
+      const root = element.shadowRoot!;
+      const video = root.querySelector("video")!;
+      return {
+        muted: video.muted,
+        nativeControls: video.hasAttribute("controls"),
+        status: root.querySelector(".player-status")?.textContent?.replace(/\s+/g, " ").trim(),
+      };
+    });
+  expect(media).toEqual({
+    muted: true,
+    nativeControls: false,
+    status: "WebRTC · video only — use the listening controls below",
+  });
   expect(
     await page.evaluate(() => window.calls.some((c) => c.type === "camera/webrtc/offer")),
   ).toBeTruthy();
@@ -162,7 +179,7 @@ test("late RTC configuration after closing camera cannot create a peer", async (
 
 test("connected RTC failure tears down once and tries HLS once", async ({ page }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => {
     window.testPeer.connectionState = "failed";
     window.testPeer.onconnectionstatechange();
@@ -185,7 +202,9 @@ test("a track without a decoded frame times out into HLS", async ({ page }) => {
     .evaluate((video) => {
       video.dispatchEvent(new Event("loadeddata"));
     });
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("Connecting video");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText(
+    "Connecting video",
+  );
   await page.clock.fastForward(13000);
   await expect(page.getByRole("dialog")).toContainText("Video failed");
   expect(
@@ -211,7 +230,7 @@ test("capability timeout falls back once and ignores its late reply", async ({ p
 
 test("backgrounding releases RTC and returning starts a fresh session", async ({ page }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => {
     window.fakeHidden = true;
     Object.defineProperty(document, "hidden", { configurable: true, get: () => window.fakeHidden });
@@ -225,7 +244,7 @@ test("backgrounding releases RTC and returning starts a fresh session", async ({
     window.fakeHidden = false;
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
   ).toBe(2);
@@ -234,7 +253,7 @@ test("backgrounding releases RTC and returning starts a fresh session", async ({
 test("short RTC disconnect can recover without selecting HLS", async ({ page }) => {
   await page.clock.install();
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => {
     window.testPeer.connectionState = "disconnected";
     window.testPeer.onconnectionstatechange();
@@ -255,7 +274,7 @@ test("playback export includes decode evidence and omits SDP and network address
   page,
 }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => {
     window.testPeer.getStats = async () =>
       new Map([
@@ -287,7 +306,7 @@ test("playback export includes decode evidence and omits SDP and network address
 
 test("ending a received track closes RTC and starts one fallback", async ({ page }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => window.rtcTrack.dispatchEvent(new Event("ended")));
   await expect(page.getByRole("dialog")).toContainText("The video track ended");
   expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
@@ -300,7 +319,7 @@ test("HA reconnect tears down old RTC and negotiates a fresh visible video sessi
   page,
 }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   expect(await page.evaluate(() => window.rtcOptions.resubscribe)).toBe(false);
   await page.evaluate(() => {
     window.oldRTCOptions = window.rtcOptions;
@@ -315,7 +334,7 @@ test("HA reconnect tears down old RTC and negotiates a fresh visible video sessi
   await page.evaluate(() => {
     for (const callback of window.rtcConnectionListeners.get("ready")) callback();
   });
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
   ).toBe(2);
@@ -328,7 +347,7 @@ test("closing camera while HA is disconnected prevents a reconnect from opening 
   page,
 }) => {
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page.evaluate(() => {
     for (const callback of window.rtcConnectionListeners.get("disconnected")) callback();
   });
@@ -366,7 +385,7 @@ test("selected add-on RTC uses signed bridge without native provider and cleans 
     });
   });
   await rtc(page, "addon");
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   expect(
     await page.evaluate(() =>
       window.calls.some(
@@ -391,7 +410,7 @@ test("add-on RTC retries normal ICE once when TCP cannot connect", async ({ page
     });
   });
   await rtc(page, "addon");
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   expect(attempts).toBe(2);
   expect(await page.evaluate(() => window.calls.some((c) => c.type === "camera/stream"))).toBe(
     false,
@@ -410,7 +429,7 @@ test("decoded video stall retries twice then falls back without microphone acces
   await page.clock.install();
   await rtc(page);
   const dialog = page.getByRole("dialog");
-  await expect(dialog.locator(".player-status")).toHaveText("WebRTC");
+  await expect(dialog.locator(".player-status")).toContainText("WebRTC");
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.clock.fastForward(13000);
     await expect
@@ -418,7 +437,7 @@ test("decoded video stall retries twice then falls back without microphone acces
         page.evaluate(() => window.calls.filter((c) => c.type === "camera/webrtc/offer").length),
       )
       .toBe(attempt + 2);
-    await expect(dialog.locator(".player-status")).toHaveText("WebRTC");
+    await expect(dialog.locator(".player-status")).toContainText("WebRTC");
   }
   await page.clock.fastForward(13000);
   await expect(dialog).toContainText("Video failed");
@@ -440,7 +459,7 @@ test("paused video and detached views do not trigger stall reconnects", async ({
   });
   await page.clock.install();
   await rtc(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("WebRTC");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
   await page
     .getByRole("dialog")
     .locator("video")

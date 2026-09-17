@@ -41,7 +41,7 @@ for (const [width, height, language] of [
     await expect(dialog.locator(".camera-door-actions button").first()).toBeVisible();
     await expect(dialog.locator(".camera-fullscreen")).toBeVisible();
     const start = dialog.getByRole("button", {
-      name: language === "he" ? "הפעל שמע" : "Start audio",
+      name: language === "he" ? "פתח האזנה" : "Start listening",
       exact: true,
     });
     await dialog.locator(".audio-options > summary").click();

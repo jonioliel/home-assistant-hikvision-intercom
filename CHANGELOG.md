@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.5] - 2026-09-18
+
+- Separate camera video from the two-way audio path in the camera dialog. Remove the browser's misleading native mute control, label MSE/RTC/HLS as video-only, and rename the explicit ISAPI action to **Start listening** / **פתח האזנה**.
+- Keep toggle-to-talk active across transient browser-window focus loss while retaining immediate release for PTT, backgrounding, dialog closure, disconnect and call termination.
+- Request browser automatic microphone gain control and add independent live/peak station-input meters.
+- Add server-side non-silent byte counters in both directions so diagnostics distinguish real microphone/station signal from keepalive silence; no audio samples, credentials or session tokens are stored or exported.
+- Add regressions for focus loss, real station signal, video-only player controls, G.711 signal counters and responsive Hebrew/English camera controls.
+
 ## [1.5.4] - 2026-09-18
 
 - Fix toggle-to-talk stopping immediately on touch devices when the browser emits `pointercancel` after the activation tap. Toggle mode now keeps capturing and transmitting until the explicit stop action.

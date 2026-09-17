@@ -145,9 +145,17 @@ class AudioBridge:
                     "reason": reason,
                     "close_confirmed": self.session.close_confirmed if self.session else None,
                     "received_bytes": self.session.received_bytes if self.session else 0,
+                    "received_signal_bytes": getattr(self.session, "received_signal_bytes", 0)
+                    if self.session
+                    else 0,
                     "sent_bytes": self.session.sent_bytes if self.session else 0,
                     "microphone_packets_accepted": self.sequence,
                     "microphone_bytes_written": self.session.microphone_bytes
+                    if self.session
+                    else 0,
+                    "microphone_signal_bytes_written": getattr(
+                        self.session, "microphone_signal_bytes", 0
+                    )
                     if self.session
                     else 0,
                     "upload_http_status": self.session.upload_http_status if self.session else None,
@@ -273,8 +281,10 @@ def packet_handler(operation: str) -> Any:
                 result = {
                     "microphone_packets_accepted": bridge.sequence,
                     "microphone_bytes_written": session.microphone_bytes,
+                    "microphone_signal_bytes_written": session.microphone_signal_bytes,
                     "total_bytes_written": session.sent_bytes,
                     "received_bytes": session.received_bytes,
+                    "received_signal_bytes": session.received_signal_bytes,
                     "dropped_receive_packets": session.dropped_packets,
                     "upload_http_status": session.upload_http_status,
                     "physical_result": "unverified",

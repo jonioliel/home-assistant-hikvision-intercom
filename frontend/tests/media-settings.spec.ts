@@ -132,7 +132,7 @@ test("MSE decodes synthetic fMP4, exports safe evidence and stops on global chan
   await signing(page);
   await selectPolicy(page);
   await open(page);
-  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("MSE");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("MSE");
   const download = page.waitForEvent("download");
   await page.getByRole("dialog").getByRole("button", { name: "Playback report" }).click();
   const file = await download;

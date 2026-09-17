@@ -20,9 +20,11 @@ async def audio_driver():
         failure = None
         close_confirmed = True
         received_bytes = 800
+        received_signal_bytes = 0
         sent_bytes = 160
         upload_http_status = 200
         microphone_bytes = 0
+        microphone_signal_bytes = 0
         dropped_packets = 0
         start = AsyncMock()
         close = AsyncMock()
@@ -254,8 +256,10 @@ async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
             failure=None,
             close_confirmed=True,
             received_bytes=800,
+            received_signal_bytes=0,
             sent_bytes=160,
             microphone_bytes=0,
+            microphone_signal_bytes=0,
             upload_http_status=200,
             dropped_packets=0,
             start=AsyncMock(),
@@ -371,6 +375,8 @@ async def test_audio_diagnostics_belong_to_browser_and_contain_no_packets(
     result = (await request(client, "audio/diagnostics", token=token))["result"]
     assert result["microphone_packets_accepted"] == 1
     assert result["microphone_bytes_written"] == 0
+    assert result["microphone_signal_bytes_written"] == 0
+    assert result["received_signal_bytes"] == 0
     assert result["upload_http_status"] == 200
     assert result["physical_result"] == "unverified"
     assert "data" not in result and token not in json.dumps(result)

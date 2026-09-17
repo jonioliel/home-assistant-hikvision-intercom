@@ -45,7 +45,7 @@ async function setup(page: Page, appearance = "current") {
       w.calls.push(message);
       if (message.type.endsWith("/receive")) {
         await new Promise((r) => setTimeout(r, 100));
-        return { data: btoa("\xff".repeat(800)) };
+        return { data: btoa(String.fromCharCode(w.audio.receiveByte ?? 0xff).repeat(800)) };
       }
       if (message.type.endsWith("/send")) {
         w.audio.sent.push(message);
@@ -60,8 +60,10 @@ async function setup(page: Page, appearance = "current") {
         return {
           microphone_packets_accepted: w.audio.sent.length,
           microphone_bytes_written: w.audio.sent.length * 800,
+          microphone_signal_bytes_written: w.audio.sent.length * 800,
           total_bytes_written: w.audio.sent.length * 800 + 160,
           received_bytes: 800,
+          received_signal_bytes: w.audio.receiveByte == null ? 0 : 800,
           upload_http_status: 200,
         };
       }
@@ -99,8 +101,8 @@ test("explicit listen and real audio worklet transmit only while held", async ({
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.includes("/audio/")).length),
   ).toBe(0);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await expect(audio).toContainText("Audio connected");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
   expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
   const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
   await talk.dispatchEvent("pointerdown", { pointerId: 1 });
@@ -123,14 +125,14 @@ test("explicit listen and real audio worklet transmit only while held", async ({
   expect(
     packets.every((p: any, i: number) => p.sequence === i && p.length === 800 && p.nonSilent),
   ).toBe(true);
-  await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
   expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
 });
 
 test("releasing while microphone permission is pending stops late tracks", async ({ page }) => {
   const audio = await setup(page);
   await page.evaluate(() => ((window as any).audio.delayMic = true));
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
   await talk.focus();
   await page.keyboard.down("Space");
@@ -148,7 +150,7 @@ test("releasing while microphone permission is pending stops late tracks", async
 test("late subscription is released after camera closes during opening", async ({ page }) => {
   const audio = await setup(page);
   await page.evaluate(() => ((window as any).audio.delay = true));
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await expect.poll(() => page.evaluate(() => typeof (window as any).audio.ready)).toBe("function");
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   await page.evaluate(() => (window as any).audio.ready());
@@ -161,8 +163,8 @@ test("late subscription is released after camera closes during opening", async (
 for (const action of ["close", "background", "logout", "offline"]) {
   test(`audio is stopped on ${action}`, async ({ page }) => {
     const audio = await setup(page);
-    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-    await expect(audio).toContainText("Audio connected");
+    await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+    await expect(audio).toContainText("Listening is active");
     if (action === "close")
       await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
     else
@@ -183,8 +185,8 @@ for (const action of ["close", "background", "logout", "offline"]) {
 
 test("server expiry ends session and explains how it ended", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await expect(audio).toContainText("Audio connected");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
   await page.evaluate(() =>
     (window as any).audio.event({
       state: "closed",
@@ -193,7 +195,7 @@ test("server expiry ends session and explains how it ended", async ({ page }) =>
     }),
   );
   await expect(audio).toContainText("The 3-minute audio session ended");
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
 });
 
 test("microphone denial leaves listening available and does not send frames", async ({ page }) => {
@@ -204,11 +206,11 @@ test("microphone denial leaves listening available and does not send frames", as
         throw new DOMException("denied", "NotAllowedError");
       }),
   );
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
   await page.keyboard.press("Space");
   await expect(audio).toContainText("Microphone permission was denied");
-  await expect(audio).toContainText("Audio connected");
+  await expect(audio).toContainText("Listening is active");
   expect(await page.evaluate(() => (window as any).audio.sent.length)).toBe(0);
 });
 
@@ -217,33 +219,33 @@ test("Hebrew audio controls fit a mobile camera dialog", async ({ page }) => {
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "צפייה במצלמה", exact: true }).first().click();
   const audio = page.locator("hikvision-intercom-audio-controls");
-  await expect(audio.getByRole("button", { name: "הפעל שמע", exact: true })).toBeVisible();
+  await expect(audio.getByRole("button", { name: "פתח האזנה", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= 390)).toBe(true);
 });
 
 test("ending a call stops audio for the same station", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await expect(audio).toContainText("Audio connected");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Reject signal", exact: true })
     .click();
   await expect.poll(() => page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
 });
 
 test("HA reconnect cannot automatically reopen a microphone session", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-  await expect(audio).toContainText("Audio connected");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
   expect(await page.evaluate(() => (window as any).audio.subscriptionOptions.resubscribe)).toBe(
     false,
   );
   await page.evaluate(() => (window as any).audio.disconnected());
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeDisabled();
   await page.evaluate(() => (window as any).audio.reconnected());
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => (window as any).audio.subscriptionOptions.preCheck())).toBe(
     false,
   );
@@ -252,7 +254,7 @@ test("HA reconnect cannot automatically reopen a microphone session", async ({ p
 
 test("moving keyboard focus releases the microphone without needing keyup", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
   await page.keyboard.down("Space");
   await expect
@@ -280,8 +282,8 @@ for (const operation of ["receive", "send", "mute"]) {
         return base(message);
       };
     }, operation);
-    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-    await expect(audio).toContainText("Audio connected");
+    await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+    await expect(audio).toContainText("Listening is active");
     if (operation !== "receive") {
       await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
       await page.keyboard.down("Space");
@@ -291,13 +293,13 @@ for (const operation of ["receive", "send", "mute"]) {
     await expect
       .poll(() => page.evaluate(() => typeof (window as any).audio.late))
       .toBe("function");
-    await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled({
+    await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled({
       timeout: 8000,
     });
     await page.evaluate(() =>
       (window as any).audio.late({ data: btoa("\xff".repeat(800)), sequence: 1 }),
     );
-    await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+    await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
     expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
     if (operation !== "receive")
       expect(await page.evaluate(() => (window as any).audio.stopped)).toBe(1);
@@ -309,7 +311,7 @@ test("browser audio suspension releases active microphone and requires explicit 
   page,
 }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
   await page.keyboard.down("Space");
   await expect
@@ -330,7 +332,7 @@ test("audio cannot be started while HA is already disconnected", async ({ page }
     window.demoHass.connection.connected = false;
     node.hass = { ...window.demoHass };
   });
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeDisabled();
   await audio.evaluate((node: any) => node.start());
   expect(
     await page.evaluate(
@@ -350,14 +352,14 @@ test("a delayed browser audio start cannot subscribe to a newly selected station
       return new Promise((resolve) => (window.resumeOpeningAudio = () => resolve()));
     };
   });
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await expect.poll(() => page.evaluate(() => typeof window.resumeOpeningAudio)).toBe("function");
   await audio.evaluate((node: any) => {
     // Queue resume before Lit's changed-station cleanup, then switch synchronously.
     window.resumeOpeningAudio();
     node.station = structuredClone(window.demoData.stations[1]);
   });
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
   expect(
     await page.evaluate(
       () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
@@ -377,9 +379,9 @@ test("reattaching idle audio restores connection listeners without starting a se
     await node.updateComplete;
     (window as any).audio.disconnected();
   });
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeDisabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeDisabled();
   await page.evaluate(() => (window as any).audio.reconnected());
-  await expect(audio.getByRole("button", { name: "Start audio", exact: true })).toBeEnabled();
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
   expect(
     await page.evaluate(
       () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
@@ -399,7 +401,7 @@ for (const [name, message] of [
         throw new DOMException("synthetic", name);
       };
     }, name);
-    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    await audio.getByRole("button", { name: "Start listening", exact: true }).click();
     await audio
       .getByRole("button", { name: "Hold to talk", exact: true })
       .dispatchEvent("pointerdown", { pointerId: 1 });
@@ -412,7 +414,7 @@ test("audio diagnostics report actual worklet counters without sound or session 
   page,
 }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio
     .getByRole("button", { name: "Hold to talk", exact: true })
     .dispatchEvent("pointerdown", { pointerId: 1 });
@@ -442,7 +444,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
   page,
 }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
@@ -466,7 +468,7 @@ test("visible server counters distinguish transmission from microphone acceptanc
 
 test("failed diagnostics retain a labelled old sample without stopping audio", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
@@ -489,7 +491,7 @@ test("late diagnostic results cannot populate a replacement audio session", asyn
   await page.evaluate(() => {
     (window as any).audio.delayDiagnostics = true;
   });
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.locator(".audio-options > summary").click();
   await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
   await expect
@@ -498,11 +500,11 @@ test("late diagnostic results cannot populate a replacement audio session", asyn
   await page.evaluate(() => {
     (window as any).oldAudioDiagnostic = (window as any).audio.resolveDiagnostics;
   });
-  await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
   await page.evaluate(() => {
     (window as any).audio.delayDiagnostics = false;
   });
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await expect(audio.getByTestId("audio-upload")).toHaveText("200");
   await page.evaluate(() => {
     (window as any).oldAudioDiagnostic({
@@ -522,7 +524,7 @@ for (const width of [390, 1440])
       window.demoHass.language = "he";
       document.querySelector("hikvision-intercom-panel")!.hass = { ...window.demoHass };
     });
-    await audio.getByRole("button", { name: "הפעל שמע", exact: true }).click();
+    await audio.getByRole("button", { name: "פתח האזנה", exact: true }).click();
     await audio.locator(".audio-options > summary").click();
     await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
     await expect(audio.getByTestId("audio-upload")).toHaveText("200");
@@ -569,7 +571,7 @@ test("local microphone meter sends no audio and selected device is used only on 
   ).toBe(0);
   await mic.getByRole("button", { name: "Stop local test" }).click();
   expect(await page.evaluate(() => window.audio.stopped)).toBe(1);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio
     .getByRole("button", { name: "Hold to talk", exact: true })
     .dispatchEvent("pointerdown", { pointerId: 1 });
@@ -609,7 +611,7 @@ for (const ending of ["click", "background", "mode change"]) {
       window.demoData.media_settings = { ...window.demoData.media_settings, talk_mode: "toggle" };
       window.demoNotify();
     });
-    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    await audio.getByRole("button", { name: "Start listening", exact: true }).click();
     expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
     await audio.getByRole("button", { name: "Start talking", exact: true }).click();
     const stop = audio.getByRole("button", { name: "Stop talking", exact: true });
@@ -657,8 +659,8 @@ for (const appearance of ["current", "modern", "access-light", "access-dark"]) {
         page.locator("hikvision-intercom-panel").evaluate((el: any) => el._data.api.capabilities),
       )
       .toContain("panel_permissions");
-    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
-    await expect(audio).toContainText("Audio connected");
+    await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+    await expect(audio).toContainText("Listening is active");
     await expect
       .poll(() =>
         page.evaluate(() => window.calls.filter((c) => c.type.endsWith("audio/receive")).length),
@@ -674,7 +676,7 @@ for (const appearance of ["current", "modern", "access-light", "access-dark"]) {
     await expect
       .poll(() => page.evaluate(() => window.calls.some((c) => c.type.endsWith("audio/mute"))))
       .toBe(true);
-    await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+    await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
     await expect.poll(() => page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
   });
 }
@@ -765,12 +767,12 @@ test("restored microphone selection matches its label and can be reset to browse
   await expect.poll(() => mic.locator("meter").evaluate((el) => el.value)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.audio.constraints.audio.deviceId)).toBeUndefined();
   await mic.getByRole("button", { name: "Stop local test" }).click();
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.getByRole("button", { name: "Hold to talk", exact: true }).focus();
   await page.keyboard.down("Space");
   await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(0);
   await page.keyboard.up("Space");
-  await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
 });
 
 test("toggle microphone survives a touch pointer cancellation and keeps transmitting", async ({
@@ -781,7 +783,7 @@ test("toggle microphone survives a touch pointer cancellation and keeps transmit
     window.demoData.media_settings = { ...window.demoData.media_settings, talk_mode: "toggle" };
     window.demoNotify();
   });
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await audio.getByRole("button", { name: "Start talking", exact: true }).click();
   const stop = audio.getByRole("button", { name: "Stop talking", exact: true });
   await expect(stop).toHaveAttribute("aria-pressed", "true");
@@ -793,9 +795,40 @@ test("toggle microphone survives a touch pointer cancellation and keeps transmit
   await expect.poll(() => page.evaluate(() => window.audio.stopped)).toBe(1);
 });
 
+test("toggle microphone survives window blur until its explicit stop action", async ({ page }) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    window.demoData.media_settings = { ...window.demoData.media_settings, talk_mode: "toggle" };
+    window.demoNotify();
+  });
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await audio.getByRole("button", { name: "Start talking", exact: true }).click();
+  const stop = audio.getByRole("button", { name: "Stop talking", exact: true });
+  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  const before = await page.evaluate(() => window.audio.sent.length);
+  await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(before);
+  await stop.click();
+  await expect.poll(() => page.evaluate(() => window.audio.stopped)).toBe(1);
+});
+
+test("station signal is measured independently from the muted video element", async ({ page }) => {
+  const audio = await setup(page);
+  await page.evaluate(() => (window.audio.receiveByte = 0x80));
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect
+    .poll(() => audio.evaluate((node: any) => node._receivedPeakSignal))
+    .toBeGreaterThan(0);
+  await audio.locator(".audio-options > summary").click();
+  await audio.getByText(/^(Audio diagnostics|אבחון שמע)$/, { exact: true }).click();
+  await expect(audio.getByTestId("audio-received-peak")).not.toHaveText("0%");
+  await expect(audio.getByTestId("audio-received-signal-bytes")).toHaveText("800");
+});
+
 test("PTT microphone still releases on touch pointer cancellation", async ({ page }) => {
   const audio = await setup(page);
-  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
   await talk.dispatchEvent("pointerdown", { pointerId: 1 });
   await expect(audio.getByRole("button", { name: "Talking — release to mute" })).toHaveAttribute(

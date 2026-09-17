@@ -535,7 +535,6 @@ export class IntercomCamera extends LitElement {
     if (!this.entity || !this._visible || this._failed) return html`<p>${this.label}</p>`;
     if (this.live)
       return html`<video
-          controls
           autoplay
           muted
           playsinline
@@ -544,7 +543,8 @@ export class IntercomCamera extends LitElement {
           @error=${() => this.failPlayer("media_failed")}
         ></video
         ><span class="player-status" role="status"
-          >${this.t(this._mode)}${this._fallback ? " · " + this.t("player_fallback") : ""}</span
+          >${this.t(this._mode)} ·
+          ${this.t("player_video_only")}${this._fallback ? " · " + this.t("player_fallback") : ""}</span
         >${this.exportButton()}`;
     const picture = this.hass?.states[this.entity]?.attributes.entity_picture;
     let source = "";

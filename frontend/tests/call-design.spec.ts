@@ -20,7 +20,7 @@ for (const width of [390, 768, 1440]) {
     expect(video!.width / video!.height).toBeCloseTo(16 / 9, 1);
     expect(await dialog.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
     await expect(dialog.locator(".camera-door-actions button").first()).toBeInViewport();
-    await expect(audio.getByRole("button", { name: "הפעל שמע", exact: true })).toBeInViewport();
+    await expect(audio.getByRole("button", { name: "פתח האזנה", exact: true })).toBeInViewport();
     expect(
       await dialog
         .locator("hikvision-intercom-camera")
@@ -82,7 +82,7 @@ for (const design of ["current", "modern", "access-light", "access-dark"]) {
       await expect(
         dialog
           .locator("hikvision-intercom-audio-controls")
-          .getByRole("button", { name: "Start audio", exact: true }),
+          .getByRole("button", { name: "Start listening", exact: true }),
       ).toBeInViewport();
       await expect(dialog.locator(".camera-door-actions button").first()).toBeInViewport();
       await page.evaluate(() => window.calls.splice(0));
