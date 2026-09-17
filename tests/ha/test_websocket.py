@@ -86,7 +86,8 @@ async def test_reader_session_is_safe_and_delegated_access_is_scoped(
         revision=0,
         users={reader_user.id: {"enabled": True, "areas": areas}},
     )
-    assert saved["success"] and saved["result"]["revision"] == 1
+    assert saved["success"], saved
+    assert saved["result"]["revision"] == 1
 
     session = await request(reader, "authorization/session")
     assert session["result"]["areas"] == areas
@@ -113,11 +114,10 @@ async def test_permission_revocation_closes_reader_subscription(
             for area in ("overview", "users", "events", "stations", "management")
         },
     }
-    assert (
-        await request(
-            admin, "authorization/settings_update", revision=0, users={reader_user.id: policy}
-        )
-    )["success"]
+    saved = await request(
+        admin, "authorization/settings_update", revision=0, users={reader_user.id: policy}
+    )
+    assert saved["success"], saved
     reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
     subscribed = await request(reader, "subscribe")
     assert subscribed["success"]
@@ -980,7 +980,10 @@ async def test_notification_storm_coalesces_without_buffering_private_events(has
     from custom_components.hikvision_intercom.websocket import subscribe
 
     connection = SimpleNamespace(
-        user=SimpleNamespace(is_admin=True), subscriptions={}, send_event=Mock(), send_result=Mock()
+        user=SimpleNamespace(is_active=True, is_admin=True),
+        subscriptions={},
+        send_event=Mock(),
+        send_result=Mock(),
     )
     # Decorated command validates/admin-checks the same fake active connection.
     subscribe(hass, connection, {"id": 123, "type": f"{DOMAIN}/subscribe"})
