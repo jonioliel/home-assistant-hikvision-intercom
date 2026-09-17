@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-09-17T17:46:48.270Z",
+  "errors": [],
+  "overflow": [],
+  "checks": {
+    "correctDoor": true,
+    "offlineDisabled": true,
+    "offlineCopy": true,
+    "singleDoor": true,
+    "scopedMessage": true,
+    "allDay": true,
+    "mobileSave": true,
+    "mobilePerson": true,
+    "closeMobile": true,
+    "galleryScreens": 12,
+    "gallerySwitch": true
+  }
+}

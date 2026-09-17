@@ -1,3 +1,4 @@
+import { fitDialogViewport } from "./dialog-viewport";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { ScopedRequests } from "./request";
@@ -106,6 +107,8 @@ const whatsappIcon = html`<svg
 
 export class UserDetails extends LitElement {
   static properties = {
+    canEdit: { type: Boolean },
+    embedded: { type: Boolean, reflect: true },
     hass: { attribute: false },
     person: { attribute: false },
     stations: { attribute: false },
@@ -126,6 +129,75 @@ export class UserDetails extends LitElement {
     css`
       :host {
         display: block;
+        height: auto;
+        background: transparent;
+      }
+      :host([embedded]) dialog {
+        position: static;
+        display: block;
+        width: 100%;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        box-shadow: none;
+        border-radius: 10px;
+        border: 1px solid var(--divider-color);
+      }
+      :host([embedded]) header {
+        position: static;
+        padding: 16px;
+        gap: 10px;
+      }
+      :host([embedded]) header h2 {
+        font-size: 18px;
+      }
+      :host([embedded]) header > button {
+        display: none;
+      }
+      :host([embedded]) .portrait {
+        width: 52px;
+        height: 52px;
+        flex: 0 0 52px;
+      }
+      :host([embedded]) nav,
+      :host([embedded]) main,
+      :host([embedded]) footer {
+        padding: 12px 16px;
+      }
+      :host([embedded]) nav {
+        flex-wrap: wrap;
+      }
+      :host([embedded]) dl {
+        gap: 8px;
+      }
+      :host([embedded]) dl div {
+        padding: 8px;
+        border-radius: 6px;
+      }
+      :host([embedded]) dd {
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+      }
+      :host([embedded]) .rights {
+        padding: 0;
+      }
+      :host([embedded]) .rights li {
+        font-size: 13px;
+        padding-block: 8px;
+      }
+      :host([embedded]) .wa {
+        width: 100%;
+        justify-content: center;
+        font-size: 13px;
+      }
+      :host([embedded]) footer button {
+        width: 100%;
+      }
+      :host([embedded]) .chat {
+        max-height: 400px;
+      }
+      :host([embedded]) button {
+        padding: 7px 10px;
       }
       dialog {
         width: min(960px, calc(100vw - 24px));
@@ -146,7 +218,7 @@ export class UserDetails extends LitElement {
         align-items: center;
         gap: 16px;
         padding: 20px 24px;
-        border-bottom: 1px solid #dce3eb;
+        border-bottom: 1px solid var(--divider-color, #dce3eb);
       }
       header h2 {
         margin: 0;
@@ -160,7 +232,7 @@ export class UserDetails extends LitElement {
         height: 80px;
         border-radius: 50%;
         object-fit: cover;
-        background: #e6edf7;
+        background: var(--secondary-background-color, #e6edf7);
         display: grid;
         place-items: center;
         font-size: 28px;
@@ -169,7 +241,7 @@ export class UserDetails extends LitElement {
         display: flex;
         gap: 8px;
         padding: 12px 24px;
-        border-bottom: 1px solid #dce3eb;
+        border-bottom: 1px solid var(--divider-color, #dce3eb);
       }
       main {
         padding: 20px 24px;
@@ -201,7 +273,7 @@ export class UserDetails extends LitElement {
         justify-content: space-between;
         gap: 12px;
         padding: 10px 0;
-        border-bottom: 1px solid #e8edf2;
+        border-bottom: 1px solid var(--divider-color, #e8edf2);
       }
       .wa {
         background: #087e64;
@@ -280,7 +352,7 @@ export class UserDetails extends LitElement {
       }
       footer {
         padding: 12px 24px;
-        border-top: 1px solid #dce3eb;
+        border-top: 1px solid var(--divider-color, #dce3eb);
         display: flex;
         justify-content: flex-end;
       }
@@ -314,6 +386,8 @@ export class UserDetails extends LitElement {
       }
     `,
   ];
+  embedded = false;
+  canEdit = true;
   hass?: Hass;
   person?: Person;
   stations: Station[] = [];
@@ -356,7 +430,22 @@ export class UserDetails extends LitElement {
     for (const item of Object.values(this.media)) URL.revokeObjectURL(item.url);
     this.media = {};
   }
+  private viewportObserver?: ResizeObserver;
+  private fitViewport = () => {
+    if (!this.embedded)
+      fitDialogViewport(this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]"));
+  };
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this.fitViewport);
+    window.visualViewport?.addEventListener("resize", this.fitViewport);
+    this.viewportObserver = new ResizeObserver(this.fitViewport);
+    this.viewportObserver.observe(this);
+  }
   disconnectedCallback() {
+    window.removeEventListener("resize", this.fitViewport);
+    window.visualViewport?.removeEventListener("resize", this.fitViewport);
+    this.viewportObserver?.disconnect();
     this.connection?.removeEventListener?.("disconnected", this.disconnected);
     this.clear();
     super.disconnectedCallback();
@@ -383,12 +472,16 @@ export class UserDetails extends LitElement {
         previous.revision !== this.person?.revision
       ) {
         this.clear();
+        this.tab = "details";
+        this.sent = false;
+        this.error = "";
         this.owner = this.hass.user.id ?? "";
         void this.load();
       }
     }
     const dialog = this.renderRoot.querySelector("dialog");
-    if (dialog && !dialog.open) dialog.showModal();
+    if (dialog && !dialog.open && !this.embedded) dialog.showModal();
+    this.fitViewport();
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>({
@@ -420,8 +513,12 @@ export class UserDetails extends LitElement {
         type: "hikvision_intercom/whatsapp/status",
       });
       if (generation !== this.generation) return;
-      this.status = status;
-      this.account = status.accounts.length === 1 ? status.accounts[0].id : "";
+      this.status = {
+        available: status.available === true,
+        history: status.history === true,
+        accounts: Array.isArray(status.accounts) ? status.accounts : [],
+      };
+      this.account = this.status.accounts.length === 1 ? this.status.accounts[0].id : "";
       if (this.person?.photo_configured) {
         const result = await this.requests.run<{ photo: string | null }>({
           type: "hikvision_intercom/users/photo_get",
@@ -480,6 +577,8 @@ export class UserDetails extends LitElement {
     if (this.closed || !p || !this.hass?.user?.is_admin) return nothing;
     const ready = !!this.status?.available && !!this.account && !!p.phone && !this.busy;
     return html`<dialog
+      ?open=${this.embedded}
+      role=${this.embedded ? "region" : "dialog"}
       dir=${this.hass.language?.startsWith("he") ? "rtl" : "ltr"}
       aria-labelledby="person-title"
       @cancel=${() => this.close()}
@@ -617,7 +716,7 @@ export class UserDetails extends LitElement {
         }
         ${!p.phone ? html`<p>${this.t("missingPhone")}</p>` : nothing}${!this.status?.available ? html`<p>${this.t("whatsapp_unavailable")}</p>` : nothing}<button
           class="wa"
-          ?disabled=${!ready}
+          ?disabled=${!ready || !this.canEdit}
           @click=${() => this.prepare()}
         >
           ${whatsappIcon}${this.t("prepare")}
@@ -656,9 +755,10 @@ export class UserDetails extends LitElement {
       </main>
       <footer>
         <button
+          ?disabled=${!this.canEdit}
           @click=${() => {
             this.dispatchEvent(new CustomEvent("details-edit"));
-            this.close();
+            if (!this.embedded) this.close();
           }}
         >
           ${this.t("edit")}

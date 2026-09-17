@@ -2,6 +2,13 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 const routes = new Map([
   [
+    "/hikvision_intercom_static/Heebo.ttf",
+    [
+      new URL("../../custom_components/hikvision_intercom/frontend/Heebo.ttf", import.meta.url),
+      "font/ttf",
+    ],
+  ],
+  [
     "/audio-worklet.js",
     [
       new URL(

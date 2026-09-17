@@ -62,6 +62,8 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "appearance/settings_get": {},
+    "appearance/settings_update": {"revision": int, "default": str},
     "authorization/session": {},
     "authorization/settings_get": {},
     "authorization/settings_update": {"revision": int, "users": dict},
@@ -312,6 +314,8 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
             firmware=runtime.profile.firmware if runtime else None,
             host=entry.data.get("host") if entry else None,
         )
+    appearance = hass.data[DOMAIN].get("appearance_settings")
+    data["appearance_settings"] = appearance.public() if appearance else None
     data["default_zone"] = {"kind": "iana", "name": hass.config.time_zone}
     media = hass.data[DOMAIN].get("media_settings")
     data["media_settings"] = media.public() if media else None
@@ -449,6 +453,13 @@ async def _dispatch_inner(
         from .technical_api import dispatch_technical
 
         return await dispatch_technical(hass, command, msg)
+    if command.startswith("appearance/"):
+        appearance = hass.data[DOMAIN].get("appearance_settings")
+        if appearance is None:
+            raise AccessError("appearance_settings_unavailable")
+        if command == "appearance/settings_get":
+            return appearance.public()
+        return await appearance.update(msg["revision"], msg["default"])
     manager = get_manager(hass)
     if command.startswith("clock/"):
         from .clock_api import dispatch_clock

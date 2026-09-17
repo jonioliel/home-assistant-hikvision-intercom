@@ -1,0 +1,253 @@
+{
+  "generatedAt": "2026-09-17T14:58:28.057Z",
+  "invalidTargets": [],
+  "errors": [],
+  "extraViewports": [
+    {
+      "id": "overview",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "people",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-access",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-timing",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-detail",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-programs",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "call",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "sync",
+      "width": 1920,
+      "height": 1080,
+      "rootOverflow": false
+    },
+    {
+      "id": "overview",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "people",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-access",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-timing",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-detail",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-programs",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "call",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "sync",
+      "width": 1440,
+      "height": 900,
+      "rootOverflow": false
+    },
+    {
+      "id": "overview",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "people",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-access",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-timing",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-detail",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-programs",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "call",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "sync",
+      "width": 1024,
+      "height": 768,
+      "rootOverflow": false
+    },
+    {
+      "id": "overview",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "people",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-access",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-timing",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-detail",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-programs",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "call",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "sync",
+      "width": 768,
+      "height": 1024,
+      "rootOverflow": false
+    },
+    {
+      "id": "overview",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "people",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-access",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "person-timing",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-detail",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "door-programs",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "call",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    },
+    {
+      "id": "sync",
+      "width": 360,
+      "height": 800,
+      "rootOverflow": false
+    }
+  ],
+  "gallery": {
+    "options": 51,
+    "rootOverflow": false,
+    "frameFits": true,
+    "mobileFrameWidth": 390
+  }
+}

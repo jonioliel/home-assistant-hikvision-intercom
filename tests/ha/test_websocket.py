@@ -17,6 +17,7 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
         "authorization/session",
         "authorization/settings_get",
         "authorization/settings_update",
+        "appearance/settings_update",
     }
     assert {
         command

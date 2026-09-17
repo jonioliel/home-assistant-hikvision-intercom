@@ -75,6 +75,7 @@ const data = {
     fallback_hls: true,
     go2rtc_url: "",
   },
+  appearance_settings: { revision: 0, default: "current" },
   api: { version: 1, min_client: 0, capabilities: ["user_timing_draft"], commands: [] },
   default_zone: { kind: "iana", name: "UTC" },
   version: "0.33.0-beta.1",
@@ -351,6 +352,14 @@ const fake = {
       };
     if (command === "media/provider_discover")
       return { url: "http://a889bffc-go2rtc-hardware:1984", version: "1.9.14" };
+    if (command === "appearance/settings_get") return structuredClone(data.appearance_settings);
+    if (command === "appearance/settings_update") {
+      if (message.revision !== data.appearance_settings.revision)
+        throw { code: "revision_conflict" };
+      data.appearance_settings = { default: message.default, revision: message.revision + 1 };
+      window.demoNotify();
+      return structuredClone(data.appearance_settings);
+    }
     if (command === "media/settings_get") return structuredClone(data.media_settings);
     if (command === "media/settings_update") {
       if (message.revision !== data.media_settings.revision) throw { code: "revision_conflict" };

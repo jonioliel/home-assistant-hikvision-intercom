@@ -58,7 +58,7 @@ export const styles = css`
     height: 100%;
     color: var(--ink);
     background: var(--primary-background-color, #f3f6f6);
-    font-family: var(--paper-font-body1_-_font-family, Arial, sans-serif);
+    font-family: var(--wiskey-font, var(--paper-font-body1_-_font-family, Arial, sans-serif));
     font-size: 15px;
     overflow: auto;
   }
@@ -78,7 +78,7 @@ export const styles = css`
     border: 1px solid var(--divider-color, #dce5e6);
     background: var(--surface);
     color: var(--ink);
-    border-radius: 9px;
+    border-radius: var(--wiskey-radius, 9px);
     padding: 10px 14px;
     cursor: pointer;
     min-height: var(--hik-control-height, 42px);

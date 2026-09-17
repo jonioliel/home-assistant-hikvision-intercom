@@ -17,6 +17,9 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         [
             StaticPathConfig("/hikvision_intercom_static/panel.js", str(path), True),
             StaticPathConfig(
+                "/hikvision_intercom_static/Heebo.ttf", str(path.with_name("Heebo.ttf")), True
+            ),
+            StaticPathConfig(
                 "/hikvision_intercom_static/audio-worklet.js",
                 str(path.with_name("audio-worklet.js")),
                 True,

@@ -19,6 +19,7 @@ export function compatible(contract?: ApiContract): boolean {
 // and capture cancellation must remain available to safely terminate existing work.
 const reads = new Set([
   "authorization/session",
+  "appearance/settings_get",
   "authorization/settings_get",
   "acceptance/get",
   "audit/export",
