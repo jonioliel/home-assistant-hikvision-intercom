@@ -2749,135 +2749,7 @@ export class IntercomManagerPanel extends LitElement {
                 </div>`
               : this._accessMode
                 ? this.accessPeopleTable(users)
-                : html`<div class="table-wrap desktop-users">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>${this.t("select_user")}</th>
-                            ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
-                            ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
-                            ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
-                            ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${repeat(
-                            users,
-                            (user) => user.id,
-                            (user) =>
-                              html`<tr>
-                                <td>${this.userSelection(user)}</td>
-                                <td>
-                                  <div class="person-name">
-                                    ${
-                                  this._data?.profile_settings?.photo_enabled &&
-                                  user.photo_configured
-                                    ? html`<hikvision-user-photo
-                                        compact
-                                        .hass=${this.protectedHass}
-                                        .userId=${user.id}
-                                        .configured=${true}
-                                        .revision=${user.revision}
-                                      ></hikvision-user-photo>`
-                                    : html`<span class="person-avatar" aria-hidden="true"
-                                        >${user.display_name
-                                        .trim()
-                                        .split(/\s+/)
-                                        .slice(0, 2)
-                                        .map((part) => Array.from(part)[0])
-                                        .join("")}</span
-                                      >`
-                                }
-                                    <button
-                                      class="user-detail-link"
-                                      @click=${() => (this._detailsUser = user.id)}
-                                    >
-                                      ${user.display_name}
-                                    </button>
-                                  </div>
-                                </td>
-                                <td><bdi>${user.employee_no}</bdi></td>
-                                <td class="phone-cell">
-                                  <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
-                                </td>
-                                ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
-                                ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
-                                <td>
-                                  ${this.t(user.pin_configured ? "configured" : "not_configured")}
-                                </td>
-                                <td>${user.cards.length}</td>
-                                <td>
-                                  ${Object.values(user.assignments).filter((item) => item.enabled).length}
-                                </td>
-                                <td>${this.validitySummary(user)}</td>
-                                <td>
-                                  <span title=${this.t("user_sync_hint")}
-                                    >${this.badge(this.personStatus(user))}</span
-                                  >
-                                  <div class="sub">
-                                    ${this.t(user.active ? "active" : "inactive")}
-                                  </div>
-                                </td>
-                                <td><div class="row">${this.userActions(user)}</div></td>
-                              </tr>`,
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div class="mobile-users">
-                      ${repeat(
-                        users,
-                        (user) => user.id,
-                        (user) =>
-                          html`<article class="person">
-                            <div class="row between">
-                              ${this.userSelection(user)}
-                              ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
-                              <h3>
-                                <button
-                                  class="user-detail-link"
-                                  @click=${() => (this._detailsUser = user.id)}
-                                >
-                                  ${user.display_name}
-                                </button>
-                              </h3>
-                              <span title=${this.t("user_sync_hint")}
-                                >${this.badge(this.personStatus(user))}</span
-                              >
-                            </div>
-                            <p class="sub">
-                              ${this.t("phone")}:
-                              <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
-                              ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
-                              ${this.t(user.active ? "active" : "inactive")}
-                            </p>
-                            <p class="sub">
-                              ${this.t("pin")}:
-                              ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
-                              ${this.t("cards")}: ${user.cards.length}
-                            </p>
-                            <dl class="user-custom-details">
-                              ${this.visibleProfileFields().map(
-                            (f) =>
-                              html`<div>
-                                <dt>${f.label}</dt>
-                                <dd>${user.profile?.[f.id] || "—"}</dd>
-                              </div>`,
-                          )}
-                              ${
-                            this.userGroupNames(user)
-                              ? html`<div>
-                                  <dt>${this.t("profile_groups")}</dt>
-                                  <dd>${this.userGroupNames(user)}</dd>
-                                </div>`
-                              : nothing
-                          }
-                            </dl>
-                            ${this.validitySummary(user)}
-                            <div class="row actions">${this.userActions(user)}</div>
-                          </article>`,
-                      )}
-                    </div>`
+                : this.legacyPeopleList(users)
           }
         </div>
         ${
@@ -2889,6 +2761,130 @@ export class IntercomManagerPanel extends LitElement {
         }
       </div>
     </section>`;
+  }
+  private legacyPeopleList(users: Person[]) {
+    return html`<div class="table-wrap desktop-users">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("select_user")}</th>
+              ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
+              ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
+              ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
+              ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
+            </tr>
+          </thead>
+          <tbody>
+            ${repeat(
+              users,
+              (user) => user.id,
+              (user) =>
+                html`<tr>
+                  <td>${this.userSelection(user)}</td>
+                  <td>
+                    <div class="person-name">
+                      ${this.personAvatar(user)}
+                      <button
+                        class="user-detail-link"
+                        @click=${() => (this._detailsUser = user.id)}
+                      >
+                        ${user.display_name}
+                      </button>
+                    </div>
+                  </td>
+                  <td><bdi>${user.employee_no}</bdi></td>
+                  <td class="phone-cell">
+                    <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
+                  </td>
+                  ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
+                  ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
+                  <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
+                  <td>${user.cards.length}</td>
+                  <td>${Object.values(user.assignments).filter((item) => item.enabled).length}</td>
+                  <td>${this.validitySummary(user)}</td>
+                  <td>
+                    <span title=${this.t("user_sync_hint")}
+                      >${this.badge(this.personStatus(user))}</span
+                    >
+                    <div class="sub">${this.t(user.active ? "active" : "inactive")}</div>
+                  </td>
+                  <td><div class="row">${this.userActions(user)}</div></td>
+                </tr>`,
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-users">
+        ${repeat(
+          users,
+          (user) => user.id,
+          (user) =>
+            html`<article class="person">
+              <div class="row between">
+                ${this.userSelection(user)}
+                ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
+                <h3>
+                  <button class="user-detail-link" @click=${() => (this._detailsUser = user.id)}>
+                    ${user.display_name}
+                  </button>
+                </h3>
+                <span title=${this.t("user_sync_hint")}
+                  >${this.badge(this.personStatus(user))}</span
+                >
+              </div>
+              <p class="sub">
+                ${this.t("phone")}:
+                <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
+                ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
+                ${this.t(user.active ? "active" : "inactive")}
+              </p>
+              <p class="sub">
+                ${this.t("pin")}: ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
+                ${this.t("cards")}: ${user.cards.length}
+              </p>
+              ${this.personCustomDetails(user)} ${this.validitySummary(user)}
+              <div class="row actions">${this.userActions(user)}</div>
+            </article>`,
+        )}
+      </div>`;
+  }
+  private personAvatar(person: Person) {
+    if (this._data?.profile_settings?.photo_enabled && person.photo_configured) {
+      return html`<hikvision-user-photo
+        compact
+        .hass=${this.protectedHass}
+        .userId=${person.id}
+        .configured=${true}
+        .revision=${person.revision}
+      ></hikvision-user-photo>`;
+    }
+    const initials = person.display_name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => Array.from(part)[0])
+      .join("");
+    return html`<span class="person-avatar" aria-hidden="true">${initials}</span>`;
+  }
+  private personCustomDetails(person: Person) {
+    const groups = this.userGroupNames(person);
+    return html`<dl class="user-custom-details">
+      ${this.visibleProfileFields().map(
+        (f) =>
+          html`<div>
+            <dt>${f.label}</dt>
+            <dd>${person.profile?.[f.id] || "—"}</dd>
+          </div>`,
+      )}
+      ${
+        groups
+          ? html`<div>
+              <dt>${this.t("profile_groups")}</dt>
+              <dd>${groups}</dd>
+            </div>`
+          : nothing
+      }
+    </dl>`;
   }
   private accessPersonDetails(person: Person) {
     return html`<wiskey-user-details
@@ -2928,23 +2924,7 @@ export class IntercomManagerPanel extends LitElement {
                 <td class="access-select-cell">${this.userSelection(u)}</td>
                 <td>
                   <div class="access-person-identity">
-                    ${
-                      this._data?.profile_settings?.photo_enabled && u.photo_configured
-                        ? html`<hikvision-user-photo
-                            compact
-                            .hass=${this.protectedHass}
-                            .userId=${u.id}
-                            .configured=${true}
-                            .revision=${u.revision}
-                          ></hikvision-user-photo>`
-                        : html`<span class="person-avatar" aria-hidden="true"
-                            >${u.display_name
-                        .split(/\s+/)
-                        .slice(0, 2)
-                        .map((x) => Array.from(x)[0])
-                        .join("")}</span
-                          >`
-                    }
+                    ${this.personAvatar(u)}
                     <div>
                       <button class="user-detail-link" @click=${() => (this._detailsUser = u.id)}>
                         ${u.display_name}</button

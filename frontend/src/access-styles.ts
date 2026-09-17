@@ -527,6 +527,7 @@ export const accessStyles = css`
     --camera-object-fit: contain;
   }
   :host([data-access]) .access-context dl {
+    display: block;
     margin: 10px 0;
   }
   :host([data-access]) .access-context dl div {
@@ -538,9 +539,13 @@ export const accessStyles = css`
     border-bottom: 1px solid var(--divider-color);
   }
   :host([data-access]) .access-context dt {
+    flex: 0 0 96px;
     color: var(--secondary-text-color);
   }
   :host([data-access]) .access-context dd {
+    flex: 1;
+    min-width: 0;
+    text-align: end;
     margin: 0;
   }
   :host([data-access]) .access-context-actions {

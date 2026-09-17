@@ -1775,6 +1775,7 @@ var ds=globalThis,cs=ds.ShadowRoot&&(ds.ShadyCSS===void 0||ds.ShadyCSS.nativeSha
     --camera-object-fit: contain;
   }
   :host([data-access]) .access-context dl {
+    display: block;
     margin: 10px 0;
   }
   :host([data-access]) .access-context dl div {
@@ -1786,9 +1787,13 @@ var ds=globalThis,cs=ds.ShadowRoot&&(ds.ShadyCSS===void 0||ds.ShadyCSS.nativeSha
     border-bottom: 1px solid var(--divider-color);
   }
   :host([data-access]) .access-context dt {
+    flex: 0 0 96px;
     color: var(--secondary-text-color);
   }
   :host([data-access]) .access-context dd {
+    flex: 1;
+    min-width: 0;
+    text-align: end;
     margin: 0;
   }
   :host([data-access]) .access-context-actions {
@@ -9876,108 +9881,7 @@ Monday, Tuesday, Thursday
       </details>
       <div class="access-people-workspace">
         <div class="access-people-list">
-          ${e.length?this._accessMode?this.accessPeopleTable(e):m`<div class="table-wrap desktop-users">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>${this.t("select_user")}</th>
-                            ${["name","employee_id","phone"].map(s=>m`<th>${this.t(s)}</th>`)}
-                            ${this.visibleProfileFields().map(s=>m`<th class="custom-user-field">${s.label}</th>`)}
-                            ${this._data?.profile_settings?.groups.some(s=>s.enabled)?m`<th>${this.t("profile_groups")}</th>`:b}
-                            ${["pin","cards","assignments","validity","status","other"].map(s=>m`<th>${this.t(s)}</th>`)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${ct(e,s=>s.id,s=>m`<tr>
-                                <td>${this.userSelection(s)}</td>
-                                <td>
-                                  <div class="person-name">
-                                    ${this._data?.profile_settings?.photo_enabled&&s.photo_configured?m`<hikvision-user-photo
-                                        compact
-                                        .hass=${this.protectedHass}
-                                        .userId=${s.id}
-                                        .configured=${!0}
-                                        .revision=${s.revision}
-                                      ></hikvision-user-photo>`:m`<span class="person-avatar" aria-hidden="true"
-                                        >${s.display_name.trim().split(/\s+/).slice(0,2).map(r=>Array.from(r)[0]).join("")}</span
-                                      >`}
-                                    <button
-                                      class="user-detail-link"
-                                      @click=${()=>this._detailsUser=s.id}
-                                    >
-                                      ${s.display_name}
-                                    </button>
-                                  </div>
-                                </td>
-                                <td><bdi>${s.employee_no}</bdi></td>
-                                <td class="phone-cell">
-                                  <bdi dir="ltr">${Xt(s.phone||"")||"\u2014"}</bdi>
-                                </td>
-                                ${this.visibleProfileFields().map(r=>m`<td class="custom-user-field">${s.profile?.[r.id]||"\u2014"}</td>`)}
-                                ${this._data?.profile_settings?.groups.some(r=>r.enabled)?m`<td class="custom-user-field">${this.userGroupNames(s)||"\u2014"}</td>`:b}
-                                <td>
-                                  ${this.t(s.pin_configured?"configured":"not_configured")}
-                                </td>
-                                <td>${s.cards.length}</td>
-                                <td>
-                                  ${Object.values(s.assignments).filter(r=>r.enabled).length}
-                                </td>
-                                <td>${this.validitySummary(s)}</td>
-                                <td>
-                                  <span title=${this.t("user_sync_hint")}
-                                    >${this.badge(this.personStatus(s))}</span
-                                  >
-                                  <div class="sub">
-                                    ${this.t(s.active?"active":"inactive")}
-                                  </div>
-                                </td>
-                                <td><div class="row">${this.userActions(s)}</div></td>
-                              </tr>`)}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div class="mobile-users">
-                      ${ct(e,s=>s.id,s=>m`<article class="person">
-                            <div class="row between">
-                              ${this.userSelection(s)}
-                              ${this._data?.profile_settings?.photo_enabled&&s.photo_configured?m`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${s.id} .configured=${!0} .revision=${s.revision}></hikvision-user-photo>`:b}
-                              <h3>
-                                <button
-                                  class="user-detail-link"
-                                  @click=${()=>this._detailsUser=s.id}
-                                >
-                                  ${s.display_name}
-                                </button>
-                              </h3>
-                              <span title=${this.t("user_sync_hint")}
-                                >${this.badge(this.personStatus(s))}</span
-                              >
-                            </div>
-                            <p class="sub">
-                              ${this.t("phone")}:
-                              <bdi dir="ltr">${Xt(s.phone||"")||"\u2014"}</bdi> ·
-                              ${this.t("employee_id")}: <bdi>${s.employee_no}</bdi> ·
-                              ${this.t(s.active?"active":"inactive")}
-                            </p>
-                            <p class="sub">
-                              ${this.t("pin")}:
-                              ${this.t(s.pin_configured?"configured":"not_configured")} ·
-                              ${this.t("cards")}: ${s.cards.length}
-                            </p>
-                            <dl class="user-custom-details">
-                              ${this.visibleProfileFields().map(r=>m`<div>
-                                <dt>${r.label}</dt>
-                                <dd>${s.profile?.[r.id]||"\u2014"}</dd>
-                              </div>`)}
-                              ${this.userGroupNames(s)?m`<div>
-                                  <dt>${this.t("profile_groups")}</dt>
-                                  <dd>${this.userGroupNames(s)}</dd>
-                                </div>`:b}
-                            </dl>
-                            ${this.validitySummary(s)}
-                            <div class="row actions">${this.userActions(s)}</div>
-                          </article>`)}
-                    </div>`:m`<div class="empty">
+          ${e.length?this._accessMode?this.accessPeopleTable(e):this.legacyPeopleList(e):m`<div class="empty">
                   <h2>${this.t(i?"no_results":"no_users")}</h2>
                   ${i?b:m`<p>${this.t("no_users_detail")}</p>`}
                 </div>`}
@@ -9986,7 +9890,95 @@ Monday, Tuesday, Thursday
                 ${this.accessPersonDetails(e.find(s=>s.id===this._detailsUser)??e[0])}
               </aside>`:b}
       </div>
-    </section>`}accessPersonDetails(e){return m`<wiskey-user-details
+    </section>`}legacyPeopleList(e){return m`<div class="table-wrap desktop-users">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("select_user")}</th>
+              ${["name","employee_id","phone"].map(i=>m`<th>${this.t(i)}</th>`)}
+              ${this.visibleProfileFields().map(i=>m`<th class="custom-user-field">${i.label}</th>`)}
+              ${this._data?.profile_settings?.groups.some(i=>i.enabled)?m`<th>${this.t("profile_groups")}</th>`:b}
+              ${["pin","cards","assignments","validity","status","other"].map(i=>m`<th>${this.t(i)}</th>`)}
+            </tr>
+          </thead>
+          <tbody>
+            ${ct(e,i=>i.id,i=>m`<tr>
+                  <td>${this.userSelection(i)}</td>
+                  <td>
+                    <div class="person-name">
+                      ${this.personAvatar(i)}
+                      <button
+                        class="user-detail-link"
+                        @click=${()=>this._detailsUser=i.id}
+                      >
+                        ${i.display_name}
+                      </button>
+                    </div>
+                  </td>
+                  <td><bdi>${i.employee_no}</bdi></td>
+                  <td class="phone-cell">
+                    <bdi dir="ltr">${Xt(i.phone||"")||"\u2014"}</bdi>
+                  </td>
+                  ${this.visibleProfileFields().map(s=>m`<td class="custom-user-field">${i.profile?.[s.id]||"\u2014"}</td>`)}
+                  ${this._data?.profile_settings?.groups.some(s=>s.enabled)?m`<td class="custom-user-field">${this.userGroupNames(i)||"\u2014"}</td>`:b}
+                  <td>${this.t(i.pin_configured?"configured":"not_configured")}</td>
+                  <td>${i.cards.length}</td>
+                  <td>${Object.values(i.assignments).filter(s=>s.enabled).length}</td>
+                  <td>${this.validitySummary(i)}</td>
+                  <td>
+                    <span title=${this.t("user_sync_hint")}
+                      >${this.badge(this.personStatus(i))}</span
+                    >
+                    <div class="sub">${this.t(i.active?"active":"inactive")}</div>
+                  </td>
+                  <td><div class="row">${this.userActions(i)}</div></td>
+                </tr>`)}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-users">
+        ${ct(e,i=>i.id,i=>m`<article class="person">
+              <div class="row between">
+                ${this.userSelection(i)}
+                ${this._data?.profile_settings?.photo_enabled&&i.photo_configured?m`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${i.id} .configured=${!0} .revision=${i.revision}></hikvision-user-photo>`:b}
+                <h3>
+                  <button class="user-detail-link" @click=${()=>this._detailsUser=i.id}>
+                    ${i.display_name}
+                  </button>
+                </h3>
+                <span title=${this.t("user_sync_hint")}
+                  >${this.badge(this.personStatus(i))}</span
+                >
+              </div>
+              <p class="sub">
+                ${this.t("phone")}:
+                <bdi dir="ltr">${Xt(i.phone||"")||"\u2014"}</bdi> ·
+                ${this.t("employee_id")}: <bdi>${i.employee_no}</bdi> ·
+                ${this.t(i.active?"active":"inactive")}
+              </p>
+              <p class="sub">
+                ${this.t("pin")}: ${this.t(i.pin_configured?"configured":"not_configured")} ·
+                ${this.t("cards")}: ${i.cards.length}
+              </p>
+              ${this.personCustomDetails(i)} ${this.validitySummary(i)}
+              <div class="row actions">${this.userActions(i)}</div>
+            </article>`)}
+      </div>`}personAvatar(e){if(this._data?.profile_settings?.photo_enabled&&e.photo_configured)return m`<hikvision-user-photo
+        compact
+        .hass=${this.protectedHass}
+        .userId=${e.id}
+        .configured=${!0}
+        .revision=${e.revision}
+      ></hikvision-user-photo>`;let i=e.display_name.trim().split(/\s+/).slice(0,2).map(s=>Array.from(s)[0]).join("");return m`<span class="person-avatar" aria-hidden="true">${i}</span>`}personCustomDetails(e){let i=this.userGroupNames(e);return m`<dl class="user-custom-details">
+      ${this.visibleProfileFields().map(s=>m`<div>
+            <dt>${s.label}</dt>
+            <dd>${e.profile?.[s.id]||"\u2014"}</dd>
+          </div>`)}
+      ${i?m`<div>
+              <dt>${this.t("profile_groups")}</dt>
+              <dd>${i}</dd>
+            </div>`:b}
+    </dl>`}accessPersonDetails(e){return m`<wiskey-user-details
       embedded
       .canEdit=${this.canManage("users")}
       .hass=${this.protectedHass}
@@ -10014,15 +10006,7 @@ Monday, Tuesday, Thursday
                 <td class="access-select-cell">${this.userSelection(r)}</td>
                 <td>
                   <div class="access-person-identity">
-                    ${this._data?.profile_settings?.photo_enabled&&r.photo_configured?m`<hikvision-user-photo
-                            compact
-                            .hass=${this.protectedHass}
-                            .userId=${r.id}
-                            .configured=${!0}
-                            .revision=${r.revision}
-                          ></hikvision-user-photo>`:m`<span class="person-avatar" aria-hidden="true"
-                            >${r.display_name.split(/\s+/).slice(0,2).map(n=>Array.from(n)[0]).join("")}</span
-                          >`}
+                    ${this.personAvatar(r)}
                     <div>
                       <button class="user-detail-link" @click=${()=>this._detailsUser=r.id}>
                         ${r.display_name}</button
