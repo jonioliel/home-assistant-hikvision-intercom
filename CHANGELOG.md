@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.2] - 2026-09-17
+
+- Fix audio disconnecting immediately after activation: connection-owned audio packet and diagnostics requests no longer pass through the unrelated management-command allowlist or receive its API envelope. Server-side authorization, session ownership and compatibility checks remain enforced.
+- Move call-state refresh from the large call dock to a compact, labelled 44-pixel icon beside the camera. It remains disabled during pending reads/signals or disconnection; refresh does not start audio or operate a door.
+- Add production-contract audio receive/transmit/mute regressions across all four designs, authorization-boundary checks and responsive camera-toolbar coverage.
+- Verify the installed Home Assistant instance can open a receive-only audio session and receive a packet from station 151. The frontend rejection was reproduced before the fix; no microphone transmission or door operation was performed in this live check.
+
 ## [1.5.1] - 2026-09-17
 
 - Separate the selected inline profile from explicitly opened user dialogs. Moving from Users to Events or another screen no longer opens the previously selected person's details; returning to Users retains the selection.

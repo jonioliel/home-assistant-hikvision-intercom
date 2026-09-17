@@ -654,6 +654,24 @@ export const styles = css`
   .camera-video hikvision-intercom-camera {
     width: 100%;
   }
+  .camera-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px;
+    background: var(--card-background-color, white);
+  }
+  .camera-toolbar .camera-refresh {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
   .camera-door-actions {
     display: flex;
     flex-wrap: wrap;

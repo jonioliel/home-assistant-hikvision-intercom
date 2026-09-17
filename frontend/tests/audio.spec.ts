@@ -1,6 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-async function setup(page: Page) {
+async function setup(page: Page, appearance = "current") {
+  await page.addInitScript(
+    (design) => localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", design),
+    appearance,
+  );
   await page.goto("/");
   await page.evaluate(() => {
     const w = window as any;
@@ -83,7 +87,9 @@ async function setup(page: Page) {
       return destination.stream;
     };
   });
-  await page.getByRole("button", { name: "View camera", exact: true }).first().click();
+  if (appearance.startsWith("access-")) await page.locator(".access-door-camera").first().click();
+  else if (appearance === "modern") await page.locator(".camera-wrap > button").first().click();
+  else await page.getByRole("button", { name: "View camera", exact: true }).first().click();
   return page.locator("hikvision-intercom-audio-controls");
 }
 
@@ -624,3 +630,98 @@ for (const ending of ["click", "background", "mode change"]) {
     await expect.poll(() => page.evaluate(() => (window as any).audio.stopped)).toBe(1);
   });
 }
+
+for (const appearance of ["current", "modern", "access-light", "access-dark"]) {
+  test(`audio packet transport works with production permission contract in ${appearance}`, async ({
+    page,
+  }) => {
+    const audio = await setup(page, appearance);
+    await page.evaluate(() => {
+      window.demoData.api = {
+        version: 1,
+        min_client: 0,
+        capabilities: ["panel_permissions"],
+        commands: ["overview", "media/call", "media/signal"],
+      };
+      window.demoNotify();
+      const w = window as any;
+      const base = w.demoHass.callWS.bind(w.demoHass);
+      w.demoHass.callWS = async (message: any) => {
+        if (message.type.includes("/audio/") && "api_contract" in message)
+          throw { code: "audio_invalid_packet" };
+        return base(message);
+      };
+    });
+    await expect
+      .poll(() =>
+        page.locator("hikvision-intercom-panel").evaluate((el: any) => el._data.api.capabilities),
+      )
+      .toContain("panel_permissions");
+    await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+    await expect(audio).toContainText("Audio connected");
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.calls.filter((c) => c.type.endsWith("audio/receive")).length),
+      )
+      .toBeGreaterThan(2);
+    const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
+    await talk.focus();
+    await page.keyboard.down("Space");
+    await expect
+      .poll(() => page.evaluate(() => (window as any).audio.sent.length))
+      .toBeGreaterThan(1);
+    await page.keyboard.up("Space");
+    await expect
+      .poll(() => page.evaluate(() => window.calls.some((c) => c.type.endsWith("audio/mute"))))
+      .toBe(true);
+    await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
+  });
+}
+
+test("audio transport exemption preserves management authorization and compatibility gates", async ({
+  page,
+}) => {
+  await setup(page);
+  const result = await page.locator("hikvision-intercom-panel").evaluate(async (node: any) => {
+    const policy = {
+      version: 1,
+      min_client: 0,
+      capabilities: ["panel_permissions"],
+      commands: ["overview", "audio/diagnostics"],
+    };
+    node._data = { ...node._data, api: policy };
+    const call = async (command: string) => {
+      try {
+        await node.protectedHass.callWS({
+          type: `hikvision_intercom/${command}`,
+          token: "synthetic",
+        });
+        return "allowed";
+      } catch (e: any) {
+        return e.code;
+      }
+    };
+    const management = await call("users/delete");
+    const unknownAudio = await call("audio/unknown");
+    const diagnostics = await call("audio/diagnostics");
+    const wire = window.calls.filter((c) => c.type.endsWith("audio/diagnostics")).at(-1);
+    node._data = { ...node._data, api: { ...policy, min_client: 2 } };
+    return {
+      management,
+      unknownAudio,
+      diagnostics,
+      envelope: "api_contract" in wire,
+      incompatible: await call("audio/send"),
+      mute: await call("audio/mute"),
+    };
+  });
+  expect(result).toEqual({
+    management: "unauthorized",
+    unknownAudio: "unauthorized",
+    diagnostics: "allowed",
+    envelope: false,
+    incompatible: "api_incompatible",
+    mute: "allowed",
+  });
+});

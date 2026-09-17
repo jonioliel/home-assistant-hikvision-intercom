@@ -61,6 +61,15 @@ const reads = new Set([
   "users/list",
   "users/photo_get",
 ]);
+// Connection-owned audio RPCs use audio_api.py, not the management dispatcher.
+// Their server handlers authorize the caller and session token and reject extra
+// fields. They must not use the management command list or api_contract envelope.
+const audioSessionCommands = new Set([
+  "audio/send",
+  "audio/receive",
+  "audio/mute",
+  "audio/diagnostics",
+]);
 const cleanup = new Set(["audio/stop", "audio/mute", "cards/capture_cancel", "events/trace_stop"]);
 export function contractHass(
   hass: Hass | undefined,
@@ -91,11 +100,14 @@ export function contractHass(
           compatible(policy) &&
           policy?.capabilities.includes("panel_permissions") &&
           !policy.commands.includes(command) &&
+          !audioSessionCommands.has(command) &&
           !cleanup.has(command)
         )
           return Promise.reject({ code: "unauthorized" });
         const envelope =
-          compatible(policy) && policy?.commands.includes(command)
+          compatible(policy) &&
+          policy?.commands.includes(command) &&
+          !audioSessionCommands.has(command)
             ? { ...message, api_contract: CLIENT_API }
             : message;
         return target.callWS(envelope);
