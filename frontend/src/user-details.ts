@@ -199,6 +199,65 @@ export class UserDetails extends LitElement {
       :host([embedded]) button {
         padding: 7px 10px;
       }
+      :host([embedded]) dialog {
+        overflow: visible;
+      }
+      :host([embedded]) header {
+        padding: 10px 12px;
+      }
+      :host([embedded]) .portrait {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+      }
+      :host([embedded]) nav,
+      :host([embedded]) main,
+      :host([embedded]) footer {
+        padding: 8px 12px;
+      }
+      :host([embedded]) main {
+        margin: 0;
+        max-width: none;
+      }
+      :host([embedded]) dl {
+        margin: 0 0 8px;
+        gap: 6px;
+      }
+      :host([embedded]) dl div {
+        padding: 5px 8px;
+      }
+      :host([embedded]) dt {
+        font-size: 12px;
+      }
+      :host([embedded]) dd {
+        font-size: 13px;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+      :host([embedded]) p {
+        margin-block: 6px;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      :host([embedded]) .rights {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin: 8px 0;
+      }
+      :host([embedded]) .rights li {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+        padding: 5px 8px;
+        border: 1px solid var(--divider-color);
+        border-radius: 6px;
+        overflow-wrap: anywhere;
+      }
+      :host([embedded]) .rights li > span:last-child {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+      }
       dialog {
         width: min(960px, calc(100vw - 24px));
         max-height: calc(100dvh - 24px);

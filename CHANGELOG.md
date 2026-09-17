@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.1] - 2026-09-17
+
+- Separate the selected inline profile from explicitly opened user dialogs. Moving from Users to Events or another screen no longer opens the previously selected person's details; returning to Users retains the selection.
+- Keep switching to a narrow layout from opening a profile automatically. Explicit mobile profile opening and editing remain available.
+- Widen and compact the Access profile inspector, arrange authorized doors in two columns and remove its nested scroll container. All fields remain present; exceptionally long profiles flow with the normal page scroll.
+- Add light/dark navigation, responsive transition and full-profile regression tests, including eight authorized doors and custom fields.
+
 ## [1.5.0] - 2026-09-17
 
 - Add WisKey Access Light and Access Dark as two additional designs, preserving the existing Current and Modern appearances.

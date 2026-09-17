@@ -165,6 +165,7 @@ export class IntercomManagerPanel extends LitElement {
     _auditUser: { state: true },
     _dialog: { state: true },
     _detailsUser: { state: true },
+    _detailsModalUser: { state: true },
     _callBusy: { state: true },
     _busy: { state: true },
     _releases: { state: true },
@@ -192,6 +193,7 @@ export class IntercomManagerPanel extends LitElement {
     return this.contractProxy;
   }
   private _detailsUser = "";
+  private _detailsModalUser = "";
   private _session?: AuthorizationSession | null;
   private sessionUser?: string;
   private get authorized() {
@@ -288,6 +290,7 @@ export class IntercomManagerPanel extends LitElement {
       : (this._appearanceOverride ?? "current");
   }
   protected willUpdate(changed: PropertyValues) {
+    if (changed.has("_tab")) this._detailsModalUser = "";
     if (changed.has("hass") || changed.has("_session") || changed.has("_data"))
       this.syncAppearance();
     this._accessMode = isAccessAppearance(this._appearance);
@@ -349,6 +352,7 @@ export class IntercomManagerPanel extends LitElement {
   }
   private clearPrivateState() {
     this._detailsUser = "";
+    this._detailsModalUser = "";
     this._accessDoor = "";
     this._busy = false;
     this._draft = undefined;
@@ -2766,10 +2770,7 @@ export class IntercomManagerPanel extends LitElement {
                   <td>
                     <div class="person-name">
                       ${this.personAvatar(user)}
-                      <button
-                        class="user-detail-link"
-                        @click=${() => (this._detailsUser = user.id)}
-                      >
+                      <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
                         ${user.display_name}
                       </button>
                     </div>
@@ -2806,7 +2807,7 @@ export class IntercomManagerPanel extends LitElement {
                 ${this.userSelection(user)}
                 ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
                 <h3>
-                  <button class="user-detail-link" @click=${() => (this._detailsUser = user.id)}>
+                  <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
                     ${user.display_name}
                   </button>
                 </h3>
@@ -2868,6 +2869,11 @@ export class IntercomManagerPanel extends LitElement {
       }
     </dl>`;
   }
+  private openPersonDetails(person: Person) {
+    this._detailsUser = person.id;
+    if (!(this._accessMode && this._tab === "users" && !this._accessNarrow))
+      this._detailsModalUser = person.id;
+  }
   private accessPersonDetails(person: Person) {
     return html`<wiskey-user-details
       embedded
@@ -2908,7 +2914,7 @@ export class IntercomManagerPanel extends LitElement {
                   <div class="access-person-identity">
                     ${this.personAvatar(u)}
                     <div>
-                      <button class="user-detail-link" @click=${() => (this._detailsUser = u.id)}>
+                      <button class="user-detail-link" @click=${() => this.openPersonDetails(u)}>
                         ${u.display_name}</button
                       ><small class="access-person-id"><bdi>${u.employee_no}</bdi></small>
                     </div>
@@ -3293,7 +3299,7 @@ export class IntercomManagerPanel extends LitElement {
                         <td class="sync-person">
                           <button
                             class="user-detail-link"
-                            @click=${() => (this._detailsUser = user.id)}
+                            @click=${() => this.openPersonDetails(user)}
                           >
                             ${user.display_name}</button
                           >${
@@ -4360,18 +4366,16 @@ export class IntercomManagerPanel extends LitElement {
         }
       </main>
       ${
-        this._detailsUser &&
-        !(this._accessMode && this._tab === "users" && !this._accessNarrow) &&
-        this._data?.users.find((u) => u.id === this._detailsUser)
+        this._detailsModalUser && this._data?.users.find((u) => u.id === this._detailsModalUser)
           ? html`<wiskey-user-details
               .canEdit=${this.canManage("users")}
               .hass=${this.protectedHass}
-              .person=${this._data.users.find((u) => u.id === this._detailsUser)}
+              .person=${this._data.users.find((u) => u.id === this._detailsModalUser)}
               .stations=${this._data.stations}
               .policy=${this._data.profile_settings}
-              @details-close=${() => (this._detailsUser = "")}
+              @details-close=${() => (this._detailsModalUser = "")}
               @details-edit=${() => {
-                const user = this._data?.users.find((u) => u.id === this._detailsUser);
+                const user = this._data?.users.find((u) => u.id === this._detailsModalUser);
                 if (user) this.edit(user);
               }}
             ></wiskey-user-details>`
