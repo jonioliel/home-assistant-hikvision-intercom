@@ -8129,7 +8129,7 @@ Monday, Tuesday, Thursday
                   @pointerdown=${e=>{this.talkMode!=="toggle"&&(e.preventDefault(),e.currentTarget.setPointerCapture(e.pointerId),this.talk())}}
                   @blur=${()=>{this.talkMode==="ptt"&&this.releaseTalk()}}
                   @pointerup=${()=>{this.talkMode==="ptt"&&this.releaseTalk()}}
-                  @pointercancel=${()=>this.releaseTalk()}
+                  @pointercancel=${()=>{this.talkMode==="ptt"&&this.releaseTalk()}}
                   @lostpointercapture=${()=>{this.talkMode==="ptt"&&this.pressed&&this.releaseTalk()}}
                   @keydown=${e=>{this.talkMode==="ptt"&&[" ","Enter"].includes(e.key)&&(e.preventDefault(),e.repeat||this.talk())}}
                   @keyup=${e=>{this.talkMode==="ptt"&&[" ","Enter"].includes(e.key)&&(e.preventDefault(),this.releaseTalk())}}

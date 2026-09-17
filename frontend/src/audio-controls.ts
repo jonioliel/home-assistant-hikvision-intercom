@@ -814,7 +814,9 @@ export class IntercomAudioControls extends LitElement {
                   @pointerup=${() => {
                     if (this.talkMode === "ptt") this.releaseTalk();
                   }}
-                  @pointercancel=${() => this.releaseTalk()}
+                  @pointercancel=${() => {
+                    if (this.talkMode === "ptt") this.releaseTalk();
+                  }}
                   @lostpointercapture=${() => {
                     if (this.talkMode === "ptt" && this.pressed) this.releaseTalk();
                   }}

@@ -772,3 +772,39 @@ test("restored microphone selection matches its label and can be reset to browse
   await page.keyboard.up("Space");
   await audio.getByRole("button", { name: "Stop audio", exact: true }).click();
 });
+
+test("toggle microphone survives a touch pointer cancellation and keeps transmitting", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    window.demoData.media_settings = { ...window.demoData.media_settings, talk_mode: "toggle" };
+    window.demoNotify();
+  });
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  await audio.getByRole("button", { name: "Start talking", exact: true }).click();
+  const stop = audio.getByRole("button", { name: "Stop talking", exact: true });
+  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  await stop.dispatchEvent("pointercancel", { pointerId: 1 });
+  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  const before = await page.evaluate(() => window.audio.sent.length);
+  await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(before);
+  await stop.click();
+  await expect.poll(() => page.evaluate(() => window.audio.stopped)).toBe(1);
+});
+
+test("PTT microphone still releases on touch pointer cancellation", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.getByRole("button", { name: "Start audio", exact: true }).click();
+  const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
+  await talk.dispatchEvent("pointerdown", { pointerId: 1 });
+  await expect(audio.getByRole("button", { name: "Talking — release to mute" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await audio
+    .getByRole("button", { name: "Talking — release to mute" })
+    .dispatchEvent("pointercancel", { pointerId: 1 });
+  await expect(talk).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(() => page.evaluate(() => window.audio.stopped)).toBe(1);
+});
