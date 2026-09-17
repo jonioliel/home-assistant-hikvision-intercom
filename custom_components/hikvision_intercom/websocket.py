@@ -879,6 +879,18 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
         hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
     ) -> None:
         try:
+            # Authorize before validating command-specific fields. Besides failing closed,
+            # this avoids exposing a command's required-field contract to callers who do
+            # not have access to it.
+            user = connection.user
+            permissions = hass.data[DOMAIN].get("panel_permissions")
+            if (
+                not user
+                or not user.is_active
+                or command != "authorization/session"
+                and not command_allowed(permissions, user, command)
+            ):
+                raise AccessError("unauthorized")
             # Validate here so HA's humanized schema errors cannot echo credential inputs.
             schema(msg)
             validate_client(msg.get("api_contract", 0), command=command)
@@ -892,15 +904,6 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             )
             if len(json.dumps(msg, ensure_ascii=False).encode()) > maximum:
                 raise AccessError("request_too_large")
-            user = connection.user
-            permissions = hass.data[DOMAIN].get("panel_permissions")
-            if (
-                not user
-                or not user.is_active
-                or command != "authorization/session"
-                and not command_allowed(permissions, user, command)
-            ):
-                raise AccessError("unauthorized")
             limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
             admitted = limiter.acquire(user.id, hass.loop.time())
             try:

@@ -341,7 +341,9 @@ async def test_cancellation_before_audio_task_starts_releases_subscription(
     from custom_components.hikvision_intercom.audio_api import AudioBridge
 
     connection = SimpleNamespace(
-        subscriptions={}, user=SimpleNamespace(is_admin=True), send_event=Mock()
+        subscriptions={},
+        user=SimpleNamespace(is_active=True, is_admin=True),
+        send_event=Mock(),
     )
     bridge = AudioBridge(hass, connection, loaded_entry.runtime_data, 7)
     connection.subscriptions[7] = bridge.cancel
