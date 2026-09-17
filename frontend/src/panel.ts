@@ -62,6 +62,7 @@ import "./live-clock";
 import { downloadText } from "./download";
 import "./camera";
 import "./call-controls";
+import type { IntercomCallControls } from "./call-controls";
 import "./audio-controls";
 import "./events";
 import "./health";
@@ -164,6 +165,7 @@ export class IntercomManagerPanel extends LitElement {
     _selectedUsers: { state: true },
     _auditUser: { state: true },
     _dialog: { state: true },
+    _cameraRefreshEnabled: { state: true },
     _detailsUser: { state: true },
     _detailsModalUser: { state: true },
     _callBusy: { state: true },
@@ -412,6 +414,10 @@ export class IntercomManagerPanel extends LitElement {
   private _reviewUser = "";
   private _reviewStation = "";
   private _cameraStation?: Station;
+  private _cameraRefreshEnabled = false;
+  private setCameraRefreshEnabled = (enabled: boolean) => {
+    this._cameraRefreshEnabled = enabled;
+  };
   private _callBusy = new Set<string>();
   private _unsubscribe?: () => void;
   private _connecting = false;
@@ -1915,6 +1921,7 @@ export class IntercomManagerPanel extends LitElement {
       .dock=${dock}
       .blocked=${this._callBusy.has(station.id)}
       .onBusy=${this.setCallBusy}
+      .onRefreshState=${dock ? this.setCameraRefreshEnabled : undefined}
     ></hikvision-intercom-call-controls>`;
   }
   private camera(station: Station, live = false) {
@@ -4120,7 +4127,24 @@ export class IntercomManagerPanel extends LitElement {
   }
   private cameraBody(station: Station) {
     return html`<div class="camera-layout">
-      <div class="camera-video">${this.camera(station, true)}</div>
+      <div class="camera-video">
+        ${
+          this.canManage("overview") || this.canManage("stations")
+            ? html`<div class="camera-toolbar">
+                <button
+                  class="camera-refresh"
+                  aria-label=${this.t("call_refresh")}
+                  title=${this.t("call_refresh")}
+                  ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
+                  @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
+                >
+                  ${icon("sync")}
+                </button>
+              </div>`
+            : nothing
+        }
+        ${this.camera(station, true)}
+      </div>
       <hikvision-intercom-audio-controls
         .dock=${true}
         .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}

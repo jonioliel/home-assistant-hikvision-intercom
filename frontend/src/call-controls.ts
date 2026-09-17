@@ -110,6 +110,7 @@ export class IntercomCallControls extends LitElement {
   ];
   static properties = {
     onBusy: { attribute: false },
+    onRefreshState: { attribute: false },
     hass: { attribute: false },
     station: { attribute: false },
     compact: { type: Boolean },
@@ -123,6 +124,7 @@ export class IntercomCallControls extends LitElement {
     _haConnected: { state: true },
   };
   onBusy?: (station: string, busy: boolean) => void;
+  onRefreshState?: (enabled: boolean) => void;
   hass?: Hass;
   station?: Station;
   compact = false;
@@ -163,6 +165,7 @@ export class IntercomCallControls extends LitElement {
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
     if (!this.hass?.user?.is_admin) {
+      this.onRefreshState?.(false);
       if (this.contextKey || this._context || this._result || this._busy || this.connection) {
         this.clear();
         this.bindConnection(undefined);
@@ -205,6 +208,13 @@ export class IntercomCallControls extends LitElement {
           void this.refresh();
       }
     }
+    this.onRefreshState?.(
+      !this._busy &&
+        !!this.station?.online &&
+        !!this.hass?.user?.is_admin &&
+        this._haConnected &&
+        this.hass.connection.connected !== false,
+    );
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -271,6 +281,10 @@ export class IntercomCallControls extends LitElement {
         reject(error);
       }
     });
+  }
+  /** Explicit read-only refresh from the camera toolbar. */
+  refreshState() {
+    return this.refresh();
   }
   private async refresh() {
     if (
@@ -386,14 +400,18 @@ export class IntercomCallControls extends LitElement {
       ${this.dock ? nothing : html`<p>${this.t(this.compact ? "call_compact_hint" : "media_signal_hint")}</p>`}
       <div class="toolbar">
         ${["answer", "reject", "hangUp"].filter((command) => this._context?.call_commands.includes(command) && (!(this.compact || this.dock) || (command === "hangUp" ? s.call_state === "in_call" : s.call_state === "ringing"))).map((command) => html`<button class=${command} aria-label=${this.t("media_" + command)} ?disabled=${!this.allowed(command)} @click=${() => this.signal(command)}>${this.dock ? icon(command === "answer" ? "phone" : "hangup") : nothing}${this.t(this.compact || this.dock ? "call_action_" + command : "media_" + command)}</button>`)}
-        <button
-          aria-label=${this.t("call_refresh")}
-          title=${this.t("call_refresh")}
-          ?disabled=${this._busy || !s.online || !this._haConnected}
-          @click=${() => this.refresh()}
-        >
-          ${this.dock ? icon("sync") : this.t("call_refresh")}
-        </button>
+        ${
+          this.dock
+            ? nothing
+            : html`<button
+                aria-label=${this.t("call_refresh")}
+                title=${this.t("call_refresh")}
+                ?disabled=${this._busy || !s.online || !this._haConnected}
+                @click=${() => this.refresh()}
+              >
+                ${this.t("call_refresh")}
+              </button>`
+        }
       </div>
       ${!this._haConnected ? html`<p role="status">${this.t("call_connection_lost")}</p>` : nothing}
       ${this._busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}

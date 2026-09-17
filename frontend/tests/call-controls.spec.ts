@@ -118,11 +118,14 @@ test("switching station during a slow call read cannot leave the next station lo
       return base(message);
     };
   });
-  await controls.getByRole("button", { name: "Refresh call state" }).click();
-  await controls.evaluate((node: any) => {
-    node.station = structuredClone(window.demoData.stations[1]);
+  await page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }).click();
+  await page.locator("hikvision-intercom-panel").evaluate((node: any) => {
+    node._cameraStation = structuredClone(window.demoData.stations[1]);
+    node.requestUpdate();
   });
-  await expect(controls.getByRole("button", { name: "Refresh call state" })).toBeEnabled();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }),
+  ).toBeEnabled();
   await page.evaluate(() =>
     window.lateRead({
       call_commands: ["answer"],
@@ -151,10 +154,10 @@ test("a lost call read becomes retryable and cannot overwrite a newer result", a
       return base(message);
     };
   });
-  await controls.getByRole("button", { name: "Refresh call state" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }).click();
   await page.clock.fastForward(21000);
   await expect(controls).toContainText("Call capabilities or state could not be read");
-  await controls.getByRole("button", { name: "Refresh call state" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }).click();
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   await page.evaluate(() =>
     window.lateRead({ call_commands: [], state: "idle", last_result: null, busy: false }),
@@ -183,7 +186,9 @@ test("a lost call signal releases the station controls with an uncertain result 
   await controls.getByRole("button", { name: "Answer signal" }).click();
   await page.clock.fastForward(41000);
   await expect(controls).toContainText("Command result could not be verified");
-  await expect(controls.getByRole("button", { name: "Refresh call state" })).toBeEnabled();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }),
+  ).toBeEnabled();
   await expect(controls.getByRole("button", { name: "Answer signal" })).toHaveCount(0);
   await page.evaluate(() =>
     window.lateSignal({
@@ -234,7 +239,9 @@ test("HA disconnect invalidates a pending signal and reconnect requires a fresh 
     for (const callback of window.callListeners.get("disconnected")) callback();
   });
   await expect(controls).toContainText("Call controls are paused until Home Assistant reconnects");
-  await expect(controls.getByRole("button", { name: "Refresh call state" })).toBeDisabled();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }),
+  ).toBeDisabled();
   await page.evaluate(() => {
     window.lateSignal({
       acknowledged: true,
@@ -247,7 +254,7 @@ test("HA disconnect invalidates a pending signal and reconnect requires a fresh 
   });
   await expect(controls).toContainText("Command result could not be verified");
   await expect(controls.getByRole("button", { name: "Answer signal" })).toHaveCount(0);
-  await controls.getByRole("button", { name: "Refresh call state" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }).click();
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
