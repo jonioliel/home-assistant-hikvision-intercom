@@ -1,3 +1,4 @@
+import { fitDialogViewport } from "./dialog-viewport";
 import "./user-details";
 import { accessStyles } from "./access-styles";
 import { accessOverview } from "./access-overview";
@@ -220,7 +221,8 @@ export class IntercomManagerPanel extends LitElement {
   private _wallCapacity = 12;
   private wallResize?: ResizeObserver;
   private fitWall = () => {
-    const narrow = this.getBoundingClientRect().width < 1100;
+    // Match container-query CSS pixels, including browser/CSS zoom.
+    const narrow = this.clientWidth < 1100;
     if (this._accessNarrow !== narrow) this._accessNarrow = narrow;
     if (this._accessMode) return;
     const grid = this.renderRoot.querySelector<HTMLElement>(".overview-wall");
@@ -415,27 +417,7 @@ export class IntercomManagerPanel extends LitElement {
   private _timer?: ReturnType<typeof setInterval>;
   private dialogResize?: ResizeObserver;
   private fitDialog = () => {
-    const dialog = this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]");
-    if (!dialog) return;
-    // CSS zoom is not included consistently in top-layer percentage/vh sizing.
-    // Traverse shadow hosts too: HA can scale the containing view independently.
-    let zoom = 1;
-    let element: Element | null = dialog;
-    while (element) {
-      const scale = Number.parseFloat(getComputedStyle(element).zoom);
-      if (Number.isFinite(scale) && scale > 0) zoom *= scale;
-      const root = element.getRootNode();
-      element = element.parentElement ?? (root instanceof ShadowRoot ? root.host : null);
-    }
-    const height = Math.min(
-      window.innerHeight,
-      window.visualViewport?.height ?? window.innerHeight,
-    );
-    const limit = `min(90dvh, ${Math.max(80, height / zoom - 24)}px)`;
-    if (dialog.style.maxHeight !== limit) dialog.style.maxHeight = limit;
-    const width = Math.min(window.innerWidth, window.visualViewport?.width ?? window.innerWidth);
-    const widthLimit = `min(${Math.max(80, width / zoom - 24)}px, calc(100cqw - 16px))`;
-    if (dialog.style.maxWidth !== widthLimit) dialog.style.maxWidth = widthLimit;
+    fitDialogViewport(this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]"));
   };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   connectedCallback() {

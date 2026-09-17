@@ -209,3 +209,24 @@ test("read-only access uses the new appearance without unlocking or administrato
   await navigate(page, "Users");
   await expect(page.locator(".access-person-actions .user-edit").first()).toBeDisabled();
 });
+
+for (const design of ["access-light", "access-dark"]) {
+  test(`${design} zoom opens reachable person details instead of a hidden inspector`, async ({
+    page,
+  }) => {
+    await start(page, design);
+    await page.evaluate(() => {
+      document.body.style.zoom = "2";
+    });
+    await navigate(page, "משתמשים");
+    await expect(page.locator("wiskey-user-details[embedded]")).toHaveCount(0);
+    await page.locator(".access-people-table .user-detail-link").first().click();
+    const details = page.locator("wiskey-user-details dialog");
+    await expect(details).toBeVisible();
+    const edit = details.getByRole("button", { name: "עריכה", exact: true });
+    await edit.click();
+    const save = page.locator(".editor-dialog").getByRole("button", { name: "שמירה", exact: true });
+    await expect(save).toBeInViewport();
+    await noOverflow(page);
+  });
+}

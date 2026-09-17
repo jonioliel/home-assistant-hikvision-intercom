@@ -1,3 +1,4 @@
+import { fitDialogViewport } from "./dialog-viewport";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { ScopedRequests } from "./request";
@@ -429,7 +430,22 @@ export class UserDetails extends LitElement {
     for (const item of Object.values(this.media)) URL.revokeObjectURL(item.url);
     this.media = {};
   }
+  private viewportObserver?: ResizeObserver;
+  private fitViewport = () => {
+    if (!this.embedded)
+      fitDialogViewport(this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]"));
+  };
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this.fitViewport);
+    window.visualViewport?.addEventListener("resize", this.fitViewport);
+    this.viewportObserver = new ResizeObserver(this.fitViewport);
+    this.viewportObserver.observe(this);
+  }
   disconnectedCallback() {
+    window.removeEventListener("resize", this.fitViewport);
+    window.visualViewport?.removeEventListener("resize", this.fitViewport);
+    this.viewportObserver?.disconnect();
     this.connection?.removeEventListener?.("disconnected", this.disconnected);
     this.clear();
     super.disconnectedCallback();
@@ -465,6 +481,7 @@ export class UserDetails extends LitElement {
     }
     const dialog = this.renderRoot.querySelector("dialog");
     if (dialog && !dialog.open && !this.embedded) dialog.showModal();
+    this.fitViewport();
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>({
