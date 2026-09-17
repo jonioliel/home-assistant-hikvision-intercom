@@ -64,14 +64,17 @@ async def test_all_administrative_commands_reject_reader(
 
 
 async def test_reader_session_is_safe_and_delegated_access_is_scoped(
-    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_access_token,
+    hass_read_only_user,
 ):
     reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
     session = await request(reader, "authorization/session")
     assert session["success"] and session["result"]["allowed"] is False
 
-    ha_users = await hass.auth.async_get_users()
-    reader_user = next(user for user in ha_users if not user.is_admin and user.is_active)
+    reader_user = hass_read_only_user
     admin = await hass_ws_client(hass)
     areas = {
         "overview": "view",
@@ -102,10 +105,13 @@ async def test_reader_session_is_safe_and_delegated_access_is_scoped(
 
 
 async def test_permission_revocation_closes_reader_subscription(
-    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_access_token,
+    hass_read_only_user,
 ):
-    ha_users = await hass.auth.async_get_users()
-    reader_user = next(user for user in ha_users if not user.is_admin and user.is_active)
+    reader_user = hass_read_only_user
     admin = await hass_ws_client(hass)
     policy = {
         "enabled": True,
