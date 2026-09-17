@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.4] - 2026-09-18
+
+- Fix toggle-to-talk stopping immediately on touch devices when the browser emits `pointercancel` after the activation tap. Toggle mode now keeps capturing and transmitting until the explicit stop action.
+- Preserve push-to-talk safety behavior: pointer cancellation still releases the microphone immediately in PTT mode.
+- Add regressions that reproduce the touch cancellation path and verify continuing packet transmission in toggle mode and release in PTT mode. The complete 44-test audio suite covers local input, device selection, receive, transmit, mute, cleanup and all four designs.
+- Compare the current path with the previously working audio implementation and verify read-only against stations 151 and 153 that G.711 mu-law support, audio volume and talk volume remain configured; no codec or ISAPI transport change is required for this regression.
+
 ## [1.5.3] - 2026-09-18
 
 - Fix a restored microphone selection displaying "Browser default" while requesting a previously saved device ID. Selected options now reflect the actual device requested, including a saved device that is no longer listed.
