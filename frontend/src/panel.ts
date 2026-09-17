@@ -160,6 +160,8 @@ export class IntercomManagerPanel extends LitElement {
     _csvMode: { state: true },
     _capture: { state: true },
     _onboarding: { state: true },
+    _pinStatus: { state: true },
+    _pinChecking: { state: true },
   };
   hass?: Hass;
   private contractSource?: Hass;
@@ -314,6 +316,10 @@ export class IntercomManagerPanel extends LitElement {
   private _error = "";
   private _draft?: Draft;
   private _editorBaseline = "";
+  private _pinStatus: "idle" | "checking" | "available" | "in_use" | "error" = "idle";
+  private _pinChecking = false;
+  private _pinCheckTimer?: ReturnType<typeof setTimeout>;
+  private _pinCheckSequence = 0;
   private _validityInputZone: DisplayZone = UTC_ZONE;
   private _importRows: Inventory[] = [];
   private _importStation = "";
@@ -410,6 +416,7 @@ export class IntercomManagerPanel extends LitElement {
         input.value = "";
       });
     this._draft = undefined;
+    this.resetPinValidation();
     this.clearCsv();
     this.clearCapture();
     this._dialog = "";
@@ -639,6 +646,7 @@ export class IntercomManagerPanel extends LitElement {
     // removes the dialog. Removing the element alone drops focus to the page.
     this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
     this._draft = undefined;
+    this.resetPinValidation();
     this.clearCsv();
     this.clearCapture();
     this._review = undefined;
@@ -869,6 +877,7 @@ export class IntercomManagerPanel extends LitElement {
   private _onboarding = "";
   private _editorPolicyRevision?: number;
   private edit(user?: Person) {
+    this.resetPinValidation();
     this._timingConverted = false;
     this._timingEnforcement = user?.access_timing_policy?.mode ?? "draft";
     this._onboarding = "";
@@ -972,6 +981,73 @@ export class IntercomManagerPanel extends LitElement {
           false,
     );
   }
+  private resetPinValidation() {
+    clearTimeout(this._pinCheckTimer);
+    this._pinCheckSequence++;
+    this._pinChecking = false;
+    this._pinStatus = "idle";
+  }
+  private changePin(pin: string) {
+    if (!this._draft) return;
+    this._draft.pin = pin || undefined;
+    clearTimeout(this._pinCheckTimer);
+    const sequence = ++this._pinCheckSequence;
+    if (!pin || !/^\d{1,128}$/.test(pin)) {
+      this._pinChecking = false;
+      this._pinStatus = "idle";
+      this.requestUpdate();
+      return;
+    }
+    this._pinChecking = true;
+    this._pinStatus = "checking";
+    this._pinCheckTimer = setTimeout(() => void this.checkPin(pin, sequence), 350);
+    this.requestUpdate();
+  }
+  private async checkPin(pin: string, sequence: number) {
+    try {
+      const result = await this.api<{ available: boolean }>("users/pin_check", {
+        user_id: this._draft?.id ?? "",
+        pin,
+      });
+      if (sequence !== this._pinCheckSequence || this._draft?.pin !== pin) return;
+      if (typeof result.available !== "boolean") throw new Error("invalid_pin_check_response");
+      this._pinStatus = result.available ? "available" : "in_use";
+    } catch {
+      if (sequence !== this._pinCheckSequence || this._draft?.pin !== pin) return;
+      this._pinStatus = "error";
+    } finally {
+      if (sequence === this._pinCheckSequence) {
+        this._pinChecking = false;
+        this.requestUpdate();
+      }
+    }
+  }
+  private async generatePin() {
+    if (!this._draft || this._pinChecking || this._busy) return;
+    clearTimeout(this._pinCheckTimer);
+    const sequence = ++this._pinCheckSequence;
+    this._pinChecking = true;
+    this._pinStatus = "checking";
+    this._error = "";
+    try {
+      const result = await this.api<{ pin: string }>("users/pin_generate", {
+        user_id: this._draft.id ?? "",
+      });
+      if (sequence !== this._pinCheckSequence || !this._draft) return;
+      this._draft.pin = result.pin;
+      this._draft.confirm_pin = result.pin;
+      this._pinStatus = "available";
+    } catch (error) {
+      if (sequence !== this._pinCheckSequence) return;
+      this._pinStatus = "error";
+      this._error = this.errorText(error);
+    } finally {
+      if (sequence === this._pinCheckSequence) {
+        this._pinChecking = false;
+        this.requestUpdate();
+      }
+    }
+  }
   private async save(event: SubmitEvent) {
     event.preventDefault();
     const sync_now = (event.submitter as HTMLButtonElement | null)?.value === "sync";
@@ -985,6 +1061,10 @@ export class IntercomManagerPanel extends LitElement {
     }
     if (draft.pin && draft.pin !== draft.confirm_pin) {
       this._error = this.t("pin_mismatch");
+      return;
+    }
+    if (draft.pin && this._pinStatus === "in_use") {
+      this._error = this.t("pin_conflict");
       return;
     }
     if (
@@ -3221,7 +3301,8 @@ export class IntercomManagerPanel extends LitElement {
                   maxlength="128"
                   .value=${live(draft.pin ?? "")}
                   ?disabled=${blocked || draft.pin === null}
-                  @input=${(event: Event) => this.patchDraft("pin", value(event) || undefined)} /></label
+                  aria-describedby="pin-availability"
+                  @input=${(event: Event) => this.changePin(value(event))} /></label
               ><label
                 >${this.t("confirm_pin")}<input
                   type="password"
@@ -3234,7 +3315,27 @@ export class IntercomManagerPanel extends LitElement {
                   @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
               /></label>
             </div>
+            <div id="pin-availability" aria-live="polite">
+              ${
+                this._pinStatus === "checking"
+                  ? html`<p class="field-note">${this.t("pin_checking")}</p>`
+                  : this._pinStatus === "available"
+                    ? html`<p class="notice">${this.t("pin_available")}</p>`
+                    : this._pinStatus === "in_use"
+                      ? html`<p class="notice error">${this.t("pin_conflict")}</p>`
+                      : this._pinStatus === "error"
+                        ? html`<p class="field-note">${this.t("pin_check_failed")}</p>`
+                        : nothing
+              }
+            </div>
             <div class="row actions">
+              <button
+                type="button"
+                ?disabled=${blocked || draft.pin === null || this._pinChecking || this._busy}
+                @click=${() => this.generatePin()}
+              >
+                ${this.t("generate_unique_pin")}
+              </button>
               ${
                 draft.pin === null
                   ? html`<span class="status delete_pending">${this.t("remove_pin")}</span
@@ -3242,6 +3343,8 @@ export class IntercomManagerPanel extends LitElement {
                         type="button"
                         @click=${() => {
                           draft.pin = undefined;
+                          draft.confirm_pin = "";
+                          this.resetPinValidation();
                           this.requestUpdate();
                         }}
                       >
@@ -3254,6 +3357,7 @@ export class IntercomManagerPanel extends LitElement {
                       @click=${() => {
                         draft.pin = null;
                         draft.confirm_pin = "";
+                        this.resetPinValidation();
                         this.requestUpdate();
                       }}
                     >
@@ -3815,7 +3919,7 @@ export class IntercomManagerPanel extends LitElement {
         }
       </div>
       <div class="dialog-foot" ?hidden=${this._dialog === "camera"}>
-        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }

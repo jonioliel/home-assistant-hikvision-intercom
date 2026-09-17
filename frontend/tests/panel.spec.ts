@@ -61,6 +61,36 @@ test("create user sends a PIN once and clears it from the editor", async ({ page
   await expect(page.getByRole("dialog").getByLabel("Confirm PIN", { exact: true })).toHaveValue("");
 });
 
+test("duplicate PIN is warned before save and generator fills a unique PIN", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("users/pin_check")) {
+        window.calls.push(structuredClone(message));
+        return { available: message.pin !== "111111" };
+      }
+      if (message.type.endsWith("users/pin_generate")) {
+        window.calls.push(structuredClone(message));
+        return { pin: "739421" };
+      }
+      return base(message);
+    };
+  });
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Add user" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("New PIN", { exact: true }).fill("111111");
+  await expect(dialog.getByText("This PIN is already assigned to a central person.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Save & sync" })).toBeDisabled();
+
+  await dialog.getByRole("button", { name: "Generate unique PIN" }).click();
+  await expect(dialog.getByLabel("New PIN", { exact: true })).toHaveValue("739421");
+  await expect(dialog.getByLabel("Confirm PIN", { exact: true })).toHaveValue("739421");
+  await expect(dialog.getByText("This PIN is available.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Save & sync" })).toBeEnabled();
+});
+
 test("mismatching PINs do not send changes", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Users", exact: true }).click();

@@ -17,38 +17,34 @@ DEFAULTS = {
 🏫 {{organization}}
 העניק לך הרשאת גישה ב־WisKey 🔐
 
-קוד הגישה האישי שלך:
-📟 {{pin}} 📟
+{{credential_section}}
 
-{{doors_section}}🚫 ⚠️ ידוע לך כי חל איסור מוחלט למסור את הקוד לאחרים. ⚠️ 🚫""",
+{{doors_section}}{{security_notice}}""",
     "he_scheduled": """שלום {{name}}, 🥇
 
 🏫 {{organization}}
 העניק לך הרשאת גישה ב־WisKey 🔐
 
-קוד הגישה האישי שלך:
-📟 {{pin}} 📟
+{{credential_section}}
 
 {{doors_section}}{{access_window_section}}"""
-    "🚫 ⚠️ ידוע לך כי חל איסור מוחלט למסור את הקוד לאחרים. ⚠️ 🚫",
+    "{{security_notice}}",
     "en_unrestricted": """Hello {{name}}, 🥇
 
 🏫 {{organization}}
 has granted you WisKey access 🔐
 
-Your personal access code:
-📟 {{pin}} 📟
+{{credential_section}}
 
-{{doors_section}}🚫 ⚠️ Never share this code with anyone. ⚠️ 🚫""",
+{{doors_section}}{{security_notice}}""",
     "en_scheduled": """Hello {{name}}, 🥇
 
 🏫 {{organization}}
 has granted you WisKey access 🔐
 
-Your personal access code:
-📟 {{pin}} 📟
+{{credential_section}}
 
-{{doors_section}}{{access_window_section}}🚫 ⚠️ Never share this code with anyone. ⚠️ 🚫""",
+{{doors_section}}{{access_window_section}}{{security_notice}}""",
 }
 
 PLACEHOLDERS = frozenset(
@@ -56,6 +52,8 @@ PLACEHOLDERS = frozenset(
         "name",
         "organization",
         "pin",
+        "credential_section",
+        "security_notice",
         "status",
         "doors",
         "doors_section",
@@ -83,7 +81,11 @@ def normalize(values: dict[str, Any]) -> dict[str, str]:
         if key != "organization":
             found = set(_TOKEN.findall(raw))
             remainder = _TOKEN.sub("", raw)
-            if found - PLACEHOLDERS or "name" not in found or "pin" not in found:
+            if (
+                found - PLACEHOLDERS
+                or "name" not in found
+                or not {"pin", "credential_section"}.intersection(found)
+            ):
                 raise AccessError("invalid_fields")
             if key.endswith("scheduled") and "access_window_section" not in found:
                 raise AccessError("invalid_fields")

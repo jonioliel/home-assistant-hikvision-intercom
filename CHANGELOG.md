@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.3.0] - 2026-09-17
+
+- Distinguish personal-PIN access, card-only access and users without an active credential in WhatsApp access messages; security wording now matches the actual credential.
+- Add `credential_section` and `security_notice` variables to the editable WhatsApp templates while keeping existing `pin` templates compatible.
+- Check PIN availability while an administrator types and block saving a PIN already owned by another central user.
+- Add a server-generated six-digit unique PIN action that fills both confirmation fields without exposing existing credentials.
+- Keep the repository's atomic collision validation as the final authority, including deleted users and previous PINs awaiting station removal.
+
 ## [1.2.0] - 2026-09-17
 
 - Redesign the default WhatsApp access message with a clear organization heading, personal-code block, numbered authorized doors and a prominent no-sharing warning.

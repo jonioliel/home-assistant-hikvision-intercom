@@ -1,5 +1,6 @@
 """Crash consistency, revision conflicts, ownership and deferred credential revocation."""
 
+import asyncio
 from copy import deepcopy
 from unittest.mock import AsyncMock
 
@@ -87,6 +88,30 @@ async def test_cross_person_collisions_rollback(repo, change, error):
     with pytest.raises(AccessError, match=error):
         await person(repo, **change)
     assert len(repo.users()) == 1
+
+
+async def test_pin_availability_generation_and_atomic_collision(repo, monkeypatch):
+    owner = await person(repo, cards=[])
+    assert repo.pin_available("123456", exclude_user_id=owner.id)
+    assert not repo.pin_available("123456")
+
+    values = iter([23_456, 654_321, 1, 2])
+    monkeypatch.setattr(
+        "custom_components.hikvision_intercom.access.repository.secrets.randbelow",
+        lambda _maximum: next(values),
+    )
+    assert repo.generate_unique_pin() == "754321"
+
+    async def create(employee_no):
+        return await repo.async_create(
+            {"display_name": employee_no, "employee_no": employee_no, "pin": "777777"}
+        )
+
+    results = await asyncio.gather(create("2001"), create("2002"), return_exceptions=True)
+    assert sum(not isinstance(result, Exception) for result in results) == 1
+    assert [result.code for result in results if isinstance(result, AccessError)] == [
+        "pin_conflict"
+    ]
 
 
 async def test_delete_survives_restart_and_keeps_secrets_until_all_confirm(repo):

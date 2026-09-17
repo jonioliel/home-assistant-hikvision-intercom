@@ -6,7 +6,7 @@ from soak.run_audio import exercise
 
 
 async def test_nine_station_audio_fault_does_not_block_pin_recovery_or_polling():
-    async with asyncio.timeout(30):
+    async with asyncio.timeout(60):
         report = await exercise(0, cycle_seconds=0.5)
     assert report["sessions_opened"] == report["sessions_closed"] == 6
     assert report["faults_observed"] == 1

@@ -9,11 +9,12 @@ from custom_components.hikvision_intercom.whatsapp_api import access_message
 from custom_components.hikvision_intercom.whatsapp_templates import DEFAULTS, WhatsAppTemplates
 
 
-def person(*, policy=None, draft=None):
+def person(*, policy=None, draft=None, pin="646464", cards=None):
     return SimpleNamespace(
         display_name="יהונתן אוליאל",
         active=True,
-        pin=SimpleNamespace(value="646464"),
+        pin=SimpleNamespace(value=pin) if pin else None,
+        cards=[SimpleNamespace(enabled=True)] if cards is None else cards,
         assignments={
             "one": SimpleNamespace(enabled=True, allowed_locks=(1,), sync_state="synced"),
             "two": SimpleNamespace(enabled=True, allowed_locks=(1,), sync_state="synced"),
@@ -39,6 +40,33 @@ def test_unrestricted_default_is_short_and_numbered():
     assert "📟 646464 📟" in message
     assert "1. רקפת\n2. נרקיס" in message
     assert "ימי הכניסה" not in message and "ללא מגבלת" not in message
+
+
+def test_card_only_message_names_the_card_and_never_claims_a_pin():
+    message = access_message(person(pin=None), stations(), "he")
+    assert "הכניסה מתבצעת באמצעות הכרטיס האישי שלך" in message
+    assert "הכרטיס אישי" in message
+    assert "קוד הגישה האישי שלך" not in message
+    assert "למסור את הקוד" not in message
+
+
+def test_legacy_pin_template_is_rewritten_for_card_only_access():
+    legacy = {
+        **DEFAULTS,
+        "he_unrestricted": (
+            "שלום {{name}}\nקוד הגישה האישי שלך:\n📟 {{pin}} 📟\n{{security_notice}}"
+        ),
+    }
+    message = access_message(person(pin=None), stations(), "he", legacy)
+    assert "אמצעי הכניסה שלך" in message
+    assert "קוד הגישה האישי שלך" not in message
+    assert "למסור את הקוד" not in message
+
+
+def test_message_without_any_credential_is_explicit():
+    message = access_message(person(pin=None, cards=[]), stations(), "he")
+    assert "לא הוגדר עבורך קוד אישי או כרטיס פעיל" in message
+    assert "למסור את הקוד" not in message
 
 
 def test_schedule_is_included_only_when_enforced():

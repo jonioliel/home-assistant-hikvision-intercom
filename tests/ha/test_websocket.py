@@ -77,6 +77,32 @@ async def test_create_get_update_card_and_delete_never_echo_secrets(
     assert result["success"] and not get_manager(hass).repository.users()
 
 
+async def test_pin_availability_and_generation_are_admin_only_and_never_name_owner(
+    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+):
+    manager = get_manager(hass)
+    owner = await manager.repository.async_create({"display_name": "Owner", "pin": "847291"})
+    client = await hass_ws_client(hass)
+    duplicate = await request(client, "users/pin_check", user_id="", pin="847291")
+    assert duplicate == {
+        "id": duplicate["id"],
+        "type": "result",
+        "success": True,
+        "result": {"available": False},
+    }
+    own = await request(client, "users/pin_check", user_id=owner.id, pin="847291")
+    assert own["result"] == {"available": True}
+    generated = await request(client, "users/pin_generate", user_id="")
+    assert generated["success"] and generated["result"]["pin"].isdigit()
+    assert len(generated["result"]["pin"]) == 6
+    assert generated["result"]["pin"] != "847291"
+    assert "Owner" not in str(duplicate)
+
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await request(reader, "users/pin_check", user_id="", pin="847291")
+    assert not denied["success"] and denied["error"]["code"] == "unauthorized"
+
+
 async def test_invalid_secret_payload_never_appears_in_error_or_debug_log(
     hass, loaded_entry, hass_ws_client, caplog
 ):

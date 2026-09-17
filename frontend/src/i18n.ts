@@ -429,7 +429,7 @@ const en = {
   whatsapp_template_defaults_ready:
     "Built-in templates were restored in the editor. Save to apply them.",
   whatsapp_template_invalid:
-    "The template is invalid. Keep the required name and PIN variables; scheduled templates must also include the access-window section.",
+    "The template is invalid. Keep the required name and credential-section (or PIN) variables; scheduled templates must also include the access-window section.",
   whatsapp_template_conflict: "Templates changed elsewhere. Reload them before saving.",
   whatsapp_template_load_failed: "WhatsApp message templates could not be loaded.",
   whatsapp_template_save_failed:
@@ -1590,6 +1590,11 @@ const en = {
   confirm_pin: "Confirm PIN",
   remove_pin: "Remove PIN",
   keep_pin: "Keep current PIN",
+  generate_unique_pin: "Generate unique PIN",
+  pin_checking: "Checking whether this PIN is available…",
+  pin_available: "This PIN is available.",
+  pin_check_failed: "Availability could not be checked now. Saving will still enforce uniqueness.",
+  pin_generation_failed: "A unique PIN could not be generated. Try again.",
   pin_private: "The saved PIN is never displayed. Only enter a value to change it.",
   pin_mode_blocked: "PIN management is unavailable on a selected station. Check its PIN mode.",
   pin_physical:
@@ -3235,6 +3240,11 @@ const he: Record<keyof typeof en, string> = {
   confirm_pin: "אימות הקוד",
   remove_pin: "הסרת הקוד",
   keep_pin: "שמירת הקוד הקיים",
+  generate_unique_pin: "יצירת PIN ייחודי אוטומטית",
+  pin_checking: "בודק אם הקוד פנוי…",
+  pin_available: "הקוד פנוי וניתן לשימוש.",
+  pin_check_failed: "לא ניתן לבדוק זמינות כרגע. בעת השמירה עדיין תתבצע חסימת כפילויות.",
+  pin_generation_failed: "לא ניתן ליצור קוד ייחודי. נסה שוב.",
   pin_private: "הקוד השמור אינו מוצג. הזן ערך רק כדי לשנות אותו.",
   pin_mode_blocked: "ניהול PIN אינו זמין באחת התחנות שנבחרו. בדוק את מצב ה־PIN שלה.",
   pin_physical: "מסונכרן מציין שההגדרה נקראה מהמכשיר. תקינות הקוד בלוח המקשים עדיין דורשת בדיקה.",

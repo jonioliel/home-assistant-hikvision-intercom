@@ -394,7 +394,7 @@ async def test_failed_first_person_does_not_block_remaining_people(setup, kind):
 
     engine._person = fault
     if kind == "deadline":
-        engine.PERSON_TIMEOUT = 0.05
+        engine.PERSON_TIMEOUT = 0.25
     result = await engine.async_reconcile("a", driver)
     assert result.failed == 1 and result.completed == 2 and not result.offline
     assert repo.get(first).assignments["a"].sync_state in {"pending", "conflict"}

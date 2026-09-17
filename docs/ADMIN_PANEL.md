@@ -11,7 +11,7 @@ editor and stays stable if the response must be reviewed after a connection fail
 it cannot be casually changed. Saved users are reconciled in the background; offline targets retain
 pending work. Disabling a user revokes their station record while keeping the central identity.
 
-A saved PIN is never sent back to the browser. Set/change requires matching new values; clearing is
+A saved PIN is never sent back to the browser. Set/change requires matching new values. The editor checks whether a typed PIN is already owned and can request a server-generated six-digit PIN. The repository repeats collision validation inside the atomic save, including tombstones and PINs awaiting removal; clearing is
 an explicit action. Existing cards show only a masked number. New manual card numbers preserve
 leading zeros and exact case. Limits and unsupported PIN modes are checked against station capabilities.
 Deleting a person asks for confirmation and explains how many stations must confirm removal.

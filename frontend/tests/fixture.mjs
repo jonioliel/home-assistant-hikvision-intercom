@@ -220,6 +220,8 @@ const fake = {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
     if (command === "profiles/settings_get") return structuredClone(data.profile_settings);
+    if (command === "users/pin_check") return { available: true };
+    if (command === "users/pin_generate") return { pin: "482615" };
     if (command === "profiles/settings_preview") {
       if (message.revision !== data.profile_settings.revision) throw { code: "revision_conflict" };
       const groups = message.values.groups;

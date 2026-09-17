@@ -344,6 +344,34 @@ class AccessRepository:
             raise AccessError("user_not_found")
         return ManagedUser.from_private(raw)
 
+    def pin_available(self, pin: str, *, exclude_user_id: str | None = None) -> bool:
+        """Return whether a validated PIN is free across active and retiring records."""
+
+        if not isinstance(pin, str) or not pin.isdigit() or not 1 <= len(pin) <= 128:
+            raise AccessError("invalid_pin")
+        if exclude_user_id is not None and exclude_user_id not in self._state["users"]:
+            raise AccessError("user_not_found")
+        records = list(self._state["users"].values()) + [
+            item["record"] for item in self._state["tombstones"].values()
+        ]
+        if any(record.get("pin") == pin and record["id"] != exclude_user_id for record in records):
+            return False
+        return not any(
+            item["pin"] == pin and item["user_id"] != exclude_user_id
+            for item in self._state["retired_pins"].values()
+        )
+
+    def generate_unique_pin(self, *, exclude_user_id: str | None = None) -> str:
+        """Create a six-digit PIN that is currently unowned; final writes recheck atomically."""
+
+        if exclude_user_id is not None and exclude_user_id not in self._state["users"]:
+            raise AccessError("user_not_found")
+        for _attempt in range(1024):
+            pin = str(100_000 + secrets.randbelow(900_000))
+            if self.pin_available(pin, exclude_user_id=exclude_user_id):
+                return pin
+        raise AccessError("pin_generation_failed")
+
     def public(self) -> dict[str, Any]:
         return deepcopy(
             {

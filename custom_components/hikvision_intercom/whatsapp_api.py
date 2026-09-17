@@ -80,13 +80,52 @@ def access_message(user, stations, language: str, settings=None) -> str:
         else (("לא הוגדרו דלתות מורשות." if he else "No authorized doors are configured.") + "\n\n")
     )
     access_window_section = "\n\n".join(window) + ("\n\n" if window else "")
+    has_card = any(card.enabled for card in getattr(user, "cards", []))
+    if user.pin:
+        pin_text = user.pin.value
+        credential_section = (
+            f"קוד הגישה האישי שלך:\n📟 {pin_text} 📟"
+            if he
+            else f"Your personal access code:\n📟 {pin_text} 📟"
+        )
+        security_notice = (
+            "🚫 ⚠️ ידוע לך כי חל איסור מוחלט למסור את הקוד לאחרים. ⚠️ 🚫"
+            if he
+            else "🚫 ⚠️ Never share this code with anyone. ⚠️ 🚫"
+        )
+    elif has_card:
+        pin_text = (
+            "אין קוד אישי — הכניסה מתבצעת באמצעות הכרטיס האישי שלך"
+            if he
+            else "No personal PIN — use your personal access card"
+        )
+        credential_section = (
+            "אמצעי הכניסה שלך:\n💳 הכניסה מתבצעת באמצעות הכרטיס האישי שלך."
+            if he
+            else "Your access credential:\n💳 Use your personal access card."
+        )
+        security_notice = (
+            "🚫 ⚠️ הכרטיס אישי. חל איסור מוחלט למסור אותו לאחרים. ⚠️ 🚫"
+            if he
+            else "🚫 ⚠️ The access card is personal. Never give it to anyone else. ⚠️ 🚫"
+        )
+    else:
+        pin_text = "לא הוגדר קוד אישי" if he else "No personal PIN is configured"
+        credential_section = (
+            "⚠️ לא הוגדר עבורך קוד אישי או כרטיס פעיל."
+            if he
+            else "⚠️ No personal PIN or active access card is configured."
+        )
+        security_notice = ""
     template_key = ("he_" if he else "en_") + (
         "scheduled" if policy or user.valid_from or user.valid_until else "unrestricted"
     )
     variables = {
         "name": user.display_name,
         "organization": values["organization"],
-        "pin": user.pin.value if user.pin else ("לא הוגדר" if he else "Not configured"),
+        "pin": pin_text,
+        "credential_section": credential_section,
+        "security_notice": security_notice,
         "status": ("פעיל" if he else "Active")
         if user.active
         else ("לא פעיל" if he else "Inactive"),
@@ -100,6 +139,15 @@ def access_message(user, stations, language: str, settings=None) -> str:
         "access_window_section": access_window_section,
     }
     message = render_template(values[template_key], variables)
+    if not user.pin:
+        message = message.replace(
+            f"קוד הגישה האישי שלך:\n📟 {pin_text} 📟", credential_section
+        ).replace(f"Your personal access code:\n📟 {pin_text} 📟", credential_section)
+        message = message.replace(
+            "🚫 ⚠️ ידוע לך כי חל איסור מוחלט למסור את הקוד לאחרים. ⚠️ 🚫",
+            security_notice,
+        ).replace("🚫 ⚠️ Never share this code with anyone. ⚠️ 🚫", security_notice)
+        message = "\n\n".join(part for part in message.split("\n\n") if part.strip())
     notices: list[str] = []
     if not user.active:
         notices.append("⚠️ ההרשאה אינה פעילה." if he else "⚠️ Access is inactive.")

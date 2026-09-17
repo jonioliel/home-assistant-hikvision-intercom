@@ -199,6 +199,8 @@ COMMANDS = {
     "events/report": {"filters": dict},
     "events/export": {"filters": dict},
     "users/get": {"user_id": str},
+    "users/pin_check": {"user_id": str, "pin": str},
+    "users/pin_generate": {"user_id": str},
     "users/create": {"data": dict},
     "users/update": {"user_id": str, "revision": int, "data": dict},
     "users/delete": {"user_id": str, "revision": int},
@@ -582,6 +584,16 @@ async def _dispatch_inner(
         return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command == "users/pin_check":
+        return {
+            "available": manager.repository.pin_available(
+                msg["pin"], exclude_user_id=msg["user_id"] or None
+            )
+        }
+    if command == "users/pin_generate":
+        return {
+            "pin": manager.repository.generate_unique_pin(exclude_user_id=msg["user_id"] or None)
+        }
     if command in {"users/create", "users/update"} and {
         "profile",
         "group_ids",
