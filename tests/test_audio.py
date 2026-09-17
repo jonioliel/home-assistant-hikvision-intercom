@@ -143,6 +143,7 @@ async def test_receive_queue_discards_stale_audio_and_bounds_latency(audio):
     assert audio.dropped_packets == 7
     assert await audio.receive() == bytes([7]) * 800
     assert audio.received_bytes == 8000
+    assert audio.received_signal_bytes == 8000
 
 
 async def test_malformed_audio_response_is_not_played(audio):
@@ -272,6 +273,7 @@ async def test_transmitter_drops_stale_packets_and_mutes_the_next_frame(audio, s
         await asyncio.wait_for(second.wait(), 1)
         assert frames[0] == (b"\xff" if stale else b"\x00") * 160
         assert frames[1] == b"\xff" * 160
+        assert audio.microphone_signal_bytes == (0 if stale else 160)
     finally:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)

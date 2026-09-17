@@ -36,7 +36,7 @@ closes an already-open subscription or stream. [Hebrew setup and security model]
 
 ## Two-way audio
 
-Open a camera and select **Start audio** to listen. Management tools selects either hold-to-talk or explicit start/stop microphone control.
+Open a camera and select **Start listening** to listen. Management tools selects either hold-to-talk or explicit start/stop microphone control.
 Microphone access requires HTTPS. Audio is scoped to the station and browser connection,
 and closes on disconnect, backgrounding, call termination or after three minutes.
 Audible output at the intercom speaker is owner-confirmed.
