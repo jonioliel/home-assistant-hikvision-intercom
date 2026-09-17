@@ -395,6 +395,10 @@
     "profile_settings_storage_corrupt": {
       "title": "WisKey user profile settings are unavailable",
       "description": "User field and group settings could not be loaded. Restore a valid profile settings backup. Door controls and synchronization remain available."
+    },
+    "panel_permissions_storage_corrupt": {
+      "title": "WisKey user permissions are unavailable",
+      "description": "The stored Home Assistant user permissions failed validation. Non-administrators are denied access until a valid backup is restored and the integration is reloaded. Home Assistant administrators retain recovery access."
     }
   }
 }

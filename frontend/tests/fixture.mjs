@@ -41,7 +41,32 @@ function groupAccess(user) {
     [...ids].map((id) => [id, { enabled: true, allowed_locks: [1], sync_state: "pending" }]),
   );
 }
+const fullAreas = {
+  overview: "manage",
+  users: "manage",
+  events: "manage",
+  stations: "manage",
+  management: "manage",
+};
+const noAreas = {
+  overview: "none",
+  users: "none",
+  events: "none",
+  stations: "none",
+  management: "none",
+};
+const delegatedAreas = { ...noAreas };
+for (const grant of (query.get("grant") ?? "").split(",").filter(Boolean)) {
+  const [area, level] = grant.split(":");
+  if (area in delegatedAreas && ["view", "manage"].includes(level)) delegatedAreas[area] = level;
+}
+const delegated = Object.values(delegatedAreas).some((level) => level !== "none");
+const access = query.has("reader")
+  ? { allowed: delegated, is_admin: false, revision: 0, areas: delegatedAreas }
+  : { allowed: true, is_admin: true, revision: 0, areas: fullAreas };
 const data = {
+  access,
+  user_count: 0,
   profile_settings: { revision: 0, fields: [], groups: [], photo_enabled: false },
   media_settings: {
     revision: 0,
@@ -175,6 +200,7 @@ people.forEach((name, index) =>
     valid_until: null,
   }),
 );
+data.user_count = data.users.length;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -219,6 +245,34 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "authorization/session")
+      return structuredClone(
+        this?.user?.is_admin === false && !query.has("reader")
+          ? { allowed: false, is_admin: false, revision: 0, areas: noAreas }
+          : access,
+      );
+    if (command === "authorization/settings_get")
+      return {
+        revision: 0,
+        areas: Object.keys(fullAreas),
+        levels: ["none", "view", "manage"],
+        users: {},
+        directory: [
+          { id: "demo-admin", name: "Demo administrator", active: true, admin: true, owner: true },
+          { id: "reader-user", name: "Reception", active: true, admin: false, owner: false },
+        ],
+      };
+    if (command === "authorization/settings_update")
+      return {
+        revision: message.revision + 1,
+        areas: Object.keys(fullAreas),
+        levels: ["none", "view", "manage"],
+        users: structuredClone(message.users),
+        directory: [
+          { id: "demo-admin", name: "Demo administrator", active: true, admin: true, owner: true },
+          { id: "reader-user", name: "Reception", active: true, admin: false, owner: false },
+        ],
+      };
     if (command === "profiles/settings_get") return structuredClone(data.profile_settings);
     if (command === "users/pin_check") return { available: true };
     if (command === "users/pin_generate") return { pin: "482615" };

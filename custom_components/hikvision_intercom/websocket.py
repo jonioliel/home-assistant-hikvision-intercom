@@ -1,4 +1,4 @@
-"""Administrator-only panel API; every response projects explicit safe fields."""
+"""Per-user panel API; every response projects explicit safe fields."""
 
 from __future__ import annotations
 
@@ -33,7 +33,9 @@ from .event_manager import get_events
 from .exceptions import HikvisionError, HikvisionValidationError
 from .hardening import AdminLimiter
 from .health_api import dispatch_health
+from .issues import issue
 from .log_filter import install_filter
+from .panel_permissions import PanelPermissions, command_allowed
 from .schedule_operations_api import dispatch_operations
 from .schedule_plan_api import dispatch_plans
 
@@ -60,6 +62,9 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "authorization/session": {},
+    "authorization/settings_get": {},
+    "authorization/settings_update": {"revision": int, "users": dict},
     "whatsapp/status": {},
     "whatsapp/templates_get": {},
     "whatsapp/templates_update": {"revision": int, "values": dict},
@@ -245,7 +250,7 @@ def _patch(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-def overview(hass: HomeAssistant) -> dict[str, Any]:
+def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     data = get_manager(hass).public()
     registry = er.async_get(hass)
     latest_access = get_events(hass).latest_access({station["id"] for station in data["stations"]})
@@ -312,21 +317,123 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
     data["media_settings"] = media.public() if media else None
     profiles = hass.data[DOMAIN].get("profile_settings")
     data["profile_settings"] = profiles.public() if profiles else None
-    data["api"] = contract(list(COMMANDS))
+    permissions = hass.data[DOMAIN].get("panel_permissions")
+    policy = (
+        permissions.policy(user)
+        if isinstance(permissions, PanelPermissions)
+        else {
+            "allowed": bool(user and user.is_active and user.is_admin),
+            "is_admin": bool(user and user.is_active and user.is_admin),
+            "areas": {
+                area: "none" for area in ("overview", "users", "events", "stations", "management")
+            },
+        }
+    )
+    if policy["is_admin"]:
+        policy["areas"] = {area: "manage" for area in policy["areas"]}
+    data["access"] = policy
+    data["user_count"] = len(data["users"])
+    if user is not None and not policy["is_admin"]:
+        if policy["areas"]["users"] == "none":
+            data["users"] = []
+            data["user_count"] = 0
+        if policy["areas"]["users"] == "none" and policy["areas"]["events"] == "none":
+            data["profile_settings"] = None
+        if policy["areas"]["stations"] == "none":
+            for station in data["stations"]:
+                for key in (
+                    "host",
+                    "model",
+                    "firmware",
+                    "capabilities",
+                    "observations",
+                    "clock",
+                    "event_status",
+                    "last_poll_ms",
+                ):
+                    station.pop(key, None)
+    commands = [
+        name
+        for name in COMMANDS
+        if name == "authorization/session" or command_allowed(permissions, user, name)
+    ]
+    data["api"] = contract(commands)
     data["version"] = VERSION
     return data
 
 
 async def _dispatch(
-    hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
+    hass: HomeAssistant,
+    command: str,
+    msg: dict[str, Any],
+    *,
+    actor: str = "",
+    user: Any | None = None,
 ) -> Any:
     with audit_actor(actor, command):
-        return await _dispatch_inner(hass, command, msg, actor=actor)
+        return await _dispatch_inner(hass, command, msg, actor=actor, user=user)
 
 
 async def _dispatch_inner(
-    hass: HomeAssistant, command: str, msg: dict[str, Any], *, actor: str = ""
+    hass: HomeAssistant,
+    command: str,
+    msg: dict[str, Any],
+    *,
+    actor: str = "",
+    user: Any | None = None,
 ) -> Any:
+    if command == "authorization/session":
+        permissions = hass.data[DOMAIN].get("panel_permissions")
+        if isinstance(permissions, PanelPermissions):
+            result = permissions.policy(user)
+            result["revision"] = permissions.revision
+        else:
+            result = {
+                "allowed": bool(user and user.is_active and user.is_admin),
+                "is_admin": bool(user and user.is_active and user.is_admin),
+                "areas": {
+                    area: "none"
+                    for area in ("overview", "users", "events", "stations", "management")
+                },
+                "revision": 0,
+            }
+            if result["is_admin"]:
+                result["areas"] = {area: "manage" for area in result["areas"]}
+        return result
+    if command in {"authorization/settings_get", "authorization/settings_update"}:
+        permissions = hass.data[DOMAIN].get("panel_permissions")
+        if not isinstance(permissions, PanelPermissions):
+            raise AccessError("permissions_unavailable")
+        ha_users = await hass.auth.async_get_users()
+        assignable = [
+            item
+            for item in ha_users
+            if not getattr(item, "system_generated", False) and not item.is_admin
+        ]
+        if command == "authorization/settings_update":
+            await permissions.update(
+                msg["revision"], msg["users"], (item.id for item in assignable)
+            )
+            issue(hass, "panel_permissions_storage_corrupt", active=False)
+        result = permissions.public()
+        assignable_ids = {item.id for item in assignable}
+        result["users"] = {
+            user_id: policy
+            for user_id, policy in result["users"].items()
+            if user_id in assignable_ids
+        }
+        result["directory"] = [
+            {
+                "id": item.id,
+                "name": item.name,
+                "active": item.is_active,
+                "admin": item.is_admin,
+                "owner": getattr(item, "is_owner", False),
+            }
+            for item in ha_users
+            if not getattr(item, "system_generated", False)
+        ]
+        return result
     if command.startswith("whatsapp/"):
         from .whatsapp_api import dispatch_whatsapp
 
@@ -553,7 +660,7 @@ async def _dispatch_inner(
         except HikvisionValidationError:
             raise AccessError("invalid_fields") from None
     if command in {"overview", "sync/status"}:
-        return overview(hass)
+        return overview(hass, user)
     if command == "users/list":
         return manager.repository.public()["users"]
     if command in {"profiles/settings_get", "profiles/settings_update", "users/photo_get"}:
@@ -648,10 +755,11 @@ async def _dispatch_inner(
     if command == "users/delete":
         await manager.async_delete(msg["user_id"], revision=msg["revision"])
     elif command == "stations/list":
-        return overview(hass)["stations"]
+        return overview(hass, user)["stations"]
     elif command == "stations/get":
         station = next(
-            (item for item in overview(hass)["stations"] if item["id"] == msg["station_id"]), None
+            (item for item in overview(hass, user)["stations"] if item["id"] == msg["station_id"]),
+            None,
         )
         if station is None:
             raise AccessError("station_not_found")
@@ -766,7 +874,6 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
     @websocket_api.websocket_command(
         vol.All(vol.Schema({"type": f"{DOMAIN}/{command}"}, extra=vol.ALLOW_EXTRA))
     )
-    @websocket_api.require_admin
     @websocket_api.async_response
     async def handle(
         hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
@@ -785,10 +892,19 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             )
             if len(json.dumps(msg, ensure_ascii=False).encode()) > maximum:
                 raise AccessError("request_too_large")
+            user = connection.user
+            permissions = hass.data[DOMAIN].get("panel_permissions")
+            if (
+                not user
+                or not user.is_active
+                or command != "authorization/session"
+                and not command_allowed(permissions, user, command)
+            ):
+                raise AccessError("unauthorized")
             limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
-            admitted = limiter.acquire(connection.user.id, hass.loop.time())
+            admitted = limiter.acquire(user.id, hass.loop.time())
             try:
-                result = await _dispatch(hass, command, msg, actor=connection.user.id)
+                result = await _dispatch(hass, command, msg, actor=user.id, user=user)
             finally:
                 limiter.release(admitted)
         except vol.Invalid:
@@ -818,13 +934,16 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
 @websocket_api.websocket_command(
     vol.All(vol.Schema({"type": f"{DOMAIN}/subscribe"}, extra=vol.ALLOW_EXTRA))
 )
-@websocket_api.require_admin
 @callback
 def subscribe(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     if set(msg) - {"id", "type"}:
         connection.send_error(msg["id"], "invalid_fields", "Invalid command fields")
+        return
+    permissions = hass.data[DOMAIN].get("panel_permissions")
+    if not command_allowed(permissions, connection.user, "overview"):
+        connection.send_error(msg["id"], "unauthorized", "WisKey access is not granted")
         return
     timer: asyncio.TimerHandle | None = None
     closed = False
@@ -833,9 +952,15 @@ def subscribe(
     def send() -> None:
         nonlocal timer
         timer = None
-        if not closed and connection.user and connection.user.is_admin:
-            # Data-free invalidation coalesces bursts and never leaks revoked-user data.
+        if closed:
+            return
+        current = hass.data[DOMAIN].get("panel_permissions")
+        if command_allowed(current, connection.user, "overview"):
+            # Data-free invalidation coalesces bursts and is re-authorized every time.
             connection.send_event(msg["id"], {"kind": "refresh"})
+        else:
+            connection.send_event(msg["id"], {"kind": "access_revoked"})
+            cancel()
 
     @callback
     def changed() -> None:

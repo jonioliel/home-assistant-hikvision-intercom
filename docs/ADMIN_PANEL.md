@@ -1,7 +1,10 @@
-# Administrator panel
+# WisKey panel
 
-Phase 3 adds the **Intercom Manager** sidebar at `/hikvision-intercom`. The entire panel API,
-including user/inventory reads, requires an administrator. Its language follows the HA user's
+Phase 3 added the **Intercom Manager** sidebar at `/hikvision-intercom`. Home Assistant
+administrators retain full access. Version 1.4 lets administrators explicitly delegate per-area
+view or manage access to active non-administrator HA users. Every API and media request is enforced
+server-side, and active sessions are revoked immediately. See
+[the Hebrew permissions guide](HA_USER_PERMISSIONS_HE.md). The language follows the HA user's
 English/Hebrew setting; colors follow the HA theme. Hebrew layouts use RTL and isolated identifiers.
 
 ## Working with people

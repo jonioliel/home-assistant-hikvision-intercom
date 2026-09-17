@@ -1,4 +1,4 @@
-"""Serve a bundled module and register a single administrator sidebar panel."""
+"""Serve the WisKey panel; its API enforces per-user permissions."""
 
 from pathlib import Path
 
@@ -30,7 +30,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         sidebar_title="WisKey",
         sidebar_icon="mdi:doorbell-video",
         module_url=f"/hikvision_intercom_static/panel.js?v={VERSION}",
-        require_admin=True,
+        require_admin=False,
         embed_iframe=False,
         trust_external=False,
     )

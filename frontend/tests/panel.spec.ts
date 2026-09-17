@@ -155,8 +155,9 @@ test("import and conflict inspection are available", async ({ page }) => {
 
 test("reader has no administrative data or subscription", async ({ page }) => {
   await page.goto("/?reader=1");
-  await expect(page.getByText("Administrator access is required.")).toBeVisible();
-  expect(await page.evaluate(() => window.calls)).toHaveLength(0);
+  await expect(page.getByText("WisKey access has not been granted")).toBeVisible();
+  const calls = await page.evaluate(() => window.calls.map((call) => call.type));
+  expect(calls).toEqual(["hikvision_intercom/authorization/session"]);
 });
 
 test("empty and dark layouts render without application errors", async ({ page }) => {

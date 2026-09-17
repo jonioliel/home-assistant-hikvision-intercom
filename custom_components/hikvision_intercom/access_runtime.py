@@ -47,8 +47,22 @@ async def async_setup_access(hass: HomeAssistant) -> None:
 
     @callback
     def changed() -> None:
-        # The signal carries no personal data. Only administrator subscribers may project it.
+        # The signal carries no personal data. Each subscriber is re-authorized before refresh.
         async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
+
+    from .panel_permissions import PanelPermissions
+
+    permission_store = AccessStore(hass, key=f"{DOMAIN}.panel_permissions")
+    panel_permissions = PanelPermissions(permission_store.async_save, changed)
+    try:
+        panel_permissions.load(await permission_store.async_load())
+    except AccessError:
+        issue(hass, "panel_permissions_storage_corrupt", active=True)
+        panel_permissions.recover_from_invalid_storage()
+        hass.data.setdefault(DOMAIN, {})["panel_permissions"] = panel_permissions
+    else:
+        issue(hass, "panel_permissions_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["panel_permissions"] = panel_permissions
 
     from .media_settings import MediaSettings
 

@@ -149,6 +149,8 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  access: AuthorizationSession;
+  user_count: number;
   api?: ApiContract;
   sync_operations?: {
     id: string;
@@ -229,6 +231,14 @@ export interface Review {
   pin_configured: boolean | null;
   cards: Card[];
   deletion_pending: boolean;
+}
+export type WiskeyArea = "overview" | "users" | "events" | "stations" | "management";
+export type WiskeyAccessLevel = "none" | "view" | "manage";
+export interface AuthorizationSession {
+  allowed: boolean;
+  is_admin: boolean;
+  revision: number;
+  areas: Record<WiskeyArea, WiskeyAccessLevel>;
 }
 export interface Hass {
   themes?: { darkMode: boolean };

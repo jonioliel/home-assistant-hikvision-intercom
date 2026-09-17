@@ -84,7 +84,7 @@ test("management hub contains every advanced tool and revoked admin access close
   await expect(page.getByRole("heading", { name: "WisKey", exact: true })).toBeVisible();
   await expect(page.locator(".appearance-button")).toHaveCount(0);
   await navigate(page, "Management tools");
-  await expect(page.locator(".tool-card")).toHaveCount(14);
+  await expect(page.locator(".tool-card")).toHaveCount(15);
   await expect(
     page.getByRole("button", { name: "WhatsApp message templates", exact: true }),
   ).toBeVisible();
@@ -113,7 +113,7 @@ test("management hub contains every advanced tool and revoked admin access close
     const p = document.querySelector("hikvision-intercom-panel") as any;
     p.hass = { ...window.demoHass, user: { id: "reader", is_admin: false } };
   });
-  await expect(page.getByText("Administrator access is required.")).toBeVisible();
+  await expect(page.getByText("WisKey access has not been granted")).toBeVisible();
   await expect(page.locator(".tools-grid")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const count = await page.evaluate(() => window.calls.length);

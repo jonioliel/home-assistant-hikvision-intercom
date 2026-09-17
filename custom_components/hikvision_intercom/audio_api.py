@@ -16,9 +16,17 @@ from homeassistant.core import HomeAssistant, callback
 from .client.audio import PACKET_BYTES, AudioError, AudioSession
 from .const import DOMAIN
 from .exceptions import HikvisionError
+from .panel_permissions import area_allowed
 
 MAX_SECONDS = 180
 IDLE_SECONDS = 12
+
+
+def _authorized(hass: HomeAssistant, user: Any) -> bool:
+    permissions = hass.data[DOMAIN].get("panel_permissions")
+    return area_allowed(permissions, user, "overview", "manage") or area_allowed(
+        permissions, user, "stations", "manage"
+    )
 
 
 @dataclass(eq=False)
@@ -40,9 +48,7 @@ class AudioBridge:
         entry = self.hass.config_entries.async_get_entry(self.runtime.station_id)
         return bool(
             not self.stopped
-            and self.connection.user
-            and self.connection.user.is_admin
-            and self.connection.user.is_active
+            and _authorized(self.hass, self.connection.user)
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
             and not self.runtime.is_closed
@@ -59,7 +65,7 @@ class AudioBridge:
             if sessions.get(self.runtime.station_id) is self:
                 sessions.pop(self.runtime.station_id, None)
             if self.connection.subscriptions.pop(self.subscription, None):
-                if self.connection.user and self.connection.user.is_admin:
+                if _authorized(self.hass, self.connection.user):
                     self.connection.send_event(
                         self.subscription,
                         {
@@ -150,7 +156,7 @@ class AudioBridge:
             )
             if self.subscription in self.connection.subscriptions:
                 self.connection.subscriptions.pop(self.subscription, None)
-                if self.connection.user and self.connection.user.is_admin:
+                if _authorized(self.hass, self.connection.user):
                     self.connection.send_event(
                         self.subscription,
                         {
@@ -167,11 +173,13 @@ class AudioBridge:
 @websocket_api.websocket_command(
     vol.All(vol.Schema({"type": f"{DOMAIN}/audio/start"}, extra=vol.ALLOW_EXTRA))
 )
-@websocket_api.require_admin
 @callback
 def start(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
+    if not _authorized(hass, connection.user):
+        connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
+        return
     station = msg.get("station_id")
     if (
         set(msg) != {"id", "type", "station_id"}
@@ -216,12 +224,13 @@ def packet_handler(operation: str) -> Any:
     @websocket_api.websocket_command(
         vol.All(vol.Schema({"type": f"{DOMAIN}/audio/{operation}"}, extra=vol.ALLOW_EXTRA))
     )
-    @websocket_api.require_admin
     @websocket_api.async_response
     async def handle(
         hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
     ) -> None:
         try:
+            if not _authorized(hass, connection.user):
+                raise AudioError("unauthorized")
             fields = {"id", "type", "token"}
             if operation == "send":
                 fields.update({"sequence", "data"})

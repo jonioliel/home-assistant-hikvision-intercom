@@ -18,6 +18,8 @@ export function compatible(contract?: ApiContract): boolean {
 // Unknown commands are treated as writes in a mismatched session. Audio stop/mute
 // and capture cancellation must remain available to safely terminate existing work.
 const reads = new Set([
+  "authorization/session",
+  "authorization/settings_get",
   "acceptance/get",
   "audit/export",
   "audit/list",
@@ -64,8 +66,17 @@ export function contractHass(
   current: () => ApiContract | undefined,
 ): Hass | undefined {
   if (!hass) return undefined;
+  let elevatedSource = hass.user;
+  let elevatedUser = elevatedSource ? { ...elevatedSource, is_admin: true } : undefined;
   return new Proxy(hass, {
     get(target, property, receiver) {
+      if (property === "user" && target.user && current()) {
+        if (target.user !== elevatedSource) {
+          elevatedSource = target.user;
+          elevatedUser = { ...target.user, is_admin: true };
+        }
+        return elevatedUser;
+      }
       if (property !== "callWS") return Reflect.get(target, property, receiver);
       return (message: Record<string, unknown>) => {
         const type = String(message.type ?? ""),
@@ -75,6 +86,13 @@ export function contractHass(
           policy = current();
         if (!compatible(policy) && !reads.has(command) && !cleanup.has(command))
           return Promise.reject({ code: "api_incompatible" });
+        if (
+          compatible(policy) &&
+          policy?.capabilities.includes("panel_permissions") &&
+          !policy.commands.includes(command) &&
+          !cleanup.has(command)
+        )
+          return Promise.reject({ code: "unauthorized" });
         const envelope =
           compatible(policy) && policy?.commands.includes(command)
             ? { ...message, api_contract: CLIENT_API }

@@ -12,6 +12,7 @@ import type { UserView } from "./saved-user-views";
 import "./usb-card-input";
 import "./camera-wall";
 import "./permission-directory";
+import "./access-control";
 import { profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
 import "./user-photo";
@@ -43,6 +44,8 @@ import type {
   ReviewState,
   CsvPreview,
   Assignment,
+  AuthorizationSession,
+  WiskeyArea,
 } from "./types";
 import "./schedules";
 import "./live-clock";
@@ -134,6 +137,7 @@ export class IntercomManagerPanel extends LitElement {
     _stationTabs: { state: true },
     _deviceFocus: { state: true },
     _data: { state: true },
+    _session: { state: true },
     _haConnected: { state: true },
     _refreshFailed: { state: true },
     _tab: { state: true },
@@ -174,6 +178,20 @@ export class IntercomManagerPanel extends LitElement {
     return this.contractProxy;
   }
   private _detailsUser = "";
+  private _session?: AuthorizationSession | null;
+  private sessionUser?: string;
+  private get authorized() {
+    return !!this._session?.allowed;
+  }
+  private level(area: WiskeyArea) {
+    return this._session?.areas[area] ?? "none";
+  }
+  private canView(area: WiskeyArea) {
+    return this.level(area) !== "none";
+  }
+  private canManage(area: WiskeyArea) {
+    return this.level(area) === "manage";
+  }
   narrow = false;
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
@@ -235,13 +253,16 @@ export class IntercomManagerPanel extends LitElement {
   }
   private _stationTabs: Record<string, string> = {};
   private _deviceFocus = "";
+  private syncAppearance() {
+    const user = this.authorized ? this.hass?.user?.id : undefined;
+    if (user !== this._appearanceUser) {
+      this._appearanceUser = user;
+      this._appearance = readAppearance(user);
+    }
+  }
   protected willUpdate(changed: PropertyValues) {
-    if (changed.has("hass")) {
-      const user = this.hass?.user?.is_admin ? this.hass.user.id : undefined;
-      if (user !== this._appearanceUser) {
-        this._appearanceUser = user;
-        this._appearance = readAppearance(user);
-      }
+    if (changed.has("hass") || changed.has("_session")) {
+      this.syncAppearance();
       this._dark = this.hass?.themes?.darkMode ?? false;
     }
   }
@@ -260,6 +281,12 @@ export class IntercomManagerPanel extends LitElement {
     </button>`;
   }
   private navigate(tab: string) {
+    if (
+      tab === "tools"
+        ? !this.canView("stations") && !this.canView("management")
+        : !this.canView(this.tabArea(tab))
+    )
+      return;
     const schedules = this.renderRoot.querySelector("hikvision-intercom-schedules") as
       (HTMLElement & { canLeave(): boolean }) | null;
     if (tab !== this._tab && schedules && !schedules.canLeave()) return;
@@ -286,6 +313,17 @@ export class IntercomManagerPanel extends LitElement {
   private cancelRequests() {
     for (const controller of this.pendingRequests) controller.abort();
     this.pendingRequests.clear();
+  }
+  private clearPrivateState() {
+    this._busy = false;
+    this._draft = undefined;
+    this._review = undefined;
+    this._importRows = [];
+    this.clearCsv();
+    this.clearCapture();
+    this.resetPinValidation();
+    this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
+    this._dialog = "";
   }
   private bindConnection(connection?: Hass["connection"]) {
     this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
@@ -378,14 +416,15 @@ export class IntercomManagerPanel extends LitElement {
     this.dialogResize = new ResizeObserver(this.fitDialog);
     this.dialogResize.observe(this);
     this._timer = setInterval(() => {
-      if (!document.hidden && this.hass?.user?.is_admin) {
+      if (!document.hidden && this.authorized) {
         this.requestUpdate();
         void this.refresh();
       }
     }, 30000);
-    if (this.hass?.user?.is_admin) {
+    if (this.hass?.user) {
+      this.sessionUser = this.hass.user.id;
       this.bindConnection(this.hass.connection);
-      void this.connect();
+      void this.bootstrap();
     }
   }
   disconnectedCallback() {
@@ -433,18 +472,31 @@ export class IntercomManagerPanel extends LitElement {
     }
     if (!this.isConnected) return;
     if (changed.has("hass")) {
-      if (this.hass?.user?.is_admin) {
-        if (this.connection !== this.hass.connection) {
-          this._epoch++;
-          this._busy = false;
-          this._notice = "";
-          this._error = "";
-          this.cancelRequests();
-          this._unsubscribe?.();
-          this._unsubscribe = undefined;
-          this._connecting = false;
-          this.bindConnection(this.hass.connection);
-        }
+      const identityChanged = this.sessionUser !== this.hass?.user?.id;
+      const connectionChanged = this.connection !== this.hass?.connection;
+      const administratorRoleDropped =
+        Boolean(this._session?.is_admin) && !Boolean(this.hass?.user?.is_admin);
+      if (identityChanged || administratorRoleDropped) {
+        this._epoch++;
+        this.cancelRequests();
+        this.clearPrivateState();
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+        this._connecting = false;
+        this._session = undefined;
+        this._data = undefined;
+        this.sessionUser = this.hass?.user?.id;
+        this.bindConnection(this.hass?.connection);
+        void this.bootstrap();
+      } else if (connectionChanged) {
+        this._epoch++;
+        this.cancelRequests();
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+        this._connecting = false;
+        this.bindConnection(this.hass?.connection);
+        if (this.authorized) void this.connect();
+      } else if (this.authorized) {
         if (this._data) {
           let changedState = false;
           const stations = this._data.stations.map((station) => {
@@ -461,27 +513,6 @@ export class IntercomManagerPanel extends LitElement {
           if (changedState) this._data = { ...this._data, stations };
         }
         void this.connect();
-      } else {
-        this._epoch++;
-        this._busy = false;
-        this._notice = "";
-        this._error = "";
-        this._importRows = [];
-        this._review = undefined;
-        this.cancelRequests();
-        this.bindConnection(undefined);
-        this._refreshFailed = false;
-        this._unsubscribe?.();
-        this._unsubscribe = undefined;
-        this._connecting = false;
-        this._draft = undefined;
-        this._selectedUsers = new Set();
-        this._auditUser = "";
-        this.clearCsv();
-        this.clearCapture();
-        this._data = undefined;
-        this._releases = new Map();
-        this._dialog = "";
       }
     }
     if (changed.has("_data")) {
@@ -493,18 +524,71 @@ export class IntercomManagerPanel extends LitElement {
     if (dialog && !dialog.open) dialog.showModal();
     this.fitDialog();
   }
+  private async bootstrap() {
+    const hass = this.hass;
+    const userId = hass?.user?.id;
+    if (!hass?.user || !userId) {
+      this._session = null;
+      return;
+    }
+    const connection = hass.connection;
+    try {
+      const session = await hass.callWS<AuthorizationSession>({
+        type: "hikvision_intercom/authorization/session",
+      });
+      if (
+        !this.isConnected ||
+        this.hass?.connection !== connection ||
+        this.hass?.user?.id !== userId
+      )
+        return;
+      this._session = session;
+      this.syncAppearance();
+      if (session.allowed) await this.connect();
+      else {
+        this._data = undefined;
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+      }
+    } catch {
+      if (
+        this.isConnected &&
+        this.hass?.connection === connection &&
+        this.hass?.user?.id === userId
+      ) {
+        this._session = null;
+        this._refreshFailed = true;
+      }
+    }
+  }
   private async connect() {
-    if (this._unsubscribe || this._connecting || !this.isConnected || !this._haConnected) return;
+    if (
+      this._unsubscribe ||
+      this._connecting ||
+      !this.isConnected ||
+      !this._haConnected ||
+      !this.authorized
+    )
+      return;
     this._connecting = true;
     const epoch = this._epoch;
     try {
       const unsub = await this.hass!.connection.subscribeMessage(
-        () => {
+        (message: { kind?: string }) => {
+          if (message.kind === "access_revoked") {
+            this._session = null;
+            this._data = undefined;
+            this.cancelRequests();
+            this.clearPrivateState();
+            this._unsubscribe = undefined;
+            this._dialog = "";
+            return;
+          }
           void this.refresh();
         },
         { type: "hikvision_intercom/subscribe" },
         {
-          preCheck: () => epoch === this._epoch && this.isConnected && !!this.hass?.user?.is_admin,
+          preCheck: () => epoch === this._epoch && this.isConnected && !!this.authorized,
         },
       );
       if (epoch !== this._epoch || !this.isConnected) {
@@ -514,7 +598,7 @@ export class IntercomManagerPanel extends LitElement {
       this._unsubscribe = unsub;
       await this.refresh();
     } catch {
-      if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+      if (epoch === this._epoch && this.isConnected && this.authorized)
         this._error = this.t("failed");
     } finally {
       if (epoch === this._epoch) this._connecting = false;
@@ -524,16 +608,16 @@ export class IntercomManagerPanel extends LitElement {
     return (
       epoch === this._epoch &&
       this.isConnected &&
-      !!this.hass?.user?.is_admin &&
-      this.hass.connection === connection
+      !!this.authorized &&
+      this.hass?.connection === connection
     );
   }
   private async api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
-    if (!this.hass?.user?.is_admin || (!this.isConnected && command !== "cards/capture_cancel"))
+    if (!this.authorized || (!this.isConnected && command !== "cards/capture_cancel"))
       throw { code: "unauthorized" };
-    if (!this._haConnected || this.hass.connection.connected === false)
+    if (!this._haConnected || this.hass?.connection.connected === false)
       throw { code: "panel_read_interrupted" };
-    const hass = this.hass,
+    const hass = this.hass!,
       epoch = this._epoch;
     const send = () =>
       this.protectedHass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
@@ -564,7 +648,7 @@ export class IntercomManagerPanel extends LitElement {
     }
   }
   private async refresh() {
-    if (!this.isConnected || !this.hass?.user?.is_admin || !this._haConnected) return;
+    if (!this.isConnected || !this.authorized || !this._haConnected) return;
     if (this._refreshing) {
       this._refreshAgain = true;
       return;
@@ -576,8 +660,11 @@ export class IntercomManagerPanel extends LitElement {
         const epoch = this._epoch;
         try {
           const data = await this.api<Overview>("overview");
-          if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin) {
+          if (epoch === this._epoch && this.isConnected && this.authorized) {
             this._data = data;
+            this._session = data.access;
+            this.syncAppearance();
+            this.ensureAllowedTab();
             this.refreshValidityZone();
             this._refreshFailed = false;
             const configured = new Set(data.stations.map((station) => station.id));
@@ -586,15 +673,10 @@ export class IntercomManagerPanel extends LitElement {
             );
           }
         } catch {
-          if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+          if (epoch === this._epoch && this.isConnected && this.authorized)
             this._refreshFailed = true;
         }
-      } while (
-        this._refreshAgain &&
-        this.isConnected &&
-        this.hass?.user?.is_admin &&
-        this._haConnected
-      );
+      } while (this._refreshAgain && this.isConnected && this.authorized && this._haConnected);
     } finally {
       this._refreshing = false;
     }
@@ -604,13 +686,14 @@ export class IntercomManagerPanel extends LitElement {
     return key ? this.t(key) : this.t("failed");
   }
   private async run(action: () => Promise<unknown>, message = "queued") {
-    if (this._busy || !this.isConnected || !this.hass?.user?.is_admin) return false;
-    if (!this._haConnected || this.hass.connection.connected === false) {
+    if (this._busy || !this.isConnected || !this.authorized || !this.canManage(this.tabArea()))
+      return false;
+    if (!this._haConnected || this.hass?.connection.connected === false) {
       this._error = this.t("panel_read_interrupted");
       return false;
     }
     const epoch = this._epoch,
-      connection = this.hass.connection;
+      connection = this.hass!.connection;
     this._busy = true;
     this._error = "";
     this._notice = "";
@@ -1397,12 +1480,7 @@ export class IntercomManagerPanel extends LitElement {
         "users/csv_inspect",
         { csv: content },
       );
-      if (
-        epoch === this._epoch &&
-        this.isConnected &&
-        this.hass?.user?.is_admin &&
-        this._dialog === "csv"
-      ) {
+      if (epoch === this._epoch && this.isConnected && this.authorized && this._dialog === "csv") {
         this._csvMapping = inspected.mapping;
         this._csvContent = content;
         this._csvName = file.name;
@@ -1418,12 +1496,7 @@ export class IntercomManagerPanel extends LitElement {
         column_map: this._csvMapping,
         mode: this._csvMode,
       });
-      if (
-        epoch === this._epoch &&
-        this.isConnected &&
-        this.hass?.user?.is_admin &&
-        this._dialog === "csv"
-      )
+      if (epoch === this._epoch && this.isConnected && this.authorized && this._dialog === "csv")
         this._csvPreview = result;
     }, "");
   }
@@ -1459,7 +1532,7 @@ export class IntercomManagerPanel extends LitElement {
     const epoch = this._epoch;
     await this.run(async () => {
       const result = await this.api<{ csv: string }>("users/csv_export");
-      if (epoch === this._epoch && this.isConnected && this.hass?.user?.is_admin)
+      if (epoch === this._epoch && this.isConnected && this.authorized)
         downloadText(result.csv, "hikvision-users.csv");
     }, "");
   }
@@ -1728,6 +1801,7 @@ export class IntercomManagerPanel extends LitElement {
     );
   }
   private releaseButton(station: Station, primary = false, compact = false) {
+    if (!this.canManage("overview") && !this.canManage("stations")) return nothing;
     return station.integrated_locks.map((lock) =>
       this.relayButton(station, lock.physical_index, primary, compact),
     );
@@ -1767,10 +1841,11 @@ export class IntercomManagerPanel extends LitElement {
   private async unlock(station: Station, physical = 1) {
     const current = this._data?.stations.find((item) => item.id === station.id);
     if (
-      !this.hass?.user?.is_admin ||
+      !this.authorized ||
+      (!this.canManage("overview") && !this.canManage("stations")) ||
       !this.isConnected ||
       !this._haConnected ||
-      this.hass.connection.connected === false ||
+      this.hass?.connection.connected === false ||
       !current?.online ||
       !current.lock_enabled ||
       !current.integrated_locks.some((lock) => lock.physical_index === physical) ||
@@ -1795,7 +1870,7 @@ export class IntercomManagerPanel extends LitElement {
     if (
       epoch === this._epoch &&
       this.isConnected &&
-      this.hass?.user?.is_admin &&
+      this.authorized &&
       this._releases.get(`${current.id}/${physical}`) === state
     ) {
       this._releases = new Map(this._releases).set(`${current.id}/${physical}`, {
@@ -1813,6 +1888,7 @@ export class IntercomManagerPanel extends LitElement {
     this._callBusy = next;
   };
   private callControls(station: Station, compact = false, dock = false) {
+    if (!this.canManage("overview") && !this.canManage("stations")) return nothing;
     return html`<hikvision-intercom-call-controls
       .hass=${this.protectedHass}
       .station=${station}
@@ -2238,15 +2314,19 @@ export class IntercomManagerPanel extends LitElement {
                           ${this.t("pending_users")}: ${station.pending_user_count}
                         </p>
                         ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen, station)}</bdi></p>` : nothing}
-                        <button
-                          class="station-settings"
-                          @click=${() => {
-                            this._deviceFocus = station.id;
-                            this.navigate("devices");
-                          }}
-                        >
-                          ${this.t("station_details")}${icon("arrow")}
-                        </button>
+                        ${
+                          this.canView("stations")
+                            ? html`<button
+                                class="station-settings"
+                                @click=${() => {
+                                  this._deviceFocus = station.id;
+                                  this.navigate("devices");
+                                }}
+                              >
+                                ${this.t("station_details")}${icon("arrow")}
+                              </button>`
+                            : nothing
+                        }
                       </details>
                     </div>
                   </article>`,
@@ -2254,19 +2334,52 @@ export class IntercomManagerPanel extends LitElement {
             </div>`
       }`;
   }
+  private tabArea(tab = this._tab): WiskeyArea {
+    if (tab === "users") return "users";
+    if (["events", "audit"].includes(tab)) return "events";
+    if (["devices", "sync", "health"].includes(tab)) return "stations";
+    if (
+      [
+        "tools",
+        "clock_options",
+        "media_options",
+        "whatsapp_templates",
+        "permission_directory",
+        "schedules",
+        "access_control",
+      ].includes(tab)
+    )
+      return "management";
+    return "overview";
+  }
+  private ensureAllowedTab() {
+    if (this.canView(this.tabArea())) return;
+    const first = (["overview", "users", "events", "tools"] as const).find((tab) =>
+      tab === "tools"
+        ? this.canView("stations") || this.canView("management")
+        : this.canView(this.tabArea(tab)),
+    );
+    this._tab = first ?? "overview";
+  }
   private navigation() {
     const management = !["overview", "users", "events"].includes(this._tab);
     return html`<nav class="nav" aria-label=${this.t("title")}>
       <div class="nav-group nav-primary">
-        ${["overview", "users", "events", "tools"].map(
-          (tab) =>
-            html`<button
-              aria-current=${this._tab === tab || (tab === "tools" && management) ? "page" : nothing}
-              @click=${() => this.navigate(tab)}
-            >
-              ${icon(tab)}<span>${this.t(tab)}</span>
-            </button>`,
-        )}
+        ${["overview", "users", "events", "tools"]
+          .filter((tab) =>
+            tab === "tools"
+              ? this.canView("stations") || this.canView("management")
+              : this.canView(this.tabArea(tab)),
+          )
+          .map(
+            (tab) =>
+              html`<button
+                aria-current=${this._tab === tab || (tab === "tools" && management) ? "page" : nothing}
+                @click=${() => this.navigate(tab)}
+              >
+                ${icon(tab)}<span>${this.t(tab)}</span>
+              </button>`,
+          )}
       </div>
     </nav>`;
   }
@@ -2291,23 +2404,40 @@ export class IntercomManagerPanel extends LitElement {
           "audit",
           "health",
           "schedules",
-        ].map(
-          (tab) =>
-            html`<article class="tool-card">
-              <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
-                ${icon(tab)}${this.t(tab)}${icon("arrow")}
-              </button>
-              <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
-            </article>`,
-        )}
-        <article class="tool-card">
-          ${this.appearanceButton()}
-          <p class="sub">${this.t("tools_appearance")}</p>
-        </article>
-        <article class="tool-card">
-          <a href=${settingsPath}>${icon("tools")}${this.t("tools_settings")}${icon("arrow")}</a>
-          <p class="sub">${this.t("tools_settings_hint")}</p>
-        </article>
+          "access_control",
+        ]
+          .filter(
+            (tab) =>
+              this.canView(this.tabArea(tab)) &&
+              (tab !== "access_control" || !!this._session?.is_admin),
+          )
+          .map(
+            (tab) =>
+              html`<article class="tool-card">
+                <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
+                  ${icon(tab)}${this.t(tab)}${icon("arrow")}
+                </button>
+                <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
+              </article>`,
+          )}
+        ${
+          this.canView("management")
+            ? html`<article class="tool-card">
+                ${this.appearanceButton()}
+                <p class="sub">${this.t("tools_appearance")}</p>
+              </article>`
+            : nothing
+        }
+        ${
+          this._session?.is_admin
+            ? html`<article class="tool-card">
+                <a href=${settingsPath}
+                  >${icon("tools")}${this.t("tools_settings")}${icon("arrow")}</a
+                >
+                <p class="sub">${this.t("tools_settings_hint")}</p>
+              </article>`
+            : nothing
+        }
       </section>`;
   }
 
@@ -3925,9 +4055,14 @@ export class IntercomManagerPanel extends LitElement {
   }
   render() {
     const he = this.hass?.language?.startsWith("he");
-    if (!this.hass?.user?.is_admin)
+    if (this._session === undefined)
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
-        <h2>${this.t("admin_only")}</h2>
+        <p class="loader">${this.t("loading")}</p>
+      </div>`;
+    if (!this.authorized)
+      return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
+        <h2>${this.t("access_not_granted")}</h2>
+        <p>${this.t("access_not_granted_hint")}</p>
       </div>`;
     return html`<div class="app-shell" dir=${he ? "rtl" : "ltr"}>
       <header>
@@ -3958,6 +4093,7 @@ export class IntercomManagerPanel extends LitElement {
         </div>
       </header>
       <main tabindex="-1">
+        ${!this.canManage(this.tabArea()) ? html`<p class="notice readonly-notice" role="status">${this.t("view_only_mode")}</p>` : nothing}
         ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
         ${!["overview", "users", "events", "tools"].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
         ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
@@ -3980,92 +4116,95 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "camera_wall"
-              ? html`<wiskey-camera-wall
-                  .hass=${this.protectedHass}
-                  .stations=${this._data.stations}
-                  .media=${this._data.media_settings}
-                  .version=${this._data.version}
-                  .suspended=${!!this._dialog}
-                  @open-station=${(e: CustomEvent<string>) => {
-                    this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
-                    this._dialog = "camera";
-                  }}
-                ></wiskey-camera-wall>`
-              : this._tab === "permission_directory"
-                ? html`<hikvision-permission-directory
+            : this._tab === "access_control" && this._session?.is_admin
+              ? html`<wiskey-access-control .hass=${this.hass}></wiskey-access-control>`
+              : this._tab === "camera_wall"
+                ? html`<wiskey-camera-wall
                     .hass=${this.protectedHass}
                     .stations=${this._data.stations}
-                    .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
-                    @edit-person=${(e: CustomEvent<string>) => {
-                      const user = this._data?.users.find((u) => u.id === e.detail);
-                      if (user) this.edit(user);
+                    .media=${this._data.media_settings}
+                    .version=${this._data.version}
+                    .suspended=${!!this._dialog}
+                    @open-station=${(e: CustomEvent<string>) => {
+                      this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
+                      this._dialog = "camera";
                     }}
-                  ></hikvision-permission-directory>`
-                : this._tab === "profile_options"
-                  ? html`<hikvision-profile-settings
+                  ></wiskey-camera-wall>`
+                : this._tab === "permission_directory"
+                  ? html`<hikvision-permission-directory
                       .hass=${this.protectedHass}
-                      .settings=${this._data.profile_settings}
                       .stations=${this._data.stations}
-                      @profile-saved=${(e: CustomEvent) => {
-                        if (this._data) this._data = { ...this._data, profile_settings: e.detail };
+                      .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
+                      @edit-person=${(e: CustomEvent<string>) => {
+                        const user = this._data?.users.find((u) => u.id === e.detail);
+                        if (user) this.edit(user);
                       }}
-                    ></hikvision-profile-settings>`
-                  : this._tab === "whatsapp_templates"
-                    ? html`<wiskey-whatsapp-templates
+                    ></hikvision-permission-directory>`
+                  : this._tab === "profile_options"
+                    ? html`<hikvision-profile-settings
                         .hass=${this.protectedHass}
-                      ></wiskey-whatsapp-templates>`
-                    : this._tab === "media_options"
-                      ? html`<hikvision-media-settings
+                        .settings=${this._data.profile_settings}
+                        .stations=${this._data.stations}
+                        @profile-saved=${(e: CustomEvent) => {
+                          if (this._data)
+                            this._data = { ...this._data, profile_settings: e.detail };
+                        }}
+                      ></hikvision-profile-settings>`
+                    : this._tab === "whatsapp_templates"
+                      ? html`<wiskey-whatsapp-templates
                           .hass=${this.protectedHass}
-                          .settings=${this._data.media_settings}
-                          @media-saved=${(e: CustomEvent) => {
-                            if (this._data)
-                              this._data = { ...this._data, media_settings: e.detail };
-                          }}
-                        ></hikvision-media-settings>`
-                      : this._tab === "clock_options"
-                        ? html`<hikvision-clock-settings
+                        ></wiskey-whatsapp-templates>`
+                      : this._tab === "media_options"
+                        ? html`<hikvision-media-settings
                             .hass=${this.protectedHass}
-                            .stations=${this._data.stations}
-                          ></hikvision-clock-settings>`
-                        : this._tab === "tools"
-                          ? this.toolsView()
-                          : this._tab === "overview"
-                            ? this.overviewView()
-                            : this._tab === "users"
-                              ? this.usersView()
-                              : this._tab === "devices"
-                                ? this.devicesView()
-                                : this._tab === "sync"
-                                  ? this.syncView()
-                                  : this._tab === "audit"
-                                    ? html`<hikvision-admin-audit
-                                        .hass=${this.protectedHass}
-                                        .users=${this._data.users}
-                                        .stations=${this._data.stations}
-                                        .focusUser=${this._auditUser}
-                                        .zone=${this._data.default_zone ?? UTC_ZONE}
-                                        @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                      ></hikvision-admin-audit>`
-                                    : this._tab === "health"
-                                      ? html`<hikvision-intercom-health
-                                          .callBusy=${this._callBusy}
-                                          .onCallBusy=${this.setCallBusy}
+                            .settings=${this._data.media_settings}
+                            @media-saved=${(e: CustomEvent) => {
+                              if (this._data)
+                                this._data = { ...this._data, media_settings: e.detail };
+                            }}
+                          ></hikvision-media-settings>`
+                        : this._tab === "clock_options"
+                          ? html`<hikvision-clock-settings
+                              .hass=${this.protectedHass}
+                              .stations=${this._data.stations}
+                            ></hikvision-clock-settings>`
+                          : this._tab === "tools"
+                            ? this.toolsView()
+                            : this._tab === "overview"
+                              ? this.overviewView()
+                              : this._tab === "users"
+                                ? this.usersView()
+                                : this._tab === "devices"
+                                  ? this.devicesView()
+                                  : this._tab === "sync"
+                                    ? this.syncView()
+                                    : this._tab === "audit"
+                                      ? html`<hikvision-admin-audit
                                           .hass=${this.protectedHass}
+                                          .users=${this._data.users}
                                           .stations=${this._data.stations}
-                                        ></hikvision-intercom-health>`
-                                      : this._tab === "schedules"
-                                        ? html`<hikvision-intercom-schedules
+                                          .focusUser=${this._auditUser}
+                                          .zone=${this._data.default_zone ?? UTC_ZONE}
+                                          @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                        ></hikvision-admin-audit>`
+                                      : this._tab === "health"
+                                        ? html`<hikvision-intercom-health
+                                            .callBusy=${this._callBusy}
+                                            .onCallBusy=${this.setCallBusy}
                                             .hass=${this.protectedHass}
                                             .stations=${this._data.stations}
-                                          ></hikvision-intercom-schedules>`
-                                        : html`<hikvision-intercom-events
-                                            .policy=${this._data.profile_settings}
-                                            .hass=${this.protectedHass}
-                                            .stations=${this._data.stations}
-                                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                          ></hikvision-intercom-events>`
+                                          ></hikvision-intercom-health>`
+                                        : this._tab === "schedules"
+                                          ? html`<hikvision-intercom-schedules
+                                              .hass=${this.protectedHass}
+                                              .stations=${this._data.stations}
+                                            ></hikvision-intercom-schedules>`
+                                          : html`<hikvision-intercom-events
+                                              .policy=${this._data.profile_settings}
+                                              .hass=${this.protectedHass}
+                                              .stations=${this._data.stations}
+                                              .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                            ></hikvision-intercom-events>`
         }
       </main>
       ${

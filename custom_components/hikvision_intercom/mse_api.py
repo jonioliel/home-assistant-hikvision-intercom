@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from .access.models import AccessError
 from .const import DOMAIN
 from .media_api import provider, settings
+from .panel_permissions import area_allowed
 
 CODECS = frozenset({"avc1.640029", "avc1.64002A", "avc1.640033", "hvc1.1.6.L153.B0"})
 MAX_MESSAGE = 4 * 1024 * 1024
@@ -34,7 +35,11 @@ class MSEView(HomeAssistantView):
 
     async def get(self, request: web.Request, station_id: str) -> web.StreamResponse:
         user = request.get("hass_user")
-        if not user or not user.is_admin or not user.is_active:
+        permissions = self.hass.data[DOMAIN].get("panel_permissions")
+        if not (
+            area_allowed(permissions, user, "overview", "view")
+            or area_allowed(permissions, user, "stations", "view")
+        ):
             raise web.HTTPForbidden()
         entry = self.hass.config_entries.async_get_entry(station_id)
         runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
@@ -111,8 +116,20 @@ class MSEView(HomeAssistantView):
                 async def watch_owner() -> None:
                     while True:
                         valid = (
-                            user.is_admin
-                            and user.is_active
+                            (
+                                area_allowed(
+                                    self.hass.data[DOMAIN].get("panel_permissions"),
+                                    user,
+                                    "overview",
+                                    "view",
+                                )
+                                or area_allowed(
+                                    self.hass.data[DOMAIN].get("panel_permissions"),
+                                    user,
+                                    "stations",
+                                    "view",
+                                )
+                            )
                             and not runtime.is_closed
                             and getattr(
                                 self.hass.config_entries.async_get_entry(station_id),

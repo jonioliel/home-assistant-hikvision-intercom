@@ -12,6 +12,7 @@ CAPABILITIES = [
     "user_timing_draft",
     "user_timing_enforcement",
     "whatsapp_templates",
+    "panel_permissions",
 ]
 
 
@@ -26,6 +27,8 @@ def contract(commands: list[str]) -> dict:
 
 READ_COMMANDS = frozenset(
     {
+        "authorization/session",
+        "authorization/settings_get",
         "overview",
         "stations/list",
         "stations/get",

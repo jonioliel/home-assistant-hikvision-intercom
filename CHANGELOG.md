@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.4.0] - 2026-09-17
+
+- Add durable per-user WisKey authorization for active Home Assistant users across Overview, Users, Events, Intercom stations and Management tools, with independent none/view/manage levels.
+- Add a responsive administrator permission editor under Management tools. HA administrators retain full recovery access; non-administrators require an explicit assignment.
+- Filter navigation and API contracts by the authenticated user, mark view-only screens, hide door/call controls without manage access and prevent navigation into ungranted areas.
+- Enforce grants server-side for every panel WebSocket command, MSE/RTC video, two-way audio, calls and door release. Unknown commands fail closed.
+- Re-authorize live subscriptions and media sessions so revocation applies to already-open browsers; corrupt permission storage denies delegated access and creates a Repair without blocking administrator recovery.
+- Add revision-conflict, persistence, invalid-storage, delegated-read, denied-write, live-revocation and responsive browser coverage. See `docs/HA_USER_PERMISSIONS_HE.md`.
+
 ## [1.3.0] - 2026-09-17
 
 - Distinguish personal-PIN access, card-only access and users without an active credential in WhatsApp access messages; security wording now matches the actual credential.

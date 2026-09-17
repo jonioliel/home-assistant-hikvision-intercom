@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.0.0-rc.7](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.0.0-rc.7)** — redesigned modern overview with viewport-fitted camera tiles, density selection, search, fullscreen and mobile paging. Existing appearance and access-timing enforcement remain available. [Screen guide](docs/MAIN_SCREEN_RC7_HE.md) · [Verified checks](docs/VALIDATION.md). This is an RC prerelease.
+Published runtime: **[1.4.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.4.0)** — Home Assistant user permissions with per-area view/manage levels and live revocation.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -25,6 +25,14 @@ Choose **Existing** to return to the previous design. The preference is saved pe
 browser; light/dark colors follow Home Assistant. All views adapt to the panel width,
 with mobile user cards. **Management tools** groups advanced views and the Appearance picker;
 camera/editor dialogs contain only their relevant controls. See the [guide and screenshots](docs/ALTERNATE_UI_028_HE.md).
+
+## Home Assistant user permissions
+
+Home Assistant administrators can open **Management tools → HA user permissions** and grant each
+active non-administrator separate `none`, `view only`, or `view and manage` access for Overview,
+Users, Events, Intercom stations and Management tools. Navigation follows the grant and all
+WebSocket, door, call, audio and custom video paths enforce it again on the server. Revocation also
+closes an already-open subscription or stream. [Hebrew setup and security model](docs/HA_USER_PERMISSIONS_HE.md).
 
 ## Two-way audio
 

@@ -8,7 +8,21 @@ import pytest
 
 from custom_components.hikvision_intercom.access_runtime import get_manager
 from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.panel_permissions import requirements
 from custom_components.hikvision_intercom.websocket import COMMANDS
+
+
+def test_every_delegated_command_has_an_explicit_permission_classification():
+    administrator_only = {
+        "authorization/session",
+        "authorization/settings_get",
+        "authorization/settings_update",
+    }
+    assert {
+        command
+        for command in COMMANDS
+        if command not in administrator_only and requirements(command) is None
+    } == set()
 
 
 async def request(client, command, **data):
@@ -34,16 +48,84 @@ async def test_admin_overview_and_panel_registration(hass, loaded_entry, hass_ws
     from homeassistant.components.frontend import DATA_PANELS
 
     assert hass.data[DATA_PANELS]["hikvision-intercom"].sidebar_title == "WisKey"
-    assert hass.data[DATA_PANELS]["hikvision-intercom"].require_admin
+    assert not hass.data[DATA_PANELS]["hikvision-intercom"].require_admin
 
 
-@pytest.mark.parametrize("command", [*COMMANDS, "subscribe"])
+@pytest.mark.parametrize(
+    "command",
+    [command for command in COMMANDS if command != "authorization/session"] + ["subscribe"],
+)
 async def test_all_administrative_commands_reject_reader(
     hass, loaded_entry, hass_ws_client, hass_read_only_access_token, command
 ):
     client = await hass_ws_client(hass, access_token=hass_read_only_access_token)
     result = await request(client, command)
     assert not result["success"] and result["error"]["code"] == "unauthorized"
+
+
+async def test_reader_session_is_safe_and_delegated_access_is_scoped(
+    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+):
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    session = await request(reader, "authorization/session")
+    assert session["success"] and session["result"]["allowed"] is False
+
+    ha_users = await hass.auth.async_get_users()
+    reader_user = next(user for user in ha_users if not user.is_admin and user.is_active)
+    admin = await hass_ws_client(hass)
+    areas = {
+        "overview": "view",
+        "users": "view",
+        "events": "none",
+        "stations": "none",
+        "management": "none",
+    }
+    saved = await request(
+        admin,
+        "authorization/settings_update",
+        revision=0,
+        users={reader_user.id: {"enabled": True, "areas": areas}},
+    )
+    assert saved["success"] and saved["result"]["revision"] == 1
+
+    session = await request(reader, "authorization/session")
+    assert session["result"]["areas"] == areas
+    overview = await request(reader, "overview")
+    assert overview["success"]
+    assert "users/list" in overview["result"]["api"]["commands"]
+    assert "users/create" not in overview["result"]["api"]["commands"]
+    assert overview["result"]["stations"][0].get("host") is None
+    assert (await request(reader, "users/list"))["success"]
+    denied = await request(reader, "users/create", data={"display_name": "Blocked"})
+    assert not denied["success"] and denied["error"]["code"] == "unauthorized"
+
+
+async def test_permission_revocation_closes_reader_subscription(
+    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+):
+    ha_users = await hass.auth.async_get_users()
+    reader_user = next(user for user in ha_users if not user.is_admin and user.is_active)
+    admin = await hass_ws_client(hass)
+    policy = {
+        "enabled": True,
+        "areas": {
+            area: ("view" if area == "overview" else "none")
+            for area in ("overview", "users", "events", "stations", "management")
+        },
+    }
+    assert (
+        await request(
+            admin, "authorization/settings_update", revision=0, users={reader_user.id: policy}
+        )
+    )["success"]
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    subscribed = await request(reader, "subscribe")
+    assert subscribed["success"]
+    assert (await request(admin, "authorization/settings_update", revision=1, users={}))["success"]
+    event = await reader.receive_json()
+    assert event["event"] == {"kind": "access_revoked"}
+    denied = await request(reader, "overview")
+    assert not denied["success"] and denied["error"]["code"] == "unauthorized"
 
 
 async def test_create_get_update_card_and_delete_never_echo_secrets(
