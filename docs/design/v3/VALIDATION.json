@@ -1,0 +1,667 @@
+{
+  "generatedAt": "2026-09-17T17:46:44.010Z",
+  "screens": 12,
+  "images": 72,
+  "errors": [],
+  "checks": {
+    "selectedPerson": true,
+    "filteredRows": 1,
+    "emptyVisible": true,
+    "dates": 2,
+    "always": true,
+    "codes": 4,
+    "messagePreview": true,
+    "safeAction": true,
+    "themeSwitch": true
+  },
+  "results": [
+    {
+      "id": "overview",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 8
+    },
+    {
+      "id": "people",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": 171,
+      "visiblePeople": 12,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "desktop",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "overview",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 8
+    },
+    {
+      "id": "people",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": 171,
+      "visiblePeople": 12,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "desktop",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "overview",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 8
+    },
+    {
+      "id": "people",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": 168,
+      "visiblePeople": 12,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "tablet",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "overview",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 8
+    },
+    {
+      "id": "people",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": 168,
+      "visiblePeople": 12,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "tablet",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "overview",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 6
+    },
+    {
+      "id": "people",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": 0,
+      "visiblePeople": 6,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "mobile",
+      "theme": "light",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "overview",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 6
+    },
+    {
+      "id": "people",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": 0,
+      "visiblePeople": 6,
+      "visibleDoors": 0
+    },
+    {
+      "id": "person",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "access",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "door",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "schedules",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "call",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "activity",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "sync",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "whatsapp",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "settings",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    },
+    {
+      "id": "appearance",
+      "device": "mobile",
+      "theme": "dark",
+      "rootOverflow": false,
+      "firstRowY": null,
+      "visiblePeople": 0,
+      "visibleDoors": 0
+    }
+  ]
+}
