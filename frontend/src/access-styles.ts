@@ -621,7 +621,7 @@ export const accessStyles = css`
   }
   :host([data-access]) .access-people-workspace {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 344px;
+    grid-template-columns: minmax(0, 1fr) 400px;
     align-items: start;
     gap: 16px;
   }
@@ -630,10 +630,9 @@ export const accessStyles = css`
     min-width: 0;
   }
   :host([data-access]) .access-person-inspector {
-    position: sticky;
-    top: 76px;
-    max-height: calc(100dvh - 98px);
-    overflow: auto;
+    position: static;
+    max-height: none;
+    overflow: visible;
     border-radius: 10px;
   }
   :host([data-access]) .users-page {

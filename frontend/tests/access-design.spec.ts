@@ -230,3 +230,63 @@ for (const design of ["access-light", "access-dark"]) {
     await noOverflow(page);
   });
 }
+
+for (const design of ["access-light", "access-dark"]) {
+  test(`${design} selected person never opens a modal when navigating away`, async ({ page }) => {
+    await start(page, design);
+    await navigate(page, "משתמשים");
+    const names = page.locator(".access-people-table .user-detail-link");
+    const selected = await names.nth(1).innerText();
+    await names.nth(1).click();
+    await expect(page.locator("wiskey-user-details[embedded] h2")).toHaveText(selected);
+    await navigate(page, "אירועים");
+    await expect(page.locator("hikvision-intercom-events")).toBeVisible();
+    await expect(page.locator("wiskey-user-details")).toHaveCount(0);
+    await expect(page.locator(".editor-dialog")).toHaveCount(0);
+    await navigate(page, "משתמשים");
+    await expect(page.locator("wiskey-user-details[embedded] h2")).toHaveText(selected);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("wiskey-user-details")).toHaveCount(0);
+    await names.nth(1).click();
+    await expect(page.locator("wiskey-user-details:not([embedded]) dialog")).toBeVisible();
+  });
+
+  test(`${design} full profile and eight doors fit without a sidebar scroll container`, async ({
+    page,
+  }) => {
+    await start(page, design);
+    await page.evaluate(() => {
+      const p = window.demoData.users[0];
+      window.demoData.profile_settings.fields = [
+        { id: "department", label: "מחלקה", enabled: true },
+        { id: "role", label: "תפקיד", enabled: true },
+      ];
+      p.profile = { department: "הנהלה", role: "מנהל" };
+      p.assignments = Object.fromEntries(
+        window.demoData.stations
+          .slice(0, 8)
+          .map((station) => [
+            station.id,
+            { enabled: true, allowed_locks: [1], sync_state: "synced" },
+          ]),
+      );
+      window.demoNotify();
+    });
+    await navigate(page, "משתמשים");
+    const inspector = page.locator(".access-person-inspector");
+    const profile = inspector.locator("wiskey-user-details");
+    await expect(profile.locator(".rights li")).toHaveCount(8);
+    await expect(profile.locator("dd")).toContainText(["פעיל", "הנהלה", "מנהל"]);
+    expect(await inspector.evaluate((el) => getComputedStyle(el).overflowY)).toBe("visible");
+    expect(await profile.locator("dialog").evaluate((el) => getComputedStyle(el).overflowY)).toBe(
+      "visible",
+    );
+    expect(
+      (await profile.locator(".rights li").last().boundingBox())!.y +
+        (await profile.locator(".rights li").last().boundingBox())!.height,
+    ).toBeLessThan(900);
+    await expect(profile.getByRole("button", { name: "עריכה", exact: true })).toBeInViewport();
+    await noOverflow(page);
+    await page.screenshot({ path: `test-results/${design}-compact-profile.png` });
+  });
+}
