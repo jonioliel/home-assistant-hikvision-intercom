@@ -1,4 +1,6 @@
 import "./user-details";
+import { accessStyles } from "./access-styles";
+import { accessOverview } from "./access-overview";
 import { mobileDisplay } from "./phone";
 import { usersCompactStyles } from "./users-compact-styles";
 import "./clock-settings";
@@ -28,7 +30,14 @@ import { stationSettingsStyles } from "./station-settings-styles";
 import { overviewStyles } from "./overview-styles";
 import { headerStyles } from "./header-styles";
 import { modernStyles } from "./modern-styles";
-import { AppearancePicker, readAppearance, saveAppearance, type Appearance } from "./appearance";
+import {
+  AppearancePicker,
+  readAppearance,
+  saveAppearance,
+  appearanceOverride,
+  isAccessAppearance,
+  type Appearance,
+} from "./appearance";
 import { icon } from "./icons";
 import { boundedRequest } from "./request";
 import { translate } from "./i18n";
@@ -124,11 +133,15 @@ export class IntercomManagerPanel extends LitElement {
     stationSettingsStyles,
     overviewStyles,
     usersCompactStyles,
+    accessStyles,
   ];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
     _appearance: { attribute: "data-appearance", reflect: true },
+    _accessMode: { type: Boolean, attribute: "data-access", reflect: true },
+    _accessNarrow: { state: true },
+    _accessDoor: { state: true },
     _dark: { type: Boolean, attribute: "data-dark", reflect: true },
     _wallDensity: { state: true },
     _wallPage: { state: true },
@@ -196,12 +209,20 @@ export class IntercomManagerPanel extends LitElement {
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
   private _dark = false;
+  private _accessMode = false;
+  private _accessNarrow = false;
+  private _accessDoor = "";
+  private _appearanceOverride: Appearance | null = null;
+  private _appearanceFollow = true;
   private _wallDensity = 0;
   private _wallPage = 0;
   private _wallQuery = "";
   private _wallCapacity = 12;
   private wallResize?: ResizeObserver;
   private fitWall = () => {
+    const narrow = this.getBoundingClientRect().width < 1100;
+    if (this._accessNarrow !== narrow) this._accessNarrow = narrow;
+    if (this._accessMode) return;
     const grid = this.renderRoot.querySelector<HTMLElement>(".overview-wall");
     if (!grid) return;
     const rect = grid.getBoundingClientRect();
@@ -257,14 +278,20 @@ export class IntercomManagerPanel extends LitElement {
     const user = this.authorized ? this.hass?.user?.id : undefined;
     if (user !== this._appearanceUser) {
       this._appearanceUser = user;
-      this._appearance = readAppearance(user);
+      this._appearanceOverride = appearanceOverride(user);
+      this._appearanceFollow = this._appearanceOverride === null;
     }
+    this._appearance = this._appearanceFollow
+      ? (this._data?.appearance_settings?.default ?? "current")
+      : (this._appearanceOverride ?? "current");
   }
   protected willUpdate(changed: PropertyValues) {
-    if (changed.has("hass") || changed.has("_session")) {
+    if (changed.has("hass") || changed.has("_session") || changed.has("_data"))
       this.syncAppearance();
-      this._dark = this.hass?.themes?.darkMode ?? false;
-    }
+    this._accessMode = isAccessAppearance(this._appearance);
+    this._dark = this._accessMode
+      ? this._appearance === "access-dark"
+      : (this.hass?.themes?.darkMode ?? false);
   }
   private appearanceButton() {
     return html`<button
@@ -274,7 +301,11 @@ export class IntercomManagerPanel extends LitElement {
         const picker = this.renderRoot.querySelector<AppearancePicker>(
           "hikvision-appearance-picker",
         );
-        void picker?.show(this._appearance, event.currentTarget as HTMLElement);
+        void picker?.show(
+          this._appearance,
+          event.currentTarget as HTMLElement,
+          this._appearanceFollow,
+        );
       }}
     >
       ${icon("appearance")}<span>${this.t("appearance")}</span>
@@ -315,6 +346,8 @@ export class IntercomManagerPanel extends LitElement {
     this.pendingRequests.clear();
   }
   private clearPrivateState() {
+    this._detailsUser = "";
+    this._accessDoor = "";
     this._busy = false;
     this._draft = undefined;
     this._review = undefined;
@@ -1911,7 +1944,11 @@ export class IntercomManagerPanel extends LitElement {
   }
   private userActions(user: Person) {
     return html`<div class="user-action-group">
-      <button class="user-edit" @click=${() => this.edit(user)} ?disabled=${this._busy}>
+      <button
+        class="user-edit"
+        @click=${() => this.edit(user)}
+        ?disabled=${this._busy || !this.canManage("users")}
+      >
         ${this.t("edit")}
       </button>
       <button
@@ -2215,6 +2252,37 @@ export class IntercomManagerPanel extends LitElement {
       </div>`;
   }
   private overviewView() {
+    if (this._accessMode && this._data)
+      return accessOverview({
+        data: this._data,
+        query: this._wallQuery,
+        page: this._wallPage,
+        capacity: 12,
+        selected: this._accessDoor,
+        language: this.hass?.language ?? "en",
+        canEvents: this.canView("events"),
+        canStations: this.canView("stations"),
+        t: (key) => this.t(key),
+        date: (value) => this.dateText(value),
+        camera: (station) => this.camera(station),
+        release: (station) => this.releaseButton(station, true, true),
+        feedback: (station) => this.releaseFeedback(station),
+        search: (value) => {
+          this._wallQuery = value;
+          this._wallPage = 0;
+        },
+        paginate: (page) => (this._wallPage = page),
+        select: (station) => (this._accessDoor = station.id),
+        open: (station) => {
+          this._cameraStation = station;
+          this._dialog = "camera";
+        },
+        manage: (station) => {
+          this._deviceFocus = station.id;
+          this.navigate("devices");
+        },
+        events: () => this.navigate("events"),
+      });
     if (this._appearance === "modern") return this.wallView();
     const stations = [...(this._data?.stations ?? [])].sort(
       (a, b) => Number(b.call_state === "ringing") - Number(a.call_state === "ringing"),
@@ -2465,139 +2533,154 @@ export class IntercomManagerPanel extends LitElement {
           (typeof value === "object" ? Object.values(value).some(Boolean) : !!value),
       );
     return html`<section class="users-page">
-      <div class="page-heading users-heading">
-        <div>
-          <h2>${this.t("users")}</h2>
-          <p class="sub">${this.t("users_intro")}</p>
-        </div>
-        <button class="primary" @click=${() => this.edit()} ?disabled=${this._busy}>
-          + ${this.t("add_user")}
-        </button>
-      </div>
-      <div class="toolbar users-tools">
-        <input
-          type="search"
-          .value=${this._query}
-          placeholder=${this.t("search")}
-          aria-label=${this.t("search")}
-          @input=${(event: Event) => {
-            this._query = value(event);
-            this._selectedUsers = new Set();
-          }}
-        /><button @click=${() => this.openCsv()} ?disabled=${this._busy}>
-          ${this.t("csv_import")}</button
-        ><button @click=${() => this.exportCsv()} ?disabled=${this._busy}>
-          ${this.t("csv_export")}</button
-        ><button @click=${() => this.openImport()} ?disabled=${this._busy}>
-          ${this.t("import_existing")}</button
-        ><button @click=${() => this.run(() => this.api("sync/all"))} ?disabled=${this._busy}>
-          ${this.t("sync_all")}
-        </button>
-      </div>
-      <div class="users-filter-strip">
-        <wiskey-saved-user-views
-          .hass=${this.protectedHass}
-          .fields=${this._data?.profile_settings?.fields ?? []}
-          .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
-          @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
-          @view-load=${(e: CustomEvent<UserView>) => {
-            this._query = e.detail.query;
-            this._userFilters = e.detail.filters;
-            this._userColumns = e.detail.columns;
-            this._selectedUsers = new Set();
-          }}
-        ></wiskey-saved-user-views>
-        <details class="user-filters">
-          <summary>${this.t("user_filter_controls")}</summary>
-          <div class="toolbar">
-            ${(
-              [
-                [
-                  "station",
-                  "user_filter_station",
-                  this._data?.stations.map((st) => [st.id, st.name]) ?? [],
-                ],
-                [
-                  "rights",
-                  "user_filter_rights",
-                  ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
-                ],
-                [
-                  "state",
-                  "user_filter_state",
-                  ["active", "inactive", "expired", "upcoming"].map((v) => [
-                    v,
-                    this.t("filter_" + v),
-                  ]),
-                ],
-                [
-                  "credential",
-                  "user_filter_credential",
-                  ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
-                ],
-                [
-                  "sort",
-                  "user_sort",
-                  ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
-                ],
-              ] as [keyof UserFilters, string, string[][]][]
-            ).map(
-              ([key, label, options]) =>
-                html`<label
-                  >${this.t(label)}<select
-                    aria-label=${this.t(label)}
-                    .value=${this._userFilters[key]}
-                    @change=${(e: Event) => {
-                      this._userFilters = {
-                        ...this._userFilters,
-                        [key]: (e.target as HTMLSelectElement).value,
-                      };
-                      this._selectedUsers = new Set();
-                    }}
-                  >
-                    ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
-                  </select></label
-                >`,
-            )}
+      <div class="access-users-header">
+        <div class="page-heading users-heading">
+          <div>
+            <h2>${this.t("users")}</h2>
+            <p class="sub">${this.t("users_intro")}</p>
           </div>
-          <div class="toolbar profile-filters">
-            ${this._data?.profile_settings?.fields
-              .filter((f) => f.enabled)
-              .map(
-                (f) =>
+          <button
+            class="primary"
+            @click=${() => this.edit()}
+            ?disabled=${this._busy || !this.canManage("users")}
+          >
+            + ${this.t("add_user")}
+          </button>
+        </div>
+        <div class="toolbar users-tools">
+          <input
+            type="search"
+            .value=${this._query}
+            placeholder=${this.t("search")}
+            aria-label=${this.t("search")}
+            @input=${(event: Event) => {
+              this._query = value(event);
+              this._selectedUsers = new Set();
+            }}
+          />
+          <details class="access-transfer-tools" ?open=${!this._accessMode}>
+            <summary>${this.t("other")}</summary>
+            <div class="access-transfer-list">
+              <button @click=${() => this.openCsv()} ?disabled=${this._busy}>
+                ${this.t("csv_import")}</button
+              ><button @click=${() => this.exportCsv()} ?disabled=${this._busy}>
+                ${this.t("csv_export")}</button
+              ><button @click=${() => this.openImport()} ?disabled=${this._busy}>
+                ${this.t("import_existing")}</button
+              ><button @click=${() => this.run(() => this.api("sync/all"))} ?disabled=${this._busy}>
+                ${this.t("sync_all")}
+              </button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <details class="access-user-options" ?open=${!this._accessMode}>
+        <summary>${this.t("access_list_options")}</summary>
+        <div class="users-filter-strip">
+          <wiskey-saved-user-views
+            .hass=${this.protectedHass}
+            .fields=${this._data?.profile_settings?.fields ?? []}
+            .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
+            @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
+            @view-load=${(e: CustomEvent<UserView>) => {
+              this._query = e.detail.query;
+              this._userFilters = e.detail.filters;
+              this._userColumns = e.detail.columns;
+              this._selectedUsers = new Set();
+            }}
+          ></wiskey-saved-user-views>
+          <details class="user-filters">
+            <summary>${this.t("user_filter_controls")}</summary>
+            <div class="toolbar">
+              ${(
+                [
+                  [
+                    "station",
+                    "user_filter_station",
+                    this._data?.stations.map((st) => [st.id, st.name]) ?? [],
+                  ],
+                  [
+                    "rights",
+                    "user_filter_rights",
+                    ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
+                  ],
+                  [
+                    "state",
+                    "user_filter_state",
+                    ["active", "inactive", "expired", "upcoming"].map((v) => [
+                      v,
+                      this.t("filter_" + v),
+                    ]),
+                  ],
+                  [
+                    "credential",
+                    "user_filter_credential",
+                    ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
+                  ],
+                  [
+                    "sort",
+                    "user_sort",
+                    ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
+                  ],
+                ] as [keyof UserFilters, string, string[][]][]
+              ).map(
+                ([key, label, options]) =>
                   html`<label
-                    >${f.label}<select
-                      aria-label=${f.label}
-                      .value=${this._userFilters.profile?.[f.id] ?? ""}
+                    >${this.t(label)}<select
+                      aria-label=${this.t(label)}
+                      .value=${this._userFilters[key]}
                       @change=${(e: Event) => {
                         this._userFilters = {
                           ...this._userFilters,
-                          profile: { ...this._userFilters.profile, [f.id]: value(e) },
+                          [key]: (e.target as HTMLSelectElement).value,
                         };
                         this._selectedUsers = new Set();
                       }}
                     >
-                      <option value="">${this.t("filter_any")}</option>
-                      ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                      ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
                     </select></label
                   >`,
               )}
-            <label
-              >${this.t("profile_groups")}<select
-                aria-label=${this.t("profile_groups")}
-                .value=${this._userFilters.group ?? ""}
-                @change=${(e: Event) => {
-                  this._userFilters = { ...this._userFilters, group: value(e) };
-                  this._selectedUsers = new Set();
-                }}
+            </div>
+            <div class="toolbar profile-filters">
+              ${this._data?.profile_settings?.fields
+                .filter((f) => f.enabled)
+                .map(
+                  (f) =>
+                    html`<label
+                      >${f.label}<select
+                        aria-label=${f.label}
+                        .value=${this._userFilters.profile?.[f.id] ?? ""}
+                        @change=${(e: Event) => {
+                          this._userFilters = {
+                            ...this._userFilters,
+                            profile: { ...this._userFilters.profile, [f.id]: value(e) },
+                          };
+                          this._selectedUsers = new Set();
+                        }}
+                      >
+                        <option value="">${this.t("filter_any")}</option>
+                        ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                      </select></label
+                    >`,
+                )}
+              <label
+                >${this.t("profile_groups")}<select
+                  aria-label=${this.t("profile_groups")}
+                  .value=${this._userFilters.group ?? ""}
+                  @change=${(e: Event) => {
+                    this._userFilters = { ...this._userFilters, group: value(e) };
+                    this._selectedUsers = new Set();
+                  }}
+                >
+                  <option value="">${this.t("filter_any")}</option>
+                  ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+                </select></label
               >
-                <option value="">${this.t("filter_any")}</option>
-                ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
-              </select></label
-            >
-          </div>
-        </details>
-      </div>
+            </div>
+          </details>
+        </div>
+      </details>
       <div class="user-result-bar">
         <p role="status">
           ${this.t("user_results")}:
@@ -2625,163 +2708,270 @@ export class IntercomManagerPanel extends LitElement {
             : nothing
         }
       </div>
-      <div class="toolbar user-selection-tools">
-        <button
-          ?disabled=${!users.length}
-          @click=${() => {
-            this._selectedUsers = new Set(users.slice(0, 200).map((u) => u.id));
-          }}
-        >
-          ${this.t("select_visible")}</button
-        ><button
-          ?disabled=${!this._selectedUsers.size}
-          @click=${() => {
-            this._selectedUsers = new Set();
-          }}
-        >
-          ${this.t("clear_selection")}
-        </button>
-      </div>
-      <hikvision-bulk-users
-        .hass=${this.protectedHass}
-        .policy=${this._data?.profile_settings}
-        .users=${this._data?.users ?? []}
-        .selected=${[...this._selectedUsers]}
-        .stations=${this._data?.stations ?? []}
-        @access-changed=${() => this.refresh()}
-      ></hikvision-bulk-users>
-      ${
-        !users.length
-          ? html`<div class="empty">
-              <h2>${this.t(filtered ? "no_results" : "no_users")}</h2>
-              ${!filtered ? html`<p>${this.t("no_users_detail")}</p>` : nothing}
-            </div>`
-          : html`<div class="table-wrap desktop-users">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>${this.t("select_user")}</th>
-                      ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
-                      ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
-                      ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
-                      ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${repeat(
-                      users,
-                      (user) => user.id,
-                      (user) =>
-                        html`<tr>
-                          <td>${this.userSelection(user)}</td>
-                          <td>
-                            <div class="person-name">
-                              ${
-                                this._data?.profile_settings?.photo_enabled && user.photo_configured
-                                  ? html`<hikvision-user-photo
-                                      compact
-                                      .hass=${this.protectedHass}
-                                      .userId=${user.id}
-                                      .configured=${true}
-                                      .revision=${user.revision}
-                                    ></hikvision-user-photo>`
-                                  : html`<span class="person-avatar" aria-hidden="true"
-                                      >${user.display_name
+      <details
+        class="access-selection-options"
+        ?open=${!this._accessMode || this._selectedUsers.size > 0}
+      >
+        <summary>${this.t("select_user")} · ${this._selectedUsers.size}</summary>
+        <div class="toolbar user-selection-tools">
+          <button
+            ?disabled=${!users.length}
+            @click=${() => {
+              this._selectedUsers = new Set(users.slice(0, 200).map((u) => u.id));
+            }}
+          >
+            ${this.t("select_visible")}</button
+          ><button
+            ?disabled=${!this._selectedUsers.size}
+            @click=${() => {
+              this._selectedUsers = new Set();
+            }}
+          >
+            ${this.t("clear_selection")}
+          </button>
+        </div>
+        <hikvision-bulk-users
+          .hass=${this.protectedHass}
+          .policy=${this._data?.profile_settings}
+          .users=${this._data?.users ?? []}
+          .selected=${[...this._selectedUsers]}
+          .stations=${this._data?.stations ?? []}
+          @access-changed=${() => this.refresh()}
+        ></hikvision-bulk-users>
+      </details>
+      <div class="access-people-workspace">
+        <div class="access-people-list">
+          ${
+            !users.length
+              ? html`<div class="empty">
+                  <h2>${this.t(filtered ? "no_results" : "no_users")}</h2>
+                  ${!filtered ? html`<p>${this.t("no_users_detail")}</p>` : nothing}
+                </div>`
+              : this._accessMode
+                ? this.accessPeopleTable(users)
+                : html`<div class="table-wrap desktop-users">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>${this.t("select_user")}</th>
+                            ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
+                            ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
+                            ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
+                            ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${repeat(
+                            users,
+                            (user) => user.id,
+                            (user) =>
+                              html`<tr>
+                                <td>${this.userSelection(user)}</td>
+                                <td>
+                                  <div class="person-name">
+                                    ${
+                                  this._data?.profile_settings?.photo_enabled &&
+                                  user.photo_configured
+                                    ? html`<hikvision-user-photo
+                                        compact
+                                        .hass=${this.protectedHass}
+                                        .userId=${user.id}
+                                        .configured=${true}
+                                        .revision=${user.revision}
+                                      ></hikvision-user-photo>`
+                                    : html`<span class="person-avatar" aria-hidden="true"
+                                        >${user.display_name
                                         .trim()
                                         .split(/\s+/)
                                         .slice(0, 2)
                                         .map((part) => Array.from(part)[0])
                                         .join("")}</span
-                                    >`
-                              }
-                              <button
-                                class="user-detail-link"
-                                @click=${() => (this._detailsUser = user.id)}
+                                      >`
+                                }
+                                    <button
+                                      class="user-detail-link"
+                                      @click=${() => (this._detailsUser = user.id)}
+                                    >
+                                      ${user.display_name}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td><bdi>${user.employee_no}</bdi></td>
+                                <td class="phone-cell">
+                                  <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
+                                </td>
+                                ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
+                                ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
+                                <td>
+                                  ${this.t(user.pin_configured ? "configured" : "not_configured")}
+                                </td>
+                                <td>${user.cards.length}</td>
+                                <td>
+                                  ${Object.values(user.assignments).filter((item) => item.enabled).length}
+                                </td>
+                                <td>${this.validitySummary(user)}</td>
+                                <td>
+                                  <span title=${this.t("user_sync_hint")}
+                                    >${this.badge(this.personStatus(user))}</span
+                                  >
+                                  <div class="sub">
+                                    ${this.t(user.active ? "active" : "inactive")}
+                                  </div>
+                                </td>
+                                <td><div class="row">${this.userActions(user)}</div></td>
+                              </tr>`,
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="mobile-users">
+                      ${repeat(
+                        users,
+                        (user) => user.id,
+                        (user) =>
+                          html`<article class="person">
+                            <div class="row between">
+                              ${this.userSelection(user)}
+                              ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
+                              <h3>
+                                <button
+                                  class="user-detail-link"
+                                  @click=${() => (this._detailsUser = user.id)}
+                                >
+                                  ${user.display_name}
+                                </button>
+                              </h3>
+                              <span title=${this.t("user_sync_hint")}
+                                >${this.badge(this.personStatus(user))}</span
                               >
-                                ${user.display_name}
-                              </button>
                             </div>
-                          </td>
-                          <td><bdi>${user.employee_no}</bdi></td>
-                          <td class="phone-cell">
-                            <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
-                          </td>
-                          ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
-                          ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
-                          <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
-                          <td>${user.cards.length}</td>
-                          <td>
-                            ${Object.values(user.assignments).filter((item) => item.enabled).length}
-                          </td>
-                          <td>${this.validitySummary(user)}</td>
-                          <td>
-                            <span title=${this.t("user_sync_hint")}
-                              >${this.badge(this.personStatus(user))}</span
-                            >
-                            <div class="sub">${this.t(user.active ? "active" : "inactive")}</div>
-                          </td>
-                          <td><div class="row">${this.userActions(user)}</div></td>
-                        </tr>`,
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div class="mobile-users">
-                ${repeat(
-                  users,
-                  (user) => user.id,
-                  (user) =>
-                    html`<article class="person">
-                      <div class="row between">
-                        ${this.userSelection(user)}
-                        ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
-                        <h3>
-                          <button
-                            class="user-detail-link"
-                            @click=${() => (this._detailsUser = user.id)}
-                          >
-                            ${user.display_name}
-                          </button>
-                        </h3>
-                        <span title=${this.t("user_sync_hint")}
-                          >${this.badge(this.personStatus(user))}</span
-                        >
-                      </div>
-                      <p class="sub">
-                        ${this.t("phone")}:
-                        <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
-                        ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
-                        ${this.t(user.active ? "active" : "inactive")}
-                      </p>
-                      <p class="sub">
-                        ${this.t("pin")}:
-                        ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
-                        ${this.t("cards")}: ${user.cards.length}
-                      </p>
-                      <dl class="user-custom-details">
-                        ${this.visibleProfileFields().map(
-                          (f) =>
-                            html`<div>
-                              <dt>${f.label}</dt>
-                              <dd>${user.profile?.[f.id] || "—"}</dd>
-                            </div>`,
-                        )}
-                        ${
-                          this.userGroupNames(user)
-                            ? html`<div>
-                                <dt>${this.t("profile_groups")}</dt>
-                                <dd>${this.userGroupNames(user)}</dd>
-                              </div>`
-                            : nothing
-                        }
-                      </dl>
-                      ${this.validitySummary(user)}
-                      <div class="row actions">${this.userActions(user)}</div>
-                    </article>`,
-                )}
-              </div>`
-      }
+                            <p class="sub">
+                              ${this.t("phone")}:
+                              <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
+                              ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
+                              ${this.t(user.active ? "active" : "inactive")}
+                            </p>
+                            <p class="sub">
+                              ${this.t("pin")}:
+                              ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
+                              ${this.t("cards")}: ${user.cards.length}
+                            </p>
+                            <dl class="user-custom-details">
+                              ${this.visibleProfileFields().map(
+                            (f) =>
+                              html`<div>
+                                <dt>${f.label}</dt>
+                                <dd>${user.profile?.[f.id] || "—"}</dd>
+                              </div>`,
+                          )}
+                              ${
+                            this.userGroupNames(user)
+                              ? html`<div>
+                                  <dt>${this.t("profile_groups")}</dt>
+                                  <dd>${this.userGroupNames(user)}</dd>
+                                </div>`
+                              : nothing
+                          }
+                            </dl>
+                            ${this.validitySummary(user)}
+                            <div class="row actions">${this.userActions(user)}</div>
+                          </article>`,
+                      )}
+                    </div>`
+          }
+        </div>
+        ${
+          this._accessMode && !this._accessNarrow && users.length
+            ? html`<aside class="access-person-inspector">
+                ${this.accessPersonDetails(users.find((u) => u.id === this._detailsUser) ?? users[0])}
+              </aside>`
+            : nothing
+        }
+      </div>
     </section>`;
+  }
+  private accessPersonDetails(person: Person) {
+    return html`<wiskey-user-details
+      embedded
+      .canEdit=${this.canManage("users")}
+      .hass=${this.protectedHass}
+      .person=${person}
+      .stations=${this._data?.stations ?? []}
+      .policy=${this._data?.profile_settings}
+      @details-close=${() => (this._detailsUser = "")}
+      @details-edit=${() => this.edit(person)}
+    ></wiskey-user-details>`;
+  }
+  private accessPeopleTable(users: Person[]) {
+    const selected = this._detailsUser || (!this._accessNarrow ? users[0]?.id : "");
+    const fields = this.visibleProfileFields();
+    return html`<div class="access-people-table table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><span class="sr-only">${this.t("select_user")}</span></th>
+            <th>${this.t("name")}</th>
+            <th>${this.t("phone")}</th>
+            ${fields.map((f) => html`<th class="access-profile-col">${f.label}</th>`)}
+            <th class="access-groups-col">${this.t("profile_groups")}</th>
+            <th>${this.t("assignments")}</th>
+            <th>${this.t("status")}</th>
+            <th>${this.t("other")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${repeat(
+            users,
+            (u) => u.id,
+            (u) =>
+              html`<tr data-user=${u.id} aria-selected=${selected === u.id}>
+                <td class="access-select-cell">${this.userSelection(u)}</td>
+                <td>
+                  <div class="access-person-identity">
+                    ${
+                      this._data?.profile_settings?.photo_enabled && u.photo_configured
+                        ? html`<hikvision-user-photo
+                            compact
+                            .hass=${this.protectedHass}
+                            .userId=${u.id}
+                            .configured=${true}
+                            .revision=${u.revision}
+                          ></hikvision-user-photo>`
+                        : html`<span class="person-avatar" aria-hidden="true"
+                            >${u.display_name
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((x) => Array.from(x)[0])
+                        .join("")}</span
+                          >`
+                    }
+                    <div>
+                      <button class="user-detail-link" @click=${() => (this._detailsUser = u.id)}>
+                        ${u.display_name}</button
+                      ><small class="access-person-id"><bdi>${u.employee_no}</bdi></small>
+                    </div>
+                  </div>
+                </td>
+                <td class="phone-cell">
+                  <bdi dir="ltr">${mobileDisplay(u.phone || "") || "—"}</bdi>
+                </td>
+                ${fields.map((f) => html`<td class="access-profile-col">${u.profile?.[f.id] || "—"}</td>`)}
+                <td class="access-groups-col">${this.userGroupNames(u) || "—"}</td>
+                <td class="access-rights-cell">
+                  ${Object.values(u.assignments).filter((a) => a.enabled).length}
+                  <span class="sub">${this.t("devices")}</span>
+                </td>
+                <td class="access-person-state">
+                  ${this.badge(this.personStatus(u))}<span class="sub"
+                    >${this.t(u.active ? "active" : "inactive")}</span
+                  >
+                </td>
+                <td class="access-person-actions">${this.userActions(u)}</td>
+              </tr>`,
+          )}
+        </tbody>
+      </table>
+    </div>`;
   }
   private capabilityDetails(station: Station) {
     return html`<section class="capability-details">
@@ -2829,21 +3019,21 @@ export class IntercomManagerPanel extends LitElement {
       </div>
       <label class="device-selector"
         >${this.t("device_selection")}<select
-          .value=${this._deviceFocus}
+          .value=${this._deviceFocus || (this._accessMode ? (this._data?.stations[0]?.id ?? "") : "")}
           @change=${(event: Event) => {
             this._deviceFocus = value(event);
           }}
         >
-          <option value="">${this.t("all")}</option>
+          ${!this._accessMode ? html`<option value="">${this.t("all")}</option>` : nothing}
           ${this._data?.stations.map((station) => html`<option value=${station.id}>${station.name}</option>`)}
         </select></label
       >
       <div class="station-settings-list">
-        ${(this._data?.stations ?? []).filter((station) => !this._deviceFocus || station.id === this._deviceFocus).map((station) => this.stationSettings(station))}
+        ${(this._data?.stations ?? []).filter((station) => (this._accessMode ? station.id === (this._deviceFocus || this._data?.stations[0]?.id) : !this._deviceFocus || station.id === this._deviceFocus)).map((station) => this.stationSettings(station))}
       </div>`;
   }
   private stationSettings(station: Station) {
-    const modern = this._appearance === "modern";
+    const modern = this._appearance === "modern" || this._accessMode;
     const tab = this._stationTabs[station.id] ?? "overview";
     return html`<article class="station station-config device-station" aria-label=${station.name}>
       <header class="station-settings-heading">
@@ -4064,7 +4254,7 @@ export class IntercomManagerPanel extends LitElement {
         <h2>${this.t("access_not_granted")}</h2>
         <p>${this.t("access_not_granted_hint")}</p>
       </div>`;
-    return html`<div class="app-shell" dir=${he ? "rtl" : "ltr"}>
+    return html`<div class="app-shell" data-view=${this._tab} dir=${he ? "rtl" : "ltr"}>
       <header>
         <div class="head">
           <button
@@ -4208,8 +4398,11 @@ export class IntercomManagerPanel extends LitElement {
         }
       </main>
       ${
-        this._detailsUser && this._data?.users.find((u) => u.id === this._detailsUser)
+        this._detailsUser &&
+        !(this._accessMode && this._tab === "users" && !this._accessNarrow) &&
+        this._data?.users.find((u) => u.id === this._detailsUser)
           ? html`<wiskey-user-details
+              .canEdit=${this.canManage("users")}
               .hass=${this.protectedHass}
               .person=${this._data.users.find((u) => u.id === this._detailsUser)}
               .stations=${this._data.stations}
@@ -4225,8 +4418,22 @@ export class IntercomManagerPanel extends LitElement {
       ${this.dialogView()}
       <hikvision-appearance-picker
         .language=${this.hass?.language ?? "en"}
-        @appearance-change=${(event: CustomEvent<Appearance>) => {
-          this._appearance = event.detail;
+        .settings=${this._data?.appearance_settings}
+        .canSetDefault=${!!this._session?.is_admin}
+        .saveDefault=${async (revision: number, choice: Appearance) => {
+          const result = await this.api<NonNullable<Overview["appearance_settings"]>>(
+            "appearance/settings_update",
+            { revision, default: choice },
+          );
+          if (this._data) this._data = { ...this._data, appearance_settings: result };
+        }}
+        @appearance-change=${(event: CustomEvent<Appearance | "default">) => {
+          this._appearanceFollow = event.detail === "default";
+          this._appearanceOverride = event.detail === "default" ? null : event.detail;
+          this._appearance =
+            event.detail === "default"
+              ? (this._data?.appearance_settings?.default ?? "current")
+              : event.detail;
           if (!saveAppearance(this._appearanceUser, event.detail))
             this._notice = this.t("appearance_session");
         }}
@@ -4235,3 +4442,13 @@ export class IntercomManagerPanel extends LitElement {
   }
 }
 customElements.define("hikvision-intercom-panel", IntercomManagerPanel);
+if (typeof FontFace !== "undefined") {
+  const font = new FontFace("WisKey Heebo", "url(/hikvision_intercom_static/Heebo.ttf)", {
+    weight: "100 900",
+    display: "swap",
+  });
+  font
+    .load()
+    .then((loaded) => document.fonts.add(loaded))
+    .catch(() => {});
+}

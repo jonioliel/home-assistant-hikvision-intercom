@@ -186,13 +186,13 @@ export class WiskeyAccessControl extends LitElement {
         .badge {
           border-radius: 999px;
           padding: 4px 9px;
-          background: #edf2ff;
-          color: #3155bf;
+          background: var(--access-tint, #edf2ff);
+          color: var(--primary-color, #3155bf);
           font-size: 0.82rem;
         }
         .inactive {
-          background: #fff0f0;
-          color: #a63737;
+          background: var(--access-red-bg, #fff0f0);
+          color: var(--error-color, #a63737);
         }
         .areas {
           display: grid;
@@ -252,12 +252,12 @@ export class WiskeyAccessControl extends LitElement {
           margin-top: 12px;
           padding: 10px 12px;
           border-radius: 10px;
-          background: #eaf7ef;
-          color: #24633d;
+          background: var(--access-green-bg, #eaf7ef);
+          color: var(--success-color, #24633d);
         }
         .error {
-          background: #fff0f0;
-          color: #a63737;
+          background: var(--access-red-bg, #fff0f0);
+          color: var(--error-color, #a63737);
         }
         @media (max-width: 900px) {
           .areas {

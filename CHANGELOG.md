@@ -2,6 +2,16 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.0] - 2026-09-17
+
+- Add WisKey Access Light and Access Dark as two additional designs, preserving the existing Current and Modern appearances.
+- Introduce a compact access-management overview with contextual station details, proportionate camera previews and independent door actions.
+- Add a dense people workspace with an inline profile inspector on desktop, compact mobile cards, one-line phone numbers and collapsible secondary tools.
+- Adapt navigation, user editing, station management, activity, synchronization and management tools to the shared design palette. Mobile navigation stays at the bottom with safe-area spacing; existing permission checks remain authoritative.
+- Add a durable shared default appearance that only Home Assistant administrators can change. Existing personal browser choices remain intact; users can return to following the shared default.
+- Bundle the licensed Heebo font locally, without external font requests. Preserve drafts, media controls and current operational API contracts when changing appearance.
+- Add persistence, authorization, revision-conflict, failed-save, responsive layout and interaction regression coverage. See `docs/ACCESS_DESIGN_HE.md`.
+
 ## [1.4.0] - 2026-09-17
 
 - Add durable per-user WisKey authorization for active Home Assistant users across Overview, Users, Events, Intercom stations and Management tools, with independent none/view/manage levels.

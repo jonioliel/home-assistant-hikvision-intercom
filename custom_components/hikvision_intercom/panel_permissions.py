@@ -282,7 +282,7 @@ _WRITE_MANAGEMENT = {
 def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
     """Return alternative area/level grants; None means administrator-only."""
 
-    if command == "overview":
+    if command in {"overview", "appearance/settings_get"}:
         return tuple((area, "view") for area in AREAS)
     if command == "stations/test_unlock" or command == "media/signal":
         return (("overview", "manage"), ("stations", "manage"))

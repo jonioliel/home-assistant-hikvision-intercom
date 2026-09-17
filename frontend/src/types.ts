@@ -149,6 +149,7 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  appearance_settings?: { revision: number; default: import("./appearance").Appearance } | null;
   access: AuthorizationSession;
   user_count: number;
   api?: ApiContract;

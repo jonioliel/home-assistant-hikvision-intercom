@@ -64,6 +64,18 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "panel_permissions_storage_corrupt", active=False)
         hass.data.setdefault(DOMAIN, {})["panel_permissions"] = panel_permissions
 
+    from .appearance_settings import AppearanceSettings
+
+    appearance_store = AccessStore(hass, key=f"{DOMAIN}.appearance_settings")
+    appearance = AppearanceSettings(appearance_store.async_save, changed)
+    try:
+        appearance.load(await appearance_store.async_load())
+    except AccessError:
+        # Preserve invalid storage until repaired; do not silently overwrite it.
+        hass.data.setdefault(DOMAIN, {})["appearance_settings"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["appearance_settings"] = appearance
+
     from .media_settings import MediaSettings
 
     media_store = AccessStore(hass, key=f"{DOMAIN}.media_settings")

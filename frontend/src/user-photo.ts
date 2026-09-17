@@ -24,16 +24,16 @@ export class UserPhoto extends LitElement {
         background: #e8edf5;
       }
       :host([compact]) {
-        width: 60px;
-        height: 60px;
-        flex: 0 0 60px;
+        width: var(--wiskey-photo-size, 60px);
+        height: var(--wiskey-photo-size, 60px);
+        flex: 0 0 var(--wiskey-photo-size, 60px);
         overflow: hidden;
         line-height: 0;
       }
       :host([compact]) img {
-        width: 60px;
-        height: 60px;
-        flex: 0 0 60px;
+        width: var(--wiskey-photo-size, 60px);
+        height: var(--wiskey-photo-size, 60px);
+        flex: 0 0 var(--wiskey-photo-size, 60px);
         overflow: hidden;
         line-height: 0;
         border-radius: 50%;
