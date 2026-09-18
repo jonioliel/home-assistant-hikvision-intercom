@@ -251,8 +251,16 @@ export class IntercomAudioControls extends LitElement {
   private sources = new Set<AudioBufferSourceNode>();
   private pendingRequests = new Set<() => void>();
   private cameraStreamPlayback = false;
+  private cameraAudioAvailable = false;
+  private backendTalkOnly = false;
+  private backendOpening?: Promise<boolean>;
+  private backendGeneration = 0;
   private audioStateChanged = () => {
-    if (this._state === "listening" && this.context?.state !== "running")
+    if (
+      this._state === "listening" &&
+      !this.cameraStreamPlayback &&
+      this.context?.state !== "running"
+    )
       this.stop("audio_playback_interrupted");
   };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
@@ -345,15 +353,13 @@ export class IntercomAudioControls extends LitElement {
       document.hidden
     )
       return;
-    this.cameraStreamPlayback = this.cameraPlayback(true);
+    this.cameraAudioAvailable = this.cameraPlayback(true);
+    this.cameraStreamPlayback = this.cameraAudioAvailable;
     const epoch = ++this.epoch,
       hass = this.hass;
     this._state = "opening";
     this.connection = hass.connection;
     this.activeStationId = this.station.id;
-    this.openingTimeout = setTimeout(() => {
-      if (this.valid(epoch) && this._state === "opening") this.stop("audio_connection_lost");
-    }, 25000);
     this._error = "";
     this.sequence = 0;
     this._acknowledged = this._signal = this.captured = this.dropped = this.received = 0;
@@ -366,40 +372,119 @@ export class IntercomAudioControls extends LitElement {
     this._diagnosticError = false;
     this._diagnosticLoading = false;
     this.startedAt = new Date().toISOString();
+    if (this.cameraAudioAvailable) {
+      this._state = "listening";
+      return;
+    }
     try {
-      const context = new AudioContext({ sampleRate: 8000 });
+      const context = await this.ensureAudioContext(epoch);
+      await this.openBackend(epoch, context, true);
+    } catch (error) {
+      if (this.valid(epoch)) this.stop(this.errorCode(error));
+    }
+  }
+  private async ensureAudioContext(epoch: number) {
+    let context = this.context;
+    if (!context || context.state === "closed") {
+      context = new AudioContext({ sampleRate: 8000 });
       this.context = context;
       this.sampleRate = context.sampleRate;
       context.addEventListener("statechange", this.audioStateChanged);
-      if (context.sampleRate !== 8000) throw new Error("unsupported");
-      await context.resume();
-      if (!this.valid(epoch)) return;
-      const unsubscribe = await hass.connection.subscribeMessage<AudioEvent>(
+    }
+    if (context.sampleRate !== 8000) throw new Error("unsupported");
+    if (context.state !== "running") await context.resume();
+    if (!this.valid(epoch) || this.context !== context) throw new Error("audio_connection_lost");
+    return context;
+  }
+  private async openBackend(
+    epoch: number,
+    context: AudioContext,
+    receivePlayback: boolean,
+  ): Promise<boolean> {
+    if (this.token) return true;
+    if (this.backendOpening) return this.backendOpening;
+    const generation = ++this.backendGeneration;
+    this.backendTalkOnly = !receivePlayback;
+    this._state = "opening";
+    let resolveReady!: (value: boolean) => void;
+    let rejectReady!: (reason: unknown) => void;
+    let settled = false;
+    const ready = new Promise<boolean>((resolve, reject) => {
+      resolveReady = resolve;
+      rejectReady = reject;
+    });
+    this.backendOpening = ready;
+    const settle = (ok: boolean, reason?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(this.openingTimeout);
+      this.openingTimeout = undefined;
+      if (ok) resolveReady(true);
+      else
+        rejectReady(Object.assign(new Error(reason ?? "audio_connection_lost"), { code: reason }));
+    };
+    this.openingTimeout = setTimeout(() => {
+      if (this.valid(epoch) && generation === this.backendGeneration) {
+        settle(false, "audio_connection_lost");
+        this.stop("audio_connection_lost");
+      }
+    }, 25000);
+    try {
+      const unsubscribe = await this.hass!.connection.subscribeMessage<AudioEvent>(
         (event) => {
-          if (!this.valid(epoch)) return;
+          if (!this.valid(epoch) || generation !== this.backendGeneration) return;
           if (event.state === "closed") {
-            this.stop(event.close_confirmed === false ? "audio_close_unconfirmed" : event.reason);
+            const reason =
+              event.close_confirmed === false ? "audio_close_unconfirmed" : event.reason;
+            settle(false, reason);
+            this.stop(reason);
           } else if (event.token && event.sample_rate === 8000 && event.packet_bytes === 800) {
-            clearTimeout(this.openingTimeout);
-            this.openingTimeout = undefined;
             if (context.state !== "running") {
+              settle(false, "audio_playback_interrupted");
               this.stop("audio_playback_interrupted");
               return;
             }
             this.token = event.token;
             this._state = "listening";
-            void this.receive(epoch);
+            settle(true);
+            if (receivePlayback) void this.receive(epoch);
             if (this._diagnosticsOpen) void this.refreshDiagnostics();
-          } else this.stop("audio_unsupported");
+          } else {
+            settle(false, "audio_unsupported");
+            this.stop("audio_unsupported");
+          }
         },
         { type: "hikvision_intercom/audio/start", station_id: this.activeStationId },
-        { resubscribe: false, preCheck: () => this.valid(epoch) && this.context === context },
+        {
+          resubscribe: false,
+          preCheck: () =>
+            this.valid(epoch) && generation === this.backendGeneration && this.context === context,
+        },
       );
-      if (this.valid(epoch)) this.unsubscribe = unsubscribe;
-      else this.cancelSubscription(unsubscribe);
+      if (this.valid(epoch) && generation === this.backendGeneration)
+        this.unsubscribe = unsubscribe;
+      else {
+        this.cancelSubscription(unsubscribe);
+        settle(false, "audio_connection_lost");
+      }
+      return await ready;
     } catch (error) {
-      if (this.valid(epoch)) this.stop(this.errorCode(error));
+      settle(false, this.errorCode(error));
+      throw error;
+    } finally {
+      if (this.backendOpening === ready) this.backendOpening = undefined;
     }
+  }
+  private closeBackend() {
+    this.backendGeneration++;
+    clearTimeout(this.openingTimeout);
+    this.openingTimeout = undefined;
+    this.token = "";
+    this.backendOpening = undefined;
+    this.backendTalkOnly = false;
+    const unsubscribe = this.unsubscribe;
+    this.unsubscribe = undefined;
+    if (unsubscribe) this.cancelSubscription(unsubscribe);
   }
   private errorCode(error: unknown): string {
     const code = (error as { code?: unknown })?.code;
@@ -492,9 +577,20 @@ export class IntercomAudioControls extends LitElement {
     this._micPending = true;
     this._error = "";
     const epoch = this.epoch,
-      micEpoch = ++this.micEpoch,
-      context = this.context!;
+      micEpoch = ++this.micEpoch;
     try {
+      const context = await this.ensureAudioContext(epoch);
+      if (this.cameraAudioAvailable) {
+        this.cameraPlayback(false);
+        this.cameraStreamPlayback = false;
+      }
+      await this.openBackend(epoch, context, false);
+      if (!this.valid(epoch) || !this.pressed || micEpoch !== this.micEpoch) {
+        if (this.backendTalkOnly) this.closeBackend();
+        if (this.valid(epoch) && this.cameraAudioAvailable)
+          this.cameraStreamPlayback = this.cameraPlayback(true);
+        return;
+      }
       this.microphoneStage = "permission";
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -507,7 +603,7 @@ export class IntercomAudioControls extends LitElement {
         video: false,
       });
       if (!this.valid(epoch) || !this.pressed || micEpoch !== this.micEpoch) {
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((track) => track.stop());
         return;
       }
       this.stream = stream;
@@ -533,8 +629,6 @@ export class IntercomAudioControls extends LitElement {
       this.microphone.connect(this.processor);
       this.processor.connect(context.destination);
       this.clearPlayback();
-      this.cameraPlayback(false);
-      this.cameraStreamPlayback = false;
       this._talking = true;
       this.microphoneStage = "capturing";
       stream
@@ -600,6 +694,7 @@ export class IntercomAudioControls extends LitElement {
     }
   }
   private releaseTalk() {
+    const epoch = this.epoch;
     this.pressed = false;
     this.micEpoch++;
     this._micPending = false;
@@ -617,10 +712,29 @@ export class IntercomAudioControls extends LitElement {
     this.microphone = undefined;
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = undefined;
-    if (this._state === "listening" && this.token)
-      this.cameraStreamPlayback = this.cameraPlayback(true);
-    if (this.token) {
-      const epoch = this.epoch;
+    const restoreCamera = () => {
+      if (this.valid(epoch) && this.cameraAudioAvailable) {
+        this._state = "listening";
+        this.cameraStreamPlayback = this.cameraPlayback(true);
+      }
+    };
+    if (this.backendTalkOnly) {
+      const finish = () => {
+        this.closeBackend();
+        restoreCamera();
+      };
+      if (this.token) {
+        void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
+          .then(() => {
+            if (this.valid(epoch) && this._diagnosticsOpen) void this.refreshDiagnostics();
+          })
+          .catch(() => undefined)
+          .finally(finish);
+      } else {
+        this.closeBackend();
+        restoreCamera();
+      }
+    } else if (this.token) {
       void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
         .then(() => {
           if (this.valid(epoch) && this._diagnosticsOpen) void this.refreshDiagnostics();
@@ -628,7 +742,7 @@ export class IntercomAudioControls extends LitElement {
         .catch(() => {
           if (this.valid(epoch)) this.stop("audio_connection_lost");
         });
-    }
+    } else restoreCamera();
   }
   private cancelSubscription(unsubscribe: () => void) {
     try {
@@ -640,18 +754,14 @@ export class IntercomAudioControls extends LitElement {
   private stop(reason?: string) {
     this.cameraPlayback(false);
     this.cameraStreamPlayback = false;
+    this.cameraAudioAvailable = false;
     this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     this.epoch++;
     this._diagnosticLoading = false;
-    clearTimeout(this.openingTimeout);
-    this.openingTimeout = undefined;
     this.connection = undefined;
     this.activeStationId = "";
-    this.token = "";
     this.releaseTalk();
-    const unsubscribe = this.unsubscribe;
-    this.unsubscribe = undefined;
-    if (unsubscribe) this.cancelSubscription(unsubscribe);
+    this.closeBackend();
     this.clearPlayback();
     for (const cancel of this.pendingRequests) cancel();
     this.contextState = this.context?.state ?? this.contextState;

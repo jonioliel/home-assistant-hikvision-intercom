@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.7] - 2026-09-18
+
+- Make **Start listening** use the already negotiated MSE/RTC camera audio track directly. It stays muted by default and is enabled only by the explicit listening action; listen-only mode no longer opens an ISAPI TwoWayAudio session.
+- Add a browser speech gain stage with a limiter for DS-KV6124-E1 streams whose valid G.711 track is published far below audible level. Disabling or closing listening sets the gain to zero and remutes the media element.
+- Open the authenticated HA/ISAPI channel only when the operator starts talking, mute camera playback during transmission, close the talk session after release, and restore camera listening. This prevents a long-lived device talk channel from competing with the RTSP/MSE source.
+- Extend playback reports with the gain graph, gain value and audio-context state. Add regressions proving listen-only mode opens no ISAPI session and the explicit playback action applies and removes the protected gain.
+- Verify both live stations advertise one input and one output but return `notSupport` for AudioIn configuration, so WisKey does not invent an unsupported device-side microphone-volume write. Live Chrome decoded H.264 + FLAC while the measured audio remained approximately -81 dBFS RMS before browser gain.
+
 ## [1.5.6] - 2026-09-18
 
 - Restore audible camera monitoring in both go2rtc player modes. MSE now negotiates a compatible audio track alongside video, including go2rtc's FLAC repackaging of the intercom's G.711 audio; RTC uses the already negotiated live audio track.

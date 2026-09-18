@@ -97,6 +97,14 @@ async function setup(page: Page, appearance = "current") {
 
 test("explicit listen and real audio worklet transmit only while held", async ({ page }) => {
   const audio = await setup(page);
+  await audio.evaluate((element: any) => {
+    const camera = element.closest(".camera-layout").querySelector("hikvision-intercom-camera");
+    const original = camera.setPlaybackAudio.bind(camera);
+    camera.setPlaybackAudio = (enabled: boolean) => {
+      original(enabled);
+      return enabled;
+    };
+  });
   expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.includes("/audio/")).length),
@@ -104,6 +112,11 @@ test("explicit listen and real audio worklet transmit only while held", async ({
   await audio.getByRole("button", { name: "Start listening", exact: true }).click();
   await expect(audio).toContainText("Listening is active");
   expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((call) => call.type === "hikvision_intercom/audio/start").length,
+    ),
+  ).toBe(0);
   const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
   await talk.dispatchEvent("pointerdown", { pointerId: 1 });
   await expect
@@ -141,6 +154,7 @@ test("listen and talk controls switch camera-stream audio without native media c
     camera.setPlaybackAudio = (enabled: boolean) => {
       window.audio.cameraPlayback.push(enabled);
       original(enabled);
+      return enabled;
     };
   });
   await audio.getByRole("button", { name: "Start listening", exact: true }).click();
@@ -367,30 +381,29 @@ test("audio cannot be started while HA is already disconnected", async ({ page }
   ).toBe(0);
 });
 
-test("a delayed browser audio start cannot subscribe to a newly selected station", async ({
+test("a delayed fallback audio session is released after selecting another station", async ({
   page,
 }) => {
   const audio = await setup(page);
   await page.evaluate(() => {
-    const original = AudioContext.prototype.resume;
-    AudioContext.prototype.resume = function () {
-      AudioContext.prototype.resume = original;
-      return new Promise((resolve) => (window.resumeOpeningAudio = () => resolve()));
-    };
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
+    const camera = panel.shadowRoot.querySelector("dialog hikvision-intercom-camera");
+    camera.setPlaybackAudio = () => false;
+    window.audio.delay = true;
   });
   await audio.getByRole("button", { name: "Start listening", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => typeof window.resumeOpeningAudio)).toBe("function");
+  await expect.poll(() => page.evaluate(() => typeof window.audio.ready)).toBe("function");
   await audio.evaluate((node: any) => {
-    // Queue resume before Lit's changed-station cleanup, then switch synchronously.
-    window.resumeOpeningAudio();
     node.station = structuredClone(window.demoData.stations[1]);
   });
+  await page.evaluate(() => window.audio.ready());
   await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => window.audio.unsubscribed)).toBe(1);
   expect(
     await page.evaluate(
-      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
+      () => window.calls.filter((call) => call.type === "hikvision_intercom/audio/start").length,
     ),
-  ).toBe(0);
+  ).toBe(1);
 });
 
 test("reattaching idle audio restores connection listeners without starting a session", async ({
