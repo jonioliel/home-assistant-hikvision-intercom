@@ -167,6 +167,9 @@ export class CameraRTC {
       else this.fail("signal_limit");
     } else this.fail();
   }
+  hasAudio() {
+    return this.stream.getAudioTracks().some((track) => track.readyState === "live");
+  }
   summary(): Record<string, unknown> {
     return {
       ice_transport: this.station && this.tcpOnly ? "tcp" : "auto",
@@ -176,6 +179,8 @@ export class CameraRTC {
       started_at: this.startedAt,
       first_frame_at: this.firstFrameAt,
       video_decoded: this.playing,
+      audio_track_received: this.stream.getAudioTracks().length > 0,
+      audio_track_live: this.stream.getAudioTracks().some((track) => track.readyState === "live"),
       closed: this.closed,
       failure: this.failureReason,
       signaling_messages: this.incoming,
@@ -195,24 +200,35 @@ export class CameraRTC {
         }),
       ]);
       const video: Record<string, unknown> = {};
+      const audio: Record<string, unknown> = {};
       stats.forEach((entry) => {
-        if (entry.type !== "inbound-rtp" || entry.kind !== "video") return;
-        for (const key of [
-          "bytesReceived",
-          "packetsReceived",
-          "packetsLost",
-          "framesDecoded",
-          "framesDropped",
-          "frameWidth",
-          "frameHeight",
-        ])
+        if (entry.type !== "inbound-rtp" || !["video", "audio"].includes(entry.kind)) return;
+        const target = entry.kind === "video" ? video : audio;
+        const keys =
+          entry.kind === "video"
+            ? [
+                "bytesReceived",
+                "packetsReceived",
+                "packetsLost",
+                "framesDecoded",
+                "framesDropped",
+                "frameWidth",
+                "frameHeight",
+              ]
+            : ["bytesReceived", "packetsReceived", "packetsLost", "jitter", "audioLevel"];
+        for (const key of keys)
           if (typeof entry[key] === "number" && Number.isFinite(entry[key]) && entry[key] >= 0)
-            video[key] = Math.round(entry[key]);
+            target[key] =
+              key === "jitter" || key === "audioLevel" ? entry[key] : Math.round(entry[key]);
         const codec = stats.get(entry.codecId)?.mimeType;
-        if (["video/H264", "video/VP8", "video/VP9", "video/AV1", "video/H265"].includes(codec))
-          video.codec = codec;
+        const allowed =
+          entry.kind === "video"
+            ? ["video/H264", "video/VP8", "video/VP9", "video/AV1", "video/H265"]
+            : ["audio/PCMU", "audio/PCMA", "audio/opus"];
+        if (allowed.includes(codec)) target.codec = codec;
       });
       result.video = video;
+      result.audio = audio;
     } catch {
       result.stats_unavailable = true;
     } finally {

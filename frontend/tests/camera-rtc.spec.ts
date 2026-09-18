@@ -49,7 +49,14 @@ async function rtc(page, mode = "success") {
       }
       async setRemoteDescription(desc) {
         this.remoteDescription = desc;
-        if (mode === "success" || mode === "stalled" || mode === "addon") {
+        if (mode === "success" || mode === "stalled" || mode === "addon" || mode === "audio") {
+          if (mode === "audio") {
+            const context = new AudioContext();
+            const destination = context.createMediaStreamDestination();
+            window.rtcAudioContext = context;
+            window.rtcAudioTrack = destination.stream.getAudioTracks()[0];
+            this.ontrack?.({ track: window.rtcAudioTrack });
+          }
           const canvas = document.createElement("canvas");
           canvas.width = 20;
           canvas.height = 20;
@@ -65,6 +72,7 @@ async function rtc(page, mode = "success") {
       close() {
         window.rtcClosed++;
         this.connectionState = "closed";
+        void window.rtcAudioContext?.close();
       }
     }
     window.RTCPeerConnection = Peer;
@@ -138,7 +146,7 @@ test("advertised WebRTC uses HA signaling and cleans up peer, tracks and subscri
   expect(media).toEqual({
     muted: true,
     nativeControls: false,
-    status: "WebRTC · video only — use the listening controls below",
+    status: "WebRTC · camera stream — use Start listening for audio",
   });
   expect(
     await page.evaluate(() => window.calls.some((c) => c.type === "camera/webrtc/offer")),
@@ -148,6 +156,28 @@ test("advertised WebRTC uses HA signaling and cleans up peer, tracks and subscri
   await expect.poll(() => page.evaluate(() => window.rtcClosed)).toBe(1);
   expect(await page.evaluate(() => window.rtcUnsubscribed)).toBe(1);
   expect(await page.evaluate(() => window.rtcTrack.readyState)).toBe("ended");
+});
+
+test("explicit listening unmutes a received RTC audio track and cleanup remutes it", async ({
+  page,
+}) => {
+  await rtc(page, "audio");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
+  await expect(page.getByRole("dialog").locator(".player-status")).toContainText("WebRTC");
+  const active = await camera.evaluate(async (element: any) => {
+    element.setPlaybackAudio(true);
+    const video = element.shadowRoot.querySelector("video");
+    return { muted: video.muted, summary: await element.rtc.diagnostics() };
+  });
+  expect(active.muted).toBe(false);
+  expect(active.summary.audio_track_received).toBe(true);
+  expect(active.summary.audio_track_live).toBe(true);
+  await camera.evaluate((element: any) => element.setPlaybackAudio(false));
+  expect(
+    await camera.evaluate((element: any) => element.shadowRoot.querySelector("video").muted),
+  ).toBe(true);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  expect(await page.evaluate(() => window.rtcAudioTrack.readyState)).toBe("ended");
 });
 
 test("WebRTC rejection falls back to HLS and exposes safe failure status", async ({ page }) => {

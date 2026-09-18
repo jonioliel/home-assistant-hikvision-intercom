@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.5.6] - 2026-09-18
+
+- Restore audible camera monitoring in both go2rtc player modes. MSE now negotiates a compatible audio track alongside video, including go2rtc's FLAC repackaging of the intercom's G.711 audio; RTC uses the already negotiated live audio track.
+- Make **Start listening** explicitly unmute the camera stream, mute it while the microphone is transmitting to prevent feedback, restore it after talk ends, and mute it again on stop, close, background, disconnect or permission loss.
+- Keep the authenticated HA/ISAPI path for microphone transmission and as the receive fallback when the selected camera transport has no audio track. Avoid playing both receive sources at once.
+- Extend playback diagnostics with RTC audio-track state, inbound audio RTP counters/codec, MSE audio inclusion, the selected playback source and the media element mute state.
+- Verify against the installed go2rtc service that station 192.168.99.151 negotiates a live audio track with Opus, PCMU and PCMA support. The saved global MSE preference was restored after the read-only probe.
+
 ## [1.5.5] - 2026-09-18
 
 - Separate camera video from the two-way audio path in the camera dialog. Remove the browser's misleading native mute control, label MSE/RTC/HLS as video-only, and rename the explicit ISAPI action to **Start listening** / **פתח האזנה**.

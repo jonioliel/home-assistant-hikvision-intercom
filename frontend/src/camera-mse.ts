@@ -1,6 +1,7 @@
 import type { Hass } from "./types";
 
-const CODECS = ["avc1.640029", "avc1.64002A", "avc1.640033", "hvc1.1.6.L153.B0"];
+const VIDEO_CODECS = ["avc1.640029", "avc1.64002A", "avc1.640033", "hvc1.1.6.L153.B0"];
+const AUDIO_CODECS = ["mp4a.40.2", "mp4a.40.5", "flac", "opus"];
 const ERRORS = new Set([
   "mse_provider_unavailable",
   "mse_connection_lost",
@@ -43,13 +44,16 @@ export class CameraMSE {
         this.fail("mse_browser_unavailable");
         return;
       }
-      const codecs = CODECS.filter((codec) =>
+      const videoCodecs = VIDEO_CODECS.filter((codec) =>
         Constructor.isTypeSupported(`video/mp4; codecs="${codec}"`),
       );
-      if (!codecs.length) {
+      if (!videoCodecs.length) {
         this.fail("mse_codec_unavailable");
         return;
       }
+      // go2rtc repackages the intercom's PCMA/PCMU track to FLAC for MSE.
+      // Codec support is validated again against the negotiated combined MIME.
+      const codecs = [...videoCodecs, ...AUDIO_CODECS];
       const path = "/api/hikvision_intercom/mse/" + encodeURIComponent(this.station);
       const signed = await this.hass.callWS<{ path: string }>({
         type: "auth/sign_path",
@@ -85,7 +89,9 @@ export class CameraMSE {
                   this.buffer ||
                   message.type !== "mse" ||
                   typeof message.value !== "string" ||
-                  !/^video\/mp4; codecs="(?:avc1|hvc1|hev1)[A-Za-z0-9.]+"$/.test(message.value) ||
+                  !/^video\/mp4; codecs="(?:avc1|hvc1|hev1)[A-Za-z0-9.]+(?:, ?(?:mp4a\.[A-Za-z0-9.]+|flac|opus))?"$/.test(
+                    message.value,
+                  ) ||
                   !Constructor.isTypeSupported(message.value)
                 )
                   throw Error();
@@ -147,12 +153,16 @@ export class CameraMSE {
       this.fail("mse_buffer_failed");
     }
   };
+  hasAudio() {
+    return /(?:mp4a\.|flac|opus)/.test(this.codec);
+  }
   summary() {
     return {
       bytes_received: this.bytes,
       fragments_received: this.chunks,
       codec: this.codec,
       video_decoded: this.playing,
+      audio_included: this.hasAudio(),
       closed: this.closed,
     };
   }

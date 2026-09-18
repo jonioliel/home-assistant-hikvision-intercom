@@ -17,9 +17,23 @@ from .const import DOMAIN
 from .media_api import provider, settings
 from .panel_permissions import area_allowed
 
-CODECS = frozenset({"avc1.640029", "avc1.64002A", "avc1.640033", "hvc1.1.6.L153.B0"})
+CODECS = frozenset(
+    {
+        "avc1.640029",
+        "avc1.64002A",
+        "avc1.640033",
+        "hvc1.1.6.L153.B0",
+        "mp4a.40.2",
+        "mp4a.40.5",
+        "flac",
+        "opus",
+    }
+)
 MAX_MESSAGE = 4 * 1024 * 1024
-MIME = re.compile(r'^video/mp4; codecs="(?:avc1|hvc1|hev1)[A-Za-z0-9.]+"$')
+MIME = re.compile(
+    r'^video/mp4; codecs="(?:avc1|hvc1|hev1)[A-Za-z0-9.]+'
+    r'(?:, ?(?:mp4a\.[A-Za-z0-9.]+|flac|opus))?"$'
+)
 
 
 class MSEView(HomeAssistantView):

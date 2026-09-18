@@ -60,7 +60,7 @@ import type {
 import "./schedules";
 import "./live-clock";
 import { downloadText } from "./download";
-import "./camera";
+import { IntercomCamera } from "./camera";
 import "./call-controls";
 import type { IntercomCallControls } from "./call-controls";
 import "./audio-controls";
@@ -4125,8 +4125,15 @@ export class IntercomManagerPanel extends LitElement {
       this._error = this.t("camera_fullscreen_failed");
     }
   }
+  private cameraPlaybackAudio(event: CustomEvent<{ enabled: boolean; available?: boolean }>) {
+    const layout = event.currentTarget as HTMLElement | null;
+    event.detail.available =
+      layout
+        ?.querySelector<IntercomCamera>("hikvision-intercom-camera")
+        ?.setPlaybackAudio(event.detail.enabled) === true;
+  }
   private cameraBody(station: Station) {
-    return html`<div class="camera-layout">
+    return html`<div class="camera-layout" @hikvision-playback-audio=${this.cameraPlaybackAudio}>
       <div class="camera-video">
         ${
           this.canManage("overview") || this.canManage("stations")

@@ -129,6 +129,32 @@ test("explicit listen and real audio worklet transmit only while held", async ({
   expect(await page.evaluate(() => (window as any).audio.unsubscribed)).toBe(1);
 });
 
+test("listen and talk controls switch camera-stream audio without native media controls", async ({
+  page,
+}) => {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
+    const camera = panel.shadowRoot.querySelector("dialog hikvision-intercom-camera");
+    window.audio.cameraPlayback = [];
+    const original = camera.setPlaybackAudio.bind(camera);
+    camera.setPlaybackAudio = (enabled: boolean) => {
+      window.audio.cameraPlayback.push(enabled);
+      original(enabled);
+    };
+  });
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.audio.cameraPlayback.at(-1))).toBe(true);
+  const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
+  await talk.dispatchEvent("pointerdown", { pointerId: 1 });
+  await expect.poll(() => page.evaluate(() => window.audio.cameraPlayback.at(-1))).toBe(false);
+  await expect.poll(() => page.evaluate(() => window.audio.sent.length)).toBeGreaterThan(0);
+  await audio.getByRole("button", { name: "Talking — release to mute" }).dispatchEvent("pointerup");
+  await expect.poll(() => page.evaluate(() => window.audio.cameraPlayback.at(-1))).toBe(true);
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.audio.cameraPlayback.at(-1))).toBe(false);
+});
+
 test("releasing while microphone permission is pending stops late tracks", async ({ page }) => {
   const audio = await setup(page);
   await page.evaluate(() => ((window as any).audio.delayMic = true));
