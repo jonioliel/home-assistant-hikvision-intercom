@@ -45,13 +45,20 @@ async def mse_server(hass, loaded_entry, socket_enabled, aiohttp_server):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         greeting = await ws.receive_json()
-        assert greeting == {"type": "mse", "value": "avc1.640029"}
+        assert greeting["type"] == "mse"
+        assert greeting["value"] in ("avc1.640029", "avc1.640029,flac")
+        audio = greeting["value"].endswith(",flac")
         if state["error"]:
             await ws.send_json(
                 {"type": "error", "value": "rtsp://demo:demo-secret@192.0.2.10/secret"}
             )
         else:
-            await ws.send_json({"type": "mse", "value": 'video/mp4; codecs="avc1.420029"'})
+            mime = (
+                'video/mp4; codecs="avc1.420029,flac"'
+                if audio
+                else 'video/mp4; codecs="avc1.420029"'
+            )
+            await ws.send_json({"type": "mse", "value": mime})
             await ws.send_bytes(b"synthetic-fmp4")
         async for _ in ws:
             pass
@@ -88,9 +95,9 @@ async def test_mse_signed_url_carries_binary_and_closes_upstream(
     signed = await socket.receive_json()
     assert signed["success"]
     ws = await client.ws_connect(signed["result"]["path"])
-    await ws.send_json({"codecs": ["avc1.640029"]})
+    await ws.send_json({"codecs": ["avc1.640029", "flac"]})
     reply = await asyncio.wait_for(ws.receive_json(), 3)
-    assert reply == {"type": "mse", "value": 'video/mp4; codecs="avc1.420029"'}
+    assert reply == {"type": "mse", "value": 'video/mp4; codecs="avc1.420029,flac"'}
     assert (await asyncio.wait_for(ws.receive(), 3)).data == b"synthetic-fmp4"
     assert len(mse_server["sources"]) == 1 and mse_server["sources"][0].startswith("rtsp://")
     await ws.close()

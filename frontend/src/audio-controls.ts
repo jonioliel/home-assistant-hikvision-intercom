@@ -250,11 +250,23 @@ export class IntercomAudioControls extends LitElement {
   private nextPlayback = 0;
   private sources = new Set<AudioBufferSourceNode>();
   private pendingRequests = new Set<() => void>();
+  private cameraStreamPlayback = false;
   private audioStateChanged = () => {
     if (this._state === "listening" && this.context?.state !== "running")
       this.stop("audio_playback_interrupted");
   };
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  private cameraPlayback(enabled: boolean) {
+    const detail: { enabled: boolean; available?: boolean } = { enabled };
+    this.dispatchEvent(
+      new CustomEvent("hikvision-playback-audio", {
+        detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    return detail.available === true;
+  }
   private onVisibility = () => {
     if (document.hidden) this.stop();
   };
@@ -333,6 +345,7 @@ export class IntercomAudioControls extends LitElement {
       document.hidden
     )
       return;
+    this.cameraStreamPlayback = this.cameraPlayback(true);
     const epoch = ++this.epoch,
       hass = this.hass;
     this._state = "opening";
@@ -431,7 +444,7 @@ export class IntercomAudioControls extends LitElement {
         for (let i = 0; i < packet.length; i++) energy += decodeMuLaw(packet.charCodeAt(i)) ** 2;
         this._receivedSignal = Math.min(100, Math.round(Math.sqrt(energy / packet.length) * 100));
         this._receivedPeakSignal = Math.max(this._receivedPeakSignal, this._receivedSignal);
-        if (!this._talking) this.play(packet);
+        if (!this._talking && !this.cameraStreamPlayback) this.play(packet);
       } catch {
         if (this.valid(epoch)) this.stop("audio_connection_lost");
         return;
@@ -520,6 +533,8 @@ export class IntercomAudioControls extends LitElement {
       this.microphone.connect(this.processor);
       this.processor.connect(context.destination);
       this.clearPlayback();
+      this.cameraPlayback(false);
+      this.cameraStreamPlayback = false;
       this._talking = true;
       this.microphoneStage = "capturing";
       stream
@@ -602,6 +617,8 @@ export class IntercomAudioControls extends LitElement {
     this.microphone = undefined;
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = undefined;
+    if (this._state === "listening" && this.token)
+      this.cameraStreamPlayback = this.cameraPlayback(true);
     if (this.token) {
       const epoch = this.epoch;
       void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
@@ -621,6 +638,8 @@ export class IntercomAudioControls extends LitElement {
     }
   }
   private stop(reason?: string) {
+    this.cameraPlayback(false);
+    this.cameraStreamPlayback = false;
     this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     this.epoch++;
     this._diagnosticLoading = false;
@@ -706,6 +725,7 @@ export class IntercomAudioControls extends LitElement {
           generated_at: new Date().toISOString(),
           started_at: this.startedAt,
           path: "browser_ha_isapi",
+          playback_source: this.cameraStreamPlayback ? "camera_stream" : "isapi",
           secure_context: window.isSecureContext,
           microphone_api: !!navigator.mediaDevices?.getUserMedia,
           state: this._state,
@@ -881,7 +901,7 @@ export class IntercomAudioControls extends LitElement {
         <slot></slot>
       </div>
       <p class="session-status ${this._talking ? "talking" : ""}" role="status">
-        ${this.t(this._talking ? "camera_microphone_active" : "audio_state_" + this._state)}${
+        ${this.t(this._talking ? "camera_microphone_active" : "audio_state_" + this._state)}${this._state === "listening" && this.cameraStreamPlayback ? ` · ${this.t("audio_playback_camera")}` : ""}${
           this._state === "listening" && !this._talking
             ? ` · ${this.t("audio_received_signal")}: ${this._receivedSignal}%`
             : ""

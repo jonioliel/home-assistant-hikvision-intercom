@@ -59,6 +59,7 @@ export class IntercomCamera extends LitElement {
   private mse?: CameraMSE;
   private previousMSE?: Record<string, unknown>;
   private activeTransport = "";
+  private audioEnabled = false;
   live = false;
   label = "";
   private _tick = 0;
@@ -210,11 +211,28 @@ export class IntercomCamera extends LitElement {
     this.player = undefined;
     const video = this.renderRoot.querySelector("video");
     if (video) {
+      video.muted = true;
       video.pause();
       video.srcObject = null;
       video.removeAttribute("src");
       video.load();
     }
+  }
+  /** Enable camera-stream audio only after an explicit user gesture. */
+  setPlaybackAudio(enabled: boolean) {
+    this.audioEnabled = enabled;
+    const video = this.renderRoot.querySelector("video");
+    if (!video) return false;
+    video.muted = !enabled;
+    video.volume = 1;
+    if (enabled) void video.play().catch(() => {});
+    const available =
+      this.activeTransport === "mse"
+        ? (this.mse?.hasAudio() ?? false)
+        : this.activeTransport === "rtc"
+          ? (this.rtc?.hasAudio() ?? false)
+          : this.activeTransport === "hls";
+    return enabled && available;
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
@@ -457,6 +475,8 @@ export class IntercomCamera extends LitElement {
           browser_online: this._networkOnline,
           width: video?.videoWidth ?? 0,
           height: video?.videoHeight ?? 0,
+          camera_audio_enabled: this.audioEnabled,
+          media_element_muted: video?.muted ?? true,
           rtc,
           mse: this.mse?.summary() ?? this.previousMSE ?? null,
           selected_transport: (this.media ?? DEFAULT_MEDIA).transport,
@@ -536,7 +556,7 @@ export class IntercomCamera extends LitElement {
     if (this.live)
       return html`<video
           autoplay
-          muted
+          .muted=${!this.audioEnabled}
           playsinline
           aria-label=${this.label}
           @loadeddata=${() => this.loaded()}

@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.4.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.4.0)** — Home Assistant user permissions with per-area view/manage levels and live revocation.
+Published runtime: **[1.5.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.5.6)** — restored audible go2rtc camera monitoring for both MSE and RTC, with explicit listening and safe talkback transitions.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -269,7 +269,7 @@ use **Playback report** in the camera dialog to investigate WebRTC/HLS selection
 
 ### Global WisKey playback and audio diagnostics
 
-Management tools → Camera playback options selects HLS, RTC or MSE for every WisKey live player. Preferences are stored centrally in HA, including optional HLS fallback. MSE uses the HA go2rtc integration or a trusted local go2rtc server and stays on the authenticated HA origin in the browser. Other HA dashboard camera cards use their own player settings. Talk uses the separate HA/ISAPI path and requires microphone access in a secure browser context. [Setup, audio diagnostics and verified limits](docs/MEDIA_030_HE.md).
+Management tools → Camera playback options selects HLS, RTC or MSE for every WisKey live player. Preferences are stored centrally in HA, including optional HLS fallback. MSE uses the HA go2rtc integration or a trusted local go2rtc server and stays on the authenticated HA origin in the browser. MSE and RTC carry compatible camera audio, which is unmuted only after **Start listening**; go2rtc repackages the intercom's G.711 track for MSE. Other HA dashboard camera cards use their own player settings. Microphone transmission uses the separate HA/ISAPI path and requires a secure browser context. [Setup, audio diagnostics and verified limits](docs/MEDIA_030_HE.md).
 
 
 ### User profiles and the installed go2rtc add-on
@@ -281,8 +281,9 @@ Photos require a secure browser context (HTTPS), remain local to Home Assistant 
 
 Management tools → **Camera playback options** can discover the installed go2rtc add-on.
 Save the discovered address to use the same server for both RTC and MSE; the saved-provider
-check reports its server and version. MSE carries video over HA's connection. RTC still requires
-working ICE connectivity between the browser and go2rtc; an HTTP health check alone does not prove it.
+check reports its server and version. MSE carries video and compatible camera audio over HA's
+connection. RTC still requires working ICE connectivity between the browser and go2rtc; an HTTP
+health check alone does not prove it.
 [Hebrew setup, migration, limits and verification](docs/PROFILES_MEDIA_031_HE.md).
 
 ### Custom user columns and group permissions

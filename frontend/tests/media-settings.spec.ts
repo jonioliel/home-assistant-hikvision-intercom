@@ -98,7 +98,11 @@ test("MSE decodes synthetic fMP4, exports safe evidence and stops on global chan
   await page.routeWebSocket(/\/api\/hikvision_intercom\/mse\//, (ws) => {
     ws.onClose(() => (closed = true));
     ws.onMessage((message) => {
-      expect(JSON.parse(message.toString()).codecs).toContain("avc1.640029");
+      const codecs = JSON.parse(message.toString()).codecs;
+      expect(codecs).toContain("avc1.640029");
+      expect(
+        codecs.some((codec: string) => ["mp4a.40.2", "mp4a.40.5", "flac", "opus"].includes(codec)),
+      ).toBeTruthy();
       ws.send(JSON.stringify({ type: "mse", value: 'video/mp4; codecs="avc1.42001E"' }));
       ws.send(Buffer.from(data));
     });

@@ -445,7 +445,7 @@ const en = {
   media_transport: "Video transport",
   media_webrtc_mode: "WebRTC / go2rtc player mode",
   media_mse_hint:
-    "MSE streams video over the Home Assistant connection. It does not need a direct browser-to-camera RTC connection. Microphone audio uses the separate talk controls.",
+    "MSE carries camera video and compatible camera audio over the Home Assistant connection. It does not need a direct browser-to-camera RTC connection. Microphone transmission uses the separate talk controls.",
   media_rtc_hint:
     "RTC uses the selected go2rtc server, or the Home Assistant provider when the address is empty. Connectivity depends on ICE and the network path.",
   media_fallback: "Allow automatic HLS fallback if the selected mode fails",
@@ -466,7 +466,7 @@ const en = {
   media_provider_failed:
     "HA could not reach the saved go2rtc server. Check its address or configure the go2rtc integration.",
   player_mse: "MSE",
-  player_video_only: "video only — use the listening controls below",
+  player_video_only: "camera stream — use Start listening for audio",
   audio_diagnostics: "Download audio diagnostics",
   audio_diagnostics_title: "Audio diagnostics",
   audio_peak: "Peak microphone signal this session",
@@ -560,6 +560,7 @@ const en = {
   audio_state_idle: "Listening is off.",
   audio_state_opening: "Connecting station audio…",
   audio_state_listening: "Listening is active. Microphone is off.",
+  audio_playback_camera: "camera audio",
   audio_https_required:
     "Microphone access requires Home Assistant over HTTPS. Listening is available here.",
   audio_busy:
@@ -2166,7 +2167,7 @@ const he: Record<keyof typeof en, string> = {
   media_transport: "אופן ניגון הווידאו",
   media_webrtc_mode: "מצב נגן WebRTC / go2rtc",
   media_mse_hint:
-    "MSE מעביר וידאו דרך החיבור ל־Home Assistant, ללא חיבור RTC ישיר מהדפדפן למצלמה. הדיבור מתבצע דרך בקרי השמע הנפרדים.",
+    "MSE מעביר וידאו ושמע מצלמה תואם דרך החיבור ל־Home Assistant, ללא חיבור RTC ישיר מהדפדפן למצלמה. שידור המיקרופון מתבצע דרך בקרי הדיבור הנפרדים.",
   media_rtc_hint: "RTC משתמש בספק WebRTC של Home Assistant. החיבור תלוי ב־ICE ובנתיב הרשת.",
   media_fallback: "לאפשר מעבר אוטומטי ל־HLS אם המצב שנבחר נכשל",
   media_go2rtc_url: "כתובת שרת go2rtc (ל־RTC ול־MSE)",
@@ -2185,7 +2186,7 @@ const he: Record<keyof typeof en, string> = {
   media_provider_failed:
     "HA לא הצליח לגשת לשרת go2rtc השמור. בדוק את הכתובת או הגדר את אינטגרציית go2rtc.",
   player_mse: "MSE",
-  player_video_only: "וידאו בלבד — השמע מופעל מהפקדים שמתחת למצלמה",
+  player_video_only: "זרם מצלמה — השמע מופעל בלחיצה על פתח האזנה",
   audio_diagnostics: "הורד קובץ אבחון",
   audio_diagnostics_title: "אבחון שמע",
   audio_peak: "שיא אות המיקרופון בסשן",
@@ -2273,6 +2274,7 @@ const he: Record<keyof typeof en, string> = {
   audio_state_idle: "ההאזנה כבויה.",
   audio_state_opening: "מחבר שמע מהתחנה…",
   audio_state_listening: "ההאזנה פעילה. המיקרופון כבוי.",
+  audio_playback_camera: "שמע המצלמה",
   audio_https_required: "גישה למיקרופון מחייבת פתיחת Home Assistant דרך HTTPS. ניתן להאזין כאן.",
   audio_busy: "לתחנה או לדפדפן כבר יש חיבור שמע. עצור אותו לפני פתיחת חיבור נוסף.",
   audio_unsupported: "התחנה אינה מדווחת על פורמט השמע הנתמך בגרסה זו.",
