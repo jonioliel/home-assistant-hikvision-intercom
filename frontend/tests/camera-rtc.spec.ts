@@ -167,15 +167,27 @@ test("explicit listening unmutes a received RTC audio track and cleanup remutes 
   const active = await camera.evaluate(async (element: any) => {
     element.setPlaybackAudio(true);
     const video = element.shadowRoot.querySelector("video");
-    return { muted: video.muted, summary: await element.rtc.diagnostics() };
+    return {
+      muted: video.muted,
+      gain: element.playbackGain?.gain.value,
+      amplified: !!element.playbackContext,
+      captureStream: element.playbackUsesCapturedStream,
+      summary: await element.rtc.diagnostics(),
+    };
   });
-  expect(active.muted).toBe(false);
+  expect(active.muted).toBe(active.captureStream);
+  expect(active.gain).toBe(32);
+  expect(active.amplified).toBe(true);
+  expect(typeof active.captureStream).toBe("boolean");
   expect(active.summary.audio_track_received).toBe(true);
   expect(active.summary.audio_track_live).toBe(true);
   await camera.evaluate((element: any) => element.setPlaybackAudio(false));
   expect(
-    await camera.evaluate((element: any) => element.shadowRoot.querySelector("video").muted),
-  ).toBe(true);
+    await camera.evaluate((element: any) => ({
+      muted: element.shadowRoot.querySelector("video").muted,
+      gain: element.playbackGain?.gain.value,
+    })),
+  ).toEqual({ muted: true, gain: 0 });
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   expect(await page.evaluate(() => window.rtcAudioTrack.readyState)).toBe("ended");
 });

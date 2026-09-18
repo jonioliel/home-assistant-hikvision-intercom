@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.5.6](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.5.6)** — restored audible go2rtc camera monitoring for both MSE and RTC, with explicit listening and safe talkback transitions.
+Published runtime: **[1.5.7](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.5.7)** — routes listening through the camera MSE/RTC track, amplifies the verified low-level station signal with a limiter, and opens ISAPI only while talking.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.

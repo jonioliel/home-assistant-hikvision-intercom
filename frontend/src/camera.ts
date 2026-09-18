@@ -60,6 +60,12 @@ export class IntercomCamera extends LitElement {
   private previousMSE?: Record<string, unknown>;
   private activeTransport = "";
   private audioEnabled = false;
+  private playbackContext?: AudioContext;
+  private playbackElement?: HTMLVideoElement;
+  private playbackSource?: AudioNode;
+  private playbackGain?: GainNode;
+  private playbackUsesCapturedStream = false;
+  private playbackLimiter?: DynamicsCompressorNode;
   live = false;
   label = "";
   private _tick = 0;
@@ -188,6 +194,7 @@ export class IntercomCamera extends LitElement {
     clearInterval(this.timer);
     this.bindConnection(undefined);
     this.stop();
+    this.closePlaybackGraph();
   }
   private bindConnection(connection?: Hass["connection"]) {
     this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
@@ -218,14 +225,73 @@ export class IntercomCamera extends LitElement {
       video.load();
     }
   }
+  private closePlaybackGraph() {
+    this.playbackSource?.disconnect();
+    this.playbackGain?.disconnect();
+    this.playbackLimiter?.disconnect();
+    this.playbackSource = undefined;
+    this.playbackGain = undefined;
+    this.playbackLimiter = undefined;
+    this.playbackUsesCapturedStream = false;
+    this.playbackElement = undefined;
+    void this.playbackContext?.close().catch(() => undefined);
+    this.playbackContext = undefined;
+  }
+  /**
+   * Route camera audio through speech gain and a limiter. The verified door
+   * stations publish a valid 8 kHz track at a level below native audibility.
+   */
+  private ensurePlaybackGraph(video: HTMLVideoElement) {
+    if (this.playbackElement === video && this.playbackContext && this.playbackGain) return true;
+    if (this.playbackElement && this.playbackElement !== video) this.closePlaybackGraph();
+    try {
+      const context = new AudioContext();
+      const direct = video.srcObject instanceof MediaStream ? video.srcObject : undefined;
+      const capture = (video as HTMLVideoElement & { captureStream?: () => MediaStream })
+        .captureStream;
+      const captured = direct?.getAudioTracks().length
+        ? direct
+        : typeof capture === "function"
+          ? capture.call(video)
+          : undefined;
+      const usesCapturedStream = !!captured?.getAudioTracks().length;
+      const source: AudioNode = usesCapturedStream
+        ? context.createMediaStreamSource(captured!)
+        : context.createMediaElementSource(video);
+      const gain = context.createGain();
+      const limiter = context.createDynamicsCompressor();
+      gain.gain.value = 0;
+      limiter.threshold.value = -8;
+      limiter.knee.value = 6;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.25;
+      source.connect(gain).connect(limiter).connect(context.destination);
+      this.playbackContext = context;
+      this.playbackElement = video;
+      this.playbackSource = source;
+      this.playbackGain = gain;
+      this.playbackLimiter = limiter;
+      this.playbackUsesCapturedStream = usesCapturedStream;
+      return true;
+    } catch {
+      this.closePlaybackGraph();
+      return false;
+    }
+  }
   /** Enable camera-stream audio only after an explicit user gesture. */
   setPlaybackAudio(enabled: boolean) {
     this.audioEnabled = enabled;
     const video = this.renderRoot.querySelector("video");
     if (!video) return false;
-    video.muted = !enabled;
+    if (enabled) this.ensurePlaybackGraph(video);
+    if (this.playbackGain) this.playbackGain.gain.value = enabled ? 32 : 0;
+    video.muted = this.playbackUsesCapturedStream ? true : !enabled;
     video.volume = 1;
-    if (enabled) void video.play().catch(() => {});
+    if (enabled) {
+      void this.playbackContext?.resume().catch(() => undefined);
+      void video.play().catch(() => {});
+    }
     const available =
       this.activeTransport === "mse"
         ? (this.mse?.hasAudio() ?? false)
@@ -477,6 +543,10 @@ export class IntercomCamera extends LitElement {
           height: video?.videoHeight ?? 0,
           camera_audio_enabled: this.audioEnabled,
           media_element_muted: video?.muted ?? true,
+          playback_amplified: !!this.playbackGain,
+          playback_gain: this.playbackGain?.gain.value ?? 1,
+          playback_audio_context: this.playbackContext?.state ?? null,
+          playback_capture_stream: this.playbackUsesCapturedStream,
           rtc,
           mse: this.mse?.summary() ?? this.previousMSE ?? null,
           selected_transport: (this.media ?? DEFAULT_MEDIA).transport,
