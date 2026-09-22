@@ -1,15 +1,11 @@
 import { build } from "esbuild";
-import { readFile, writeFile } from "node:fs/promises";
-
-const PANEL_OUTFILE = "../custom_components/hikvision_intercom/frontend/panel.js";
-const AUDIO_WORKLET_OUTFILE = "../custom_components/hikvision_intercom/frontend/audio-worklet.js";
 await build({
   entryPoints: ["src/panel.ts"],
   bundle: true,
   minify: true,
   format: "esm",
   target: "es2022",
-  outfile: PANEL_OUTFILE,
+  outfile: "../custom_components/hikvision_intercom/frontend/panel.js",
   legalComments: "external",
   sourcemap: false,
 });
@@ -20,11 +16,6 @@ await build({
   minify: true,
   format: "esm",
   target: "es2022",
-  outfile: AUDIO_WORKLET_OUTFILE,
+  outfile: "../custom_components/hikvision_intercom/frontend/audio-worklet.js",
   sourcemap: false,
 });
-
-for (const outfile of [PANEL_OUTFILE, AUDIO_WORKLET_OUTFILE]) {
-  const generated = await readFile(outfile, "utf8");
-  await writeFile(outfile, generated.replace(/[ \t]+(?=\r?\n)/g, ""), "utf8");
-}
