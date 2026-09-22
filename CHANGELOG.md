@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.8.0] - 2026-09-23
+
+- Add explicit typed announcements to the selected intercom using configured Home Assistant TTS engines, including Google Translate TTS and automatic Hebrew `iw` selection.
+- Request bounded 8 kHz mono WAV from Home Assistant, validate it strictly, convert PCM16 to G.711 μ-law and stream 100 ms packets through the field-verified Hikvision TwoWayAudio channel.
+- Keep announcements connection-owned and cancellable on stop, dialog close, backgrounding, disconnect, call termination and station unload; microphone and TTS sessions cannot compete for the same station.
+- Enforce delegated WisKey management permissions, configured-engine validation, 500-character and 60-second limits, generation timeout, concurrency limits and log privacy. Announcements never operate a relay or mutate access data.
+- Add responsive Hebrew/English controls, backend codec and lifecycle coverage, browser regressions across TTS, microphone and WebRTC, an operator guide and a self-contained 1.8.0 Hebrew manual-test worksheet.
+
 ## [1.7.0] - 2026-09-22
 
 - Add a responsive, paginated background-operations center for per-user/per-station synchronization, CSV imports and bulk changes, with live refresh, filters, friendly names and targeted retry.

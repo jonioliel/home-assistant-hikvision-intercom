@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.7.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.7.0)** — adds a paginated background-operations center, durable CSV receipts, pre-import capacity reporting and on-demand user details while preserving existing access, sync and media workflows.
+Published runtime: **[1.8.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.8.0)** — adds typed Home Assistant TTS announcements to a selected intercom while preserving the existing camera, microphone, access, sync and administration workflows.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -42,7 +42,17 @@ with targeted retry where the HA user has the matching Users or Stations managem
 CSV preview reports current, projected and peak users/cards/PIN counts per affected station;
 a limit the station does not advertise remains unknown. Receipts and reports contain no PIN,
 full card number or device credentials. See the [operations guide](docs/BACKGROUND_OPERATIONS_HE.md)
-and the [1.7.0 manual test worksheet](docs/manual-tests/WISKEY_1.7.0_TESTS_HE.html).
+and the [1.8.0 manual test worksheet](docs/manual-tests/WISKEY_1.8.0_TESTS_HE.html).
+
+## Intercom announcements with Home Assistant TTS
+
+Open a station camera, type a message under **Intercom announcement**, select any configured
+Home Assistant TTS engine and language, then explicitly send it to that station. Google Translate
+TTS is discovered from the existing HA setup; Hebrew defaults to `iw` when the engine supports it.
+Audio is converted to the verified 8 kHz G.711 μ-law ISAPI talk path, bounded to 60 seconds, and
+never operates a relay or stores the message. Microphone and TTS sessions are mutually exclusive
+per station and stop on dialog close, backgrounding, disconnect, call termination or station unload.
+See the [Hebrew operator and architecture guide](docs/INTERCOM_TTS_HE.md).
 
 ## Two-way audio
 
