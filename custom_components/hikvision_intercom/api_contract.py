@@ -14,6 +14,7 @@ CAPABILITIES = [
     "whatsapp_templates",
     "panel_permissions",
     "shared_appearance",
+    "user_directory_query",
 ]
 
 
@@ -36,6 +37,7 @@ READ_COMMANDS = frozenset(
         "stations/get",
         "stations/inventory",
         "users/list",
+        "users/query",
         "users/get",
         "sync/status",
         "sync/diagnostics",

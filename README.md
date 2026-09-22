@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.5.7](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.5.7)** — routes listening through the camera MSE/RTC track, amplifies the verified low-level station signal with a limiter, and opens ISAPI only while talking.
+Published runtime: **[1.6.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.6.0)** — adds a bounded, paginated user directory with server-side search/filter/sort, stable change snapshots and a legacy fallback while preserving the existing access, sync and media workflows.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -295,4 +295,4 @@ For microphone packets accepted by HA but no speech from the station, use the
 
 ## Development roadmap
 
-[Next 40 tasks and phase acceptance gates (Hebrew)](docs/ROADMAP_NEXT_40_HE.md) distinguish planned enhancements from the remaining physical acceptance checks.
+[Current 84-item continuation roadmap (Hebrew)](docs/DEVELOPMENT_ROADMAP_2026_HE.md) organizes scalable user management, fleet operations, identity safety, visitors, reporting, security, media and integrations. The [earlier 40-task plan](docs/ROADMAP_NEXT_40_HE.md) remains as historical planning context.

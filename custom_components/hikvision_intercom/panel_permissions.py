@@ -144,6 +144,7 @@ class PanelPermissions:
 # A tuple of requirements means any one grant is sufficient.
 _READ_USERS = {
     "users/list",
+    "users/query",
     "users/get",
     "users/photo_get",
     "users/csv_export",

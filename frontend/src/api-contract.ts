@@ -59,6 +59,7 @@ const reads = new Set([
   "users/csv_export",
   "users/get",
   "users/list",
+  "users/query",
   "users/photo_get",
 ]);
 // Connection-owned audio RPCs use audio_api.py, not the management dispatcher.

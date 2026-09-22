@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.6.0] - 2026-09-22
+
+- Add a backward-compatible `users/query` API with bounded pages, server-side search, profile/group/station/state/credential filters, deterministic sorting and a privacy-safe snapshot token.
+- Add responsive user-directory pagination at 25, 50, 100 or 200 records per page. Search is debounced, stale responses are ignored and selection remains available across pages.
+- Retain the complete existing user workflow and local filtering as a fallback when the server does not advertise the new capability or a page read fails. Editing, bulk actions, photos, sync and saved views keep their existing contracts.
+- Add regression coverage for 126-user browser paging, legacy-server fallback, request bounds, credentials, dates, profile/group filters, last-four-card search and snapshot changes.
+- Add the organized 84-item continuation roadmap and a self-contained browser test worksheet for each development round.
+
 ## [1.5.7] - 2026-09-18
 
 - Make **Start listening** use the already negotiated MSE/RTC camera audio track directly. It stays muted by default and is enabled only by the explicit listening action; listen-only mode no longer opens an ISAPI TwoWayAudio session.
