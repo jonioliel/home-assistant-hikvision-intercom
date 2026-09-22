@@ -142,9 +142,12 @@ async def test_tts_rejects_unconfigured_engine_and_audio_conflicts(
     hass.data[DOMAIN]["audio_sessions"] = {
         loaded_entry.entry_id: SimpleNamespace(connection=object())
     }
-    busy = await start_tts(client, loaded_entry.entry_id)
-    assert busy["error"]["code"] == "audio_busy"
-    tts_player[0].start.assert_not_called()
+    try:
+        busy = await start_tts(client, loaded_entry.entry_id)
+        assert busy["error"]["code"] == "audio_busy"
+        tts_player[0].start.assert_not_called()
+    finally:
+        hass.data[DOMAIN]["audio_sessions"].clear()
 
 
 async def test_tts_disconnect_during_generation_cancels_and_releases_station(
