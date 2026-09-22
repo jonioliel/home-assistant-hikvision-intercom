@@ -8,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 import voluptuous as vol
-from homeassistant.components import tts, websocket_api
+from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .client.audio import AudioError, AudioSession
@@ -20,6 +20,14 @@ from .panel_permissions import area_allowed
 MAX_TEXT_LENGTH = 500
 SYNTHESIS_TIMEOUT = 30
 MAX_CONCURRENT_AUDIO = 3
+
+
+def _tts_component() -> Any:
+    """Load HA TTS only when used so WisKey still starts without a TTS provider."""
+
+    from homeassistant.components import tts
+
+    return tts
 
 
 class IntercomTtsError(Exception):
@@ -52,8 +60,9 @@ def available_engines(hass: HomeAssistant) -> dict[str, Any]:
     """Return configured HA TTS engines without exposing provider configuration."""
 
     try:
-        default = tts.async_default_engine(hass)
-    except (KeyError, TypeError):
+        tts_component = _tts_component()
+        default = tts_component.async_default_engine(hass)
+    except (ImportError, KeyError, TypeError):
         return {"default": None, "engines": []}
     engine_ids = list(hass.states.async_entity_ids("tts"))
     if default and default not in engine_ids:
@@ -86,7 +95,8 @@ async def synthesize(
     """Generate a preferred HA TTS stream and transcode it to the device codec."""
 
     try:
-        media_source_id = tts.generate_media_source_id(
+        tts_component = _tts_component()
+        media_source_id = tts_component.generate_media_source_id(
             hass,
             message,
             engine=engine,
@@ -100,7 +110,7 @@ async def synthesize(
             cache=False,
         )
         extension, data = await asyncio.wait_for(
-            tts.async_get_media_source_audio(hass, media_source_id),
+            tts_component.async_get_media_source_audio(hass, media_source_id),
             SYNTHESIS_TIMEOUT,
         )
     except TimeoutError:

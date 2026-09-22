@@ -8,7 +8,7 @@ import logging
 import struct
 import wave
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -209,15 +209,14 @@ async def test_home_assistant_tts_is_requested_as_8khz_mono_wave(hass):
         target.setsampwidth(2)
         target.setframerate(8000)
         target.writeframes(struct.pack("<800h", *([1000] * 800)))
-    with (
-        patch(
-            "custom_components.hikvision_intercom.audio_tts.tts.generate_media_source_id",
-            return_value="media-source://tts/generated",
-        ) as generate,
-        patch(
-            "custom_components.hikvision_intercom.audio_tts.tts.async_get_media_source_audio",
-            AsyncMock(return_value=("wav", output.getvalue())),
-        ),
+    generate = Mock(return_value="media-source://tts/generated")
+    component = SimpleNamespace(
+        generate_media_source_id=generate,
+        async_get_media_source_audio=AsyncMock(return_value=("wav", output.getvalue())),
+    )
+    with patch(
+        "custom_components.hikvision_intercom.audio_tts._tts_component",
+        return_value=component,
     ):
         packets, duration = await synthesize(hass, "tts.google_translate_en_com", "iw", "בדיקה")
     assert len(packets) == 1 and len(packets[0]) == 800
@@ -233,3 +232,27 @@ async def test_home_assistant_tts_is_requested_as_8khz_mono_wave(hass):
         },
         "cache": False,
     }
+
+
+def test_missing_tts_runtime_keeps_engine_discovery_empty(hass):
+    from custom_components.hikvision_intercom.audio_tts import available_engines
+
+    with patch(
+        "custom_components.hikvision_intercom.audio_tts._tts_component",
+        side_effect=ImportError,
+    ):
+        assert available_engines(hass) == {"default": None, "engines": []}
+
+
+async def test_missing_tts_runtime_is_a_bounded_generation_failure(hass):
+    from custom_components.hikvision_intercom.audio_tts import IntercomTtsError, synthesize
+
+    with (
+        patch(
+            "custom_components.hikvision_intercom.audio_tts._tts_component",
+            side_effect=ImportError,
+        ),
+        pytest.raises(IntercomTtsError) as raised,
+    ):
+        await synthesize(hass, "tts.missing", "iw", "בדיקה")
+    assert raised.value.code == "tts_generation_failed"
