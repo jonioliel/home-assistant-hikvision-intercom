@@ -122,3 +122,47 @@ async def test_group_policy_review_and_directory_use_real_admin_transport(
     bad = await request(client, "permissions/directory", filters={"station_id": []})
     assert not bad["success"] and bad["error"]["code"] == "invalid_text"
     device_io["unlock"].assert_not_called()
+
+
+async def test_operations_query_uses_authenticated_actor_and_safe_projection(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    created = await request(
+        client,
+        "users/create",
+        data={"display_name": "Tracked Resident", "pin": "728194"},
+        sync_now=False,
+    )
+    user = created["result"]
+    review = await request(
+        client,
+        "users/bulk_preview",
+        request={
+            "action": "assign",
+            "station_id": loaded_entry.entry_id,
+            "selection": [{"user_id": user["id"], "revision": user["revision"]}],
+        },
+    )
+    saved = await request(
+        client,
+        "users/bulk_apply",
+        operation_id=review["result"]["operation_id"],
+    )
+    assert saved["success"]
+    report = await request(
+        client,
+        "operations/query",
+        filters={"kind": "all", "state": "all", "query": "", "station_id": ""},
+        offset=0,
+        limit=50,
+        snapshot="",
+    )
+    assert report["success"] and report["result"]["total"] >= 1
+    grouped = next(
+        row for row in report["result"]["records"] if row["id"] == saved["result"]["operation_id"]
+    )
+    assert grouped["action"] == "bulk/assign"
+    assert grouped["station_ids"] == [loaded_entry.entry_id]
+    assert "728194" not in json.dumps(report)
+    device_io["unlock"].assert_not_called()

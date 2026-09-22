@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.6.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.6.0)** — adds a bounded, paginated user directory with server-side search/filter/sort, stable change snapshots and a legacy fallback while preserving the existing access, sync and media workflows.
+Published runtime: **[1.7.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.7.0)** — adds a paginated background-operations center, durable CSV receipts, pre-import capacity reporting and on-demand user details while preserving existing access, sync and media workflows.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -33,6 +33,16 @@ active non-administrator separate `none`, `view only`, or `view and manage` acce
 Users, Events, Intercom stations and Management tools. Navigation follows the grant and all
 WebSocket, door, call, audio and custom video paths enforce it again on the server. Revocation also
 closes an already-open subscription or stream. [Hebrew setup and security model](docs/HA_USER_PERMISSIONS_HE.md).
+
+## Background operations and CSV capacity
+
+Open **Management tools → Background operations** to follow synchronization, CSV imports
+and bulk changes after navigation or reload. Progress is grouped by actual user and station,
+with targeted retry where the HA user has the matching Users or Stations management grant.
+CSV preview reports current, projected and peak users/cards/PIN counts per affected station;
+a limit the station does not advertise remains unknown. Receipts and reports contain no PIN,
+full card number or device credentials. See the [operations guide](docs/BACKGROUND_OPERATIONS_HE.md)
+and the [1.7.0 manual test worksheet](docs/manual-tests/WISKEY_1.7.0_TESTS_HE.html).
 
 ## Two-way audio
 

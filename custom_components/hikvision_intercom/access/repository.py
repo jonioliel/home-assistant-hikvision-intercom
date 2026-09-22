@@ -632,6 +632,7 @@ class AccessRepository:
         *,
         stamp: str,
         validate: Callable[[ManagedUser], None],
+        receipt: dict[str, Any] | None = None,
     ) -> list[ManagedUser]:
         def apply(state: dict[str, Any]) -> list[ManagedUser]:
             if stamp != self.bulk_stamp(state):
@@ -639,6 +640,19 @@ class AccessRepository:
             users = self._bulk_users(state, changes)
             for user in users:
                 validate(user)
+            if receipt is not None:
+                saved = {
+                    **deepcopy(receipt),
+                    "user_ids": [user.id for user in users],
+                    "changed": len(users),
+                }
+                state["operation_receipts"][saved["operation_id"]] = saved
+                while len(state["operation_receipts"]) > 1000:
+                    oldest = min(
+                        state["operation_receipts"],
+                        key=lambda key: state["operation_receipts"][key]["saved_at"],
+                    )
+                    del state["operation_receipts"][oldest]
             return users
 
         return await self._commit(apply, offload=True)

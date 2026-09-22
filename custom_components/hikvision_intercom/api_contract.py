@@ -15,6 +15,7 @@ CAPABILITIES = [
     "panel_permissions",
     "shared_appearance",
     "user_directory_query",
+    "operations_query",
 ]
 
 
@@ -57,6 +58,7 @@ READ_COMMANDS = frozenset(
         "conflicts/list",
         "users/bulk_receipt",
         "users/bulk_receipts",
+        "operations/query",
         "audit/list",
         "audit/export",
         "users/csv_export",

@@ -10,6 +10,7 @@ from custom_components.hikvision_intercom.panel_permissions import (
     AREAS,
     PanelPermissions,
     area_allowed,
+    requirements,
 )
 
 
@@ -98,3 +99,9 @@ async def test_explicit_empty_save_recovers_invalid_storage():
     assert result["revision"] == 1
     save.assert_awaited_once_with({"schema": 1, "revision": 1, "users": {}})
     changed.assert_called_once_with()
+
+
+def test_background_operations_have_explicit_scoped_permissions():
+    assert requirements("operations/query") == (("management", "view"),)
+    assert requirements("sync/user") == (("users", "manage"),)
+    assert requirements("sync/station") == (("stations", "manage"),)

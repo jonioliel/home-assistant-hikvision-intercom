@@ -354,3 +354,59 @@ async def test_preview_binds_station_configuration_and_async_export_is_private(f
     exported = await manager.async_export_csv()
     assert exported["count"] == 1
     assert "987654" not in exported["csv"] and "000011112222" not in exported["csv"]
+
+
+async def test_csv_apply_records_durable_operation_without_credentials(fleet):
+    manager, _device, _ = fleet
+    raw = content([["1001", "Resident", "987654", '["000011112222"]', '{"a":true}']])
+    preview = manager.preview_csv(raw, "create")
+    result = await manager.async_import_csv(
+        raw,
+        "create",
+        review_token=preview["review_token"],
+        actor="admin-user",
+    )
+    assert result["durable"] and result["operation_id"]
+    receipt = manager.repository.snapshot()["operation_receipts"][result["operation_id"]]
+    assert receipt["action"] == "bulk/csv_import"
+    assert receipt["actor"] == "admin-user" and receipt["changed"] == 1
+    assert receipt["stations"] == ["a"] and len(receipt["user_ids"]) == 1
+    assert "987654" not in str(receipt) and "000011112222" not in str(receipt)
+
+    restored = type(manager.repository)(AsyncMock())
+    await restored.async_load(manager.repository.snapshot())
+    assert restored.snapshot()["operation_receipts"][result["operation_id"]] == receipt
+
+
+async def test_async_csv_preview_reports_station_user_card_and_pin_capacity(fleet):
+    manager, _device, _driver = fleet
+    raw = content([["1001", "Resident", "987654", '["000011112222"]', '{"a":true}']])
+    preview = await manager.async_preview_csv(raw, "create")
+    assert not preview["errors"]
+    assert preview["capacity"] == [
+        {
+            "station_id": "a",
+            "checked_at": manager.stations["a"].scanned_at,
+            "source": "cached_inventory",
+            "users_now": 0,
+            "cards_now": 0,
+            "pins_now": 0,
+            "max_users": manager.stations["a"].driver.capabilities.max_users,
+            "max_cards": manager.stations["a"].driver.capabilities.max_cards,
+            "max_pins": None,
+            "users_added": 1,
+            "users_removed": 0,
+            "cards_added": 1,
+            "cards_removed": 0,
+            "pins_added": 1,
+            "pins_removed": 0,
+            "users_projected": 1,
+            "users_peak": 1,
+            "cards_projected": 1,
+            "cards_peak": 1,
+            "pins_projected": 1,
+            "pins_peak": 1,
+            "capacity_warning": False,
+        }
+    ]
+    assert "987654" not in str(preview) and "000011112222" not in str(preview)

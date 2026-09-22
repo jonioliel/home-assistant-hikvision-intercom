@@ -41,6 +41,7 @@ const reads = new Set([
   "clock/settings_get",
   "clock/host_status",
   "overview",
+  "operations/query",
   "permissions/directory",
   "profiles/settings_get",
   "schedules/export",

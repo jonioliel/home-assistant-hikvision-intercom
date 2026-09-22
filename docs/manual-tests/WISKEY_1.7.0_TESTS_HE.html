@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WisKey 1.7.0 — דף בדיקות</title>
+    <style>
+      :root { color-scheme: light dark; --accent:#554fd8; --ok:#16805a; --bad:#c44254; --line:#dfe3ec; --muted:#687386; }
+      * { box-sizing:border-box } body { margin:0; font:16px/1.55 system-ui,Arial; background:#f4f6fa; color:#202432 }
+      header { position:sticky; top:0; z-index:2; padding:18px clamp(16px,4vw,48px); background:#171c27; color:white; box-shadow:0 4px 18px #0003 }
+      header h1 { margin:0; font-size:clamp(22px,3vw,34px) } header p { margin:4px 0 0; color:#cbd3e2 }
+      main { width:min(1180px,calc(100% - 24px)); margin:20px auto 60px }
+      .summary,.group { background:white; border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:16px; box-shadow:0 8px 24px #24324a0b }
+      .summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px }
+      .metric { padding:12px; background:#f2f3ff; border-radius:12px; text-align:center }.metric b { display:block; font-size:24px; color:var(--accent) }
+      h2 { margin:0 0 12px; font-size:20px } .test { display:grid; grid-template-columns:minmax(250px,1fr) 170px minmax(200px,.7fr); gap:12px; padding:14px 0; border-top:1px solid var(--line); align-items:start }
+      .test:first-of-type { border-top:0 }.test h3 { margin:0 0 4px; font-size:16px }.test p { margin:0; color:var(--muted); font-size:14px }
+      select,textarea,input,button { font:inherit } select,textarea,input[type=text] { width:100%; border:1px solid #cbd2df; background:white; color:inherit; border-radius:10px; padding:9px }
+      textarea { min-height:74px; resize:vertical } select.pass { border-color:var(--ok); color:var(--ok) } select.fail { border-color:var(--bad); color:var(--bad) }
+      .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px } button { border:0; border-radius:10px; padding:10px 15px; cursor:pointer; background:var(--accent); color:white } button.secondary { background:#eef0f6; color:#202432 }
+      .identity { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:12px 0 }
+      .notice { border-inline-start:4px solid #d29421; background:#fff6df; padding:10px 12px; border-radius:8px }
+      @media(max-width:760px){ .summary-grid,.identity{grid-template-columns:1fr 1fr}.test{grid-template-columns:1fr}.test select{max-width:none} }
+      @media(prefers-color-scheme:dark){ body{background:#10131b;color:#edf0f6}.summary,.group{background:#191e29;border-color:#323949}.metric{background:#24243c}select,textarea,input[type=text]{background:#111620;border-color:#3b4557}.notice{background:#322a18}.secondary{background:#303746!important;color:#fff!important} }
+      @media print { header{position:static}.toolbar{display:none}.group,.summary{break-inside:avoid;box-shadow:none} }
+    </style>
+  </head>
+  <body>
+    <header><h1>WisKey 1.7.0 — סבב בדיקות ידני</h1><p>עבודות רקע עמידות, דוח קיבולת, פרטי משתמש לפי דרישה ובדיקת רגרסיה מלאה</p></header>
+    <main>
+      <section class="summary">
+        <div class="summary-grid"><div class="metric"><b id="passed">0</b>עברו</div><div class="metric"><b id="failed">0</b>נכשלו</div><div class="metric"><b id="pending">0</b>ממתינים</div><div class="metric"><b id="percent">0%</b>הושלמו</div></div>
+        <div class="identity"><label>שם הבודק<input id="tester" type="text" /></label><label>גרסת HA<input id="ha" type="text" placeholder="2026.9.1" /></label><label>מכשיר ודפדפן<input id="browser" type="text" placeholder="Chrome / Android" /></label></div>
+        <p class="notice">אין להזין כאן PIN, מספר כרטיס, סיסמה או כתובת פנימית. הנתונים נשמרים רק ב־localStorage של הדפדפן עד לייצוא.</p>
+        <div class="toolbar"><button id="export">הורדת תוצאות JSON</button><button id="copy">העתקת סיכום</button><button class="secondary" id="print">הדפסה</button><button class="secondary" id="reset">איפוס הטופס</button></div>
+      </section>
+      <div id="tests"></div>
+    </main>
+    <script>
+      const groups = [
+        ["התקנה וגרסה",[
+          ["hacs","עדכון HACS","HACS מציג את 1.7.0 כגרסה יציבה, ההתקנה מסתיימת ללא הודעת commit שאינו מתאים."],
+          ["restart","אתחול Home Assistant","לאחר האתחול WisKey נטען, מציג 1.7.0 ואינו מציג Repair חדש."],
+          ["permissions","כניסה והרשאות","מנהל נכנס לכל המסכים; משתמש HA מוגבל רואה רק את המסכים והפעולות שהוקצו לו."],
+        ]],
+        ["עבודות רקע וייבוא",[
+          ["jobs-nav","פתיחת מרכז עבודות הרקע","בכלי ניהול מופיע 'עבודות רקע'. המסך נפתח גם למשתמש HA עם הרשאת צפייה בכלי ניהול, בלי להפוך אותו למנהל מלא."],
+          ["jobs-live","עדכון חי ושמות ברורים","המסך מתרענן אוטומטית, מציג שם משתמש ושם תחנה במקום מזהים טכניים, ומונה מצבים מתאים לשורות."],
+          ["jobs-filters","סינון ודפדוף","חיפוש, סוג פעולה, מצב ותחנה מצמצמים את הרשימה. קודם/הבא עובדים וללא גלילה אופקית בנייד."],
+          ["csv-capacity","דוח קיבולת לפני ייבוא CSV","בתצוגה המקדימה מופיעים לכל תחנה משתמשים, כרטיסים ו־PIN: נוכחי, צפוי ושיא. מגבלה שאינה מפורסמת מוצגת כלא ידועה."],
+          ["csv-receipt","מזהה עבודה עמיד לייבוא","לאחר אישור CSV מתקבל מזהה עבודה, והייבוא מופיע במרכז העבודות גם אחרי מעבר מסך או רענון הדפדפן."],
+          ["isolation","בידוד כשל בתחנה או במשתמש","כשל בתחנה/משתמש אחד מסומן בשורה שלו; שאר המשתמשים והתחנות ממשיכים ומגיעים למצב מסונכרן/מאומת."],
+          ["target-retry","Retry ממוקד והרשאות","Retry למשתמש מוצג רק לבעל הרשאת ניהול משתמשים; Retry לתחנה רק לבעל הרשאת ניהול תחנות. הפעולה אינה יוצרת משתמש כפול."],
+          ["job-privacy","פרטיות דוח העבודה","אין במסך, בחיפוש או בקובץ אבחון PIN מלא, מספר כרטיס מלא, סיסמה או payload גולמי מהתחנה."],
+          ["detail-cache","פרטי משתמש לפי דרישה","פתיחת פרטי משתמש טוענת את הרשומה המלאה. פתיחה חוזרת סמוכה מהירה, ועריכה/רענון מציגים את הערך העדכני."],
+        ]],
+        ["מאגר משתמשים חדש",[
+          ["page","דפדוף וגודל עמוד","במסך משתמשים מופיע בורר 25/50/100/200. בעמוד קטן הכפתורים הקודם/הבא מושבתים; במאגר גדול הם מעבירים עמוד."],
+          ["search","חיפוש מדופדף","חיפוש לפי שם, מספר עובד וטלפון מחזיר תוצאה נכונה לאחר השהיה קצרה ואינו מקפיץ את המסך."],
+          ["card4","חיפוש ארבע ספרות כרטיס","ארבע הספרות האחרונות של כרטיס מאתרות את המשתמש המתאים בלי להציג את מספר הכרטיס המלא."],
+          ["filters","מסננים ומיון","תחנה, הרשאה, מצב, PIN/כרטיס, קבוצה, שדה מותאם ומיון מחזירים תוצאות ומונה נכונים."],
+          ["saved","תצוגה שמורה","שמירת תצוגה וטעינתה מחזירות את החיפוש, המסננים והעמודות ומתחילות מהעמוד הראשון."],
+          ["selection","בחירה בין עמודים","בחר משתמש, עבור עמוד וחזור. הבחירה נשמרת; 'בחירת עמוד זה' בוחרת רק את הרשומות המוצגות."],
+          ["mutation","שינוי בזמן דפדוף","ערוך או הוסף משתמש וחזור לרשימה. המונה והתוצאות מתעדכנים, ואין כפילות או שורה ישנה."],
+          ["mobile","תצוגת משתמשים בנייד","החיפוש, המסננים, הדפדוף, מספר הטלפון וכרטיס המשתמש נגישים ללא גלילה אופקית."],
+        ]],
+        ["רגרסיה של יכולות קיימות",[
+          ["overview","סקירה ותחנות","כל התחנות מוצגות ביחס תמונה תקין, הסטטוס ושעון המסך חיים, ופתיחת דלת אחת אינה משביתה אחרות."],
+          ["camera","מצלמה","פתיחת מצלמה ב־MSE מציגה וידאו; רענון קטן ליד המצלמה עובד; סגירה משחררת את הנגן."],
+          ["listen","האזנה","הפעלת האזנה מוציאה את מסלול המצלמה מ־mute ונשמע שמע; עצירה מחזירה ל־mute."],
+          ["talk","דיבור","פתיחת דיבור במצב שהוגדר מפעילה מיקרופון ונשמע קול בתחנה; סגירה מפסיקה שידור."],
+          ["door","פתיחת דלת","פקודת פתיחה פועלת רק בתחנה ובממסר שנבחרו וחוזרת למצב רגיל."],
+          ["events","אירועים ותמונות","אירוע PIN/כרטיס חדש מופיע עם שם ותמונת המשתמש כאשר קיימת, ובזמן המקומי הנכון."],
+          ["profile","פרטי משתמש וניווט","פתיחת משתמש מציגה פרטים ודלתות ללא גלילת צד; מעבר לאירועים אינו פותח עריכת משתמש."],
+          ["edit","יצירה ועריכת משתמש","יצירה, שינוי PIN, הסרת PIN, שיוך תחנות וקריאת כרטיס מאינטרקום נשארו זמינים."],
+          ["sync","סנכרון מבודד","כשל מכוון של משתמש/תחנה אחת אינו עוצר משתמשים ותחנות אחרות, ושמות התחנות מוצגים נכון."],
+          ["groups","קבוצות והרשאות אישיות","הרשאות קבוצה מתקבלות; allow/deny אישי משנה רק את המשתמש ומסתנכרן לתחנות."],
+          ["timing","זמני כניסה","מדיניות זמן קיימת נשמרת, מוצגת ונאכפת במסלול שנבחר בלי להפוך שוב לטיוטה."],
+          ["programs","תוכניות פתיחת דלת","תוכנית HA קיימת ניתנת לצפייה, עריכה, השבתה ומחיקה בלי להשאיר פתיחה פעילה."],
+          ["whatsapp","WhatsApp","תצוגה מקדימה ניתנת לעריכה; שליחה ידנית מגיעה למספר ‎+972‎ הנכון; אין שליחה אוטומטית."],
+          ["clock","שעון NTP","קריאת שעון ופעולת סנכרון תחנה אחת/כל התחנות נשארות זמינות ומציגות תוצאה לכל תחנה."],
+        ]],
+      ];
+      const key="wiskey-tests-1.7.0"; const saved=JSON.parse(localStorage.getItem(key)||"{}");
+      const host=document.querySelector("#tests");
+      const esc=s=>s.replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+      for(const [title,items] of groups){const section=document.createElement("section");section.className="group";section.innerHTML=`<h2>${esc(title)}</h2>`;for(const [id,name,detail] of items){const row=document.createElement("div");row.className="test";row.dataset.id=id;row.innerHTML=`<div><h3>${esc(name)}</h3><p>${esc(detail)}</p></div><label>תוצאה<select aria-label="תוצאה: ${esc(name)}"><option value="pending">טרם נבדק</option><option value="pass">עבר</option><option value="fail">נכשל</option><option value="skip">לא רלוונטי</option></select></label><label>הערות<textarea aria-label="הערות: ${esc(name)}"></textarea></label>`;section.append(row)}host.append(section)}
+      const fields=["tester","ha","browser"]; for(const id of fields){const el=document.getElementById(id);el.value=saved[id]||"";el.oninput=save}
+      for(const row of document.querySelectorAll(".test")){const state=saved.tests?.[row.dataset.id]||{};const select=row.querySelector("select"),note=row.querySelector("textarea");select.value=state.result||"pending";note.value=state.note||"";select.onchange=()=>{select.className=select.value;save()};note.oninput=save;select.className=select.value}
+      function state(){return {version:"1.7.0",saved_at:new Date().toISOString(),...Object.fromEntries(fields.map(id=>[id,document.getElementById(id).value])),tests:Object.fromEntries([...document.querySelectorAll(".test")].map(row=>[row.dataset.id,{result:row.querySelector("select").value,note:row.querySelector("textarea").value}]))}}
+      function save(){const value=state();localStorage.setItem(key,JSON.stringify(value));const values=Object.values(value.tests),pass=values.filter(x=>x.result==="pass").length,fail=values.filter(x=>x.result==="fail").length,pending=values.filter(x=>x.result==="pending").length,done=values.length-pending;passed.textContent=pass;failed.textContent=fail;window.pending.textContent=pending;percent.textContent=Math.round(done/values.length*100)+"%"}
+      document.getElementById("export").onclick=()=>{const blob=new Blob([JSON.stringify(state(),null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`wiskey-1.7.0-results-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)};
+      document.getElementById("copy").onclick=async()=>{const s=state(),v=Object.values(s.tests),failed=Object.entries(s.tests).filter(([,x])=>x.result==="fail").map(([id,x])=>`${id}: ${x.note||"נכשל"}`);await navigator.clipboard.writeText(`WisKey ${s.version}: עברו ${v.filter(x=>x.result==="pass").length}, נכשלו ${failed.length}, ממתינים ${v.filter(x=>x.result==="pending").length}${failed.length?"\n"+failed.join("\n"):""}`);document.getElementById("copy").textContent="הסיכום הועתק";setTimeout(()=>document.getElementById("copy").textContent="העתקת סיכום",1500)};
+      document.getElementById("print").onclick=()=>window.print();document.getElementById("reset").onclick=()=>{if(confirm("לאפס את כל תוצאות הבדיקה?")){localStorage.removeItem(key);location.reload()}};save();
+    </script>
+  </body>
+</html>

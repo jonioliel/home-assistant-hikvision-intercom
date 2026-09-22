@@ -300,6 +300,21 @@ export interface Draft {
 
 export interface CsvPreview {
   review_token: string | null;
+  capacity?: {
+    station_id: string;
+    checked_at: string | null;
+    source: string;
+    users_now: number | null;
+    users_projected: number | null;
+    max_users: number | null;
+    cards_now: number | null;
+    cards_projected: number | null;
+    max_cards: number | null;
+    pins_now: number | null;
+    pins_projected: number | null;
+    max_pins: number | null;
+    capacity_warning: boolean;
+  }[];
   counts: { create: number; update: number; unchanged: number };
   errors: { line: number | null; column?: string; code: string }[];
   rows: {

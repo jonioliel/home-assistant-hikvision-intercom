@@ -234,6 +234,7 @@ _READ_MANAGEMENT = {
     "media/settings_get",
     "media/provider_check",
     "permissions/directory",
+    "operations/query",
     "audit/list",
     "audit/export",
     "whatsapp/templates_get",

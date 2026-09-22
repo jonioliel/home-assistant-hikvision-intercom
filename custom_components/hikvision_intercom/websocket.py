@@ -142,6 +142,7 @@ COMMANDS = {
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
     "users/bulk_receipts": {},
+    "operations/query": {"filters": dict, "offset": int, "limit": int, "snapshot": str},
     "audit/list": {"filters": dict},
     "audit/export": {"filters": dict},
     "stations/permission_audit": {"station_id": str},
@@ -444,6 +445,7 @@ async def _dispatch_inner(
 
         return await dispatch_whatsapp(hass, command, msg, actor)
     if command.startswith(("users/bulk_", "audit/")) or command in {
+        "operations/query",
         "stations/permission_audit",
         "permissions/directory",
         "profiles/settings_preview",
@@ -653,6 +655,7 @@ async def _dispatch_inner(
             msg["mode"],
             review_token=msg["review_token"],
             column_map=msg.get("column_map"),
+            actor=actor,
         )
     if command == "events/list":
         try:

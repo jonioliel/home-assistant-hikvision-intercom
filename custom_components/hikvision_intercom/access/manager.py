@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Coroutine
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import uuid4
@@ -384,15 +385,115 @@ class AccessManager:
     async def async_preview_csv(
         self, content: str, mode: str, column_map: dict[str, str] | None = None
     ) -> dict[str, Any]:
-        preview, _changes, _stamp = await asyncio.to_thread(
+        repository = self.repository.preview_copy()
+        rules = self._csv_rules()
+        inventory = {
+            sid: (deepcopy(station.inventory), station.scanned_at)
+            for sid, station in self.stations.items()
+        }
+        preview, changes, _stamp = await asyncio.to_thread(
             self._bulk_preview,
             content,
             mode,
-            self.repository.preview_copy(),
-            self._csv_rules(),
+            repository,
+            rules,
             column_map,
         )
+        preview["capacity"] = await asyncio.to_thread(
+            self._csv_capacity, repository, changes, rules, inventory
+        )
         return preview
+
+    @staticmethod
+    def _csv_capacity(
+        repository: AccessRepository,
+        changes: list[dict[str, Any]],
+        rules: CsvRules,
+        inventory: dict[str, tuple[StationInventory | None, str | None]],
+    ) -> list[dict[str, Any]]:
+        if not changes:
+            return []
+        previous = {user.employee_no: user for user in repository.users()}
+        proposed = repository.preview_bulk(changes)
+        affected: set[str] = set()
+        for user in proposed:
+            affected.update(user.assignments)
+            old = previous.get(user.employee_no)
+            if old is not None:
+                affected.update(old.assignments)
+        report: list[dict[str, Any]] = []
+        for sid in sorted(affected.intersection(rules)):
+            observed, checked = inventory.get(sid, (None, None))
+            caps = rules[sid][3]
+            row: dict[str, Any] = {
+                "station_id": sid,
+                "checked_at": checked,
+                "source": "cached_inventory" if observed else "unavailable",
+                "users_now": len(observed.users) if observed else None,
+                "cards_now": len(observed.cards) if observed else None,
+                "pins_now": (
+                    sum(bool(raw.get(caps.pin_field)) for raw in observed.users.values())
+                    if observed and caps and caps.pin_field
+                    else None
+                ),
+                "max_users": caps.max_users if caps else None,
+                "max_cards": caps.max_cards if caps else None,
+                "max_pins": None,
+                "users_added": 0,
+                "users_removed": 0,
+                "cards_added": 0,
+                "cards_removed": 0,
+                "pins_added": 0,
+                "pins_removed": 0,
+            }
+            if observed:
+                for user in proposed:
+                    old = previous.get(user.employee_no)
+                    if sid not in user.assignments and (old is None or sid not in old.assignments):
+                        continue
+                    present = user.employee_no in observed.users
+                    assignment = user.assignments.get(sid)
+                    wanted = bool(user.active and assignment and assignment.enabled)
+                    old_cards = {
+                        card["cardNo"]
+                        for card in observed.cards.values()
+                        if card.get("employeeNo") == user.employee_no
+                    }
+                    new_cards = (
+                        {card.card_no.value for card in user.cards if card.enabled}
+                        if wanted
+                        else set()
+                    )
+                    current_pin = bool(
+                        caps
+                        and caps.pin_field
+                        and observed.users.get(user.employee_no, {}).get(caps.pin_field)
+                    )
+                    wanted_pin = bool(wanted and user.pin is not None)
+                    row["users_added"] += int(wanted and not present)
+                    row["users_removed"] += int(present and not wanted)
+                    row["cards_added"] += len(new_cards - old_cards)
+                    row["cards_removed"] += len(old_cards - new_cards)
+                    row["pins_added"] += int(wanted_pin and not current_pin)
+                    row["pins_removed"] += int(current_pin and not wanted_pin)
+            for name in ("users", "cards", "pins"):
+                current = row[name + "_now"]
+                row[name + "_projected"] = (
+                    current + row[name + "_added"] - row[name + "_removed"]
+                    if current is not None
+                    else None
+                )
+                row[name + "_peak"] = (
+                    current + row[name + "_added"] if current is not None else None
+                )
+            row["capacity_warning"] = any(
+                row[name + "_peak"] is not None
+                and row["max_" + name] is not None
+                and row[name + "_peak"] > row["max_" + name]
+                for name in ("users", "cards", "pins")
+            )
+            report.append(row)
+        return report
 
     def _bulk_preview(
         self,
@@ -533,6 +634,7 @@ class AccessManager:
         *,
         review_token: str,
         column_map: dict[str, str] | None = None,
+        actor: str = "",
     ) -> dict[str, Any]:
         rules = self._csv_rules()
         preview, changes, stamp = await asyncio.to_thread(
@@ -562,6 +664,25 @@ class AccessManager:
         created_employees = {
             change["data"]["employee_no"] for change in changes if change["user_id"] is None
         }
+        operation_id = uuid4().hex if actor else None
+        receipt = (
+            {
+                "operation_id": operation_id,
+                "actor": actor,
+                "action": "bulk/csv_import",
+                "saved_at": utc_now(),
+                "stations": sorted(
+                    {
+                        station
+                        for row in preview["rows"]
+                        if row["operation"] != "unchanged"
+                        for station in row["stations"]
+                    }
+                ),
+            }
+            if operation_id
+            else None
+        )
         users = await self.repository.async_bulk_apply(
             changes,
             stamp=stamp,
@@ -570,6 +691,7 @@ class AccessManager:
                 if user.id in device_changes or user.employee_no in created_employees
                 else None
             ),
+            receipt=receipt,
         )
         changed_ids = {
             user.id
@@ -593,7 +715,12 @@ class AccessManager:
         for station_id in targets.intersection(self.stations):
             self.request(station_id)
         self._changed()
-        return {"counts": preview["counts"], "saved": len(users)}
+        return {
+            "counts": preview["counts"],
+            "saved": len(users),
+            "operation_id": operation_id,
+            "durable": bool(operation_id),
+        }
 
     async def async_create(self, data: dict[str, Any], *, sync_now: bool = True) -> dict[str, Any]:
         self._validate(

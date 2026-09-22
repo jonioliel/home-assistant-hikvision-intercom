@@ -84,7 +84,7 @@ test("management hub contains every advanced tool and revoked admin access close
   await expect(page.getByRole("heading", { name: "WisKey", exact: true })).toBeVisible();
   await expect(page.locator(".appearance-button")).toHaveCount(0);
   await navigate(page, "Management tools");
-  await expect(page.locator(".tool-card")).toHaveCount(15);
+  await expect(page.locator(".tool-card")).toHaveCount(16);
   await expect(
     page.getByRole("button", { name: "WhatsApp message templates", exact: true }),
   ).toBeVisible();
