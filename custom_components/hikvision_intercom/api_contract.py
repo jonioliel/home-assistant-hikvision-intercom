@@ -16,6 +16,7 @@ CAPABILITIES = [
     "shared_appearance",
     "user_directory_query",
     "operations_query",
+    "intercom_tts",
 ]
 
 

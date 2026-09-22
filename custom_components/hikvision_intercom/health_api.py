@@ -58,11 +58,12 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         busy.add(station.id)
         try:
             if msg["command"] in {"reject", "hangUp"}:
-                bridge = data.get("audio_sessions", {}).get(station.id)
-                if bridge and bridge.runtime is runtime:
-                    bridge.cancel()
-                    if bridge.task:
-                        await asyncio.gather(bridge.task, return_exceptions=True)
+                for session_key in ("audio_sessions", "tts_audio_sessions"):
+                    bridge = data.get(session_key, {}).get(station.id)
+                    if bridge and bridge.runtime is runtime:
+                        bridge.cancel()
+                        if bridge.task:
+                            await asyncio.gather(bridge.task, return_exceptions=True)
             if getattr(entry, "runtime_data", None) is not runtime or runtime.is_closed:
                 raise AccessError("station_unloaded")
             operations = data.setdefault("call_operations", {})
@@ -126,9 +127,18 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
     cached = data.get("media_evidence", {}).get(station.id)
     report["media"] = cached[1] if cached and cached[0] is runtime else None
     bridge = data.get("audio_sessions", {}).get(station.id)
+    tts_playback = data.get("tts_audio_sessions", {}).get(station.id)
     last_audio = data.get("audio_results", {}).get(station.id)
     report["audio"] = {
-        "active": bool(bridge and bridge.runtime is runtime and not bridge.stopped),
+        "active": bool(
+            (bridge and bridge.runtime is runtime and not bridge.stopped)
+            or (tts_playback and tts_playback.runtime is runtime and not tts_playback.stopped)
+        ),
+        "source": "tts"
+        if tts_playback and tts_playback.runtime is runtime and not tts_playback.stopped
+        else "operator"
+        if bridge and bridge.runtime is runtime and not bridge.stopped
+        else None,
         "last_result": last_audio[1] if last_audio and last_audio[0] is runtime else None,
     }
     report["generated_at"] = datetime.now(UTC).isoformat()

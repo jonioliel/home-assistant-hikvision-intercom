@@ -136,11 +136,12 @@ class IntercomRuntime:
         self.released_relays.clear()
         self.released = False
         data = self.hass.data.get(DOMAIN, {})
-        bridge = data.get("audio_sessions", {}).get(self.station_id)
-        if bridge and bridge.runtime is self:
-            bridge.cancel()
-            if bridge.task:
-                await asyncio.gather(bridge.task, return_exceptions=True)
+        for session_key in ("audio_sessions", "tts_audio_sessions"):
+            bridge = data.get(session_key, {}).get(self.station_id)
+            if bridge and bridge.runtime is self:
+                bridge.cancel()
+                if bridge.task:
+                    await asyncio.gather(bridge.task, return_exceptions=True)
         operation = data.get("call_operations", {}).get(self.station_id)
         if operation and operation[0] is self:
             operation[1].cancel()
