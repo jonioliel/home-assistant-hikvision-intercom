@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.7.0] - 2026-09-22
+
+- Add a responsive, paginated background-operations center for per-user/per-station synchronization, CSV imports and bulk changes, with live refresh, filters, friendly names and targeted retry.
+- Persist actor-scoped CSV import receipts atomically with the central user changes. Receipts survive navigation and restart without storing PINs, card numbers, credentials or raw device payloads.
+- Add per-station CSV capacity previews for current, projected and peak users, cards and PINs. Unsupported or stale limits remain explicitly unknown.
+- Load complete user details through the bounded user endpoint only when opened, with a 60-second, 100-record browser cache and safe fallback for older servers.
+- Classify operations reads and retry actions under the existing delegated HA permission areas, and retain independent per-station workers so one failed target does not stop the rest.
+- Add backend, authorization and responsive browser regressions plus a self-contained 1.7.0 Hebrew manual-test worksheet.
+
 ## [1.6.0] - 2026-09-22
 
 - Add a backward-compatible `users/query` API with bounded pages, server-side search, profile/group/station/state/credential filters, deterministic sorting and a privacy-safe snapshot token.
