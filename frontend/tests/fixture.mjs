@@ -208,6 +208,34 @@ people.forEach((name, index) =>
     valid_until: null,
   }),
 );
+if (query.has("operations")) {
+  data.api = {
+    version: 1,
+    min_client: 0,
+    capabilities: ["user_timing_draft", "panel_permissions", "operations_query"],
+    commands: ["overview", "operations/query", "sync/user", "sync/station", "users/get"],
+  };
+  data.sync_operations = [
+    {
+      id: "sync-ok",
+      user_id: "person-0",
+      station_id: "station-0",
+      state: "verified",
+      queued_at: "2026-09-22T10:00:00Z",
+      updated_at: "2026-09-22T10:01:00Z",
+      verified_at: "2026-09-22T10:01:00Z",
+    },
+    {
+      id: "sync-failed",
+      user_id: "person-1",
+      station_id: "station-1",
+      state: "failed",
+      queued_at: "2026-09-22T10:00:00Z",
+      updated_at: "2026-09-22T10:02:00Z",
+      verified_at: null,
+    },
+  ];
+}
 if (query.has("paged")) {
   for (let index = data.users.length; index < 126; index++) {
     data.users.push({
@@ -809,6 +837,70 @@ const fake = {
       user.revision++;
       captures.delete(message.session_id);
       return structuredClone(user);
+    }
+    if (command === "operations/query") {
+      const syncRows = (data.sync_operations ?? []).map((item) => ({
+        id: item.id,
+        kind: "sync",
+        action: "sync/user_station",
+        state: item.state,
+        created_at: item.queued_at,
+        updated_at: item.updated_at,
+        changed: 1,
+        user_ids: [item.user_id],
+        station_ids: [item.station_id],
+        progress: {
+          total: 1,
+          pending: Number(item.state === "pending"),
+          failed: Number(item.state === "failed"),
+          verified: Number(item.state === "verified"),
+          settled: Number(item.state === "settled"),
+        },
+        children: [item],
+      }));
+      const receipt = {
+        id: "csv-import",
+        kind: "csv",
+        action: "bulk/csv_import",
+        state: "failed",
+        created_at: "2026-09-22T09:59:00Z",
+        updated_at: "2026-09-22T10:02:00Z",
+        changed: 2,
+        user_ids: ["person-0", "person-1"],
+        station_ids: ["station-0", "station-1"],
+        progress: { total: 2, pending: 0, failed: 1, verified: 1, settled: 0 },
+        children: structuredClone(data.sync_operations ?? []),
+      };
+      const records = [...syncRows, receipt].filter(
+        (item) =>
+          (message.filters.kind === "all" || item.kind === message.filters.kind) &&
+          (message.filters.state === "all" || item.state === message.filters.state) &&
+          (!message.filters.station_id || item.station_ids.includes(message.filters.station_id)) &&
+          (!message.filters.query ||
+            JSON.stringify(item).toLowerCase().includes(message.filters.query.toLowerCase())),
+      );
+      return {
+        records,
+        total: records.length,
+        offset: 0,
+        limit: 50,
+        next_offset: null,
+        previous_offset: null,
+        snapshot: "operations-fixture",
+        stale: false,
+        summary: {
+          pending: records.filter((item) => item.state === "pending").length,
+          failed: records.filter((item) => item.state === "failed").length,
+          verified: records.filter((item) => item.state === "verified").length,
+          settled: records.filter((item) => item.state === "settled").length,
+          saved: records.filter((item) => item.state === "saved").length,
+        },
+      };
+    }
+    if (command === "users/get") {
+      const person = data.users.find((item) => item.id === message.user_id);
+      if (!person) throw { code: "user_not_found" };
+      return { ...structuredClone(person), phone: person.phone ?? "0501234567" };
     }
     if (command === "overview") return structuredClone(data);
     if (command === "users/query") {

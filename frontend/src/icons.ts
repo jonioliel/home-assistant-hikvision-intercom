@@ -16,6 +16,7 @@ const paths: Record<string, string> = {
   devices: "M6 3h12v18H6ZM9 7h6M9 11h6M11 17h2",
   events: "M5 3h14v18H5ZM8 7h8M8 11h5M8 15h7",
   sync: "M20 7a8 8 0 0 0-14-2L3 8m0-5v5h5M4 17a8 8 0 0 0 14 2l3-3m0 5v-5h-5",
+  operations_center: "M4 5h16v4H4ZM4 12h16v7H4ZM8 7h.01M8 15h.01M11 15h6",
   audit: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   health: "M2 12h5l3-8 4 16 3-8h5",
   schedules: "M4 5h16v16H4ZM4 10h16M8 3v4m8-4v4",

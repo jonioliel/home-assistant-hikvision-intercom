@@ -41,6 +41,18 @@ async def dispatch_admin(hass: HomeAssistant, command: str, msg: dict[str, Any],
         return manager.bulk.receipt(actor, msg["operation_id"])
     if command == "users/bulk_receipts":
         return manager.bulk.receipts(actor)
+    if command == "operations/query":
+        from .access.operations_report import query as query_operations
+
+        return await asyncio.to_thread(
+            query_operations,
+            manager.repository.snapshot(),
+            actor,
+            filters=msg["filters"],
+            offset=msg["offset"],
+            limit=msg["limit"],
+            snapshot=msg["snapshot"],
+        )
     if command in {"audit/list", "audit/export"}:
         database = manager.repository._state["admin_audit"]
         report = await asyncio.to_thread(
