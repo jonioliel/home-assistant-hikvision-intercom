@@ -1339,4 +1339,29 @@ export const accessStyles = css`
       padding-block: 0;
     }
   }
+
+  .user-directory-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .user-directory-pagination label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .user-directory-pagination select,
+  .user-directory-pagination button {
+    min-height: 36px;
+    padding-block: 6px;
+  }
+  @container intercom-panel (max-width: 720px) {
+    .user-directory-pagination {
+      justify-content: center;
+    }
+  }
 `;

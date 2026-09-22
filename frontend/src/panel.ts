@@ -56,6 +56,7 @@ import type {
   Assignment,
   AuthorizationSession,
   WiskeyArea,
+  UserDirectoryPage,
 } from "./types";
 import "./schedules";
 import "./live-clock";
@@ -163,6 +164,10 @@ export class IntercomManagerPanel extends LitElement {
     _userFilters: { state: true },
     _userColumns: { state: true },
     _selectedUsers: { state: true },
+    _userPage: { state: true },
+    _userPageLoading: { state: true },
+    _userPageOffset: { state: true },
+    _userPageSize: { state: true },
     _auditUser: { state: true },
     _dialog: { state: true },
     _cameraRefreshEnabled: { state: true },
@@ -329,6 +334,7 @@ export class IntercomManagerPanel extends LitElement {
       (HTMLElement & { canLeave(): boolean }) | null;
     if (tab !== this._tab && schedules && !schedules.canLeave()) return;
     this._tab = tab;
+    if (tab === "users") this.scheduleUserQuery(false);
     void this.updateComplete.then(() =>
       this.renderRoot.querySelector<HTMLElement>("main")?.focus({ preventScroll: true }),
     );
@@ -385,6 +391,14 @@ export class IntercomManagerPanel extends LitElement {
   private _syncAttention = false;
   private _userFilters: UserFilters = defaultFilters();
   private _selectedUsers = new Set<string>();
+  private _userPage?: UserDirectoryPage;
+  private _userPageKey = "";
+  private _userPageLoading = false;
+  private _userPageOffset = 0;
+  private _userPageSize = 50;
+  private _userSnapshot = "";
+  private _userQuerySequence = 0;
+  private _userQueryTimer?: ReturnType<typeof setTimeout>;
   private _userColumns: string[] | null = null;
   private _viewsActor?: string;
   private _auditUser = "";
@@ -471,6 +485,11 @@ export class IntercomManagerPanel extends LitElement {
     this.bindConnection(undefined);
     this._refreshFailed = false;
     clearInterval(this._timer);
+    clearTimeout(this._userQueryTimer);
+    this._userQuerySequence++;
+    this._userPage = undefined;
+    this._userPageKey = "";
+    this._userSnapshot = "";
     this._unsubscribe?.();
     this._unsubscribe = undefined;
     this._connecting = false;
@@ -692,6 +711,7 @@ export class IntercomManagerPanel extends LitElement {
             this.ensureAllowedTab();
             this.refreshValidityZone();
             this._refreshFailed = false;
+            if (this._tab === "users") this.scheduleUserQuery(false);
             const configured = new Set(data.stations.map((station) => station.id));
             this._releases = new Map(
               [...this._releases].filter(([id]) => configured.has(id.split("/")[0])),
@@ -765,6 +785,63 @@ export class IntercomManagerPanel extends LitElement {
   }
   private stationName(id: string) {
     return this._data?.stations.find((station) => station.id === id)?.name ?? id;
+  }
+  private get supportsUserDirectory() {
+    const api = this._data?.api;
+    return !!(
+      api?.capabilities.includes("user_directory_query") && api.commands.includes("users/query")
+    );
+  }
+  private userQueryKey(offset = this._userPageOffset) {
+    return JSON.stringify([this._query, this._userFilters, offset, this._userPageSize]);
+  }
+  private scheduleUserQuery(reset: boolean, delay = 0) {
+    if (reset) this._userPageOffset = 0;
+    clearTimeout(this._userQueryTimer);
+    this._userPage = undefined;
+    this._userPageKey = "";
+    if (!this.supportsUserDirectory || this._tab !== "users") return;
+    const sequence = ++this._userQuerySequence;
+    this._userQueryTimer = setTimeout(() => void this.loadUserPage(sequence), delay);
+  }
+  private async loadUserPage(sequence: number) {
+    const key = this.userQueryKey();
+    this._userPageLoading = true;
+    try {
+      const page = await this.api<UserDirectoryPage>("users/query", {
+        query: this._query,
+        filters: this._userFilters,
+        offset: this._userPageOffset,
+        limit: this._userPageSize,
+        snapshot: this._userSnapshot,
+      });
+      if (
+        sequence !== this._userQuerySequence ||
+        key !== this.userQueryKey() ||
+        !Array.isArray(page.records) ||
+        !Number.isInteger(page.total) ||
+        !Number.isInteger(page.offset)
+      )
+        return;
+      this._userPage = page;
+      this._userPageOffset = page.offset;
+      this._userPageKey = this.userQueryKey(page.offset);
+      this._userSnapshot = page.snapshot;
+      if (this._detailsUser && !page.records.some((item) => item.id === this._detailsUser))
+        this._detailsUser = "";
+    } catch {
+      if (sequence === this._userQuerySequence) {
+        this._userPage = undefined;
+        this._userPageKey = "";
+      }
+    } finally {
+      if (sequence === this._userQuerySequence) this._userPageLoading = false;
+    }
+  }
+  private changeUserPage(offset: number) {
+    this._userPageOffset = Math.max(0, offset);
+    this._detailsUser = "";
+    this.scheduleUserQuery(false);
   }
   private badge(status: string) {
     return html`<span class="status ${status}">${this.t(status)}</span>`;
@@ -2517,7 +2594,24 @@ export class IntercomManagerPanel extends LitElement {
     />`;
   }
   private usersView() {
-    const users = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
+    const localMatches = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
+    const serverPage =
+      this.supportsUserDirectory && this._userPageKey === this.userQueryKey()
+        ? this._userPage
+        : undefined;
+    const totalMatches = serverPage?.total ?? localMatches.length;
+    const totalUsers = serverPage?.total_all ?? this._data?.users.length ?? 0;
+    const pageOffset = this.supportsUserDirectory
+      ? Math.min(
+          serverPage?.offset ?? this._userPageOffset,
+          totalMatches
+            ? Math.floor((totalMatches - 1) / this._userPageSize) * this._userPageSize
+            : 0,
+        )
+      : 0;
+    const users = this.supportsUserDirectory
+      ? (serverPage?.records ?? localMatches.slice(pageOffset, pageOffset + this._userPageSize))
+      : localMatches;
     const filtered =
       !!this._query.trim() ||
       Object.entries(this._userFilters).some(
@@ -2549,6 +2643,7 @@ export class IntercomManagerPanel extends LitElement {
             @input=${(event: Event) => {
               this._query = value(event);
               this._selectedUsers = new Set();
+              this.scheduleUserQuery(true, 250);
             }}
           />
           <details class="access-transfer-tools" ?open=${!this._accessMode}>
@@ -2580,6 +2675,7 @@ export class IntercomManagerPanel extends LitElement {
               this._userFilters = e.detail.filters;
               this._userColumns = e.detail.columns;
               this._selectedUsers = new Set();
+              this.scheduleUserQuery(true);
             }}
           ></wiskey-saved-user-views>
           <details class="user-filters">
@@ -2628,6 +2724,7 @@ export class IntercomManagerPanel extends LitElement {
                           [key]: (e.target as HTMLSelectElement).value,
                         };
                         this._selectedUsers = new Set();
+                        this.scheduleUserQuery(true);
                       }}
                     >
                       ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
@@ -2650,6 +2747,7 @@ export class IntercomManagerPanel extends LitElement {
                             profile: { ...this._userFilters.profile, [f.id]: value(e) },
                           };
                           this._selectedUsers = new Set();
+                          this.scheduleUserQuery(true);
                         }}
                       >
                         <option value="">${this.t("filter_any")}</option>
@@ -2664,6 +2762,7 @@ export class IntercomManagerPanel extends LitElement {
                   @change=${(e: Event) => {
                     this._userFilters = { ...this._userFilters, group: value(e) };
                     this._selectedUsers = new Set();
+                    this.scheduleUserQuery(true);
                   }}
                 >
                   <option value="">${this.t("filter_any")}</option>
@@ -2677,7 +2776,9 @@ export class IntercomManagerPanel extends LitElement {
       <div class="user-result-bar">
         <p role="status">
           ${this.t("user_results")}:
-          <bdi dir="ltr">${users.length} / ${this._data?.users.length ?? 0}</bdi>
+          <bdi dir="ltr"
+            >${this.supportsUserDirectory ? `${pageOffset + (users.length ? 1 : 0)}–${pageOffset + users.length} / ${totalMatches}` : `${users.length} / ${totalUsers}`}</bdi
+          >
         </p>
         ${
           filtered
@@ -2694,6 +2795,7 @@ export class IntercomManagerPanel extends LitElement {
                     group: "",
                   };
                   this._selectedUsers = new Set();
+                  this.scheduleUserQuery(true);
                 }}
               >
                 ${this.t("clear_user_filters")}
@@ -2701,6 +2803,43 @@ export class IntercomManagerPanel extends LitElement {
             : nothing
         }
       </div>
+      ${
+        this.supportsUserDirectory
+          ? html`<nav class="user-directory-pagination" aria-label=${this.t("user_pagination")}>
+              <label
+                >${this.t("users_per_page")}
+                <select
+                  .value=${String(this._userPageSize)}
+                  @change=${(event: Event) => {
+                    this._userPageSize = Number((event.target as HTMLSelectElement).value);
+                    this.scheduleUserQuery(true);
+                  }}
+                >
+                  ${[25, 50, 100, 200].map((size) => html`<option value=${size}>${size}</option>`)}
+                </select></label
+              >
+              <button
+                ?disabled=${this._userPageLoading || pageOffset === 0}
+                @click=${() => this.changeUserPage(Math.max(0, pageOffset - this._userPageSize))}
+              >
+                ${this.t("wall_previous")}
+              </button>
+              <span
+                ><bdi dir="ltr"
+                  >${totalMatches ? Math.floor(pageOffset / this._userPageSize) + 1 : 0} /
+                  ${Math.ceil(totalMatches / this._userPageSize)}</bdi
+                ></span
+              >
+              <button
+                ?disabled=${this._userPageLoading || pageOffset + this._userPageSize >= totalMatches}
+                @click=${() => this.changeUserPage(pageOffset + this._userPageSize)}
+              >
+                ${this.t("wall_next")}
+              </button>
+              ${this._userPageLoading ? html`<span role="status">${this.t("user_page_loading")}</span>` : nothing}
+            </nav>`
+          : nothing
+      }
       <details
         class="access-selection-options"
         ?open=${!this._accessMode || this._selectedUsers.size > 0}
@@ -2713,7 +2852,7 @@ export class IntercomManagerPanel extends LitElement {
               this._selectedUsers = new Set(users.slice(0, 200).map((u) => u.id));
             }}
           >
-            ${this.t("select_visible")}</button
+            ${this.t(this.supportsUserDirectory ? "select_visible_page" : "select_visible")}</button
           ><button
             ?disabled=${!this._selectedUsers.size}
             @click=${() => {

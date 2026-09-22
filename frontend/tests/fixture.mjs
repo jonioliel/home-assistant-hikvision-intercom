@@ -76,7 +76,14 @@ const data = {
     go2rtc_url: "",
   },
   appearance_settings: { revision: 0, default: "current" },
-  api: { version: 1, min_client: 0, capabilities: ["user_timing_draft"], commands: [] },
+  api: query.has("paged")
+    ? {
+        version: 1,
+        min_client: 0,
+        capabilities: ["user_timing_draft", "panel_permissions", "user_directory_query"],
+        commands: ["overview", "users/query"],
+      }
+    : { version: 1, min_client: 0, capabilities: ["user_timing_draft"], commands: [] },
   default_zone: { kind: "iana", name: "UTC" },
   version: "0.33.0-beta.1",
   users: [],
@@ -201,6 +208,18 @@ people.forEach((name, index) =>
     valid_until: null,
   }),
 );
+if (query.has("paged")) {
+  for (let index = data.users.length; index < 126; index++) {
+    data.users.push({
+      ...structuredClone(data.users[index % 6]),
+      id: `scale-person-${index}`,
+      employee_no: String(2000 + index),
+      display_name: `Scale Person ${index}`,
+      phone: `050${String(index).padStart(7, "0")}`,
+      revision: 1,
+    });
+  }
+}
 data.user_count = data.users.length;
 if (query.has("empty")) {
   data.users = [];
@@ -792,6 +811,39 @@ const fake = {
       return structuredClone(user);
     }
     if (command === "overview") return structuredClone(data);
+    if (command === "users/query") {
+      const text = String(message.query ?? "")
+        .trim()
+        .toLocaleLowerCase();
+      const filtered = data.users
+        .filter(
+          (user) =>
+            !text ||
+            `${user.display_name} ${user.employee_no} ${user.phone ?? ""}`
+              .toLocaleLowerCase()
+              .includes(text),
+        )
+        .sort((a, b) =>
+          message.filters?.sort === "name"
+            ? a.display_name.localeCompare(b.display_name)
+            : a.employee_no.localeCompare(b.employee_no, undefined, { numeric: true }),
+        );
+      const offset = Math.min(
+        Number(message.offset),
+        filtered.length ? Math.floor((filtered.length - 1) / message.limit) * message.limit : 0,
+      );
+      return {
+        records: structuredClone(filtered.slice(offset, offset + message.limit)),
+        total: filtered.length,
+        total_all: data.users.length,
+        offset,
+        limit: message.limit,
+        next_offset: offset + message.limit < filtered.length ? offset + message.limit : null,
+        previous_offset: offset ? Math.max(0, offset - message.limit) : null,
+        snapshot: "fixture-snapshot",
+        stale: false,
+      };
+    }
     if (command === "sync/diagnostics")
       return {
         integration_version: "0.6.1-alpha.1",

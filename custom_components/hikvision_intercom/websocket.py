@@ -198,6 +198,7 @@ COMMANDS = {
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
     "users/list": {},
+    "users/query": {"query": str, "filters": dict, "offset": int, "limit": int, "snapshot": str},
     "users/csv_export": {},
     "users/csv_inspect": {"csv": str},
     "users/csv_preview": {"csv": str, "mode": str},
@@ -674,6 +675,17 @@ async def _dispatch_inner(
         return overview(hass, user)
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command == "users/query":
+        from .access.user_directory import query_users
+
+        return query_users(
+            manager.repository.public()["users"],
+            query=msg["query"],
+            filters=msg["filters"],
+            offset=msg["offset"],
+            limit=msg["limit"],
+            snapshot=msg["snapshot"],
+        )
     if command in {"profiles/settings_get", "profiles/settings_update", "users/photo_get"}:
         profile_settings = hass.data[DOMAIN].get("profile_settings")
         if profile_settings is None:

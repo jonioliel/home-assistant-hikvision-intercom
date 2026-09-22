@@ -178,6 +178,17 @@ export interface Overview {
   card_removals: { id: string; user_id: string; targets: string[]; confirmed: string[] }[];
   pin_removals: { id: string; user_id: string; targets: string[]; confirmed: string[] }[];
 }
+export interface UserDirectoryPage {
+  records: Person[];
+  total: number;
+  total_all: number;
+  offset: number;
+  limit: number;
+  next_offset: number | null;
+  previous_offset: number | null;
+  snapshot: string;
+  stale: boolean;
+}
 export interface Inventory {
   employee_no: string;
   display_name: string;
