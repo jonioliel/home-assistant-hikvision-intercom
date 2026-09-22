@@ -202,10 +202,13 @@ def start(
         connection.send_error(msg["id"], "station_unloaded", "Station unavailable")
         return
     sessions = hass.data[DOMAIN].setdefault("audio_sessions", {})
+    tts_sessions = hass.data[DOMAIN].setdefault("tts_audio_sessions", {})
+    all_sessions = [*sessions.values(), *tts_sessions.values()]
     if (
         station in sessions
-        or len(sessions) >= 3
-        or any(item.connection is connection for item in sessions.values())
+        or station in tts_sessions
+        or len(all_sessions) >= 3
+        or any(item.connection is connection for item in all_sessions)
     ):
         connection.send_error(msg["id"], "audio_busy", "Audio is already in use")
         return

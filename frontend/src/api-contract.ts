@@ -71,6 +71,8 @@ const audioSessionCommands = new Set([
   "audio/receive",
   "audio/mute",
   "audio/diagnostics",
+  "tts/engines",
+  "tts/start",
 ]);
 const cleanup = new Set(["audio/stop", "audio/mute", "cards/capture_cancel", "events/trace_stop"]);
 export function contractHass(

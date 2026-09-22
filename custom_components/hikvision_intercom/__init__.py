@@ -24,6 +24,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register integration actions once, independent of individual station lifetimes."""
     from .access_runtime import async_setup_access
     from .audio_api import register_audio
+    from .audio_tts import register_tts_audio
     from .event_manager import async_setup_events
     from .issues import async_setup_repairs
     from .mse_api import register_mse
@@ -37,6 +38,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await async_setup_events(hass)
     async_register_websocket(hass)
     register_audio(hass)
+    register_tts_audio(hass)
     register_mse(hass)
     register_rtc(hass)
     await async_setup_panel(hass)

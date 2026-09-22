@@ -285,7 +285,37 @@ const fake = {
     ]),
   ),
   connection: {
-    async subscribeMessage(callback) {
+    async subscribeMessage(callback, message = {}) {
+      if (message.type === "hikvision_intercom/tts/start") {
+        window.calls.push(structuredClone(message));
+        window.tts ??= { starts: 0, stops: 0 };
+        window.tts.starts++;
+        let cancelled = false;
+        queueMicrotask(() => {
+          if (!cancelled) callback({ state: "generating", format: "hikvision_intercom.tts" });
+        });
+        setTimeout(() => {
+          if (!cancelled)
+            callback({
+              state: "speaking",
+              format: "hikvision_intercom.tts",
+              duration_seconds: 1.2,
+            });
+        }, 1000);
+        setTimeout(() => {
+          if (!cancelled)
+            callback({
+              state: "completed",
+              format: "hikvision_intercom.tts",
+              duration_seconds: 1.2,
+              bytes_written: 9600,
+            });
+        }, 2500);
+        return () => {
+          cancelled = true;
+          window.tts.stops++;
+        };
+      }
       callbacks.add(callback);
       return () => callbacks.delete(callback);
     },
@@ -396,6 +426,18 @@ const fake = {
     if (command === "users/photo_get")
       return {
         photo: data.profile_settings.photo_enabled ? (photos[message.user_id] ?? null) : null,
+      };
+    if (command === "tts/engines")
+      return {
+        default: "tts.google_translate_en_com",
+        engines: [
+          {
+            engine_id: "tts.google_translate_en_com",
+            name: "Google Translate",
+            supported_languages: ["en", "iw"],
+            default_language: "en",
+          },
+        ],
       };
     if (command === "media/provider_discover")
       return { url: "http://a889bffc-go2rtc-hardware:1984", version: "1.9.14" };

@@ -286,7 +286,7 @@ def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
 
     if command in {"overview", "appearance/settings_get"}:
         return tuple((area, "view") for area in AREAS)
-    if command == "stations/test_unlock" or command == "media/signal":
+    if command in {"stations/test_unlock", "media/signal", "tts/engines", "tts/start"}:
         return (("overview", "manage"), ("stations", "manage"))
     if command == "media/call":
         return (("overview", "view"), ("stations", "view"))

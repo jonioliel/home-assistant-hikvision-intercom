@@ -1,4 +1,5 @@
 import "./microphone-input";
+import "./tts-controls";
 import { icon } from "./icons";
 import type { MicrophoneInput } from "./microphone-input";
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
@@ -1020,6 +1021,7 @@ export class IntercomAudioControls extends LitElement {
       ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}
       ${this._error ? html`<p class="error" role="alert">${this.t(this._error)}</p>` : nothing}
+      ${this.dock ? html`<wiskey-intercom-tts .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
     </section>`;
   }
 }
