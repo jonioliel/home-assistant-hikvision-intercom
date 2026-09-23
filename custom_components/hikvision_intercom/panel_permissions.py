@@ -146,6 +146,8 @@ _READ_USERS = {
     "users/list",
     "users/query",
     "users/get",
+    "users/lifecycle",
+    "users/duplicate_check",
     "users/photo_get",
     "users/csv_export",
     "users/bulk_receipt",
@@ -247,6 +249,7 @@ _READ_MANAGEMENT = {
     "schedules/readiness",
     "schedules/dependencies",
     "schedules/assess",
+    "support/bundle",
 }
 _WRITE_MANAGEMENT = {
     "profiles/settings_update",

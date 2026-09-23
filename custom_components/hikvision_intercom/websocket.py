@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -148,6 +149,7 @@ COMMANDS = {
     "stations/permission_audit": {"station_id": str},
     "health/get": {"station_id": str},
     "health/refresh": {"station_id": str},
+    "support/bundle": {},
     "acceptance/get": {"station_id": str},
     "acceptance/update": {"station_id": str, "step": str, "state": str, "revision": int},
     "events/history_inspect": {"station_id": str, "start": str, "end": str},
@@ -208,6 +210,8 @@ COMMANDS = {
     "events/report": {"filters": dict},
     "events/export": {"filters": dict},
     "users/get": {"user_id": str},
+    "users/lifecycle": {"warning_days": int},
+    "users/duplicate_check": {"user_id": str, "data": dict},
     "users/pin_check": {"user_id": str, "pin": str},
     "users/pin_generate": {"user_id": str},
     "users/create": {"data": dict},
@@ -632,6 +636,37 @@ async def _dispatch_inner(
         return runtime.clock.public()
     if command == "sync/diagnostics":
         return {"integration_version": VERSION, **manager.sync_diagnostics()}
+    if command == "support/bundle":
+        from .diagnostics import async_get_config_entry_diagnostics
+
+        stations: list[dict[str, Any]] = []
+        for station in sorted(
+            manager.stations.values(), key=lambda item: manager.diagnostics.reference(item.id)
+        ):
+            reference = manager.diagnostics.reference(station.id)
+            entry = hass.config_entries.async_get_entry(station.id)
+            if entry is None:
+                stations.append({"station_ref": reference, "loaded": False})
+                continue
+            stations.append(
+                {
+                    "station_ref": reference,
+                    **await async_get_config_entry_diagnostics(hass, entry),
+                }
+            )
+        return {
+            "format": "hikvision_intercom.support_bundle",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "integration_version": VERSION,
+            "home_assistant": {
+                "version": hass.config.version,
+                "time_zone": hass.config.time_zone,
+            },
+            "scope": "cached_diagnostics_no_device_reads",
+            "privacy": "no_credentials_addresses_user_names_phone_numbers_or_card_numbers",
+            "stations": stations,
+            "sync": manager.sync_diagnostics(),
+        }
     if command in {"events/report", "events/export", "events/print"}:
         try:
             return await get_events(hass).async_report(
@@ -717,6 +752,18 @@ async def _dispatch_inner(
         return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command == "users/lifecycle":
+        from .access.identity_lifecycle import report
+
+        return report(manager.repository.users(), warning_days=msg["warning_days"])
+    if command == "users/duplicate_check":
+        from .access.identity_lifecycle import candidate_matches
+
+        return candidate_matches(
+            manager.repository.users(),
+            msg["data"],
+            exclude_user_id=msg["user_id"],
+        )
     if command == "users/pin_check":
         return {
             "available": manager.repository.pin_available(
