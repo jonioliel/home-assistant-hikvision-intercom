@@ -89,13 +89,23 @@ async def test_conflict_repair_waits_and_transient_offline_has_no_issue(hass, lo
 async def test_diagnostics_include_metrics_counts_not_private_values(hass, loaded_entry):
     manager = get_manager(hass)
     await finish_workers(manager)
-    await manager.repository.async_create(
+    user = await manager.repository.async_create(
         {
             "display_name": "Private Person",
             "employee_no": "ABC1234",
             "pin": "847291",
             "cards": [{"card_no": "9988776655", "label": "Secret card"}],
+            "assignments": {loaded_entry.entry_id: {"allowed_locks": [1]}},
         }
+    )
+    await manager.repository.async_bind(
+        loaded_entry.entry_id, user.id, fingerprint="observed", adopted=True
+    )
+    await manager.repository.async_record_observation(
+        loaded_entry.entry_id,
+        user.id,
+        fingerprint="observed",
+        applied_revision=user.revision,
     )
     runtime = loaded_entry.runtime_data
     runtime.client.metrics.record(0.125, False)
@@ -103,6 +113,7 @@ async def test_diagnostics_include_metrics_counts_not_private_values(hass, loade
     result = await async_get_config_entry_diagnostics(hass, loaded_entry)
     assert result["requests"]["requests"] == 2 and result["requests"]["failures"] == 1
     assert result["access"]["capabilities"]["cards_per_person"] == 5
+    assert result["access"]["queue_depth"] == 0
     for secret in [
         "Private Person",
         "ABC1234",

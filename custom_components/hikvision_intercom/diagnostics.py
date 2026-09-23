@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from .access.diagnostics import SAFE_ERRORS
 from .access.models import SYNC_STATES
+from .access.sync_tracking import pending_users
 from .const import DOMAIN, VERSION
 from .hardening import firmware_label
 from .runtime import IntercomConfigEntry
@@ -64,7 +65,7 @@ async def async_get_config_entry_diagnostics(
             else None,
             "pending_request": station.pending,
             "worker_active": station.task is not None,
-            "queue_depth": len(manager.engine.jobs(entry.entry_id)),
+            "queue_depth": len(pending_users(manager.repository.snapshot(), entry.entry_id)),
             "assignment_states": states,
             "errors": errors,
             "users": len(station.inventory.users) if station.inventory else None,

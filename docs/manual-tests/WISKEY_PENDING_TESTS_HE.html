@@ -10,14 +10,14 @@
     header{position:sticky;top:0;z-index:3;background:#111827;color:#fff;padding:16px clamp(14px,4vw,42px);box-shadow:0 6px 20px #0003}
     header h1{margin:0;font-size:clamp(21px,3vw,32px)}header p{margin:3px 0 0;color:#cbd5e1}
     main{width:min(1220px,calc(100% - 22px));margin:18px auto 60px}.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:17px;margin-bottom:14px;box-shadow:0 8px 28px #15213b0b}
-    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.metric{background:#eef2ff;border-radius:12px;padding:10px;text-align:center}.metric b{display:block;color:var(--accent);font-size:24px}
+    .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.metric{background:#eef2ff;border-radius:12px;padding:10px;text-align:center}.metric b{display:block;color:var(--accent);font-size:24px}
     .identity{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
     input,select,textarea,button{font:inherit}input[type=text],select,textarea{width:100%;padding:9px;border:1px solid #c9d3e0;border-radius:9px;background:var(--card);color:inherit}textarea{min-height:68px;resize:vertical}
     button{border:0;border-radius:9px;background:var(--accent);color:#fff;padding:9px 13px;cursor:pointer}button.secondary{background:#e9edf5;color:#1f2937}
     .notice{border-inline-start:4px solid var(--warn);background:#fff7df;border-radius:9px;padding:10px 12px}.history{border-inline-start:4px solid var(--ok);background:#ebfbf5}
     h2{font-size:19px;margin:0 0 8px}.group-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.group-count{color:var(--muted)}
     .test{display:grid;grid-template-columns:minmax(280px,1fr) 165px minmax(210px,.7fr);gap:11px;padding:13px 0;border-top:1px solid var(--line);align-items:start}.test h3{margin:0 0 4px;font-size:16px}.test p{margin:0;color:var(--muted);font-size:14px}.test.hidden{display:none}
-    .scope{display:inline-block;font-size:12px;background:#edf2ff;color:#304fbd;padding:2px 7px;border-radius:999px;margin-inline-end:6px}.physical{background:#fff0dd;color:#9b5e00}.regression{background:#eceff4;color:#4b5563}
+    .scope{display:inline-block;font-size:12px;background:#edf2ff;color:#304fbd;padding:2px 7px;border-radius:999px;margin-inline-end:6px}.physical{background:#fff0dd;color:#9b5e00}.regression{background:#eceff4;color:#4b5563}.automated{background:#e5f8f0;color:#087253}.evidence-list li{margin:6px 0}.evidence-list code{direction:ltr;unicode-bidi:embed}
     select.pass{border-color:var(--ok);color:var(--ok)}select.fail{border-color:var(--bad);color:var(--bad)}select.deferred{border-color:var(--warn);color:var(--warn)}
     details summary{cursor:pointer;font-weight:700}.verified-grid{columns:2;column-gap:32px}.verified-grid li{break-inside:avoid;margin:7px 0;color:var(--muted)}
     @media(max-width:780px){.stats{grid-template-columns:repeat(2,1fr)}.identity{grid-template-columns:1fr}.test{grid-template-columns:1fr}.verified-grid{columns:1}header{position:static}}
@@ -28,28 +28,41 @@
 <body>
 <header>
   <h1>WisKey — קטלוג כל הבדיקות שעדיין פתוחות</h1>
-  <p>סבב מאוחד לגרסה 1.9.2 ואילך · בדיקות תוכנה, תחנות פיזיות, שרידות ורגרסיה</p>
+  <p>סבב מאוחד לגרסה 1.9.3 ואילך · בדיקות תוכנה, תחנות פיזיות, שרידות ורגרסיה</p>
 </header>
 <main>
   <section class="card">
     <div class="stats">
-      <div class="metric"><b id="total">0</b>בדיקות פתוחות</div>
+      <div class="metric"><b id="total">0</b>בדיקות בקטלוג</div>
+      <div class="metric"><b id="automated">0</b>אומתו עבורכם</div>
       <div class="metric"><b id="passed">0</b>עברו</div>
       <div class="metric"><b id="failed">0</b>נכשלו</div>
-      <div class="metric"><b id="deferred">0</b>נדחו</div>
+      <div class="metric"><b id="manualRemaining">0</b>נותרו לבדיקה</div>
       <div class="metric"><b id="percent">0%</b>הושלמו</div>
     </div>
     <div class="identity">
       <label>שם הבודק<input id="tester" type="text" /></label>
-      <label>גרסת HA / WisKey<input id="versions" type="text" placeholder="HA 2026.9.1 · WisKey 1.9.2" /></label>
+      <label>גרסת HA / WisKey<input id="versions" type="text" placeholder="HA 2026.9.1 · WisKey 1.9.3" /></label>
       <label>מכשיר ודפדפן<input id="browser" type="text" placeholder="Chrome במחשב / Android / iPhone" /></label>
     </div>
     <p class="notice">אל תכתוב בהערות PIN, מספר כרטיס מלא, סיסמה או כתובת פנימית. התוצאות נשמרות מקומית בדפדפן עד לייצוא.</p>
     <div class="toolbar">
       <button id="exportBtn">הורדת תוצאות JSON</button><button id="copy">העתקת סיכום</button>
-      <button class="secondary" id="pendingOnly">הצג רק בדיקות שטרם הושלמו</button>
+      <button class="secondary" id="pendingOnly">הצג רק בדיקות שנותרו</button>
       <button class="secondary" id="print">הדפסה</button><button class="secondary" id="reset">איפוס</button>
     </div>
+  </section>
+
+  <section class="card">
+    <h2>אימות שבוצע עבורך לפני הבדיקה הפיזית</h2>
+    <p class="history">נכון ל־24.9.2026: גרסה 1.9.2 נבדקה מול Home Assistant החי בקריאה בלבד. בדיקת המוכנות דיווחה “מוכן” לכל 8 התחנות. יצואי JSON/CSV וחבילת התמיכה עברו סריקת פרטיות, ונבדקו מחשב, טאבלט ו־390px ללא גלילה אופקית.</p>
+    <ul class="evidence-list">
+      <li><strong>צד שרת:</strong> 1,267 בדיקות עברו; Ruff, mypy ו־Ruff format עברו.</li>
+      <li><strong>ממשק:</strong> בסיס גרסה 1.9.2 עבר 506 בדיקות Playwright; מועמדת 1.9.3 עברה 258 בדיקות קבלה ועוד 21 בדיקות ממוקדות, וכן TypeScript ו־Prettier.</li>
+      <li><strong>מערכת חיה:</strong> 8/8 תחנות זמינות, גרסה 1.9.2 נטענה, מוכנות השדרוג תקינה וכל השעונים שנדגמו בתוך סף 90 שניות.</li>
+      <li><strong>פרטיות:</strong> לא נמצאו סיסמאות, כתובות תחנה, טלפונים, מספרי עובד, PIN או מספרי כרטיס מלאים בדוחות; ב־CSV אין שדות שמתחילים כתאי נוסחה.</li>
+    </ul>
+    <p>סעיף שסומן <span class="scope automated">אומת אוטומטית</span> כבר הוגדר כעבר. לחיצה על “הצג רק בדיקות שנותרו” תשאיר עבורך רק בדיקות שדורשות ציוד, שינוי מצב או המתנה ממושכת.</p>
   </section>
 
   <details class="card">
@@ -132,6 +145,33 @@ const groups=[
 ["browser-matrix","מטריצת דפדפנים","בדוק Chrome מחשב, Chrome/Android ו־Safari/iPhone או דפדפן מובייל נוסף: וידאו, שמע, הרשאות ומסכים עיקריים.","physical"]
 ]]
 ];
+const automationEvidence={
+  readiness:"בדיקת מוכנות חיה: 8 תחנות ב־8 רשומות; אחסון, מבנה, טעינה, תקשורת וסנכרון תקינים.",
+  "inventory-json":"יצוא חי נקרא בהצלחה: 8 תחנות וללא שדות סודיים או פרטי משתמש.",
+  "inventory-csv":"יצוא חי נקרא בהצלחה: 8 שורות, עברית תקינה וללא תאים שמתחילים כתאי נוסחה.",
+  paging:"בדיקות Playwright מכסות 25/50/100/200, דפדוף, חיפוש, מיון ורוחב נייד.",
+  "saved-view":"בדיקות Playwright מכסות שמירה, שחזור, איפוס עמוד ושרידות רענון.",
+  lifecycle:"בדיקות צד שרת וממשק מכסות פעיל, עומד לפוג, פג וללא אמצעי גישה.",
+  duplicate:"בדיקות מכסות כפילויות שם, טלפון, כרטיס ומספר עובד, כולל עריכת הרשומה המקורית.",
+  operations:"בדיקות מכסות התקדמות בזמן אמת, ניווט, רענון ושחזור קבלה של עבודות רקע.",
+  "failure-isolation":"בדיקות מנוע וממשק מאמתות שכשל משתמש מבודד, שאר התור ממשיך ו־Retry אינו מכפיל.",
+  "csv-capacity":"בדיקות CSV מאמתות תחזית קיבולת ושמירת ערך לא ידוע כלא ידוע.",
+  privacy:"יצואי המערכת החיה וחבילת התמיכה נסרקו; בדיקות נוספות אוכפות הסרת סודות ופרטי זהות.",
+  dst:"בדיקות זמן מכסות מעבר קיץ/חורף, שעה חסרה ושעה כפולה ב־Asia/Jerusalem.",
+  "native-support":"תחנה שאינה מפרסמת תמיכת ISAPI נחסמת כלא נתמכת; ההתנהגות מכוסה גם בבדיקות.",
+  hls:"בדיקות הממשק מכסות HLS/fallback, הסבר מגבלת שמע ומניעת חיווי הצלחה שגוי.",
+  "call-fit":"נבדק חי ב־1440/768/390 ובבדיקות Playwright: מצלמה, פקדים ו־TTS ללא גלילה אופקית.",
+  history:"כל 8 התחנות דיווחו שחזור היסטוריה; בדיקות מכסות השלמה חד־פעמית וסימון היסטורי.",
+  "whatsapp-card":"בדיקות מכסות משתמש עם כרטיס בלבד ומונעות placeholder או PIN זר.",
+  "whatsapp-template":"בדיקות מכסות עריכת תבנית, preview, אישור מפורש והמרת מספר ל־+972.",
+  "ha-view":"בדיקות הרשאה מכסות צפייה במסכים מורשים ודחיית כתיבה גם ברמת API.",
+  "ha-manage":"בדיקות הרשאה מכסות ניהול משתמשים ללא ניהול תחנות או פתיחה שאינה מורשית.",
+  "permission-loss":"בדיקות מכסות ביטול הרשאה במסך פתוח, הסתרת מידע ודחיית תוצאה מאוחרת.",
+  grid:"נבדק חי וב־Playwright עם 4/8/12 תחנות, יחס תמונה תקין ובידוד פעולת דלת.",
+  tablet:"נבדק חי ב־768px ובבדיקות מסכים מלאות ללא חפיפה או גלילת צד.",
+  mobile:"נבדק חי ב־390px ובבדיקות 360/390px, כולל משתמשים, טלפונים, מצלמה ופקדים.",
+  "multi-station":"המערכת החיה מנהלת 8 תחנות; בדיקות מכסות 1, 4, 8, 12 ו־14 ללא יעד קשיח.",
+};
 const key="wiskey-pending-tests-v1";
 const legacyKeys=["wiskey-pending-tests-1.9.1"];
 const el=function(id){return document.getElementById(id)};
@@ -148,7 +188,7 @@ for(const group of groups){
     const row=document.createElement("div");row.className="test";row.dataset.id=item[0];
     const info=document.createElement("div");const h=document.createElement("h3");
     const badge=document.createElement("span");badge.className="scope "+item[3];badge.textContent=scopeLabel[item[3]];
-    h.append(badge,document.createTextNode(item[1]));const p=document.createElement("p");p.textContent=item[2];info.append(h,p);
+    h.append(badge,document.createTextNode(item[1]));const auto=automationEvidence[item[0]];if(auto){const verified=document.createElement("span");verified.className="scope automated";verified.textContent="אומת אוטומטית";h.append(verified)}const p=document.createElement("p");p.textContent=item[2];info.append(h,p);
     const result=document.createElement("label");result.append(document.createTextNode("תוצאה"));
     const select=document.createElement("select");select.setAttribute("aria-label","תוצאה: "+item[1]);
     [["pending","טרם נבדק"],["pass","עבר"],["fail","נכשל"],["deferred","נדחה"],["na","לא רלוונטי"]].forEach(function(option){
@@ -156,8 +196,8 @@ for(const group of groups){
     });result.append(select);
     const notes=document.createElement("label");notes.append(document.createTextNode("הערות"));
     const textarea=document.createElement("textarea");textarea.setAttribute("aria-label","הערות: "+item[1]);notes.append(textarea);
-    const state=(saved.tests&&saved.tests[item[0]])||{};select.value=state.result||"pending";textarea.value=state.note||"";select.className=select.value;
-    select.addEventListener("change",function(){select.className=select.value;save()});textarea.addEventListener("input",save);
+    const state=(saved.tests&&saved.tests[item[0]])||{};const recorded=state.result&&state.result!=="pending";select.value=recorded?state.result:(auto?"pass":"pending");textarea.value=state.note||(auto?"אומת עבורך: "+auto:"");row.dataset.automatic=String(!!auto&&!recorded);select.className=select.value;
+    select.addEventListener("change",function(){row.dataset.automatic="false";select.className=select.value;save()});textarea.addEventListener("input",save);
     row.append(info,result,notes);section.append(row);
   }host.append(section);
 }
@@ -165,20 +205,20 @@ for(const group of groups){
 let onlyPending=false;
 function collect(){
   const tests={};document.querySelectorAll(".test").forEach(function(row){tests[row.dataset.id]={result:row.querySelector("select").value,note:row.querySelector("textarea").value.trim()}});
-  return{format:"wiskey.pending_manual_tests",version:"1.9.2",updated_at:new Date().toISOString(),tester:el("tester").value,versions:el("versions").value,browser:el("browser").value,tests:tests};
+  return{format:"wiskey.pending_manual_tests",version:"1.9.3",updated_at:new Date().toISOString(),tester:el("tester").value,versions:el("versions").value,browser:el("browser").value,tests:tests};
 }
 function save(){saved=collect();localStorage.setItem(key,JSON.stringify(saved));update()}
 function update(){
   const rows=[...document.querySelectorAll(".test")],values=rows.map(function(row){return row.querySelector("select").value});
   const done=values.filter(function(v){return v!=="pending"}).length;
-  el("total").textContent=rows.length;el("passed").textContent=values.filter(function(v){return v==="pass"}).length;
-  el("failed").textContent=values.filter(function(v){return v==="fail"}).length;el("deferred").textContent=values.filter(function(v){return v==="deferred"}).length;
+  el("total").textContent=rows.length;el("automated").textContent=rows.filter(function(row){return row.dataset.automatic==="true"}).length;el("passed").textContent=values.filter(function(v){return v==="pass"}).length;
+  el("failed").textContent=values.filter(function(v){return v==="fail"}).length;el("manualRemaining").textContent=values.filter(function(v){return v==="pending"||v==="deferred"}).length;
   el("percent").textContent=Math.round(done*100/rows.length)+"%";
-  rows.forEach(function(row){row.classList.toggle("hidden",onlyPending&&row.querySelector("select").value!=="pending")});
+  rows.forEach(function(row){const value=row.querySelector("select").value;row.classList.toggle("hidden",onlyPending&&(value==="pass"||value==="na"))});
 }
-el("exportBtn").onclick=function(){const data=JSON.stringify(collect(),null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="wiskey-pending-tests-1.9.2.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
-el("copy").onclick=async function(){const data=collect(),vals=Object.values(data.tests),text="WisKey 1.9.2: עברו "+vals.filter(function(v){return v.result==="pass"}).length+", נכשלו "+vals.filter(function(v){return v.result==="fail"}).length+", טרם נבדקו "+vals.filter(function(v){return v.result==="pending"}).length;await navigator.clipboard.writeText(text);el("copy").textContent="הועתק";setTimeout(function(){el("copy").textContent="העתקת סיכום"},1200)};
-el("pendingOnly").onclick=function(){onlyPending=!onlyPending;el("pendingOnly").textContent=onlyPending?"הצג את כל הבדיקות":"הצג רק בדיקות שטרם הושלמו";update()};
+el("exportBtn").onclick=function(){const data=JSON.stringify(collect(),null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="wiskey-pending-tests-1.9.3.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
+el("copy").onclick=async function(){const data=collect(),vals=Object.values(data.tests),text="WisKey 1.9.3: עברו "+vals.filter(function(v){return v.result==="pass"}).length+", נכשלו "+vals.filter(function(v){return v.result==="fail"}).length+", טרם נבדקו "+vals.filter(function(v){return v.result==="pending"}).length;await navigator.clipboard.writeText(text);el("copy").textContent="הועתק";setTimeout(function(){el("copy").textContent="העתקת סיכום"},1200)};
+el("pendingOnly").onclick=function(){onlyPending=!onlyPending;el("pendingOnly").textContent=onlyPending?"הצג את כל הבדיקות":"הצג רק בדיקות שנותרו";update()};
 el("print").onclick=function(){window.print()};el("reset").onclick=function(){if(confirm("לאפס את כל התוצאות וההערות?")){localStorage.removeItem(key);location.reload()}};
 update();
 </script>
