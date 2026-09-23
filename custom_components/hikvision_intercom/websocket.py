@@ -11,6 +11,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -659,7 +660,7 @@ async def _dispatch_inner(
             "generated_at": datetime.now(UTC).isoformat(),
             "integration_version": VERSION,
             "home_assistant": {
-                "version": hass.config.version,
+                "version": HA_VERSION,
                 "time_zone": hass.config.time_zone,
             },
             "scope": "cached_diagnostics_no_device_reads",
