@@ -48,11 +48,22 @@ def wav_to_mulaw_packets(data: bytes) -> tuple[list[bytes], float]:
                 or source.getcomptype() != "NONE"
             ):
                 raise TtsCodecError("tts_audio_format")
-            frame_count = source.getnframes()
+            declared_frames = source.getnframes()
+            if declared_frames <= 0:
+                raise TtsCodecError("tts_audio_too_long")
+            # Some HA TTS providers return a streaming WAV whose data chunk is
+            # deliberately advertised as 0xffffffff. ``wave`` consequently
+            # reports billions of frames even though the bounded response body
+            # contains only a short announcement. Read at most one frame over
+            # our limit and validate the bytes that actually arrived instead of
+            # trusting the streaming sentinel.
+            pcm = source.readframes(MAX_AUDIO_SECONDS * 8000 + 1)
+            if len(pcm) % 2:
+                raise TtsCodecError("tts_audio_format")
+            frame_count = len(pcm) // 2
             if frame_count <= 0 or frame_count > MAX_AUDIO_SECONDS * 8000:
                 raise TtsCodecError("tts_audio_too_long")
-            pcm = source.readframes(frame_count)
-            if len(pcm) != frame_count * 2:
+            if declared_frames <= MAX_AUDIO_SECONDS * 8000 and frame_count != declared_frames:
                 raise TtsCodecError("tts_audio_format")
     except TtsCodecError:
         raise

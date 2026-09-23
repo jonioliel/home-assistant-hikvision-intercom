@@ -27,6 +27,48 @@ export class IntercomTtsControls extends LitElement {
       width: min(760px, 100%);
       margin: 12px auto 0;
     }
+    :host([compact]) {
+      width: 100%;
+      margin-top: 6px;
+    }
+    :host([compact]) .tts-panel {
+      padding: 8px 10px;
+    }
+    :host([compact]) .heading {
+      margin-bottom: 5px;
+    }
+    :host([compact]) textarea {
+      min-height: 42px;
+      max-height: 56px;
+      resize: none;
+    }
+    :host([compact]) button {
+      min-height: 40px;
+      padding-block: 7px;
+    }
+    :host([compact]) .settings {
+      margin-top: 5px;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    :host([compact]) .setting-label {
+      display: none;
+    }
+    :host([compact]) label {
+      min-width: 0;
+    }
+    :host([compact]) label:first-child {
+      flex: 1 1 auto;
+    }
+    :host([compact]) select {
+      min-width: 0;
+      min-height: 32px;
+      max-width: 100%;
+    }
+    :host([compact]) .status {
+      min-height: 16px;
+      margin-top: 4px;
+    }
     .tts-panel {
       border: 1px solid var(--divider-color, #d8e0ec);
       border-radius: 14px;
@@ -175,6 +217,28 @@ export class IntercomTtsControls extends LitElement {
       select {
         flex: 1;
         max-width: 70%;
+      }
+      :host([compact]) .composer {
+        align-items: stretch;
+        flex-direction: row;
+      }
+      :host([compact]) textarea {
+        min-height: 44px;
+        max-height: 44px;
+      }
+      :host([compact]) button.primary {
+        width: auto;
+        min-width: 88px;
+      }
+      :host([compact]) label {
+        flex: 0 1 auto;
+        justify-content: flex-start;
+      }
+      :host([compact]) label:first-child {
+        flex: 1 1 auto;
+      }
+      :host([compact]) select {
+        max-width: 100%;
       }
       .counter {
         margin-inline-start: 0;
@@ -407,9 +471,10 @@ export class IntercomTtsControls extends LitElement {
       </div>
       <div class="settings">
         <label
-          >${this.t("tts_engine")}
+          ><span class="setting-label">${this.t("tts_engine")}</span>
           <select
             class="tts-engine"
+            aria-label=${this.t("tts_engine")}
             .value=${this.engineId}
             ?disabled=${this.speaking || this.loading}
             @change=${(event: Event) => {
@@ -425,9 +490,10 @@ export class IntercomTtsControls extends LitElement {
         ${
           engine?.supported_languages.length
             ? html`<label
-                >${this.t("tts_language")}
+                ><span class="setting-label">${this.t("tts_language")}</span>
                 <select
                   class="tts-language"
+                  aria-label=${this.t("tts_language")}
                   .value=${this.language}
                   ?disabled=${this.speaking}
                   @change=${(event: Event) => (this.language = (event.target as HTMLSelectElement).value)}

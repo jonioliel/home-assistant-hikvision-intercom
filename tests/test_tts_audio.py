@@ -68,3 +68,24 @@ def test_tts_wav_rejects_more_than_one_minute():
     with pytest.raises(TtsCodecError) as raised:
         wav_to_mulaw_packets(wav(tone))
     assert raised.value.code == "tts_audio_too_long"
+
+
+def test_tts_wav_accepts_short_streaming_data_chunk_with_unknown_length():
+    payload = bytearray(wav([0] * 8000))
+    data_chunk = payload.find(b"data")
+    assert data_chunk > 0
+    struct.pack_into("<I", payload, data_chunk + 4, 0xFFFFFFFF)
+
+    packets, duration = wav_to_mulaw_packets(bytes(payload))
+
+    assert len(packets) == 10
+    assert duration == 1
+
+
+def test_tts_wav_rejects_truncated_bounded_data_chunk():
+    payload = wav([0] * 8000)[:-200]
+
+    with pytest.raises(TtsCodecError) as raised:
+        wav_to_mulaw_packets(payload)
+
+    assert raised.value.code == "tts_audio_format"

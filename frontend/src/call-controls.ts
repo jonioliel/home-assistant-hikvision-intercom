@@ -40,18 +40,19 @@ export class IntercomCallControls extends LitElement {
       }
       :host([dock]) .toolbar {
         justify-content: center;
-        gap: 10px;
+        flex-wrap: nowrap;
+        gap: 6px;
       }
       :host([dock]) .toolbar button {
         border: 0;
-        border-radius: 30px;
-        min-width: 64px;
-        min-height: 64px;
+        border-radius: 26px;
+        min-width: 52px;
+        min-height: 52px;
         display: flex;
         flex-direction: column;
-        gap: 5px;
-        padding: 10px;
-        font-size: 12px;
+        gap: 4px;
+        padding: 6px;
+        font-size: 11px;
       }
       :host([dock]) .toolbar button.answer {
         background: #12853d;

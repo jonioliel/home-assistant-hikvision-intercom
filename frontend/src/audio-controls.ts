@@ -33,16 +33,17 @@ export class IntercomAudioControls extends LitElement {
     :host([dock]) .buttons {
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 8px;
     }
     :host([dock]) .session-buttons {
       order: -2;
     }
     :host([dock]) .session-buttons > button {
-      min-width: 72px;
-      min-height: 72px;
+      min-width: 56px;
+      min-height: 56px;
+      padding: 6px;
       border: 0;
-      border-radius: 36px;
+      border-radius: 28px;
       background: #edf0f7;
       color: #27334b;
       display: flex;
@@ -90,7 +91,11 @@ export class IntercomAudioControls extends LitElement {
     }
     @media (max-width: 600px) {
       :host([dock]) .buttons {
-        gap: 10px;
+        flex-wrap: nowrap;
+        gap: 6px;
+      }
+      :host([dock]) .session-buttons > button {
+        font-size: 11px;
       }
     }
     :host {
@@ -1021,7 +1026,7 @@ export class IntercomAudioControls extends LitElement {
       ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}
       ${this._error ? html`<p class="error" role="alert">${this.t(this._error)}</p>` : nothing}
-      ${this.dock ? html`<wiskey-intercom-tts .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
+      ${this.dock ? html`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
     </section>`;
   }
 }
