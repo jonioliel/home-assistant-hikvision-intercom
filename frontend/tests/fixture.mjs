@@ -81,9 +81,14 @@ const data = {
         version: 1,
         min_client: 0,
         capabilities: ["user_timing_draft", "panel_permissions", "user_directory_query"],
-        commands: ["overview", "users/query"],
+        commands: ["overview", "users/query", "support/bundle"],
       }
-    : { version: 1, min_client: 0, capabilities: ["user_timing_draft"], commands: [] },
+    : {
+        version: 1,
+        min_client: 0,
+        capabilities: ["user_timing_draft"],
+        commands: ["support/bundle"],
+      },
   default_zone: { kind: "iana", name: "UTC" },
   version: "0.33.0-beta.1",
   users: [],
@@ -235,6 +240,28 @@ if (query.has("operations")) {
       verified_at: null,
     },
   ];
+}
+if (query.has("lifecycle")) {
+  data.api = {
+    version: 1,
+    min_client: 0,
+    capabilities: ["user_timing_draft", "panel_permissions", "identity_lifecycle"],
+    commands: [
+      "overview",
+      "users/get",
+      "users/lifecycle",
+      "users/duplicate_check",
+      "users/create",
+      "users/update",
+      "support/bundle",
+    ],
+  };
+  data.users[1].valid_until = "2026-10-01T12:00:00Z";
+  data.users[4].pin_configured = false;
+  data.users[4].cards = [];
+}
+if (query.has("legacy-api")) {
+  data.api.commands = data.api.commands.filter((command) => command !== "support/bundle");
 }
 if (query.has("paged")) {
   for (let index = data.users.length; index < 126; index++) {
@@ -937,6 +964,85 @@ const fake = {
           settled: records.filter((item) => item.state === "settled").length,
           saved: records.filter((item) => item.state === "saved").length,
         },
+      };
+    }
+    if (command === "users/lifecycle") {
+      return {
+        format: "hikvision_intercom.identity_lifecycle",
+        generated_at: "2026-09-23T09:00:00Z",
+        warning_days: message.warning_days,
+        summary: {
+          total: data.users.length,
+          active: data.users.filter((user) => user.active).length,
+          scheduled: 0,
+          expired: 0,
+          expiring: 1,
+          without_credentials: 1,
+          duplicate_groups: 1,
+          duplicate_users: 2,
+        },
+        expirations: [
+          {
+            ...structuredClone(data.users[1]),
+            phone: "050-123-4567",
+            card_count: 1,
+            enabled_card_count: 1,
+            assignment_count: 3,
+            group_ids: [],
+            state: "expiring",
+            seconds_remaining: 700000,
+          },
+        ],
+        duplicates: [
+          {
+            reason: "phone",
+            match: null,
+            users: [0, 1].map((index) => ({
+              ...structuredClone(data.users[index]),
+              phone: "050-123-4567",
+              card_count: 1,
+              enabled_card_count: 1,
+              assignment_count: 2,
+              group_ids: [],
+            })),
+          },
+        ],
+        without_credentials: [
+          {
+            ...structuredClone(data.users[4]),
+            phone: "",
+            card_count: 0,
+            enabled_card_count: 0,
+            assignment_count: 6,
+            group_ids: [],
+          },
+        ],
+        truncated: { expirations: false, duplicates: false, without_credentials: false },
+        privacy: "no_pin_or_complete_card_values",
+      };
+    }
+    if (command === "users/duplicate_check") {
+      const duplicate =
+        String(message.data?.display_name ?? "")
+          .trim()
+          .toLowerCase() === "dana cohen";
+      return {
+        matches: duplicate
+          ? [
+              {
+                id: "person-1",
+                display_name: "Dana Cohen",
+                employee_no: "1001",
+                phone: "050-123-4567",
+                reasons: ["display_name"],
+                card_matches: [],
+              },
+            ]
+          : [],
+        total: duplicate ? 1 : 0,
+        truncated: false,
+        blocking: false,
+        privacy: "no_pin_or_complete_card_values",
       };
     }
     if (command === "users/get") {

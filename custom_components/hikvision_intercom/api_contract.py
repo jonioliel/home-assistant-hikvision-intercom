@@ -17,6 +17,7 @@ CAPABILITIES = [
     "user_directory_query",
     "operations_query",
     "intercom_tts",
+    "identity_lifecycle",
 ]
 
 
@@ -41,6 +42,8 @@ READ_COMMANDS = frozenset(
         "users/list",
         "users/query",
         "users/get",
+        "users/lifecycle",
+        "users/duplicate_check",
         "sync/status",
         "sync/diagnostics",
         "events/list",
@@ -55,6 +58,7 @@ READ_COMMANDS = frozenset(
         "media/settings_get",
         "profiles/settings_get",
         "health/get",
+        "support/bundle",
         "acceptance/get",
         "conflicts/list",
         "users/bulk_receipt",

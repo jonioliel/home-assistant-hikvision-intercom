@@ -2,8 +2,8 @@ import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
-async function setup(page) {
-  await page.goto("/");
+async function setup(page, path = "/") {
+  await page.goto(path);
   await page.evaluate(() => {
     const base = window.demoHass.callWS.bind(window.demoHass);
     const results = {};
@@ -111,6 +111,44 @@ test("health shows queue reasons and refreshes selected stations only", async ({
       window.calls.some((c) => c.type.includes("unlock") || c.type.includes("media/signal")),
     ),
   ).toBeFalsy();
+});
+
+test("fleet support bundle downloads cached secret-free diagnostics", async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("support/bundle")) {
+        window.calls.push(message);
+        return {
+          format: "hikvision_intercom.support_bundle",
+          scope: "cached_diagnostics_no_device_reads",
+          privacy: "no_credentials_addresses_user_names_phone_numbers_or_card_numbers",
+          stations: [{ station_ref: "7b20cb112233", model: "DS-KV6124-E1" }],
+        };
+      }
+      return base(message);
+    };
+  });
+  await navigate(page, "Health & field tests");
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download support bundle" }).click();
+  const download = await pending;
+  expect(download.suggestedFilename()).toBe("wiskey-support-bundle.json");
+  const content = await readFile((await download.path())!, "utf8");
+  expect(content).toContain("cached_diagnostics_no_device_reads");
+  expect(content).toContain("7b20cb112233");
+  expect(content).not.toContain("Main gate");
+  expect(content).not.toContain("192.168");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("support/bundle")).length),
+  ).toBe(1);
+});
+
+test("older server does not expose an unsupported support download", async ({ page }) => {
+  await setup(page, "/?legacy-api=1");
+  await navigate(page, "Health & field tests");
+  await expect(page.getByRole("button", { name: "Download support bundle" })).toHaveCount(0);
 });
 
 test("field checklist starts unverified and records only an explicit save", async ({ page }) => {

@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.9.0] - 2026-09-23
+
+- Add a responsive Identity lifecycle center for expiring and expired access, possible duplicate identities, and active people without an enabled PIN or card.
+- Detect possible duplicates by normalized name, phone number, employee number and active-card suffix while never returning PINs or complete card numbers. Reports and bounded JSON exports contain safe projections only.
+- Check duplicate candidates before user creation or update. Employee-number collisions block the save; name, phone or card-suffix matches require an explicit operator decision, while editing excludes the current person.
+- Classify lifecycle reads under the existing Users view grant and keep the Management tools navigation boundary. Older servers retain the existing user-save flow when the new capability is absent.
+- Add backend, authorization, responsive desktop/mobile and user-save regressions, a Hebrew operator guide and a self-contained 1.9.0 manual-test worksheet.
+- Add a cached fleet support bundle with pseudonymous station references and no credentials, addresses, person names, phone numbers or complete card numbers; downloading it never contacts a station.
+
 ## [1.8.0] - 2026-09-23
 
 - Add explicit typed announcements to the selected intercom using configured Home Assistant TTS engines, including Google Translate TTS and automatic Hebrew `iw` selection.

@@ -32,6 +32,35 @@ async def test_health_snapshot_is_private_and_does_not_touch_device(
     device_io["unlock"].assert_not_called()
 
 
+async def test_support_bundle_is_cached_pseudonymous_and_does_not_touch_device(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    with patch(
+        "custom_components.hikvision_intercom.health_api.MediaClient.inspect", new=AsyncMock()
+    ) as probe:
+        result = await request(client, "support/bundle")
+    assert result["success"]
+    report = result["result"]
+    assert report["format"] == "hikvision_intercom.support_bundle"
+    assert report["scope"] == "cached_diagnostics_no_device_reads"
+    assert len(report["stations"]) == 1
+    assert len(report["stations"][0]["station_ref"]) == 12
+    encoded = json.dumps(report)
+    for private in (
+        "demo-secret",
+        "DEMO-SERIAL",
+        "192.0.2.10",
+        loaded_entry.entry_id,
+        "username",
+        "password",
+    ):
+        assert private not in encoded
+    probe.assert_not_called()
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
 async def test_acceptance_persist_reload_revision_and_no_commands(
     hass, loaded_entry, hass_ws_client, device_io
 ):

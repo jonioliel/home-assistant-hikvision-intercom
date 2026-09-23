@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.8.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.8.0)** — adds typed Home Assistant TTS announcements to a selected intercom while preserving the existing camera, microphone, access, sync and administration workflows.
+Published runtime: **[1.9.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.0)** — adds identity lifecycle review, privacy-safe duplicate detection and expiry visibility while preserving the existing TTS, camera, microphone, access, sync and administration workflows.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -41,8 +41,9 @@ and bulk changes after navigation or reload. Progress is grouped by actual user 
 with targeted retry where the HA user has the matching Users or Stations management grant.
 CSV preview reports current, projected and peak users/cards/PIN counts per affected station;
 a limit the station does not advertise remains unknown. Receipts and reports contain no PIN,
-full card number or device credentials. See the [operations guide](docs/BACKGROUND_OPERATIONS_HE.md)
-and the [1.8.0 manual test worksheet](docs/manual-tests/WISKEY_1.8.0_TESTS_HE.html).
+full card number or device credentials. See the [operations guide](docs/BACKGROUND_OPERATIONS_HE.md),
+the [identity lifecycle guide](docs/IDENTITY_LIFECYCLE_HE.md), the [support-bundle guide](docs/SUPPORT_BUNDLE_HE.md)
+and the [1.9.0 manual test worksheet](docs/manual-tests/WISKEY_1.9.0_TESTS_HE.html).
 
 ## Intercom announcements with Home Assistant TTS
 

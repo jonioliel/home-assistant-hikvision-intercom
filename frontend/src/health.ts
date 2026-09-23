@@ -91,6 +91,7 @@ export class IntercomHealth extends LitElement {
     onCallBusy: { attribute: false },
     _callDetails: { state: true },
     stations: { attribute: false },
+    supportBundle: { type: Boolean },
     _reports: { state: true },
     _busy: { state: true },
     _errors: { state: true },
@@ -98,12 +99,15 @@ export class IntercomHealth extends LitElement {
     _acceptance: { state: true },
     _selected: { state: true },
     _haConnected: { state: true },
+    _bundleBusy: { state: true },
+    _bundleError: { state: true },
   };
   hass?: Hass;
   callBusy: ReadonlySet<string> = new Set();
   onCallBusy?: (station: string, busy: boolean) => void;
   private _callDetails = new Set<string>();
   stations: Station[] = [];
+  supportBundle = false;
   private _reports: Record<string, Health> = {};
   private _busy = new Set<string>();
   private _errors: Record<string, string> = {};
@@ -118,6 +122,8 @@ export class IntercomHealth extends LitElement {
   private fieldWrites = new Set<string>();
   private connection?: Hass["connection"];
   private _haConnected = true;
+  private _bundleBusy = false;
+  private _bundleError = "";
   private haDisconnected = () => {
     this._haConnected = false;
     for (const id of this.fieldWrites) this.uncertainField(id);
@@ -185,6 +191,8 @@ export class IntercomHealth extends LitElement {
     if (Object.keys(this._errors).length) this._errors = {};
     if (Object.keys(this._fieldErrors).length) this._fieldErrors = {};
     if (this._selected.size) this._selected = new Set();
+    this._bundleBusy = false;
+    this._bundleError = "";
   }
   private valid(epoch: number) {
     return (
@@ -253,6 +261,37 @@ export class IntercomHealth extends LitElement {
   private refreshSelected() {
     for (const station of this.stations)
       if (this._selected.has(station.id)) this.read(station.id, true);
+  }
+  private async downloadBundle() {
+    if (!this.valid(this.epoch) || this._bundleBusy) return;
+    const epoch = this.epoch;
+    const hass = this.hass!;
+    const connection = hass.connection;
+    const controller = new AbortController();
+    this.pending.add(controller);
+    this._bundleBusy = true;
+    this._bundleError = "";
+    try {
+      const report = await boundedRequest(
+        () =>
+          hass.callWS<Record<string, unknown>>({
+            type: "hikvision_intercom/support/bundle",
+          }),
+        30000,
+        controller.signal,
+      );
+      if (this.valid(epoch) && this.hass?.connection === connection)
+        downloadText(
+          JSON.stringify(report, null, 2),
+          "wiskey-support-bundle.json",
+          "application/json",
+        );
+    } catch {
+      if (this.valid(epoch)) this._bundleError = this.t("support_bundle_failed");
+    } finally {
+      this.pending.delete(controller);
+      if (epoch === this.epoch) this._bundleBusy = false;
+    }
   }
   private uncertainField(id: string) {
     const acceptance = { ...this._acceptance };
@@ -444,12 +483,26 @@ export class IntercomHealth extends LitElement {
       <p>${this.t("health_cached")}</p>
       <p>${this.t("health_scope")}</p>
       ${!this._haConnected ? html`<p class="notice error" role="alert">${this.t("health_disconnected")}</p>` : nothing}
-      <button
-        ?disabled=${!this._haConnected || !this._selected.size}
-        @click=${this.refreshSelected}
-      >
-        ${this.t("health_refresh")}
-      </button>
+      <div class="toolbar">
+        <button
+          ?disabled=${!this._haConnected || !this._selected.size}
+          @click=${this.refreshSelected}
+        >
+          ${this.t("health_refresh")}
+        </button>
+        ${
+          this.supportBundle
+            ? html`<button
+                ?disabled=${!this._haConnected || this._bundleBusy}
+                @click=${this.downloadBundle}
+              >
+                ${this.t("support_bundle_download")}
+              </button>`
+            : nothing
+        }
+      </div>
+      ${this.supportBundle ? html`<p class="sub">${this.t("support_bundle_hint")}</p>` : nothing}
+      ${this._bundleError ? html`<p class="notice error" role="alert">${this._bundleError}</p>` : nothing}
       <hikvision-intercom-fleet-clocks
         .hass=${this.hass}
         .stations=${this.stations}
