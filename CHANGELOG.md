@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.9.2] - 2026-09-24
+
+- Accept bounded streaming WAV responses whose data chunk uses the standard unknown-length sentinel while continuing to reject empty, truncated, incompatible or genuinely over-one-minute audio.
+- Fix short Google Translate TTS messages being reported as longer than one minute.
+- Refit the camera dialog to the viewport so the undistorted 16:9 video, call controls and announcement composer remain visible together without internal scrolling at desktop, tablet and mobile widths.
+- Compact call, relay, fullscreen and TTS controls while retaining accessible labels, keyboard operation and existing audio ownership rules.
+- Extend codec and responsive browser regressions and update the consolidated Hebrew acceptance worksheet.
+
 ## [1.9.1] - 2026-09-23
 
 - Add an administrator upgrade-readiness check that inspects cached storage, config-entry schema, loaded state, station connectivity and pending synchronization without contacting an intercom.

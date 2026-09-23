@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.9.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.1)** — adds cached upgrade-readiness checks, privacy-safe fleet inventory exports and a consolidated pending-test catalog while preserving the existing identity, TTS, camera, microphone, access, sync and administration workflows.
+Published runtime: **[1.9.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.2)** — fixes Google TTS streaming-WAV duration detection and keeps the complete camera, call controls and compact announcement composer visible together across desktop, tablet and mobile.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.

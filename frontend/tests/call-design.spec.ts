@@ -21,6 +21,12 @@ for (const width of [390, 768, 1440]) {
     expect(await dialog.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
     await expect(dialog.locator(".camera-door-actions button").first()).toBeInViewport();
     await expect(audio.getByRole("button", { name: "פתח האזנה", exact: true })).toBeInViewport();
+    const tts = dialog.locator("wiskey-intercom-tts");
+    await expect(tts).toHaveAttribute("compact", "");
+    await expect(tts.getByRole("textbox")).toBeInViewport();
+    expect(
+      await dialog.locator(".dialog-body").evaluate((el) => el.scrollHeight - el.clientHeight),
+    ).toBeLessThanOrEqual(1);
     expect(
       await dialog
         .locator("hikvision-intercom-camera")

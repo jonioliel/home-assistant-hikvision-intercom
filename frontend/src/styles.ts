@@ -617,6 +617,7 @@ export const styles = css`
   .camera-dialog[open] {
     display: flex;
     flex-direction: column;
+    height: min(960px, calc(100dvh - 24px));
     max-height: calc(100dvh - 24px);
   }
   .camera-dialog .dialog-head {
@@ -630,6 +631,8 @@ export const styles = css`
     min-height: 0;
     max-height: none;
     padding: 12px 20px;
+    overflow: hidden;
+    flex: 1 1 auto;
   }
   .camera-dialog .dialog-foot[hidden] {
     display: none;
@@ -648,11 +651,15 @@ export const styles = css`
     width: 100%;
     min-width: 0;
     margin-inline: auto;
-    max-width: min(100%, max(160px, calc((100dvh - 400px) * 16 / 9)));
+    max-width: min(100%, max(160px, calc((100dvh - 620px) * 16 / 9)));
     --camera-object-fit: contain;
+    background: #172a2d;
   }
   .camera-video hikvision-intercom-camera {
     width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
   }
   .camera-toolbar {
     display: flex;
@@ -679,13 +686,16 @@ export const styles = css`
     justify-content: center;
   }
   .camera-door-actions button {
-    min-height: 60px;
+    min-height: 56px;
+    padding: 6px 10px;
     border-radius: 14px;
+    font-size: 12px;
   }
   .camera-fullscreen {
     display: flex;
     flex-direction: column;
-    min-height: 64px;
+    min-height: 56px;
+    padding: 6px 10px;
     border: 0;
     border-radius: 32px;
     font-size: 12px;
@@ -723,7 +733,8 @@ export const styles = css`
       max-width: 100%;
     }
     .camera-door-actions {
-      width: 100%;
+      width: auto;
+      flex-wrap: nowrap;
     }
     .camera-door-actions button {
       flex: 1;

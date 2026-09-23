@@ -618,6 +618,7 @@ function ds(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
   .camera-dialog[open] {
     display: flex;
     flex-direction: column;
+    height: min(960px, calc(100dvh - 24px));
     max-height: calc(100dvh - 24px);
   }
   .camera-dialog .dialog-head {
@@ -631,6 +632,8 @@ function ds(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
     min-height: 0;
     max-height: none;
     padding: 12px 20px;
+    overflow: hidden;
+    flex: 1 1 auto;
   }
   .camera-dialog .dialog-foot[hidden] {
     display: none;
@@ -649,11 +652,15 @@ function ds(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
     width: 100%;
     min-width: 0;
     margin-inline: auto;
-    max-width: min(100%, max(160px, calc((100dvh - 400px) * 16 / 9)));
+    max-width: min(100%, max(160px, calc((100dvh - 620px) * 16 / 9)));
     --camera-object-fit: contain;
+    background: #172a2d;
   }
   .camera-video hikvision-intercom-camera {
     width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
   }
   .camera-toolbar {
     display: flex;
@@ -680,13 +687,16 @@ function ds(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
     justify-content: center;
   }
   .camera-door-actions button {
-    min-height: 60px;
+    min-height: 56px;
+    padding: 6px 10px;
     border-radius: 14px;
+    font-size: 12px;
   }
   .camera-fullscreen {
     display: flex;
     flex-direction: column;
-    min-height: 64px;
+    min-height: 56px;
+    padding: 6px 10px;
     border: 0;
     border-radius: 32px;
     font-size: 12px;
@@ -724,7 +734,8 @@ function ds(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
       max-width: 100%;
     }
     .camera-door-actions {
-      width: 100%;
+      width: auto;
+      flex-wrap: nowrap;
     }
     .camera-door-actions button {
       flex: 1;
@@ -7777,18 +7788,19 @@ Monday, Tuesday, Thursday
       }
       :host([dock]) .toolbar {
         justify-content: center;
-        gap: 10px;
+        flex-wrap: nowrap;
+        gap: 6px;
       }
       :host([dock]) .toolbar button {
         border: 0;
-        border-radius: 30px;
-        min-width: 64px;
-        min-height: 64px;
+        border-radius: 26px;
+        min-width: 52px;
+        min-height: 52px;
         display: flex;
         flex-direction: column;
-        gap: 5px;
-        padding: 10px;
-        font-size: 12px;
+        gap: 4px;
+        padding: 6px;
+        font-size: 11px;
       }
       :host([dock]) .toolbar button.answer {
         background: #12853d;
@@ -7940,6 +7952,48 @@ Monday, Tuesday, Thursday
       width: min(760px, 100%);
       margin: 12px auto 0;
     }
+    :host([compact]) {
+      width: 100%;
+      margin-top: 6px;
+    }
+    :host([compact]) .tts-panel {
+      padding: 8px 10px;
+    }
+    :host([compact]) .heading {
+      margin-bottom: 5px;
+    }
+    :host([compact]) textarea {
+      min-height: 42px;
+      max-height: 56px;
+      resize: none;
+    }
+    :host([compact]) button {
+      min-height: 40px;
+      padding-block: 7px;
+    }
+    :host([compact]) .settings {
+      margin-top: 5px;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    :host([compact]) .setting-label {
+      display: none;
+    }
+    :host([compact]) label {
+      min-width: 0;
+    }
+    :host([compact]) label:first-child {
+      flex: 1 1 auto;
+    }
+    :host([compact]) select {
+      min-width: 0;
+      min-height: 32px;
+      max-width: 100%;
+    }
+    :host([compact]) .status {
+      min-height: 16px;
+      margin-top: 4px;
+    }
     .tts-panel {
       border: 1px solid var(--divider-color, #d8e0ec);
       border-radius: 14px;
@@ -8089,6 +8143,28 @@ Monday, Tuesday, Thursday
         flex: 1;
         max-width: 70%;
       }
+      :host([compact]) .composer {
+        align-items: stretch;
+        flex-direction: row;
+      }
+      :host([compact]) textarea {
+        min-height: 44px;
+        max-height: 44px;
+      }
+      :host([compact]) button.primary {
+        width: auto;
+        min-width: 88px;
+      }
+      :host([compact]) label {
+        flex: 0 1 auto;
+        justify-content: flex-start;
+      }
+      :host([compact]) label:first-child {
+        flex: 1 1 auto;
+      }
+      :host([compact]) select {
+        max-width: 100%;
+      }
       .counter {
         margin-inline-start: 0;
       }
@@ -8118,9 +8194,10 @@ Monday, Tuesday, Thursday
       </div>
       <div class="settings">
         <label
-          >${this.t("tts_engine")}
+          ><span class="setting-label">${this.t("tts_engine")}</span>
           <select
             class="tts-engine"
+            aria-label=${this.t("tts_engine")}
             .value=${this.engineId}
             ?disabled=${this.speaking||this.loading}
             @change=${i=>{this.engineId=i.target.value,this.language=this.chooseLanguage(this.engines.find(s=>s.engine_id===this.engineId))}}
@@ -8129,9 +8206,10 @@ Monday, Tuesday, Thursday
           </select>
         </label>
         ${e?.supported_languages.length?f`<label
-                >${this.t("tts_language")}
+                ><span class="setting-label">${this.t("tts_language")}</span>
                 <select
                   class="tts-language"
+                  aria-label=${this.t("tts_language")}
                   .value=${this.language}
                   ?disabled=${this.speaking}
                   @change=${i=>this.language=i.target.value}
@@ -8163,16 +8241,17 @@ Monday, Tuesday, Thursday
     :host([dock]) .buttons {
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 8px;
     }
     :host([dock]) .session-buttons {
       order: -2;
     }
     :host([dock]) .session-buttons > button {
-      min-width: 72px;
-      min-height: 72px;
+      min-width: 56px;
+      min-height: 56px;
+      padding: 6px;
       border: 0;
-      border-radius: 36px;
+      border-radius: 28px;
       background: #edf0f7;
       color: #27334b;
       display: flex;
@@ -8220,7 +8299,11 @@ Monday, Tuesday, Thursday
     }
     @media (max-width: 600px) {
       :host([dock]) .buttons {
-        gap: 10px;
+        flex-wrap: nowrap;
+        gap: 6px;
+      }
+      :host([dock]) .session-buttons > button {
+        font-size: 11px;
       }
     }
     :host {
@@ -8407,7 +8490,7 @@ Monday, Tuesday, Thursday
       ${this.dock&&this._talking?f`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>`:y}
       ${window.isSecureContext?y:f`<p>${this.t("audio_https_required")}</p>`}
       ${this._error?f`<p class="error" role="alert">${this.t(this._error)}</p>`:y}
-      ${this.dock?f`<wiskey-intercom-tts .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>`:y}
+      ${this.dock?f`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>`:y}
     </section>`}};customElements.define("hikvision-intercom-audio-controls",Wo);var Dr=V`
   :host {
     display: block;

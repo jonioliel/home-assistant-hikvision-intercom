@@ -28,7 +28,7 @@
 <body>
 <header>
   <h1>WisKey — קטלוג כל הבדיקות שעדיין פתוחות</h1>
-  <p>סבב מאוחד לגרסה 1.9.1 ואילך · בדיקות תוכנה, תחנות פיזיות, שרידות ורגרסיה</p>
+  <p>סבב מאוחד לגרסה 1.9.2 ואילך · בדיקות תוכנה, תחנות פיזיות, שרידות ורגרסיה</p>
 </header>
 <main>
   <section class="card">
@@ -41,7 +41,7 @@
     </div>
     <div class="identity">
       <label>שם הבודק<input id="tester" type="text" /></label>
-      <label>גרסת HA / WisKey<input id="versions" type="text" placeholder="HA 2026.9.1 · WisKey 1.9.1" /></label>
+      <label>גרסת HA / WisKey<input id="versions" type="text" placeholder="HA 2026.9.1 · WisKey 1.9.2" /></label>
       <label>מכשיר ודפדפן<input id="browser" type="text" placeholder="Chrome במחשב / Android / iPhone" /></label>
     </div>
     <p class="notice">אל תכתוב בהערות PIN, מספר כרטיס מלא, סיסמה או כתובת פנימית. התוצאות נשמרות מקומית בדפדפן עד לייצוא.</p>
@@ -109,8 +109,9 @@ const groups=[
 ["rtc","RTC לאחר תיקון NAT","בחר RTC ובדוק וידאו ושמע. אם ICE נכשל מוצגת סיבת fallback ואפשר לחזור ל־MSE בלי רענון עמוד.","physical"],
 ["hls","HLS fallback","בחר HLS או הפעל fallback. הווידאו ממשיך, הממשק מסביר את מגבלת השמע ואינו מציג הצלחה שגויה.","software"],
 ["call","שיחה מלאה","צלצל, ענה, דבר, האזן, פתח דלת ונתק. הפקדים ומצב השיחה מתעדכנים והמצלמה נשארת משויכת לתחנה הנכונה.","physical"],
-["tts-he","TTS בעברית","בחר Google TTS, כתוב הודעה ושלח לתחנה אחת. ההודעה נשמעת רק בתחנה שנבחרה ולא נשמרת ביומן או בלוג.","physical"],
-["tts-stop","עצירת TTS ותחרות שמע","עצור הודעה ארוכה; נסה TTS בזמן מיקרופון ולהפך. מתקבל 'השמע תפוס' ללא ערבוב ושני המסלולים חוזרים לפעול.","physical"]
+["tts-he","TTS בעברית וקובץ streaming","בחר Google TTS, כתוב הודעה עברית קצרה ושלח לתחנה אחת. אין שגיאת 'ארוכה מדקה', ההודעה נשמעת רק בתחנה שנבחרה ולא נשמרת ביומן או בלוג.","physical"],
+["tts-stop","עצירת TTS ותחרות שמע","עצור הודעה ארוכה; נסה TTS בזמן מיקרופון ולהפך. מתקבל 'השמע תפוס' ללא ערבוב ושני המסלולים חוזרים לפעול.","physical"],
+["call-fit","מצלמה, פקדים ו-TTS במסך אחד","פתח את חלון התחנה במחשב, טאבלט ונייד. כל תמונת 16:9, פקדי המענה/דיבור/דלת ושדה ההודעה מוצגים יחד ללא גלילה פנימית או עיוות.","regression"]
 ]],
 ["אירועים, הודעות והרשאות HA",[
 ["event-photo","אירוע עם תמונת משתמש","בצע PIN וכרטיס. האירוע מציג שם, תמונה, דלת, אמצעי אימות וזמן תחנה נכון; משתמש לא מזוהה נשאר לא מזוהה.","physical"],
@@ -131,9 +132,10 @@ const groups=[
 ["browser-matrix","מטריצת דפדפנים","בדוק Chrome מחשב, Chrome/Android ו־Safari/iPhone או דפדפן מובייל נוסף: וידאו, שמע, הרשאות ומסכים עיקריים.","physical"]
 ]]
 ];
-const key="wiskey-pending-tests-1.9.1";
+const key="wiskey-pending-tests-v1";
+const legacyKeys=["wiskey-pending-tests-1.9.1"];
 const el=function(id){return document.getElementById(id)};
-let saved={};try{saved=JSON.parse(localStorage.getItem(key)||"{}")}catch{}
+let saved={};try{let raw=localStorage.getItem(key);if(!raw){for(const legacy of legacyKeys){raw=localStorage.getItem(legacy);if(raw)break}}saved=JSON.parse(raw||"{}")}catch{}
 const host=document.getElementById("groups");
 const scopeLabel={software:"תוכנה/מטמון",physical:"בדיקה פיזית",regression:"רגרסיית UI"};
 for(const group of groups){
@@ -163,7 +165,7 @@ for(const group of groups){
 let onlyPending=false;
 function collect(){
   const tests={};document.querySelectorAll(".test").forEach(function(row){tests[row.dataset.id]={result:row.querySelector("select").value,note:row.querySelector("textarea").value.trim()}});
-  return{format:"wiskey.pending_manual_tests",version:"1.9.1",updated_at:new Date().toISOString(),tester:el("tester").value,versions:el("versions").value,browser:el("browser").value,tests:tests};
+  return{format:"wiskey.pending_manual_tests",version:"1.9.2",updated_at:new Date().toISOString(),tester:el("tester").value,versions:el("versions").value,browser:el("browser").value,tests:tests};
 }
 function save(){saved=collect();localStorage.setItem(key,JSON.stringify(saved));update()}
 function update(){
@@ -174,8 +176,8 @@ function update(){
   el("percent").textContent=Math.round(done*100/rows.length)+"%";
   rows.forEach(function(row){row.classList.toggle("hidden",onlyPending&&row.querySelector("select").value!=="pending")});
 }
-el("exportBtn").onclick=function(){const data=JSON.stringify(collect(),null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="wiskey-pending-tests-1.9.1.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
-el("copy").onclick=async function(){const data=collect(),vals=Object.values(data.tests),text="WisKey 1.9.1: עברו "+vals.filter(function(v){return v.result==="pass"}).length+", נכשלו "+vals.filter(function(v){return v.result==="fail"}).length+", טרם נבדקו "+vals.filter(function(v){return v.result==="pending"}).length;await navigator.clipboard.writeText(text);el("copy").textContent="הועתק";setTimeout(function(){el("copy").textContent="העתקת סיכום"},1200)};
+el("exportBtn").onclick=function(){const data=JSON.stringify(collect(),null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="wiskey-pending-tests-1.9.2.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
+el("copy").onclick=async function(){const data=collect(),vals=Object.values(data.tests),text="WisKey 1.9.2: עברו "+vals.filter(function(v){return v.result==="pass"}).length+", נכשלו "+vals.filter(function(v){return v.result==="fail"}).length+", טרם נבדקו "+vals.filter(function(v){return v.result==="pending"}).length;await navigator.clipboard.writeText(text);el("copy").textContent="הועתק";setTimeout(function(){el("copy").textContent="העתקת סיכום"},1200)};
 el("pendingOnly").onclick=function(){onlyPending=!onlyPending;el("pendingOnly").textContent=onlyPending?"הצג את כל הבדיקות":"הצג רק בדיקות שטרם הושלמו";update()};
 el("print").onclick=function(){window.print()};el("reset").onclick=function(){if(confirm("לאפס את כל התוצאות וההערות?")){localStorage.removeItem(key);location.reload()}};
 update();
