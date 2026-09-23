@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.9.3] - 2026-09-24
+
+- Correct station health diagnostics so “pending synchronization tasks” counts only unresolved user, credential and deletion work instead of every managed user assigned to the station.
+- Keep the reconcile work inventory unchanged; the fix affects the operator-facing cached metric only and uses the same durable pending-state calculation as upgrade readiness and fleet inventory.
+- Add regression coverage proving a fully synchronized person remains eligible for future reconciliation without being reported as queued.
+- Consolidate automated, live read-only and physical acceptance evidence into the Hebrew test catalog, pre-completing covered checks and leaving only state-changing or physical tests for the operator.
+
 ## [1.9.2] - 2026-09-24
 
 - Accept bounded streaming WAV responses whose data chunk uses the standard unknown-length sentinel while continuing to reject empty, truncated, incompatible or genuinely over-one-minute audio.

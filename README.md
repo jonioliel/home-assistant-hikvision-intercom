@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.9.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.2)** — fixes Google TTS streaming-WAV duration detection and keeps the complete camera, call controls and compact announcement composer visible together across desktop, tablet and mobile.
+Published runtime: **[1.9.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.3)** — corrects the station health pending-sync metric and ships the consolidated automated and physical acceptance catalog.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.

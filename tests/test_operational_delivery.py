@@ -13,7 +13,7 @@ from custom_components.hikvision_intercom import api_contract
 from custom_components.hikvision_intercom.access.engine import SyncEngine
 from custom_components.hikvision_intercom.access.models import AccessError
 from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.access.sync_tracking import pending_age
+from custom_components.hikvision_intercom.access.sync_tracking import pending_age, pending_users
 from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
 
@@ -35,6 +35,15 @@ def test_future_backend_rejects_legacy_write_without_blocking_read(monkeypatch):
     with pytest.raises(AccessError):
         api_contract.validate_client(command="users/update")
     api_contract.validate_client(command="overview")
+
+
+async def test_pending_count_excludes_fully_synchronized_people(setup):
+    repo, _device, driver, engine = setup
+    user = await create_user(repo)
+    assert pending_users(repo.snapshot(), "a") == {user.id}
+    await engine.async_reconcile("a", driver)
+    assert user.id in engine.jobs("a")
+    assert pending_users(repo.snapshot(), "a") == set()
 
 
 async def test_operation_survives_retry_restart_and_local_contact_edit(setup):
