@@ -37,6 +37,8 @@ const reads = new Set([
   "events/trace_stop",
   "health/get",
   "support/bundle",
+  "fleet/inventory_export",
+  "upgrade/readiness",
   "media/settings_get",
   "whatsapp/templates_get",
   "clock/settings_get",

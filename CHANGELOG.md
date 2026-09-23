@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.9.1] - 2026-09-23
+
+- Add an administrator upgrade-readiness check that inspects cached storage, config-entry schema, loaded state, station connectivity and pending synchronization without contacting an intercom.
+- Add privacy-safe fleet inventory downloads in JSON and spreadsheet-safe UTF-8 CSV with model, firmware, capacity, utilization and sync health. Exports omit addresses, credentials and personal access data.
+- Classify storage or unsupported schema as upgrade blockers while keeping offline stations and queued synchronization visible as warnings requiring operator review.
+- Add a Hebrew backup and rollback guide and one interactive pending-test catalog that separates previously confirmed behavior, software checks, regression checks and physical acceptance.
+- Preserve older-server compatibility by advertising and rendering the new controls only when the server exposes their read-only commands.
+
 ## [1.9.0] - 2026-09-23
 
 - Add a responsive Identity lifecycle center for expiring and expired access, possible duplicate identities, and active people without an enabled PIN or card.

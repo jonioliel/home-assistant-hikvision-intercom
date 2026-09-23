@@ -81,13 +81,19 @@ const data = {
         version: 1,
         min_client: 0,
         capabilities: ["user_timing_draft", "panel_permissions", "user_directory_query"],
-        commands: ["overview", "users/query", "support/bundle"],
+        commands: [
+          "overview",
+          "users/query",
+          "support/bundle",
+          "fleet/inventory_export",
+          "upgrade/readiness",
+        ],
       }
     : {
         version: 1,
         min_client: 0,
-        capabilities: ["user_timing_draft"],
-        commands: ["support/bundle"],
+        capabilities: ["user_timing_draft", "operational_readiness"],
+        commands: ["support/bundle", "fleet/inventory_export", "upgrade/readiness"],
       },
   default_zone: { kind: "iana", name: "UTC" },
   version: "0.33.0-beta.1",
@@ -261,7 +267,10 @@ if (query.has("lifecycle")) {
   data.users[4].cards = [];
 }
 if (query.has("legacy-api")) {
-  data.api.commands = data.api.commands.filter((command) => command !== "support/bundle");
+  data.api.commands = data.api.commands.filter(
+    (command) =>
+      !["support/bundle", "fleet/inventory_export", "upgrade/readiness"].includes(command),
+  );
 }
 if (query.has("paged")) {
   for (let index = data.users.length; index < 126; index++) {

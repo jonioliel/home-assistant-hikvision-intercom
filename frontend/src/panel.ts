@@ -4641,6 +4641,8 @@ export class IntercomManagerPanel extends LitElement {
                                                 .hass=${this.protectedHass}
                                                 .stations=${this._data.stations}
                                                 .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
+                                                .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
+                                                .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
                                               ></hikvision-intercom-health>`
                                             : this._tab === "schedules"
                                               ? html`<hikvision-intercom-schedules

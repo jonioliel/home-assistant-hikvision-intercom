@@ -45,6 +45,19 @@ interface Acceptance {
   basis: string;
   results: Record<string, { state: string; checked_at: string; basis: string }>;
 }
+interface UpgradeReadiness {
+  ready: boolean;
+  generated_at: string;
+  blockers: string[];
+  warnings: string[];
+  checks: { id: string; state: "passed" | "warning" | "failed"; count: number }[];
+  summary: { stations: number; entries: number };
+}
+interface FleetExport {
+  filename: string;
+  mime_type: string;
+  content: string;
+}
 
 export class IntercomHealth extends LitElement {
   static styles = [
@@ -92,6 +105,11 @@ export class IntercomHealth extends LitElement {
     _callDetails: { state: true },
     stations: { attribute: false },
     supportBundle: { type: Boolean },
+    fleetInventory: { type: Boolean },
+    upgradeReadiness: { type: Boolean },
+    _readiness: { state: true },
+    _operationalBusy: { state: true },
+    _operationalError: { state: true },
     _reports: { state: true },
     _busy: { state: true },
     _errors: { state: true },
@@ -108,6 +126,11 @@ export class IntercomHealth extends LitElement {
   private _callDetails = new Set<string>();
   stations: Station[] = [];
   supportBundle = false;
+  fleetInventory = false;
+  upgradeReadiness = false;
+  private _readiness?: UpgradeReadiness;
+  private _operationalBusy = "";
+  private _operationalError = "";
   private _reports: Record<string, Health> = {};
   private _busy = new Set<string>();
   private _errors: Record<string, string> = {};
@@ -193,6 +216,9 @@ export class IntercomHealth extends LitElement {
     if (this._selected.size) this._selected = new Set();
     this._bundleBusy = false;
     this._bundleError = "";
+    this._readiness = undefined;
+    this._operationalBusy = "";
+    this._operationalError = "";
   }
   private valid(epoch: number) {
     return (
@@ -291,6 +317,58 @@ export class IntercomHealth extends LitElement {
     } finally {
       this.pending.delete(controller);
       if (epoch === this.epoch) this._bundleBusy = false;
+    }
+  }
+  private async downloadFleet(format: "json" | "csv") {
+    if (!this.valid(this.epoch) || this._operationalBusy) return;
+    const epoch = this.epoch;
+    const connection = this.hass!.connection;
+    const controller = new AbortController();
+    this.pending.add(controller);
+    this._operationalBusy = `fleet-${format}`;
+    this._operationalError = "";
+    try {
+      const result = await boundedRequest(
+        () =>
+          this.hass!.callWS<FleetExport>({
+            type: "hikvision_intercom/fleet/inventory_export",
+            format,
+          }),
+        30000,
+        controller.signal,
+      );
+      if (this.valid(epoch) && this.hass?.connection === connection)
+        downloadText(result.content, result.filename, result.mime_type);
+    } catch {
+      if (this.valid(epoch)) this._operationalError = this.t("fleet_inventory_failed");
+    } finally {
+      this.pending.delete(controller);
+      if (epoch === this.epoch) this._operationalBusy = "";
+    }
+  }
+  private async checkUpgradeReadiness() {
+    if (!this.valid(this.epoch) || this._operationalBusy) return;
+    const epoch = this.epoch;
+    const connection = this.hass!.connection;
+    const controller = new AbortController();
+    this.pending.add(controller);
+    this._operationalBusy = "upgrade";
+    this._operationalError = "";
+    try {
+      const result = await boundedRequest(
+        () =>
+          this.hass!.callWS<UpgradeReadiness>({
+            type: "hikvision_intercom/upgrade/readiness",
+          }),
+        30000,
+        controller.signal,
+      );
+      if (this.valid(epoch) && this.hass?.connection === connection) this._readiness = result;
+    } catch {
+      if (this.valid(epoch)) this._operationalError = this.t("upgrade_readiness_failed");
+    } finally {
+      this.pending.delete(controller);
+      if (epoch === this.epoch) this._operationalBusy = "";
     }
   }
   private uncertainField(id: string) {
@@ -500,9 +578,65 @@ export class IntercomHealth extends LitElement {
               </button>`
             : nothing
         }
+        ${
+          this.fleetInventory
+            ? html`<button
+                  ?disabled=${!this._haConnected || !!this._operationalBusy}
+                  @click=${() => this.downloadFleet("json")}
+                >
+                  ${this.t("fleet_inventory_json")}
+                </button>
+                <button
+                  ?disabled=${!this._haConnected || !!this._operationalBusy}
+                  @click=${() => this.downloadFleet("csv")}
+                >
+                  ${this.t("fleet_inventory_csv")}
+                </button>`
+            : nothing
+        }
+        ${
+          this.upgradeReadiness
+            ? html`<button
+                ?disabled=${!this._haConnected || !!this._operationalBusy}
+                @click=${this.checkUpgradeReadiness}
+              >
+                ${this.t("upgrade_readiness_check")}
+              </button>`
+            : nothing
+        }
       </div>
       ${this.supportBundle ? html`<p class="sub">${this.t("support_bundle_hint")}</p>` : nothing}
+      ${this.fleetInventory ? html`<p class="sub">${this.t("fleet_inventory_hint")}</p>` : nothing}
       ${this._bundleError ? html`<p class="notice error" role="alert">${this._bundleError}</p>` : nothing}
+      ${this._operationalError ? html`<p class="notice error" role="alert">${this._operationalError}</p>` : nothing}
+      ${
+        this._readiness
+          ? html`<article class="card health-card" aria-label=${this.t("upgrade_readiness_title")}>
+              <div class="toolbar">
+                <h3>${this.t("upgrade_readiness_title")}</h3>
+                <span class="badge ${this._readiness.ready ? "" : "error"}">
+                  ${this.t(this._readiness.ready ? "upgrade_ready" : "upgrade_attention")}
+                </span>
+              </div>
+              <p>
+                ${this.t("upgrade_readiness_summary")
+                  .replace("{stations}", String(this._readiness.summary.stations))
+                  .replace("{entries}", String(this._readiness.summary.entries))}
+              </p>
+              <ul>
+                ${this._readiness.checks.map(
+                  (check) =>
+                    html`<li>
+                      ${this.t("upgrade_check_" + check.id)}:
+                      ${this.t("upgrade_state_" + check.state)}
+                      ${check.count ? html` (${check.count})` : nothing}
+                    </li>`,
+                )}
+              </ul>
+              <p class="sub">${this.t("upgrade_readiness_hint")}</p>
+            </article>`
+          : nothing
+      }
       <hikvision-intercom-fleet-clocks
         .hass=${this.hass}
         .stations=${this.stations}

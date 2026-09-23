@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WisKey — כל הבדיקות הפתוחות</title>
+  <style>
+    :root{color-scheme:light dark;--ink:#172033;--muted:#667085;--line:#dce3ed;--bg:#f4f7fb;--card:#fff;--accent:#365fe5;--ok:#0c805d;--bad:#bf354b;--warn:#b87510}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,Arial}
+    header{position:sticky;top:0;z-index:3;background:#111827;color:#fff;padding:16px clamp(14px,4vw,42px);box-shadow:0 6px 20px #0003}
+    header h1{margin:0;font-size:clamp(21px,3vw,32px)}header p{margin:3px 0 0;color:#cbd5e1}
+    main{width:min(1220px,calc(100% - 22px));margin:18px auto 60px}.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:17px;margin-bottom:14px;box-shadow:0 8px 28px #15213b0b}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.metric{background:#eef2ff;border-radius:12px;padding:10px;text-align:center}.metric b{display:block;color:var(--accent);font-size:24px}
+    .identity{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    input,select,textarea,button{font:inherit}input[type=text],select,textarea{width:100%;padding:9px;border:1px solid #c9d3e0;border-radius:9px;background:var(--card);color:inherit}textarea{min-height:68px;resize:vertical}
+    button{border:0;border-radius:9px;background:var(--accent);color:#fff;padding:9px 13px;cursor:pointer}button.secondary{background:#e9edf5;color:#1f2937}
+    .notice{border-inline-start:4px solid var(--warn);background:#fff7df;border-radius:9px;padding:10px 12px}.history{border-inline-start:4px solid var(--ok);background:#ebfbf5}
+    h2{font-size:19px;margin:0 0 8px}.group-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.group-count{color:var(--muted)}
+    .test{display:grid;grid-template-columns:minmax(280px,1fr) 165px minmax(210px,.7fr);gap:11px;padding:13px 0;border-top:1px solid var(--line);align-items:start}.test h3{margin:0 0 4px;font-size:16px}.test p{margin:0;color:var(--muted);font-size:14px}.test.hidden{display:none}
+    .scope{display:inline-block;font-size:12px;background:#edf2ff;color:#304fbd;padding:2px 7px;border-radius:999px;margin-inline-end:6px}.physical{background:#fff0dd;color:#9b5e00}.regression{background:#eceff4;color:#4b5563}
+    select.pass{border-color:var(--ok);color:var(--ok)}select.fail{border-color:var(--bad);color:var(--bad)}select.deferred{border-color:var(--warn);color:var(--warn)}
+    details summary{cursor:pointer;font-weight:700}.verified-grid{columns:2;column-gap:32px}.verified-grid li{break-inside:avoid;margin:7px 0;color:var(--muted)}
+    @media(max-width:780px){.stats{grid-template-columns:repeat(2,1fr)}.identity{grid-template-columns:1fr}.test{grid-template-columns:1fr}.verified-grid{columns:1}header{position:static}}
+    @media(prefers-color-scheme:dark){:root{--ink:#edf2f7;--muted:#a9b4c5;--line:#343e50;--bg:#0d121c;--card:#171e2a}.metric{background:#222a43}.notice{background:#332b19}.history{background:#142d27}button.secondary{background:#30394b;color:#fff}}
+    @media print{header{position:static}.toolbar{display:none}.card{box-shadow:none;break-inside:avoid}.test{grid-template-columns:1.4fr .5fr 1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>WisKey — קטלוג כל הבדיקות שעדיין פתוחות</h1>
+  <p>סבב מאוחד לגרסה 1.9.1 ואילך · בדיקות תוכנה, תחנות פיזיות, שרידות ורגרסיה</p>
+</header>
+<main>
+  <section class="card">
+    <div class="stats">
+      <div class="metric"><b id="total">0</b>בדיקות פתוחות</div>
+      <div class="metric"><b id="passed">0</b>עברו</div>
+      <div class="metric"><b id="failed">0</b>נכשלו</div>
+      <div class="metric"><b id="deferred">0</b>נדחו</div>
+      <div class="metric"><b id="percent">0%</b>הושלמו</div>
+    </div>
+    <div class="identity">
+      <label>שם הבודק<input id="tester" type="text" /></label>
+      <label>גרסת HA / WisKey<input id="versions" type="text" placeholder="HA 2026.9.1 · WisKey 1.9.1" /></label>
+      <label>מכשיר ודפדפן<input id="browser" type="text" placeholder="Chrome במחשב / Android / iPhone" /></label>
+    </div>
+    <p class="notice">אל תכתוב בהערות PIN, מספר כרטיס מלא, סיסמה או כתובת פנימית. התוצאות נשמרות מקומית בדפדפן עד לייצוא.</p>
+    <div class="toolbar">
+      <button id="exportBtn">הורדת תוצאות JSON</button><button id="copy">העתקת סיכום</button>
+      <button class="secondary" id="pendingOnly">הצג רק בדיקות שטרם הושלמו</button>
+      <button class="secondary" id="print">הדפסה</button><button class="secondary" id="reset">איפוס</button>
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>בדיקות שכבר אושרו בעבר ואינן נספרות כפתוחות</summary>
+    <p class="history">הרשימה מבוססת על תוצאות שמסרת במהלך הפיתוח. חזור עליהן רק אם התנהגות השתנתה או במסגרת רגרסיית שחרור.</p>
+    <ul class="verified-grid">
+      <li>פתיחת ממסר 1 והחזרה למצב רגיל.</li><li>פתיחה באמצעות PIN תקין.</li>
+      <li>יצירה, שינוי והסרת PIN תוך השארת המשתמש.</li><li>הוספה, שיוך, עדכון ומחיקת כרטיס.</li>
+      <li>מחיקת משתמש מהתחנות.</li><li>ביטול הרשאה והשלמת הסנכרון לאחר חזרת תחנה.</li>
+      <li>זיהוי משתמש באירוע והצגת האירוע ביומן.</li><li>צלצול, חיווי, אירוע ופתיחת המצלמה.</li>
+      <li>תמונת מצלמה יציבה ב־MSE במחשב ובנייד.</li><li>שידור מיקרופון אל רמקול האינטרקום.</li>
+      <li>WhatsApp הגיע למשתמש לאחר תצוגה מקדימה.</li><li>מספר תחנות פועלות במקביל וסנכרון משתמש לשתיים.</li>
+    </ul>
+  </details>
+
+  <div id="groups"></div>
+</main>
+<script>
+const groups=[
+["שדרוג, התקנה וחזרה לאחור",[
+["hacs","HACS מזהה Release","לאחר פרסום הגרסה HACS מציג עדכון לפי מספר Semantic Version, מוריד אותו ללא הודעת commit שאינו מתאים ומבקש אתחול.","software"],
+["restart","אתחול נקי","לאחר אתחול HA WisKey נטען, מציג את הגרסה הנכונה ואין Repair חדש או שגיאת טעינה.","regression"],
+["readiness","בדיקת מוכנות לשדרוג","בכלי ניהול ← בריאות ובדיקות שטח הפעל בדיקה. אחסון ומבנה הגדרות עוברים; תחנה מנותקת וסנכרון ממתין מוצגים כאזהרה ולא מוסתרים.","software"],
+["inventory-json","מלאי תחנות JSON","הורד JSON ובדוק דגם, קושחה, קיבולת ומצב סנכרון. אין כתובות, סיסמאות, PIN, כרטיסים או פרטי משתמש.","software"],
+["inventory-csv","מלאי תחנות CSV","הורד CSV ופתח ב־Excel/Sheets. עברית נשמרת, כל תחנה בשורה, ושם שמתחיל בתו נוסחה אינו מופעל כנוסחה.","software"],
+["rollback","תרגול חזרה לגרסה קודמת","לאחר גיבוי, בצע Redownload לגרסת Release קודמת, אתחל ובדוק טעינה; חזור לגרסה העדכנית. אין לבחור hash של commit.","physical"]
+]],
+["משתמשים, כפילויות ועבודות רקע",[
+["paging","דפדוף מאגר גדול","במאגר גדול בדוק 25/50/100/200, קודם/הבא, חיפוש ומיון. אין כפילות, דילוג או גלילה אופקית בנייד.","software"],
+["saved-view","תצוגה שמורה","שמור מסננים ועמודות, צא וחזור. התצוגה חוזרת לעמוד הראשון עם אותם מסננים.","software"],
+["lifecycle","מרכז מחזור חיים","משתמש שפג, משתמש שעומד לפוג ומשתמש פעיל ללא PIN/כרטיס מופיעים בקטגוריה הנכונה ובזמן המקומי.","software"],
+["duplicate","מניעת כפילות","שם/טלפון/סיומת כרטיס זהים מציגים אזהרה; מספר עובד זהה נחסם; עריכת המשתמש המקורי אינה מזהה את עצמו.","software"],
+["operations","מרכז עבודות רקע","סנכרון וייבוא מופיעים בשם משתמש ותחנה ברורים, מתעדכנים בזמן אמת ונשמרים לאחר מעבר מסך ורענון.","software"],
+["failure-isolation","בידוד כשל משתמש","גרום לכשל למשתמש אחד. השורה נכשלת, שאר המשתמשים ממשיכים, ו־Retry ממוקד אינו יוצר כפילות.","physical"],
+["csv-capacity","קיבולת לפני CSV","תצוגת הייבוא מציגה לכל תחנה ערך נוכחי, צפוי ושיא למשתמשים/כרטיסים/PIN. מגבלה לא ידועה נשארת לא ידועה.","software"],
+["privacy","פרטיות יצוא ואבחון","חפש בקובצי מחזור חיים, עבודות רקע וחבילת תמיכה: אין PIN, מספר כרטיס מלא, סיסמה, payload או כתובת תחנה.","software"]
+]],
+["זמנים, הרשאות ותוכניות דלת",[
+["time-in","גישה בתוך החלון","צור משתמש בדיקה עם יום ושעה הכוללים את זמן הבדיקה. סנכרן, המתן לאימות ובדוק PIN/כרטיס בדלת המורשית.","physical"],
+["time-out","דחייה מחוץ לחלון","שנה חלון כך שהזמן הנוכחי מחוץ לו, סנכרן ואמת שה־PIN/כרטיס נדחים בלי למחוק את המשתמש.","physical"],
+["time-remove","חזרה להרשאה תמידית","החזר את המשתמש ל'תמיד', סנכרן ובדוק שהאזהרה על אזורי זמן נעלמת ושהגישה חוזרת.","physical"],
+["overnight","חלון שחוצה חצות","הגדר חלון כגון 22:00–02:00 ובדוק לפני ואחרי חצות; היום ואזור הזמן מחושבים נכון.","physical"],
+["dst","שעון קיץ וחורף","בדוק Preview ליד מעבר שעון קיץ/חורף ב־Asia/Jerusalem. שעה חסרה/כפולה מוסברת ואינה מעניקה חלון נוסף בשקט.","software"],
+["offline-policy","מדיניות בזמן תחנה מנותקת","נתק תחנה, שנה הרשאה, אתחל HA, החזר תחנה. השינוי מגיע אליה ושאר התחנות ממשיכות לעבוד.","physical"],
+["group-overrides","קבוצה עם חריגה אישית","הוסף לקבוצה בעלת דלתות, הוסף allow אישי ו־deny אישי. בדוק שההרשאה האפקטיבית והסנכרון תואמים.","physical"],
+["program-manage","ניהול תוכנית פתיחת דלת ב־HA","צור תוכנית, הצג אותה, ערוך, השבת ומחק. מחיקה או השבתה סוגרות פתיחה פעילה ואינן משאירות טיוטה מסתורית.","physical"],
+["program-restart","תוכנית לאחר אתחול","אתחל HA לפני זמן התחלה ובמהלך תוכנית. המצב מוצג, אין פתיחה כפולה, וסיום התוכנית מחזיר את הדלת למצב רגיל.","physical"],
+["native-support","גבול לוח מקומי","בתחנה שאינה תומכת לוח ISAPI מופיע 'לא נתמך' והמסלול המקומי חסום. אין הצגה כאילו נכתב לוח לתחנה.","software"],
+["public-code","קודים ציבוריים","בתחנה שבה היכולת פורסמה, קרא רשימה, הוסף קוד בדיקה, אמת פתיחה, ערוך ומחק. אם היכולת לא פורסמה סמן לא רלוונטי.","physical"]
+]],
+["מצלמה, שיחה ושמע",[
+["listen-desktop","שמע נכנס במחשב","ב־Chrome HTTPS, פתח MSE ולחץ הפעל שמע. נשמע קול התחנה; עצירה מחזירה ל־mute וסגירה משחררת את הנגן.","physical"],
+["listen-mobile","שמע נכנס בנייד","חזור בנייד עם הרשאת autoplay לאחר לחיצה. נשמע קול, מעבר לרקע וסגירה מפסיקים אותו.","physical"],
+["talk-toggle","דיבור Toggle","פתח דיבור בלחיצה אחת, ודא מד וחבילות ושמע בתחנה; לחיצה שנייה מפסיקה והערוץ משתחרר.","physical"],
+["talk-ptt","דיבור PTT","בחר PTT, החזק ושחרר במחשב ובמגע. השידור פעיל רק בזמן הלחיצה וטקסט אינו מסומן בנייד.","physical"],
+["devices","בחירת מיקרופון","בחר התקן, בדוק מקומית, רענן וחזור. ניתוק ההתקן מציג שגיאה ברורה; חזרה לברירת מחדל מצליחה.","physical"],
+["rtc","RTC לאחר תיקון NAT","בחר RTC ובדוק וידאו ושמע. אם ICE נכשל מוצגת סיבת fallback ואפשר לחזור ל־MSE בלי רענון עמוד.","physical"],
+["hls","HLS fallback","בחר HLS או הפעל fallback. הווידאו ממשיך, הממשק מסביר את מגבלת השמע ואינו מציג הצלחה שגויה.","software"],
+["call","שיחה מלאה","צלצל, ענה, דבר, האזן, פתח דלת ונתק. הפקדים ומצב השיחה מתעדכנים והמצלמה נשארת משויכת לתחנה הנכונה.","physical"],
+["tts-he","TTS בעברית","בחר Google TTS, כתוב הודעה ושלח לתחנה אחת. ההודעה נשמעת רק בתחנה שנבחרה ולא נשמרת ביומן או בלוג.","physical"],
+["tts-stop","עצירת TTS ותחרות שמע","עצור הודעה ארוכה; נסה TTS בזמן מיקרופון ולהפך. מתקבל 'השמע תפוס' ללא ערבוב ושני המסלולים חוזרים לפעול.","physical"]
+]],
+["אירועים, הודעות והרשאות HA",[
+["event-photo","אירוע עם תמונת משתמש","בצע PIN וכרטיס. האירוע מציג שם, תמונה, דלת, אמצעי אימות וזמן תחנה נכון; משתמש לא מזוהה נשאר לא מזוהה.","physical"],
+["history","השלמת היסטוריה","נתק קליטת אירועים לזמן קצר והחזר. האירועים החסרים מושלמים פעם אחת ומסומנים כהיסטוריה בלי כפילות.","physical"],
+["whatsapp-card","WhatsApp למשתמש ללא PIN","משתמש עם כרטיס בלבד מקבל נוסח שמציין שאין קוד אישי ואינו מכיל placeholder או PIN של משתמש אחר.","software"],
+["whatsapp-template","תבנית WhatsApp","ערוך תבנית, הצג preview ושנה לפני שליחה. אין שליחה אוטומטית והמספר מומר ל־+972 הנכון.","software"],
+["ha-view","משתמש HA לצפייה","הקצה צפייה בלבד למסכים נבחרים. הוא רואה נתונים מותרים אך כפתורי שינוי וקריאות API לכתיבה נדחים.","software"],
+["ha-manage","משתמש HA לניהול ממוקד","הקצה ניהול משתמשים ללא ניהול תחנות. עריכת משתמש זמינה; הגדרות תחנה, דוחות ניהול ופתיחה שאינה מורשית חסומים.","software"],
+["permission-loss","אובדן הרשאה בזמן מסך פתוח","בטל הרשאת משתמש HA בזמן שמסך/חלון משתמש פתוח. מידע מוגן נעלם ופעולה ממתינה אינה נשמרת.","software"]
+]],
+["ממשק, שרידות וקבלה מבצעית",[
+["grid","סקירה של 4, 8 ו־12 תחנות","בדוק מחשב ברוחבים שונים: הכרטיסים נכנסים למסך, התמונות ביחס תקין ואינן נמתחות, ופתיחת דלת אחת אינה משביתה אחרות.","regression"],
+["tablet","טאבלט","במצב עומד ורוחב: ניווט, סקירה, משתמשים, חלון מצלמה וכלי ניהול נגישים ללא חפיפה או גלילת צד.","regression"],
+["mobile","נייד","ב־390px בדוק ניווט תחתון, כרטיסי משתמש, מספר טלפון, תמונה, דלתות מורשות, מצלמה ופקדי שמע ללא גלילה אופקית.","regression"],
+["multi-station","מספר תחנות לא קבוע","בדוק 1, 4 ויותר תחנות. מונים, סנכרון, אירועים ויצוא מלאי אינם תלויים במספר 9.","software"],
+["restart-work","אתחול בזמן עבודה ממתינה","צור שינוי ממתין לתחנה מנותקת ואתחל HA. לאחר החיבור העבודה מתחדשת פעם אחת ושאר התחנות אינן נעצרות.","physical"],
+["soak","בדיקת 24 שעות","השאר מערכת פעילה 24 שעות עם אירועים רגילים. אין גידול חריג בזיכרון, reconnection loop, כפילות אירועים או תקיעת סנכרון.","physical"],
+["browser-matrix","מטריצת דפדפנים","בדוק Chrome מחשב, Chrome/Android ו־Safari/iPhone או דפדפן מובייל נוסף: וידאו, שמע, הרשאות ומסכים עיקריים.","physical"]
+]]
+];
+const key="wiskey-pending-tests-1.9.1";
+const el=function(id){return document.getElementById(id)};
+let saved={};try{saved=JSON.parse(localStorage.getItem(key)||"{}")}catch{}
+const host=document.getElementById("groups");
+const scopeLabel={software:"תוכנה/מטמון",physical:"בדיקה פיזית",regression:"רגרסיית UI"};
+for(const group of groups){
+  const section=document.createElement("section");section.className="card";
+  const head=document.createElement("div");head.className="group-head";
+  const title=document.createElement("h2");title.textContent=group[0];
+  const count=document.createElement("span");count.className="group-count";count.textContent=group[1].length+" בדיקות";
+  head.append(title,count);section.append(head);
+  for(const item of group[1]){
+    const row=document.createElement("div");row.className="test";row.dataset.id=item[0];
+    const info=document.createElement("div");const h=document.createElement("h3");
+    const badge=document.createElement("span");badge.className="scope "+item[3];badge.textContent=scopeLabel[item[3]];
+    h.append(badge,document.createTextNode(item[1]));const p=document.createElement("p");p.textContent=item[2];info.append(h,p);
+    const result=document.createElement("label");result.append(document.createTextNode("תוצאה"));
+    const select=document.createElement("select");select.setAttribute("aria-label","תוצאה: "+item[1]);
+    [["pending","טרם נבדק"],["pass","עבר"],["fail","נכשל"],["deferred","נדחה"],["na","לא רלוונטי"]].forEach(function(option){
+      const el=document.createElement("option");el.value=option[0];el.textContent=option[1];select.append(el);
+    });result.append(select);
+    const notes=document.createElement("label");notes.append(document.createTextNode("הערות"));
+    const textarea=document.createElement("textarea");textarea.setAttribute("aria-label","הערות: "+item[1]);notes.append(textarea);
+    const state=(saved.tests&&saved.tests[item[0]])||{};select.value=state.result||"pending";textarea.value=state.note||"";select.className=select.value;
+    select.addEventListener("change",function(){select.className=select.value;save()});textarea.addEventListener("input",save);
+    row.append(info,result,notes);section.append(row);
+  }host.append(section);
+}
+["tester","versions","browser"].forEach(function(id){const el=document.getElementById(id);el.value=saved[id]||"";el.addEventListener("input",save)});
+let onlyPending=false;
+function collect(){
+  const tests={};document.querySelectorAll(".test").forEach(function(row){tests[row.dataset.id]={result:row.querySelector("select").value,note:row.querySelector("textarea").value.trim()}});
+  return{format:"wiskey.pending_manual_tests",version:"1.9.1",updated_at:new Date().toISOString(),tester:el("tester").value,versions:el("versions").value,browser:el("browser").value,tests:tests};
+}
+function save(){saved=collect();localStorage.setItem(key,JSON.stringify(saved));update()}
+function update(){
+  const rows=[...document.querySelectorAll(".test")],values=rows.map(function(row){return row.querySelector("select").value});
+  const done=values.filter(function(v){return v!=="pending"}).length;
+  el("total").textContent=rows.length;el("passed").textContent=values.filter(function(v){return v==="pass"}).length;
+  el("failed").textContent=values.filter(function(v){return v==="fail"}).length;el("deferred").textContent=values.filter(function(v){return v==="deferred"}).length;
+  el("percent").textContent=Math.round(done*100/rows.length)+"%";
+  rows.forEach(function(row){row.classList.toggle("hidden",onlyPending&&row.querySelector("select").value!=="pending")});
+}
+el("exportBtn").onclick=function(){const data=JSON.stringify(collect(),null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="wiskey-pending-tests-1.9.1.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)};
+el("copy").onclick=async function(){const data=collect(),vals=Object.values(data.tests),text="WisKey 1.9.1: עברו "+vals.filter(function(v){return v.result==="pass"}).length+", נכשלו "+vals.filter(function(v){return v.result==="fail"}).length+", טרם נבדקו "+vals.filter(function(v){return v.result==="pending"}).length;await navigator.clipboard.writeText(text);el("copy").textContent="הועתק";setTimeout(function(){el("copy").textContent="העתקת סיכום"},1200)};
+el("pendingOnly").onclick=function(){onlyPending=!onlyPending;el("pendingOnly").textContent=onlyPending?"הצג את כל הבדיקות":"הצג רק בדיקות שטרם הושלמו";update()};
+el("print").onclick=function(){window.print()};el("reset").onclick=function(){if(confirm("לאפס את כל התוצאות וההערות?")){localStorage.removeItem(key);location.reload()}};
+update();
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ CAPABILITIES = [
     "operations_query",
     "intercom_tts",
     "identity_lifecycle",
+    "operational_readiness",
 ]
 
 
@@ -59,6 +60,8 @@ READ_COMMANDS = frozenset(
         "profiles/settings_get",
         "health/get",
         "support/bundle",
+        "fleet/inventory_export",
+        "upgrade/readiness",
         "acceptance/get",
         "conflicts/list",
         "users/bulk_receipt",

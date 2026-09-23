@@ -250,6 +250,8 @@ _READ_MANAGEMENT = {
     "schedules/dependencies",
     "schedules/assess",
     "support/bundle",
+    "fleet/inventory_export",
+    "upgrade/readiness",
 }
 _WRITE_MANAGEMENT = {
     "profiles/settings_update",

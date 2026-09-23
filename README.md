@@ -1,6 +1,6 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.9.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.0)** — adds identity lifecycle review, privacy-safe duplicate detection and expiry visibility while preserving the existing TTS, camera, microphone, access, sync and administration workflows.
+Published runtime: **[1.9.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.1)** — adds cached upgrade-readiness checks, privacy-safe fleet inventory exports and a consolidated pending-test catalog while preserving the existing identity, TTS, camera, microphone, access, sync and administration workflows.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -43,7 +43,7 @@ CSV preview reports current, projected and peak users/cards/PIN counts per affec
 a limit the station does not advertise remains unknown. Receipts and reports contain no PIN,
 full card number or device credentials. See the [operations guide](docs/BACKGROUND_OPERATIONS_HE.md),
 the [identity lifecycle guide](docs/IDENTITY_LIFECYCLE_HE.md), the [support-bundle guide](docs/SUPPORT_BUNDLE_HE.md)
-and the [1.9.0 manual test worksheet](docs/manual-tests/WISKEY_1.9.0_TESTS_HE.html).
+the [1.9.0 manual test worksheet](docs/manual-tests/WISKEY_1.9.0_TESTS_HE.html), the [consolidated pending-test catalog](docs/manual-tests/WISKEY_PENDING_TESTS_HE.html) and the [Hebrew rollback guide](docs/ROLLBACK_HE.md).
 
 ## Intercom announcements with Home Assistant TTS
 
