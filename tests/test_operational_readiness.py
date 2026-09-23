@@ -72,7 +72,7 @@ def test_fleet_inventory_is_cached_capacity_aware_and_private():
 
 def test_fleet_csv_prevents_spreadsheet_formula_injection():
     report = fleet_inventory(
-        [station(name="=WEBSERVICE(\"https://invalid\")")],
+        [station(name='=WEBSERVICE("https://invalid")')],
         {},
         generated_at="2026-09-23T10:02:00Z",
         integration_version="1.9.1",
