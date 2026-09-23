@@ -809,6 +809,27 @@ const en = {
   support_bundle_hint:
     "One cached fleet report without credentials, addresses, names, phone numbers or complete card numbers. Downloading does not contact a station.",
   support_bundle_failed: "The support bundle could not be prepared.",
+  fleet_inventory_json: "Export fleet JSON",
+  fleet_inventory_csv: "Export fleet CSV",
+  fleet_inventory_hint:
+    "Cached station model, firmware, capacity and sync health. Exporting does not contact a station and contains no credentials or user secrets.",
+  fleet_inventory_failed: "The fleet inventory could not be prepared.",
+  upgrade_readiness_check: "Check upgrade readiness",
+  upgrade_readiness_title: "Upgrade readiness",
+  upgrade_ready: "Ready",
+  upgrade_attention: "Review required",
+  upgrade_readiness_failed: "Upgrade readiness could not be checked.",
+  upgrade_readiness_summary: "{stations} stations across {entries} integration entries",
+  upgrade_readiness_hint:
+    "Back up Home Assistant, review the changelog and complete the pending test catalog before upgrading.",
+  upgrade_check_storage: "WisKey storage",
+  upgrade_check_config_schema: "Configuration schema",
+  upgrade_check_entries_loaded: "Integration entries loaded",
+  upgrade_check_stations_online: "Station connectivity",
+  upgrade_check_sync_queue: "Pending synchronization",
+  upgrade_state_passed: "Passed",
+  upgrade_state_warning: "Attention",
+  upgrade_state_failed: "Blocked",
   field_save_unknown:
     "Saving the field result could not be confirmed. Open Record field tests again to read the stored result before saving another change.",
   event_trace_unknown:
@@ -2596,6 +2617,27 @@ const he: Record<keyof typeof en, string> = {
   support_bundle_hint:
     "דוח מטמון אחד לכל הצי, ללא פרטי כניסה, כתובות, שמות, מספרי טלפון או מספרי כרטיס מלאים. ההורדה אינה פונה לתחנות.",
   support_bundle_failed: "לא ניתן להכין את חבילת התמיכה.",
+  fleet_inventory_json: "יצוא מלאי JSON",
+  fleet_inventory_csv: "יצוא מלאי CSV",
+  fleet_inventory_hint:
+    "דוח מטמון של דגמים, קושחה, קיבולת ובריאות הסנכרון. היצוא אינו פונה לתחנות ואינו כולל פרטי כניסה או סודות משתמש.",
+  fleet_inventory_failed: "לא ניתן להכין את מלאי התחנות.",
+  upgrade_readiness_check: "בדיקת מוכנות לשדרוג",
+  upgrade_readiness_title: "מוכנות לשדרוג",
+  upgrade_ready: "מוכן",
+  upgrade_attention: "נדרשת בדיקה",
+  upgrade_readiness_failed: "לא ניתן לבדוק מוכנות לשדרוג.",
+  upgrade_readiness_summary: "{stations} תחנות ב־{entries} רשומות אינטגרציה",
+  upgrade_readiness_hint:
+    "לפני שדרוג יש לגבות את Home Assistant, לעבור על יומן השינויים ולהשלים את מסמך הבדיקות הפתוחות.",
+  upgrade_check_storage: "אחסון WisKey",
+  upgrade_check_config_schema: "מבנה ההגדרות",
+  upgrade_check_entries_loaded: "טעינת רשומות האינטגרציה",
+  upgrade_check_stations_online: "תקשורת לתחנות",
+  upgrade_check_sync_queue: "סנכרונים ממתינים",
+  upgrade_state_passed: "תקין",
+  upgrade_state_warning: "נדרשת תשומת לב",
+  upgrade_state_failed: "חסום",
   field_save_unknown:
     "לא ניתן לאשר ששמירת בדיקת השטח הושלמה. פתח שוב את רישום בדיקות השטח כדי לקרוא את התוצאה השמורה לפני שינוי נוסף.",
   event_trace_unknown:

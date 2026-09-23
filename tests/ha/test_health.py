@@ -367,3 +367,43 @@ async def test_health_refresh_rejects_runtime_change_during_media_read(
             loaded_entry.runtime_data = runtime
     device_io["unlock"].assert_not_called()
     device_io["write_person"].assert_not_called()
+
+
+async def test_fleet_inventory_export_is_cached_private_and_supports_csv(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    for output_format in ("json", "csv"):
+        response = await request(client, "fleet/inventory_export", format=output_format)
+        assert response["success"]
+        result = response["result"]
+        assert result["filename"].endswith(f".{output_format}")
+        assert "192.0.2.10" not in result["content"]
+        assert loaded_entry.entry_id not in result["content"]
+        assert "demo-secret" not in result["content"]
+    invalid = await request(client, "fleet/inventory_export", format="xlsx")
+    assert invalid["error"]["code"] == "invalid_fields"
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+    device_io["inventory"].assert_awaited_once()
+
+
+async def test_upgrade_readiness_uses_cached_state_and_blocks_unavailable_storage(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    ready = await request(client, "upgrade/readiness")
+    assert ready["success"]
+    assert ready["result"]["format"] == "hikvision_intercom.upgrade_readiness"
+    assert ready["result"]["ready"] is True
+    schedules = hass.data[DOMAIN]["schedules"]
+    hass.data[DOMAIN]["schedules"] = None
+    try:
+        blocked = await request(client, "upgrade/readiness")
+    finally:
+        hass.data[DOMAIN]["schedules"] = schedules
+    assert blocked["success"]
+    assert blocked["result"]["ready"] is False
+    assert "storage_unavailable" in blocked["result"]["blockers"]
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()

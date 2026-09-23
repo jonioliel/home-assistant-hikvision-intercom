@@ -149,6 +149,8 @@ test("older server does not expose an unsupported support download", async ({ pa
   await setup(page, "/?legacy-api=1");
   await navigate(page, "Health & field tests");
   await expect(page.getByRole("button", { name: "Download support bundle" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Export fleet JSON" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Check upgrade readiness" })).toHaveCount(0);
 });
 
 test("field checklist starts unverified and records only an explicit save", async ({ page }) => {
@@ -323,4 +325,75 @@ test("health reads call state only after opening that station's call controls", 
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
   ).toBe(0);
+});
+
+test("fleet inventory downloads JSON and CSV without station reads", async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("fleet/inventory_export")) {
+        window.calls.push(message);
+        return {
+          filename: "wiskey-fleet-inventory." + message.format,
+          mime_type: message.format === "json" ? "application/json" : "text/csv",
+          content: message.format === "json" ? '{"stations":[]}' : "station_ref,name\nabc,Gate\n",
+        };
+      }
+      return base(message);
+    };
+  });
+  await navigate(page, "Health & field tests");
+  for (const label of ["Export fleet JSON", "Export fleet CSV"]) {
+    const pending = page.waitForEvent("download");
+    await page.getByRole("button", { name: label }).click();
+    const download = await pending;
+    expect(download.suggestedFilename()).toContain("wiskey-fleet-inventory.");
+  }
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type.endsWith("fleet/inventory_export")).length,
+    ),
+  ).toBe(2);
+});
+
+test("upgrade readiness renders blockers and warnings without a device refresh", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("upgrade/readiness")) {
+        window.calls.push(message);
+        return {
+          ready: false,
+          generated_at: "2026-09-23T12:00:00Z",
+          blockers: ["storage_unavailable"],
+          warnings: ["stations_offline"],
+          checks: [
+            { id: "storage", state: "failed", count: 1 },
+            { id: "config_schema", state: "passed", count: 0 },
+            { id: "entries_loaded", state: "passed", count: 0 },
+            { id: "stations_online", state: "warning", count: 1 },
+            { id: "sync_queue", state: "passed", count: 0 },
+          ],
+          summary: { stations: 9, entries: 9 },
+        };
+      }
+      return base(message);
+    };
+  });
+  await navigate(page, "Health & field tests");
+  const before = await page.evaluate(
+    () => window.calls.filter((c) => c.type.endsWith("health/refresh")).length,
+  );
+  await page.getByRole("button", { name: "Check upgrade readiness" }).click();
+  const card = page.getByRole("article", { name: "Upgrade readiness" });
+  await expect(card).toContainText("Review required");
+  await expect(card).toContainText("WisKey storage: Blocked (1)");
+  await expect(card).toContainText("Station connectivity: Attention (1)");
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("health/refresh")).length),
+  ).toBe(before);
 });

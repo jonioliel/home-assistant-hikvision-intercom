@@ -151,6 +151,8 @@ COMMANDS = {
     "health/get": {"station_id": str},
     "health/refresh": {"station_id": str},
     "support/bundle": {},
+    "fleet/inventory_export": {"format": str},
+    "upgrade/readiness": {},
     "acceptance/get": {"station_id": str},
     "acceptance/update": {"station_id": str, "step": str, "state": str, "revision": int},
     "events/history_inspect": {"station_id": str, "start": str, "end": str},
@@ -668,6 +670,70 @@ async def _dispatch_inner(
             "stations": stations,
             "sync": manager.sync_diagnostics(),
         }
+    if command in {"fleet/inventory_export", "upgrade/readiness"}:
+        from .access.operational_readiness import (
+            export_inventory,
+            fleet_inventory,
+            upgrade_readiness,
+        )
+        from .diagnostics import async_get_config_entry_diagnostics
+
+        generated_at = datetime.now(UTC).isoformat()
+        public_stations = manager.public()["stations"]
+        cached: dict[str, dict[str, Any]] = {}
+        for station in public_stations:
+            entry = hass.config_entries.async_get_entry(station["id"])
+            if entry is not None:
+                cached[station["sync_reference"]] = await async_get_config_entry_diagnostics(
+                    hass, entry
+                )
+        if command == "fleet/inventory_export":
+            if msg["format"] not in {"json", "csv"}:
+                raise AccessError("invalid_fields")
+            report = fleet_inventory(
+                public_stations,
+                cached,
+                generated_at=generated_at,
+                integration_version=VERSION,
+            )
+            return export_inventory(report, msg["format"])
+        entries = hass.config_entries.async_entries(DOMAIN)
+        storage_keys = (
+            "access",
+            "panel_permissions",
+            "appearance_settings",
+            "media_settings",
+            "profile_settings",
+            "whatsapp_templates",
+            "ntp_settings",
+            "hold_open_drafts",
+            "hold_programs",
+            "schedules",
+            "acceptance",
+            "schedule_baselines",
+            "schedule_plans",
+            "schedule_journal",
+            "schedule_operations",
+        )
+        return upgrade_readiness(
+            public_stations,
+            (
+                {
+                    "loaded": bool(
+                        (runtime := getattr(entry, "runtime_data", None)) is not None
+                        and not runtime.is_closed
+                    ),
+                    "version": entry.version,
+                    "minor_version": entry.minor_version,
+                }
+                for entry in entries
+            ),
+            {key: hass.data[DOMAIN].get(key) is not None for key in storage_keys},
+            generated_at=generated_at,
+            integration_version=VERSION,
+            supported_config_version=1,
+            supported_minor_version=2,
+        )
     if command in {"events/report", "events/export", "events/print"}:
         try:
             return await get_events(hass).async_report(
