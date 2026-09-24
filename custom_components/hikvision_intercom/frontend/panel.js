@@ -3065,6 +3065,7 @@ function cs(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
   </section>`}var Fl=q`
   :host([data-appearance^="wiskey-"]) {
     --wk4-bg: #f4f6f5;
+    min-height: 100dvh;
     --wk4-surface: #fff;
     --wk4-raised: #fff;
     --wk4-wash: #f7f9f8;
@@ -3127,6 +3128,7 @@ function cs(a){if(!a)return;let t=1,e=a;for(;e;){let o=Number.parseFloat(getComp
   }
   :host([data-appearance^="wiskey-"]) .app-shell {
     min-width: 0;
+    min-height: 100dvh;
     background: var(--wk4-bg);
   }
   :host([data-appearance^="wiskey-"]) .head {

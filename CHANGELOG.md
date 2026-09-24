@@ -2,6 +2,11 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.10.1] - 2026-09-25
+
+- Keep the WisKey 04 light and dark background across the full Home Assistant viewport on short-content pages, including the entry dashboard and people view. The four earlier appearances are unchanged.
+- Add tall-screen browser regression coverage for both appearances inside an auto-height Home Assistant-style container.
+
 ## [1.10.0] - 2026-09-24
 
 - Add opt-in WisKey 04 light and dark appearances alongside the four existing appearances. Shared defaults, personal overrides and stored preferences retain their existing behavior.

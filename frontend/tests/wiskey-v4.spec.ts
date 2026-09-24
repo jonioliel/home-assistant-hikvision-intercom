@@ -169,6 +169,39 @@ for (const count of [4, 6, 9, 12]) {
   });
 }
 
+for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
+  test(`${theme} covers the full tall viewport on overview and people`, async ({ page }) => {
+    await start(page, theme, 1920);
+    await page.setViewportSize({ width: 1920, height: 1200 });
+    // Home Assistant can place the panel inside an auto-height content container.
+    await page.locator("body").evaluate((body) => {
+      body.style.height = "auto";
+    });
+
+    async function expectBackgroundCoverage() {
+      const coverage = await page.locator("hikvision-intercom-panel").evaluate((host) => {
+        const shell = host.shadowRoot?.querySelector(".app-shell");
+        if (!shell) throw new Error("WisKey shell missing");
+        return {
+          hostBottom: host.getBoundingClientRect().bottom,
+          shellBottom: shell.getBoundingClientRect().bottom,
+          hostColor: getComputedStyle(host).backgroundColor,
+          shellColor: getComputedStyle(shell).backgroundColor,
+        };
+      });
+      expect(coverage.hostBottom).toBeGreaterThanOrEqual(1200);
+      expect(coverage.shellBottom).toBeGreaterThanOrEqual(1200);
+      expect(coverage.hostColor).toBe(coverage.shellColor);
+      expect(coverage.hostColor).not.toBe("rgba(0, 0, 0, 0)");
+    }
+
+    await expectBackgroundCoverage();
+    await page.locator(".nav").getByRole("button", { name: "אנשים", exact: true }).click();
+    await expect(page.locator(".access-people-table")).toBeVisible();
+    await expectBackgroundCoverage();
+  });
+}
+
 test("V4 preserves count selection, paging and wall full-screen access", async ({ page }) => {
   await start(page, "wiskey-light", 1440);
   await expect(page.getByRole("button", { name: "מסך מלא" })).toBeVisible();

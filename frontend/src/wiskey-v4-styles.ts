@@ -4,6 +4,7 @@ import { css } from "lit";
 export const wiskeyV4Styles = css`
   :host([data-appearance^="wiskey-"]) {
     --wk4-bg: #f4f6f5;
+    min-height: 100dvh;
     --wk4-surface: #fff;
     --wk4-raised: #fff;
     --wk4-wash: #f7f9f8;
@@ -66,6 +67,7 @@ export const wiskeyV4Styles = css`
   }
   :host([data-appearance^="wiskey-"]) .app-shell {
     min-width: 0;
+    min-height: 100dvh;
     background: var(--wk4-bg);
   }
   :host([data-appearance^="wiskey-"]) .head {
