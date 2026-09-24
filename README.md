@@ -1,8 +1,8 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.9.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.3)**.
-Prepared locally for the next release: **1.10.0**, adding the optional WisKey 04 light and dark
-interfaces while retaining every earlier appearance and the existing command paths. It is not yet available in HACS.
+Published runtime: **[1.10.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.10.0)**.
+This release adds the optional WisKey 04 light and dark interfaces while retaining every earlier
+appearance and the existing command paths.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
