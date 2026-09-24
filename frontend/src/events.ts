@@ -86,6 +86,162 @@ export class IntercomEvents extends LitElement {
         border: 1px solid var(--divider-color, #dce5e6);
         border-radius: 12px;
       }
+      :host([v4]) .event-filters {
+        padding: 10px 14px;
+        margin: 8px 0;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 10px;
+        background: var(--wk4-surface, #fff);
+      }
+      :host([v4]) .event-filters summary {
+        cursor: pointer;
+        font-weight: 650;
+        color: var(--wk4-ink, #192a2d);
+      }
+      :host([v4]) .event-filters:not([open]) {
+        max-width: 280px;
+      }
+      :host([v4]) .toolbar {
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 6px 0;
+      }
+      :host([v4]) .wk4-report-actions {
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 0 12px;
+        padding: 6px 12px;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 8px;
+        background: var(--wk4-surface, #fff);
+      }
+      :host([v4]) .wk4-report-actions[open] {
+        width: 100%;
+      }
+      :host([v4]) .wk4-report-actions summary {
+        cursor: pointer;
+        font-weight: 650;
+      }
+      :host([v4]) .result-summary {
+        margin: 14px 0 8px;
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-activity-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        gap: 18px;
+        align-items: start;
+        direction: rtl;
+      }
+      .wk4-activity-table {
+        min-width: 0;
+        overflow-x: auto;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 12px;
+        background: var(--wk4-surface, #fff);
+      }
+      .wk4-activity-table table {
+        width: 100%;
+        min-width: 650px;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .wk4-activity-table th,
+      .wk4-activity-table td {
+        text-align: start;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--wk4-line, #dfe6e3);
+        overflow-wrap: anywhere;
+      }
+      .wk4-activity-table th {
+        color: var(--wk4-muted, #5f7170);
+        background: var(--wk4-wash, #f7f9f8);
+        font-size: 12px;
+      }
+      .wk4-activity-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .wk4-activity-table tr[aria-selected="true"] {
+        background: var(--wk4-accent-soft, #e8f4ef);
+      }
+      .wk4-activity-table tr:hover {
+        background: var(--wk4-wash, #f7f9f8);
+      }
+      .wk4-activity-table td button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 34px;
+        padding: 3px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: start;
+        cursor: pointer;
+      }
+      .wk4-activity-table td button:focus-visible {
+        outline: 3px solid var(--wk4-accent, #087e70);
+        outline-offset: 2px;
+      }
+      .wk4-activity-table td hikvision-user-photo {
+        flex: 0 0 auto;
+      }
+      .wk4-activity-table .badge:not(.error),
+      .wk4-event-inspector .badge:not(.error) {
+        background: var(--wk4-green-soft, #edf6ee);
+        color: var(--wk4-green, #247553);
+      }
+      .wk4-activity-table .badge.error,
+      .wk4-event-inspector .badge.error {
+        background: var(--wk4-red-soft, #fbeef0);
+        color: var(--wk4-red, #b84045);
+      }
+      .wk4-activity-table td small {
+        display: block;
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-event-inspector {
+        padding: 16px;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 12px;
+        background: var(--wk4-surface, #fff);
+      }
+      .wk4-event-inspector h3 {
+        margin: 0 0 14px;
+      }
+      .wk4-event-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        font-weight: 700;
+      }
+      .wk4-event-inspector dl {
+        display: grid;
+        grid-template-columns: minmax(90px, 1fr) minmax(0, 1.5fr);
+        gap: 0 8px;
+        margin: 0;
+      }
+      .wk4-event-inspector dt,
+      .wk4-event-inspector dd {
+        margin: 0;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--wk4-line, #dfe6e3);
+      }
+      .wk4-event-inspector dt {
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-event-inspector .sub {
+        line-height: 1.5;
+      }
+      @container intercom-panel (max-width: 850px) {
+        .wk4-activity-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .wk4-event-inspector {
+          order: -1;
+        }
+      }
       input,
       select {
         min-width: 0;
@@ -107,6 +263,8 @@ export class IntercomEvents extends LitElement {
   ];
   static properties = {
     hass: { attribute: false },
+    v4: { type: Boolean, reflect: true },
+    _selectedEvent: { state: true },
     stations: { attribute: false },
     policy: { attribute: false },
     _print: { state: true },
@@ -126,6 +284,8 @@ export class IntercomEvents extends LitElement {
   hass?: Hass;
   stations: Station[] = [];
   policy?: ProfilePolicy | null;
+  v4 = false;
+  private _selectedEvent = "";
   private _print = "";
   private _printReady = false;
   private actor?: string;
@@ -237,6 +397,7 @@ export class IntercomEvents extends LitElement {
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
+    if (changed.has("v4") && this.v4 && !this._filterDirty) this._filtersOpen = false;
     const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
     const replaced = this.connection !== connection || this.actor !== this.hass?.user?.id;
     this.actor = this.hass?.user?.id;
@@ -626,6 +787,155 @@ export class IntercomEvents extends LitElement {
         </button>
       </details>`;
   }
+  private v4ListView() {
+    const records = this._data?.records ?? [];
+    const selected = records.find((row) => row.id === this._selectedEvent) ?? records[0];
+    const zone = selected
+      ? (this.stations.find((station) => station.id === selected.station_id)?.clock?.zone ??
+        UTC_ZONE)
+      : UTC_ZONE;
+    return html`<div class="wk4-activity-layout">
+      <div class="wk4-activity-table">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("report_date")}</th>
+              <th>${this.t("person")}</th>
+              <th>${this.t("station")}</th>
+              <th>${this.t("authentication")}</th>
+              <th>${this.t("result")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((row) => {
+              const station = this.stations.find((item) => item.id === row.station_id);
+              return html`<tr
+                class="audit-row"
+                aria-selected=${row.id === selected?.id ? "true" : "false"}
+              >
+                <td>
+                  <time datetime=${row.timestamp}
+                    ><bdi
+                      >${formatTime(row.timestamp, this.hass?.language, station?.clock?.zone ?? UTC_ZONE)}</bdi
+                    ></time
+                  >
+                </td>
+                <td>
+                  <button
+                    aria-label=${this.t("event_detail") + ": " + (row.person_name ?? this.t("unknown"))}
+                    @click=${() => (this._selectedEvent = row.id)}
+                  >
+                    ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                    <span
+                      >${row.person_name ?? this.t("unknown")}<small
+                        ><bdi>${row.employee_no ?? ""}</bdi></small
+                      ></span
+                    >
+                  </button>
+                </td>
+                <td>
+                  ${station?.name ?? this.t("removed_station")}<small
+                    >${this.t("door")}: ${row.door ?? this.t("unknown")}</small
+                  >
+                </td>
+                <td>${this.t(row.authentication)}</td>
+                <td>
+                  <span class="badge ${row.result === "denied" ? "error" : ""}"
+                    >${this.t(row.result)}</span
+                  >
+                </td>
+              </tr>`;
+            })}
+          </tbody>
+        </table>
+      </div>
+      ${
+        selected
+          ? html`<aside class="wk4-event-inspector" aria-label=${this.t("event_detail")}>
+              <h3>${this.t("event_detail")}</h3>
+              <div class="wk4-event-person">
+                ${selected.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${selected.portrait.user_id} .revision=${selected.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                <span>${selected.person_name ?? this.t("unknown")}</span>
+              </div>
+              <dl>
+                <dt>${this.t("report_date")}</dt>
+                <dd><bdi>${formatTime(selected.timestamp, this.hass?.language, zone)}</bdi></dd>
+                <dt>${this.t("station")}</dt>
+                <dd>
+                  ${this.stations.find((item) => item.id === selected.station_id)?.name ?? this.t("removed_station")}
+                </dd>
+                <dt>${this.t("door")}</dt>
+                <dd>${selected.door ?? this.t("unknown")}</dd>
+                <dt>${this.t("authentication")}</dt>
+                <dd>${this.t(selected.authentication)}</dd>
+                <dt>${this.t("result")}</dt>
+                <dd>
+                  <span class="badge ${selected.result === "denied" ? "error" : ""}"
+                    >${this.t(selected.result)}</span
+                  >
+                </dd>
+                <dt>${this.t("event_detail")}</dt>
+                <dd>${this.t(selected.event_type)}</dd>
+                ${
+                  selected.employee_no
+                    ? html`<dt>${this.t("employee_no")}</dt>
+                        <dd><bdi>${selected.employee_no}</bdi></dd>`
+                    : nothing
+                }
+                ${
+                  selected.card
+                    ? html`<dt>${this.t("card")}</dt>
+                        <dd><bdi>${selected.card}</bdi></dd>`
+                    : nothing
+                }
+              </dl>
+              ${selected.recovered ? html`<p class="sub">${this.t("historical_record")}</p>` : nothing}
+              ${this.evidenceView(selected)}
+              ${!selected.evidence ? html`<button ?disabled=${!this._haConnected} @click=${() => this.support(selected.id)}>${this.t("event_support")}</button>` : nothing}
+            </aside>`
+          : nothing
+      }
+    </div>`;
+  }
+  private reportActionsView() {
+    return html`
+      <wiskey-saved-reports
+        .hass=${this.hass}
+        .filters=${this._filters}
+        .locked=${this._busy || this._reportBusy}
+        @report-query=${(e: CustomEvent<Record<string, unknown>>) => this.loadQuery(e.detail)}
+      ></wiskey-saved-reports>
+      ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
+      <div class="toolbar">
+        <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
+        <button ?disabled=${this._reportBusy || !this._haConnected} @click=${() => this.report()}>
+          ${this.t("report_generate")}</button
+        ><button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(true)}
+        >
+          ${this.t("report_export")}
+        </button>
+        <button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(false, true)}
+        >
+          ${this.t("report_print_preview")}
+        </button>
+      </div>
+      <p class="sub">
+        ${this.t("clock_filter_basis")}:
+        <bdi
+          >${this._filterStation ? (this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? UTC_ZONE).name : this.defaultZone.name}</bdi
+        >
+      </p>
+      <details class="report-help">
+        <summary>${this.t("report_help")}</summary>
+        <p class="sub">${this.t("report_filter_hint")}</p>
+        <p class="record-meta">${this.t("audit_retention")}</p>
+      </details>
+    `;
+  }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
     return html`<section aria-label=${this.t("events")}>
@@ -719,41 +1029,14 @@ export class IntercomEvents extends LitElement {
         </form>
       </details>
       ${this._filters.current_group || this._filters.current_profile ? html`<p class="notice">${this.t("report_current_membership")}</p>` : nothing}
-      <wiskey-saved-reports
-        .hass=${this.hass}
-        .filters=${this._filters}
-        .locked=${this._busy || this._reportBusy}
-        @report-query=${(e: CustomEvent<Record<string, unknown>>) => this.loadQuery(e.detail)}
-      ></wiskey-saved-reports>
-      ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
-      <div class="toolbar">
-        <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
-        <button ?disabled=${this._reportBusy || !this._haConnected} @click=${() => this.report()}>
-          ${this.t("report_generate")}</button
-        ><button
-          ?disabled=${this._reportBusy || !this._haConnected}
-          @click=${() => this.report(true)}
-        >
-          ${this.t("report_export")}
-        </button>
-        <button
-          ?disabled=${this._reportBusy || !this._haConnected}
-          @click=${() => this.report(false, true)}
-        >
-          ${this.t("report_print_preview")}
-        </button>
-      </div>
-      <p class="sub">
-        ${this.t("clock_filter_basis")}:
-        <bdi
-          >${this._filterStation ? (this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? UTC_ZONE).name : this.defaultZone.name}</bdi
-        >
-      </p>
-      <details class="report-help">
-        <summary>${this.t("report_help")}</summary>
-        <p class="sub">${this.t("report_filter_hint")}</p>
-        <p class="record-meta">${this.t("audit_retention")}</p>
-      </details>
+      ${
+        this.v4
+          ? html`<details class="wk4-report-actions">
+              <summary>${this.t("wk4_report_actions")}</summary>
+              ${this.reportActionsView()}
+            </details>`
+          : this.reportActionsView()
+      }
       ${this.reportView()}
       ${
         this._print
@@ -807,40 +1090,46 @@ export class IntercomEvents extends LitElement {
       <div class="result-summary" role="status">
         ${this._busy ? this.t("loading") : this.t("loaded_records") + ": " + (this._data?.records.length ?? 0)}
       </div>
-      <div class="audit-list" aria-busy=${this._busy}>
-        ${(this._data?.records ?? []).map(
-          (row) =>
-            html`<article class="card audit-row">
-              <div class="record-heading">
-                <h3>${this.t(row.event_type)}</h3>
-                <time datetime=${row.timestamp}
-                  ><bdi
-                    >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</bdi
-                  ></time
-                >
+      ${
+        this.v4
+          ? this.v4ListView()
+          : html`
+              <div class="audit-list" aria-busy=${this._busy}>
+                ${(this._data?.records ?? []).map(
+                  (row) =>
+                    html`<article class="card audit-row">
+                      <div class="record-heading">
+                        <h3>${this.t(row.event_type)}</h3>
+                        <time datetime=${row.timestamp}
+                          ><bdi
+                            >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</bdi
+                          ></time
+                        >
+                      </div>
+                      <div class="record-meta">
+                        <strong
+                          >${this.stations.find((s) => s.id === row.station_id)?.name ?? this.t("removed_station")}</strong
+                        >
+                      </div>
+                      <div class="record-person">
+                        ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                        ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
+                        · ${this.t("door")}: ${row.door ?? this.t("unknown")}
+                      </div>
+                      <p>
+                        ${this.t(row.authentication)} ·
+                        <span class="badge ${row.result === "denied" ? "error" : ""}"
+                          >${this.t(row.result)}</span
+                        >${row.card ? html` · <bdi>${row.card}</bdi>` : nothing}
+                      </p>
+                      ${row.recovered ? html`<small class="muted">${this.t("historical_record")}</small>` : nothing}
+                      ${this.evidenceView(row)}
+                      ${row.event_type === "unknown" ? html`<small> · ${row.major}/${row.minor}</small>` : nothing}
+                    </article>`,
+                )}
               </div>
-              <div class="record-meta">
-                <strong
-                  >${this.stations.find((s) => s.id === row.station_id)?.name ?? this.t("removed_station")}</strong
-                >
-              </div>
-              <div class="record-person">
-                ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
-                ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
-                · ${this.t("door")}: ${row.door ?? this.t("unknown")}
-              </div>
-              <p>
-                ${this.t(row.authentication)} ·
-                <span class="badge ${row.result === "denied" ? "error" : ""}"
-                  >${this.t(row.result)}</span
-                >${row.card ? html` · <bdi>${row.card}</bdi>` : nothing}
-              </p>
-              ${row.recovered ? html`<small class="muted">${this.t("historical_record")}</small>` : nothing}
-              ${this.evidenceView(row)}
-              ${row.event_type === "unknown" ? html`<small> · ${row.major}/${row.minor}</small>` : nothing}
-            </article>`,
-        )}
-      </div>
+            `
+      }
       ${!this._data?.records.length && !this._busy && !this._error ? html`<p class="empty">${this.t("no_events")}</p>` : nothing}
       ${this._data?.next ? html`<button ?disabled=${this._busy || !this._haConnected} @click=${() => this.load(true)}>${this.t("load_more")}</button>` : nothing}
     </section>`;

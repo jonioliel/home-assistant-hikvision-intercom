@@ -89,7 +89,9 @@ async function setup(page: Page, appearance = "current") {
       return destination.stream;
     };
   });
-  if (appearance.startsWith("access-")) await page.locator(".access-door-camera").first().click();
+  if (appearance.startsWith("wiskey-")) await page.locator(".wk4-open-camera").first().click();
+  else if (appearance.startsWith("access-"))
+    await page.locator(".access-door-camera").first().click();
   else if (appearance === "modern") await page.locator(".camera-wrap > button").first().click();
   else await page.getByRole("button", { name: "View camera", exact: true }).first().click();
   return page.locator("hikvision-intercom-audio-controls");
@@ -672,7 +674,14 @@ for (const ending of ["click", "background", "mode change"]) {
   });
 }
 
-for (const appearance of ["current", "modern", "access-light", "access-dark"]) {
+for (const appearance of [
+  "current",
+  "modern",
+  "access-light",
+  "access-dark",
+  "wiskey-light",
+  "wiskey-dark",
+]) {
   test(`audio packet transport works with production permission contract in ${appearance}`, async ({
     page,
   }) => {

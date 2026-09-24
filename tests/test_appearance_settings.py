@@ -51,3 +51,16 @@ async def test_invalid_choice_is_not_saved():
     with pytest.raises(AccessError, match="invalid_fields"):
         await AppearanceSettings(save, Mock()).update(0, "unknown")
     save.assert_not_awaited()
+
+
+@pytest.mark.parametrize("choice", ["wiskey-light", "wiskey-dark"])
+async def test_v4_appearance_is_persisted_without_changing_existing_schema(choice):
+    save, changed = AsyncMock(), Mock()
+    settings = AppearanceSettings(save, changed)
+    result = await settings.update(0, choice)
+    assert result == {"revision": 1, "default": choice}
+    stored = save.await_args.args[0]
+    assert stored["schema"] == 1
+    restored = AppearanceSettings(AsyncMock(), Mock())
+    restored.load(stored)
+    assert restored.public() == result

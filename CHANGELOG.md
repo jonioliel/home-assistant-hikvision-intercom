@@ -2,6 +2,15 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.10.0] - 2026-09-24
+
+- Add opt-in WisKey 04 light and dark appearances alongside the four existing appearances. Shared defaults, personal overrides and stored preferences retain their existing behavior.
+- Add a compact, responsive entry dashboard with live status and clock, filtered station cards, independent door controls, recent activity, adaptive 4–12 station paging and the existing full-screen control. Camera previews preserve their aspect ratio.
+- Use the existing people, station, event and management routes in the new horizontal/mobile navigation. People have direct filter and saved-view controls, while a wide person dialog shows the available profile and authorized doors without a narrow nested inspector.
+- Present activity as a selectable event table with a detail panel and expandable filters/report tools; station overviews link directly to opening schedules and public codes. Existing filtering, exports, event evidence and station actions remain available.
+- Place the existing call video and controls beside a compact TTS composer on desktop and stack them on mobile. Audio, microphone, call signaling, announcements, camera playback and door commands continue through the existing components and authorization checks.
+- Add browser coverage for both appearances, mobile and desktop views, 4/6/9/12 station density, audio packet transport, navigation, person details, station tabs and the appearance picker. No integration storage migration or ISAPI command change is required.
+
 ## [1.9.3] - 2026-09-24
 
 - Correct station health diagnostics so “pending synchronization tasks” counts only unresolved user, credential and deletion work instead of every managed user assigned to the station.

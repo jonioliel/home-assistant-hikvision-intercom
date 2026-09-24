@@ -2,6 +2,8 @@ import { fitDialogViewport } from "./dialog-viewport";
 import "./user-details";
 import { accessStyles } from "./access-styles";
 import { accessOverview } from "./access-overview";
+import { wiskeyOverview, type WiskeyDoorFilter } from "./wiskey-v4-overview";
+import { wiskeyV4Styles } from "./wiskey-v4-styles";
 import { mobileDisplay } from "./phone";
 import { usersCompactStyles } from "./users-compact-styles";
 import "./clock-settings";
@@ -37,6 +39,7 @@ import {
   saveAppearance,
   appearanceOverride,
   isAccessAppearance,
+  isWiskeyAppearance,
   type Appearance,
 } from "./appearance";
 import { icon } from "./icons";
@@ -139,6 +142,7 @@ export class IntercomManagerPanel extends LitElement {
     overviewStyles,
     usersCompactStyles,
     accessStyles,
+    wiskeyV4Styles,
   ];
   static properties = {
     hass: { attribute: false },
@@ -147,6 +151,7 @@ export class IntercomManagerPanel extends LitElement {
     _accessMode: { type: Boolean, attribute: "data-access", reflect: true },
     _accessNarrow: { state: true },
     _accessDoor: { state: true },
+    _v4DoorFilter: { state: true },
     _dark: { type: Boolean, attribute: "data-dark", reflect: true },
     _wallDensity: { state: true },
     _wallPage: { state: true },
@@ -226,6 +231,7 @@ export class IntercomManagerPanel extends LitElement {
   private _dark = false;
   private _accessMode = false;
   private _accessNarrow = false;
+  private _v4DoorFilter: WiskeyDoorFilter = "all";
   private _accessDoor = "";
   private _appearanceOverride: Appearance | null = null;
   private _appearanceFollow = true;
@@ -238,6 +244,28 @@ export class IntercomManagerPanel extends LitElement {
     // Match container-query CSS pixels, including browser/CSS zoom.
     const narrow = this.clientWidth < 1100;
     if (this._accessNarrow !== narrow) this._accessNarrow = narrow;
+    if (isWiskeyAppearance(this._appearance)) {
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      const width = this.clientWidth;
+      const capacity =
+        width < 700
+          ? 4
+          : width < 980
+            ? height < 760
+              ? 4
+              : 6
+            : width < 1200
+              ? height < 820
+                ? 6
+                : 9
+              : height < 800
+                ? 4
+                : height < 880
+                  ? 8
+                  : 12;
+      if (this._wallCapacity !== capacity) this._wallCapacity = capacity;
+      return;
+    }
     if (this._accessMode) return;
     const grid = this.renderRoot.querySelector<HTMLElement>(".overview-wall");
     if (!grid) return;
@@ -307,7 +335,7 @@ export class IntercomManagerPanel extends LitElement {
       this.syncAppearance();
     this._accessMode = isAccessAppearance(this._appearance);
     this._dark = this._accessMode
-      ? this._appearance === "access-dark"
+      ? this._appearance === "access-dark" || this._appearance === "wiskey-dark"
       : (this.hass?.themes?.darkMode ?? false);
   }
   private appearanceButton() {
@@ -2396,6 +2424,53 @@ export class IntercomManagerPanel extends LitElement {
       </div>`;
   }
   private overviewView() {
+    if (isWiskeyAppearance(this._appearance) && this._data)
+      return wiskeyOverview({
+        data: this._data,
+        query: this._wallQuery,
+        filter: this._v4DoorFilter,
+        page: this._wallPage,
+        capacity: Math.min(this._wallDensity || 12, this._wallCapacity),
+        density: this._wallDensity,
+        pending: this.pendingCount(),
+        canUsers: this.canManage("users"),
+        canCameraWall: this.canView("overview"),
+        canSync: this.canView("stations"),
+        canEvents: this.canView("events"),
+        canStations: this.canView("stations"),
+        language: this.hass?.language ?? "en",
+        t: (key) => this.t(key),
+        date: (value) => this.dateText(value),
+        camera: (station) => this.camera(station),
+        release: (station) => this.releaseButton(station, true, true),
+        feedback: (station) => this.releaseFeedback(station),
+        search: (value) => {
+          this._wallQuery = value;
+          this._wallPage = 0;
+        },
+        setFilter: (value) => {
+          this._v4DoorFilter = value;
+          this._wallPage = 0;
+        },
+        paginate: (page) => (this._wallPage = page),
+        setDensity: (density) => {
+          this._wallDensity = density;
+          this._wallPage = 0;
+        },
+        fullscreen: () => void this.wallFullscreen(),
+        open: (station) => {
+          this._cameraStation = station;
+          this._dialog = "camera";
+        },
+        manage: (station) => {
+          this._deviceFocus = station.id;
+          this.navigate("devices");
+        },
+        events: () => this.navigate("events"),
+        addUser: () => this.edit(),
+        sync: () => this.navigate("sync"),
+        cameraWall: () => this.navigate("camera_wall"),
+      });
     if (this._accessMode && this._data)
       return accessOverview({
         data: this._data,
@@ -2575,10 +2650,16 @@ export class IntercomManagerPanel extends LitElement {
     this._tab = first ?? "overview";
   }
   private navigation() {
-    const management = !["overview", "users", "events"].includes(this._tab);
+    const v4 = isWiskeyAppearance(this._appearance);
+    const management = !["overview", "users", "events", ...(v4 ? ["devices"] : [])].includes(
+      this._tab,
+    );
+    const tabs = v4
+      ? ["overview", "users", "devices", "events", "tools"]
+      : ["overview", "users", "events", "tools"];
     return html`<nav class="nav" aria-label=${this.t("title")}>
       <div class="nav-group nav-primary">
-        ${["overview", "users", "events", "tools"]
+        ${tabs
           .filter((tab) =>
             tab === "tools"
               ? this.canView("stations") || this.canView("management")
@@ -2590,7 +2671,7 @@ export class IntercomManagerPanel extends LitElement {
                 aria-current=${this._tab === tab || (tab === "tools" && management) ? "page" : nothing}
                 @click=${() => this.navigate(tab)}
               >
-                ${icon(tab)}<span>${this.t(tab)}</span>
+                ${icon(tab)}<span>${v4 ? this.t("wk4_nav_" + tab) : this.t(tab)}</span>
               </button>`,
           )}
       </div>
@@ -2723,6 +2804,32 @@ export class IntercomManagerPanel extends LitElement {
               this.scheduleUserQuery(true, 250);
             }}
           />
+          ${
+            isWiskeyAppearance(this._appearance)
+              ? html`<button
+                    class="wk4-filter-button"
+                    @click=${() => {
+                      const options =
+                        this.renderRoot.querySelector<HTMLDetailsElement>(".access-user-options");
+                      if (options) options.open = true;
+                      const filters = options?.querySelector<HTMLDetailsElement>(".user-filters");
+                      if (filters) filters.open = !filters.open;
+                    }}
+                  >
+                    ${this.t("user_filter_controls")}
+                  </button>
+                  <button
+                    class="wk4-view-button"
+                    @click=${() => {
+                      const options =
+                        this.renderRoot.querySelector<HTMLDetailsElement>(".access-user-options");
+                      if (options) options.open = !options.open;
+                    }}
+                  >
+                    ${this.t("views_title")}
+                  </button>`
+              : nothing
+          }
           <details class="access-transfer-tools" ?open=${!this._accessMode}>
             <summary>${this.t("other")}</summary>
             <div class="access-transfer-list">
@@ -2962,7 +3069,10 @@ export class IntercomManagerPanel extends LitElement {
           }
         </div>
         ${
-          this._accessMode && !this._accessNarrow && users.length
+          this._accessMode &&
+          !isWiskeyAppearance(this._appearance) &&
+          !this._accessNarrow &&
+          users.length
             ? html`<aside class="access-person-inspector">
                 ${this.accessPersonDetails(this.detailPerson(users.find((u) => u.id === this._detailsUser) ?? users[0]))}
               </aside>`
@@ -3094,7 +3204,10 @@ export class IntercomManagerPanel extends LitElement {
   }
   private openPersonDetails(person: Person) {
     this._detailsUser = person.id;
-    if (!(this._accessMode && this._tab === "users" && !this._accessNarrow))
+    if (
+      isWiskeyAppearance(this._appearance) ||
+      !(this._accessMode && this._tab === "users" && !this._accessNarrow)
+    )
       this._detailsModalUser = person.id;
     void this.loadPersonDetails(person);
   }
@@ -3133,7 +3246,9 @@ export class IntercomManagerPanel extends LitElement {
     ></wiskey-user-details>`;
   }
   private accessPeopleTable(users: Person[]) {
-    const selected = this._detailsUser || (!this._accessNarrow ? users[0]?.id : "");
+    const selected =
+      this._detailsUser ||
+      (!isWiskeyAppearance(this._appearance) && !this._accessNarrow ? users[0]?.id : "");
     const fields = this.visibleProfileFields();
     return html`<div class="access-people-table table-wrap">
       <table>
@@ -3350,6 +3465,26 @@ export class IntercomManagerPanel extends LitElement {
             <strong>${station.integrated_locks.length}</strong>${this.t("integrated_locks")}
           </div>
         </div>
+        ${
+          isWiskeyAppearance(this._appearance)
+            ? html`<div class="wk4-station-shortcuts">
+                <button
+                  @click=${() => (this._stationTabs = { ...this._stationTabs, [station.id]: "programs" })}
+                >
+                  <strong>${this.t("station_tab_programs")}</strong>
+                  <span>${this.t("wk4_station_programs_hint")}</span>
+                  ${icon("arrow")}
+                </button>
+                <button
+                  @click=${() => (this._stationTabs = { ...this._stationTabs, [station.id]: "public_codes" })}
+                >
+                  <strong>${this.t("station_tab_public_codes")}</strong>
+                  <span>${this.t("wk4_station_codes_hint")}</span>
+                  ${icon("arrow")}
+                </button>
+              </div>`
+            : nothing
+        }
         ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
       </div>
       ${modern && tab === "programs" ? html`<wiskey-door-programs .hass=${this.protectedHass} .station=${station}></wiskey-door-programs>` : nothing}
@@ -4372,41 +4507,60 @@ export class IntercomManagerPanel extends LitElement {
         ?.setPlaybackAudio(event.detail.enabled) === true;
   }
   private cameraBody(station: Station) {
-    return html`<div class="camera-layout" @hikvision-playback-audio=${this.cameraPlaybackAudio}>
-      <div class="camera-video">
-        ${
-          this.canManage("overview") || this.canManage("stations")
-            ? html`<div class="camera-toolbar">
-                <button
-                  class="camera-refresh"
-                  aria-label=${this.t("call_refresh")}
-                  title=${this.t("call_refresh")}
-                  ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
-                  @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
-                >
-                  ${icon("sync")}
-                </button>
-              </div>`
-            : nothing
-        }
-        ${this.camera(station, true)}
-      </div>
-      <hikvision-intercom-audio-controls
-        .dock=${true}
-        .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
-        .hass=${this.protectedHass}
-        .station=${station}
-      >
-        ${this.callControls(station, false, true)}
-        <div class="camera-door-actions">
-          ${station.lock_enabled ? this.releaseButton(station, true, true) : nothing}
-        </div>
-        <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
-          ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
-        </button>
-      </hikvision-intercom-audio-controls>
-      ${this.releaseFeedback(station)}
+    const v4 = isWiskeyAppearance(this._appearance);
+    const video = html`<div class="camera-video">
+      ${
+        this.canManage("overview") || this.canManage("stations")
+          ? html`<div class="camera-toolbar">
+              <button
+                class="camera-refresh"
+                aria-label=${this.t("call_refresh")}
+                title=${this.t("call_refresh")}
+                ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
+                @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
+              >
+                ${icon("sync")}
+              </button>
+            </div>`
+          : nothing
+      }
+      ${this.camera(station, true)}
     </div>`;
+    const controls = html`<hikvision-intercom-audio-controls
+      .dock=${true}
+      .hideTts=${v4}
+      .v4=${v4}
+      .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
+      .hass=${this.protectedHass}
+      .station=${station}
+    >
+      ${this.callControls(station, false, true)}
+      <div class="camera-door-actions">
+        ${station.lock_enabled ? this.releaseButton(station, true, true) : nothing}
+      </div>
+      <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
+        ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
+      </button>
+    </hikvision-intercom-audio-controls>`;
+    return v4
+      ? html`<div
+          class="camera-layout wk4-camera-layout"
+          @hikvision-playback-audio=${this.cameraPlaybackAudio}
+        >
+          <div class="wk4-camera-main">${video}${controls}</div>
+          <aside class="wk4-camera-tts">
+            <wiskey-intercom-tts
+              compact
+              v4
+              .hass=${this.protectedHass}
+              .station=${station}
+            ></wiskey-intercom-tts>
+          </aside>
+          ${this.releaseFeedback(station)}
+        </div>`
+      : html`<div class="camera-layout" @hikvision-playback-audio=${this.cameraPlaybackAudio}>
+          ${video}${controls}${this.releaseFeedback(station)}
+        </div>`;
   }
   private dialogView() {
     if (!this._dialog) return nothing;
@@ -4523,7 +4677,7 @@ export class IntercomManagerPanel extends LitElement {
       <main tabindex="-1">
         ${!this.canManage(this.tabArea()) ? html`<p class="notice readonly-notice" role="status">${this.t("view_only_mode")}</p>` : nothing}
         ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
-        ${!["overview", "users", "events", "tools"].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
+        ${!["overview", "users", "events", "tools", ...(isWiskeyAppearance(this._appearance) ? ["devices"] : [])].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
         ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
         ${
           this._notice
@@ -4654,12 +4808,14 @@ export class IntercomManagerPanel extends LitElement {
                                                   .hass=${this.protectedHass}
                                                   .stations=${this._data.stations}
                                                   .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                  .v4=${isWiskeyAppearance(this._appearance)}
                                                 ></hikvision-intercom-events>`
         }
       </main>
       ${
         this._detailsModalUser && this._data?.users.find((u) => u.id === this._detailsModalUser)
           ? html`<wiskey-user-details
+              .v4=${isWiskeyAppearance(this._appearance)}
               .canEdit=${this.canManage("users")}
               .hass=${this.protectedHass}
               .person=${this.detailPerson(this._data.users.find((u) => u.id === this._detailsModalUser)!)}

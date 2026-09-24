@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WisKey 1.10.0 · בדיקות עיצוב 04</title>
+<style>
+:root{font:16px/1.5 Arial,sans-serif;color:#18302e;background:#f4f7f6}*{box-sizing:border-box}body{margin:0 auto;max-width:1000px;padding:24px}h1{font-size:2rem;margin:.3em 0}p{color:#526661}.intro{background:white;border:1px solid #d9e5e1;border-radius:16px;padding:20px;margin-bottom:20px}.tag{color:#087e70;font-weight:700}article{background:white;border:1px solid #d9e5e1;border-radius:14px;padding:18px;margin:12px 0}article h2{font-size:1.05rem;margin:0 0 6px}article p{margin:0 0 10px}label{display:inline-flex;gap:6px;align-items:center;margin-inline-end:14px;cursor:pointer}input[type=radio]{accent-color:#087e70}textarea{width:100%;min-height:54px;margin-top:10px;border:1px solid #cddbd7;border-radius:8px;padding:9px;font:inherit}button{border:0;border-radius:8px;background:#087e70;color:white;padding:10px 15px;font:inherit;cursor:pointer}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{font-size:.9rem}.status{font-weight:700;color:#087e70}@media(max-width:600px){body{padding:12px}h1{font-size:1.55rem}article{padding:12px}label{margin-bottom:8px}}
+</style>
+</head>
+<body>
+<div class="intro"><span class="tag">WisKey 04 · גרסה 1.10.0</span><h1>בדיקות מסירה לעיצוב החדש</h1>
+<p>העיצוב החדש נוסף לבחירה. יש לבצע את הבדיקות במערכת Home Assistant המותקנת. הבדיקות האוטומטיות של הממשק והשרת אינן מחליפות אימות וידאו, שמע ופתיחת דלת מול ציוד אמיתי. אין צורך לשנות הרשאות או למחוק משתמשים רק בשביל הרשימה הזאת.</p>
+<p class="muted">התוצאות נשמרות בדפדפן הזה בלבד. ניתן להוריד דוח JSON ללא סיסמאות, PIN או מספרי כרטיסים. <a href="WISKEY_PENDING_TESTS_HE.html">כל הבדיקות הפתוחות הקודמות</a>.</p></div>
+<div class="actions"><strong id="progress" class="status"></strong><button id="export">הורדת תוצאות</button><button id="reset" type="button">ניקוי בחירות</button></div>
+<main id="checks"></main>
+<script>
+const items=[
+["appearance","בחירת עיצוב","בכלי ניהול ← עיצוב בחר WisKey 04 בהיר וכהה. ודא שכל ארבעת העיצובים הקודמים עדיין זמינים ושמעבר ביניהם אינו מאפס נתונים."],
+["default","ברירת מחדל והעדפה אישית","מנהל HA משנה ברירת מחדל משותפת. בדוק שמשתמש אחר יכול להישאר עם בחירה אישית ואז לחזור ל׳לפי ברירת מחדל׳."],
+["overview","דלתות ומצלמות","בדוק חיפוש וסינון, 4/6/9/12 תחנות, דפדוף ומסך מלא. אמת שתמונות המצלמה אינן מתוחות ושפתיחת דלת אחת אינה משביתה דלתות אחרות."],
+["people","אנשים ופרטי משתמש","פתח אדם מהרשימה: כל הפרטים והדלתות המורשות קריאים. פתח עריכה וודא שקוד, כרטיס, קבוצות, תוקף, תמונה ו־WhatsApp עדיין נגישים. מעבר לאירועים אינו פותח שוב עריכה."],
+["station","ניהול תחנה וכלים","בדוק מעבר בין סקירה, תוכניות פתיחה, קודים והגדרות טכניות, כולל כרטיסי הקיצור בסקירה. ודא שסנכרון, דוחות, שעון, הגדרות מדיה והרשאות משתמשי HA נגישים דרך כלי ניהול לפי ההרשאות."],
+["activity","פעילות ודוחות","פתח פעילות, בחר אירוע בטבלה ובדוק שהפרטים תואמים לאירוע שנבחר. פתח מסננים, דוחות וייצוא וודא שסינון, הפקת דוח, ייצוא ואבחון אירוע זמינים."],
+["call","שיחה, וידאו ושמע","פתח מצלמה במחשב ובנייד: וידאו, האזנה, מיקרופון, מענה/ניתוק ופתיחת דלת נשארים נגישים. בדוק בפועל ששמע דו־כיווני מגיע לתחנה ושפעולות בדלת הנכונה."],
+["tts","הודעה קולית","כתוב הודעת TTS, בחר מנוע ושפה והשמע בתחנה נבחרת. בדוק שהטקסט והמצלמה נשארים גלויים ושאין גלילה אופקית, גם בנייד."],
+["mobile","נייד וטאבלט","בדוק תפריט תחתון, רשימת אנשים, פרטי אדם, דלתות, מצלמה וכלי ניהול ברוחבי נייד וטאבלט. ודא שכל פעולה ניתנת ללחיצה ושאין תוכן שנחתך לרוחב."],
+["permissions","משתמש HA מוגבל","אם יש משתמש HA שאינו מנהל, בדוק שהוא רואה רק את המסכים והפעולות שהוקצו לו. ודא שלחצני פתיחה או ניהול שאינם מורשים אינם מופיעים."]
+];
+const key="wiskey-1.10.0-ui-tests";
+let data;try{data=JSON.parse(localStorage.getItem(key)||"{}")}catch{data={}};
+function save(){localStorage.setItem(key,JSON.stringify(data));const counts=Object.values(data).map(x=>x?.result);document.getElementById("progress").textContent=`עברו ${counts.filter(x=>x==="pass").length} · נכשלו ${counts.filter(x=>x==="fail").length} · ממתינות ${items.length-counts.filter(Boolean).length}`;}
+document.getElementById("checks").innerHTML=items.map(([id,title,desc],i)=>`<article data-id="${id}"><h2>${i+1}. ${title}</h2><p>${desc}</p><div role="radiogroup" aria-label="תוצאה: ${title}">${[["pass","עבר"],["fail","נכשל"],["skip","מאוחר יותר"]].map(([v,label])=>`<label><input type="radio" name="${id}" value="${v}" ${data[id]?.result===v?"checked":""}>${label}</label>`).join("")}</div><textarea aria-label="הערה: ${title}" placeholder="תוצאה או תקלה, ללא פרטי גישה"></textarea></article>`).join("");
+for(const card of document.querySelectorAll("article")){const id=card.dataset.id;const note=card.querySelector("textarea");note.value=data[id]?.note||"";card.addEventListener("change",()=>{data[id]={result:card.querySelector("input:checked")?.value||"",note:note.value};save()});note.addEventListener("input",()=>{data[id]={result:card.querySelector("input:checked")?.value||"",note:note.value};save()})}
+document.getElementById("export").onclick=()=>{const blob=new Blob([JSON.stringify({format:"wiskey.ui.acceptance",version:"1.10.0",exported_at:new Date().toISOString(),results:data},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="wiskey-1.10.0-ui-results.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+document.getElementById("reset").onclick=()=>{data={};localStorage.removeItem(key);for(const input of document.querySelectorAll("input"))input.checked=false;for(const area of document.querySelectorAll("textarea"))area.value="";save()};save();
+</script>
+</body></html>

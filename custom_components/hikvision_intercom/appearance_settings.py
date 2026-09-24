@@ -8,7 +8,14 @@ from typing import Any
 
 from .access.models import AccessError
 
-APPEARANCES = ("current", "modern", "access-light", "access-dark")
+APPEARANCES = (
+    "current",
+    "modern",
+    "access-light",
+    "access-dark",
+    "wiskey-light",
+    "wiskey-dark",
+)
 
 
 class AppearanceSettings:

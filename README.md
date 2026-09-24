@@ -1,6 +1,8 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.9.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.3)** — corrects the station health pending-sync metric and ships the consolidated automated and physical acceptance catalog.
+Published runtime: **[1.9.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.9.3)**.
+Prepared locally for the next release: **1.10.0**, adding the optional WisKey 04 light and dark
+interfaces while retaining every earlier appearance and the existing command paths. It is not yet available in HACS.
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -20,11 +22,15 @@ See [progress](docs/PROGRESS.md), [validation](docs/VALIDATION.md) and
 
 ## Choose your interface
 
-Select **Management tools → Appearance → New → Apply design** for the blue interface.
-Choose **Existing** to return to the previous design. The preference is saved per HA user and
-browser; light/dark colors follow Home Assistant. All views adapt to the panel width,
-with mobile user cards. **Management tools** groups advanced views and the Appearance picker;
-camera/editor dialogs contain only their relevant controls. See the [guide and screenshots](docs/ALTERNATE_UI_028_HE.md).
+Open **Management tools → Appearance** to choose among the existing **Current**, **Modern**,
+**Access light**, **Access dark** and the additional **WisKey 04 light/dark** interfaces.
+The shared default can be changed by an HA administrator; each user can keep a personal override
+or follow the shared default. The new interface uses a compact entry dashboard with adaptive
+4–12 station paging, a full-width people list, a wide person view, responsive station management
+and a call window that keeps the existing video, two-way audio and TTS controls. All advanced
+tools remain under Management. The earlier appearances and stored choices keep working.
+See the [WisKey 04 guide](docs/WISKEY_V4_APPEARANCE_HE.md) and
+[earlier alternate-interface guide](docs/ALTERNATE_UI_028_HE.md).
 
 ## Home Assistant user permissions
 

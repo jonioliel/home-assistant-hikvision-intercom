@@ -1,8 +1,17 @@
 import { LitElement, html, css, nothing } from "lit";
 import { translate } from "./i18n";
-export const appearances = ["current", "modern", "access-light", "access-dark"] as const;
+export const appearances = [
+  "current",
+  "modern",
+  "access-light",
+  "access-dark",
+  "wiskey-light",
+  "wiskey-dark",
+] as const;
 export type Appearance = (typeof appearances)[number];
-export const isAccessAppearance = (value: Appearance) => value.startsWith("access-");
+export const isWiskeyAppearance = (value: Appearance) => value.startsWith("wiskey-");
+export const isAccessAppearance = (value: Appearance) =>
+  value.startsWith("access-") || isWiskeyAppearance(value);
 export function appearanceOverride(user?: string): Appearance | null {
   if (!user) return null;
   try {
@@ -166,6 +175,29 @@ export class AppearancePicker extends LitElement {
     .access-dark .tiles i {
       border-color: #252937;
       background: linear-gradient(#353b51 65%, #a49cff 65%);
+    }
+    .mini.wiskey-light,
+    .mini.wiskey-dark {
+      grid-template-columns: 1fr;
+      grid-template-rows: 12px 1fr;
+      background: #f4f6f5;
+    }
+    .mini.wiskey-light aside,
+    .mini.wiskey-dark aside {
+      background: #ffffff;
+    }
+    .wiskey-light .tiles i {
+      background: linear-gradient(#e8f4ef 65%, #087e70 65%);
+    }
+    .mini.wiskey-dark {
+      background: #101c20;
+    }
+    .mini.wiskey-dark aside {
+      background: #152329;
+    }
+    .wiskey-dark .tiles i {
+      border-color: #203338;
+      background: linear-gradient(#30444a 65%, #8bddbc 65%);
     }
     .scope {
       display: flex;

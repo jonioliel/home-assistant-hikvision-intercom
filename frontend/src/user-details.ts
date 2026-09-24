@@ -109,6 +109,7 @@ export class UserDetails extends LitElement {
   static properties = {
     canEdit: { type: Boolean },
     embedded: { type: Boolean, reflect: true },
+    v4: { type: Boolean, reflect: true },
     hass: { attribute: false },
     person: { attribute: false },
     stations: { attribute: false },
@@ -257,6 +258,87 @@ export class UserDetails extends LitElement {
       :host([embedded]) .rights li > span:last-child {
         font-size: 11px;
         color: var(--secondary-text-color);
+      }
+      :host([v4]) dialog {
+        width: min(1160px, calc(100vw - 28px));
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        box-shadow: 0 16px 50px #122b2b24;
+      }
+      :host([v4]) header {
+        padding: 16px 22px;
+      }
+      :host([v4]) header .portrait {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+      }
+      :host([v4]) main {
+        padding: 16px 22px;
+      }
+      :host([v4]) .person-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 18px;
+        align-items: start;
+      }
+      :host([v4]) .person-profile,
+      :host([v4]) .person-grants {
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+      }
+      :host([v4]) .person-grid dl {
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 0;
+      }
+      :host([v4]) .person-grid dl div {
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      :host([v4]) .person-grants h3 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      :host([v4]) .rights {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        margin: 0;
+      }
+      :host([v4]) .rights li {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        padding: 8px 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+      }
+      :host([v4]) .rights li > span:last-child {
+        color: var(--secondary-text-color);
+        font-size: 12px;
+      }
+      :host([v4]) button:focus-visible {
+        outline: 3px solid #3878d4;
+        outline-offset: 2px;
+      }
+      @media (max-width: 700px) {
+        :host([v4]) .person-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        :host([v4]) .person-grid dl {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        :host([v4]) .rights {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        :host([v4]) header,
+        :host([v4]) nav,
+        :host([v4]) main {
+          padding: 12px;
+        }
       }
       dialog {
         width: min(960px, calc(100vw - 24px));
@@ -446,6 +528,7 @@ export class UserDetails extends LitElement {
     `,
   ];
   embedded = false;
+  v4 = false;
   canEdit = true;
   hass?: Hass;
   person?: Person;
@@ -664,75 +747,84 @@ export class UserDetails extends LitElement {
       <main>
         ${
           this.tab === "details"
-            ? html`<dl>
-                  <div>
-                    <dt>${this.t("employee_id")}</dt>
-                    <dd>${p.employee_no}</dd>
-                  </div>
-                  <div>
-                    <dt>${this.t("status")}</dt>
-                    <dd>${this.t(p.active ? "active" : "inactive")}</dd>
-                  </div>
-                  ${this.policy?.fields
-                    .filter((f) => f.enabled)
-                    .map(
-                      (f) =>
-                        html`<div>
-                          <dt>${f.label}</dt>
-                          <dd>${p.profile?.[f.id] || "—"}</dd>
-                        </div>`,
-                    )}
-                  <div>
-                    <dt>${this.t("profile_groups")}</dt>
-                    <dd>
-                      ${
-                        this.policy?.groups
-                          .filter((g) => p.group_ids?.includes(g.id))
-                          .map((g) => g.label)
-                          .join(", ") || "—"
-                      }
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>${this.t("pin")}</dt>
-                    <dd>${this.t(p.pin_configured ? "configured" : "not_configured")}</dd>
-                  </div>
-                  <div>
-                    <dt>${this.t("cards")}</dt>
-                    <dd>${p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>${this.t("validity")}</dt>
-                    <dd>
-                      ${p.valid_from || "—"} →
-                      ${p.valid_until || "—"}${
-                        p.access_timing_policy
-                          ? html`<p>
-                                ${p.access_timing_policy.schedule.timezone} ·
-                                ${[...p.access_timing_policy.schedule.days, ...p.access_timing_policy.schedule.dates].map((day) => (this.t(day.toLowerCase()) === day.toLowerCase() ? day : this.t(day.toLowerCase()))).join(", ")}
-                              </p>
-                              <p>
-                                ${p.access_timing_policy.schedule.periods.map((w) => `${w.start}–${w.end}`).join(", ")}
-                              </p>`
-                          : nothing
-                      }
-                    </dd>
-                  </div>
-                </dl>
+            ? html`<div class="person-grid">
+                <section class="person-profile">
+                  <dl>
+                    <div>
+                      <dt>${this.t("employee_id")}</dt>
+                      <dd>${p.employee_no}</dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("status")}</dt>
+                      <dd>${this.t(p.active ? "active" : "inactive")}</dd>
+                    </div>
+                    ${this.policy?.fields
+                      .filter((f) => f.enabled)
+                      .map(
+                        (f) =>
+                          html`<div>
+                            <dt>${f.label}</dt>
+                            <dd>${p.profile?.[f.id] || "—"}</dd>
+                          </div>`,
+                      )}
+                    <div>
+                      <dt>${this.t("profile_groups")}</dt>
+                      <dd>
+                        ${
+                          this.policy?.groups
+                            .filter((g) => p.group_ids?.includes(g.id))
+                            .map((g) => g.label)
+                            .join(", ") || "—"
+                        }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("pin")}</dt>
+                      <dd>${this.t(p.pin_configured ? "configured" : "not_configured")}</dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("cards")}</dt>
+                      <dd>${p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("validity")}</dt>
+                      <dd>
+                        ${p.valid_from || "—"} →
+                        ${p.valid_until || "—"}${
+                          p.access_timing_policy
+                            ? html`<p>
+                                  ${p.access_timing_policy.schedule.timezone} ·
+                                  ${[...p.access_timing_policy.schedule.days, ...p.access_timing_policy.schedule.dates].map((day) => (this.t(day.toLowerCase()) === day.toLowerCase() ? day : this.t(day.toLowerCase()))).join(", ")}
+                                </p>
+                                <p>
+                                  ${p.access_timing_policy.schedule.periods.map((w) => `${w.start}–${w.end}`).join(", ")}
+                                </p>`
+                            : nothing
+                        }
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
                 ${p.access_timing_draft && !p.access_timing_policy ? html`<p>${this.t("draftOnly")}</p>` : nothing}
-                <ul class="rights">
-                  ${Object.entries(p.assignments)
-                    .filter(([, a]) => a.enabled)
-                    .map(
-                      ([id, a]) =>
-                        html`<li>
-                          <span
-                            >${this.stations.find((s) => s.id === id)?.name || id} ·
-                            ${a.allowed_locks.join(", ")}</span
-                          ><span>${this.t(a.sync_state === "synced" ? "synced" : "pending")}</span>
-                        </li>`,
-                    )}
-                </ul>`
+                <section class="person-grants">
+                  ${this.v4 ? html`<h3>${this.t("assignments")}</h3>` : nothing}
+                  <ul class="rights">
+                    ${Object.entries(p.assignments)
+                      .filter(([, a]) => a.enabled)
+                      .map(
+                        ([id, a]) =>
+                          html`<li>
+                            <span
+                              >${this.stations.find((s) => s.id === id)?.name || id} ·
+                              ${a.allowed_locks.join(", ")}</span
+                            ><span
+                              >${this.t(a.sync_state === "synced" ? "synced" : "pending")}</span
+                            >
+                          </li>`,
+                      )}
+                  </ul>
+                </section>
+              </div>`
             : html`<p class="sub">${this.t("historyHint")}</p>
                 <button ?disabled=${!ready} @click=${() => this.history()}>
                   ${this.t("refresh")}

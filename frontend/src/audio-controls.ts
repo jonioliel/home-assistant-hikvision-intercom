@@ -73,6 +73,35 @@ export class IntercomAudioControls extends LitElement {
       margin-bottom: 8px;
       accent-color: #2869ee;
     }
+    :host([v4][dock]) section {
+      padding: 8px 0;
+    }
+    :host([v4][dock]) .session-buttons {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    :host([v4][dock]) .session-buttons > button {
+      min-width: 0;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      flex-direction: row;
+      font-size: 13px;
+    }
+    :host([v4][dock]) .session-buttons > button[aria-pressed="true"] {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color);
+    }
+    :host([v4][dock]) .session-status.talking {
+      color: var(--primary-color);
+    }
+    :host([v4][dock]) .microphone-level {
+      accent-color: var(--primary-color);
+    }
     :host([dock]) .audio-options {
       margin-top: 12px;
       font-size: 12px;
@@ -174,6 +203,8 @@ export class IntercomAudioControls extends LitElement {
   `;
   static properties = {
     dock: { type: Boolean, reflect: true },
+    hideTts: { type: Boolean },
+    v4: { type: Boolean, reflect: true },
     talkMode: { attribute: false },
     hass: { attribute: false },
     station: { attribute: false },
@@ -194,6 +225,8 @@ export class IntercomAudioControls extends LitElement {
     _haConnected: { state: true },
   };
   dock = false;
+  hideTts = false;
+  v4 = false;
   talkMode: "ptt" | "toggle" = "ptt";
   hass?: Hass;
   station?: Station;
@@ -1026,7 +1059,7 @@ export class IntercomAudioControls extends LitElement {
       ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}
       ${this._error ? html`<p class="error" role="alert">${this.t(this._error)}</p>` : nothing}
-      ${this.dock ? html`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
+      ${this.dock && !this.hideTts ? html`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
     </section>`;
   }
 }

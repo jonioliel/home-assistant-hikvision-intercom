@@ -31,6 +31,22 @@ export class IntercomTtsControls extends LitElement {
       width: 100%;
       margin-top: 6px;
     }
+    :host([v4][compact]) .tts-panel {
+      padding: 14px;
+      border-radius: 10px;
+      background: var(--card-background-color, #fff);
+    }
+    :host([v4]) .title svg {
+      color: var(--primary-color);
+    }
+    :host([v4]) button.primary {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color);
+    }
+    :host([v4]) .pulse {
+      background: var(--primary-color);
+    }
     :host([compact]) .tts-panel {
       padding: 8px 10px;
     }
