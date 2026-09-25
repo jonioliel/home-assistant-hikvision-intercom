@@ -1,9 +1,9 @@
 # WisKey — smart access for Home Assistant
 
-Published runtime: **[1.10.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.10.1)**.
-This patch fixes full-height background coverage in the optional WisKey 04 light and dark interfaces.
-Earlier appearances and existing command paths remain available.
-[Focused Hebrew UI check](docs/manual-tests/WISKEY_1.10.1_UI_TESTS_HE.html).
+Published runtime: **[1.11.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.11.0)**.
+This release moves intercom TTS voice and language preferences into global administrator settings and adds saved one-click announcements beside the free-text camera composer.
+The existing appearance choices, audio controls, camera playback and access command paths remain available.
+[Focused Hebrew TTS check](docs/manual-tests/WISKEY_1.11.0_TTS_TESTS_HE.html).
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
@@ -187,12 +187,12 @@ editor. Standard HA camera/lock entities remain available alongside the dedicate
 ## HACS installation and updates
 
 Requires Home Assistant 2026.9.1 or newer and an existing HACS installation.
-Select the latest tagged prerelease from the release link above for the current administrator panel
+Select the latest tagged release from the release link above for the current administrator panel
 and access/event features:
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
-2. Open **Hikvision Intercom Manager**, select the intended prerelease in the download
+2. Open **Hikvision Intercom Manager**, select the intended release in the download
    dialog (enable beta versions if needed), download it and restart Home Assistant.
 3. In **Settings → Devices & services → Add integration**, choose **WisKey**.
 4. Enter the station address, account and ports, then confirm the detected device.
