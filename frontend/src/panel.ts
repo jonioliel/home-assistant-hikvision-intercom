@@ -4531,6 +4531,7 @@ export class IntercomManagerPanel extends LitElement {
       .hideTts=${v4}
       .v4=${v4}
       .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
+      .ttsSettings=${this._data?.media_settings}
       .hass=${this.protectedHass}
       .station=${station}
     >
@@ -4554,6 +4555,7 @@ export class IntercomManagerPanel extends LitElement {
               v4
               .hass=${this.protectedHass}
               .station=${station}
+              .settings=${this._data?.media_settings}
             ></wiskey-intercom-tts>
           </aside>
           ${this.releaseFeedback(station)}

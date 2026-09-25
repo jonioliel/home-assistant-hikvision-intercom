@@ -309,11 +309,13 @@ export class IntercomCamera extends LitElement {
       return;
     }
     const policy = this.media ?? DEFAULT_MEDIA;
+    // Announcements and talk-mode preferences share the saved media record.
+    // Reconnect video only when a playback setting actually changes.
     const policyKey = JSON.stringify([
-      policy.revision,
       policy.transport,
       policy.webrtc_mode,
       policy.fallback_hls,
+      policy.go2rtc_url,
     ]);
     const policyChanged = this.policyKey !== policyKey;
     this.policyKey = policyKey;

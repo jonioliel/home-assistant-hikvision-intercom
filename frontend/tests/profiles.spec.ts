@@ -178,14 +178,14 @@ for (const width of [360, 768, 1440]) {
 
 test("discover add-on then select it for both RTC and MSE", async ({ page }) => {
   await page.goto("/");
-  await navigate(page, "Camera playback options");
+  await navigate(page, "Video, audio and announcements");
   const form = page.locator("hikvision-media-settings");
   await form.getByRole("button", { name: "Find installed go2rtc add-on" }).click();
   await expect(form.getByLabel("go2rtc server address (RTC and MSE)")).toHaveValue(
     "http://a889bffc-go2rtc-hardware:1984",
   );
   await expect(form).toContainText("1.9.14");
-  await form.getByRole("button", { name: "Save for all cameras" }).click();
+  await form.getByRole("button", { name: "Save global settings" }).click();
   expect(await page.evaluate(() => window.demoData.media_settings.go2rtc_url)).toBe(
     "http://a889bffc-go2rtc-hardware:1984",
   );

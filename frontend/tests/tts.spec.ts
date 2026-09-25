@@ -8,9 +8,7 @@ async function openTts(page: Page, hebrew = false) {
     .click();
   const tts = page.locator("wiskey-intercom-tts");
   await expect(tts.getByRole("textbox")).toBeVisible();
-  await expect(
-    tts.getByRole("combobox", { name: hebrew ? "מנוע קול" : "Voice engine" }),
-  ).toHaveValue("tts.google_translate_en_com");
+  await expect(tts.getByRole("combobox")).toHaveCount(0);
   return tts;
 }
 
@@ -94,7 +92,6 @@ test("Hebrew mobile composer selects iw, submits with keyboard and does not over
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const tts = await openTts(page, true);
-  await expect(tts.getByRole("combobox", { name: "שפה" })).toHaveValue("iw");
   const input = tts.getByRole("textbox");
   await input.fill("נא להגיע לדלת הראשית");
   await input.press("Control+Enter");
@@ -128,4 +125,99 @@ test("composer reports missing HA engines and keeps transmission disabled", asyn
   const tts = page.locator("wiskey-intercom-tts");
   await expect(tts.getByRole("alert")).toContainText("No Home Assistant TTS engine");
   await expect(tts.getByRole("button", { name: "Speak at station" })).toBeDisabled();
+});
+
+test("administrator saves one voice and quick phrases for every station", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".nav").getByRole("button", { name: "Management tools" }).click();
+  await page
+    .locator(".tools-grid")
+    .getByRole("button", { name: "Video, audio and announcements" })
+    .click();
+  const settings = page.locator("hikvision-media-settings");
+  await expect(settings.getByRole("combobox", { name: "Voice engine" })).toBeVisible();
+  await settings
+    .getByRole("combobox", { name: "Voice engine" })
+    .selectOption("tts.google_translate_en_com");
+  await settings.getByRole("combobox", { name: "Language" }).selectOption("iw");
+  await settings.getByRole("button", { name: "Add phrase" }).click();
+  await settings.getByRole("textbox", { name: "Announcement phrase 1" }).fill("נא להגיע לכניסה");
+  await settings.getByRole("button", { name: "Save global settings" }).click();
+  await expect(settings).toContainText("Saved globally");
+  expect(await page.evaluate(() => window.demoData.media_settings)).toMatchObject({
+    tts_engine_id: "tts.google_translate_en_com",
+    tts_language: "iw",
+    tts_phrases: ["נא להגיע לכניסה"],
+  });
+  await page.locator(".nav").getByRole("button", { name: "Overview" }).click();
+  await page.getByRole("button", { name: "View camera", exact: true }).first().click();
+  const tts = page.locator("wiskey-intercom-tts");
+  await expect(tts.getByRole("combobox")).toHaveCount(0);
+  await tts.getByRole("button", { name: "נא להגיע לכניסה" }).click();
+  await expect(tts).toContainText("The announcement was sent to the selected station");
+  expect(
+    await page.evaluate(() => window.calls.findLast((call) => call.type.endsWith("/tts/start"))),
+  ).toMatchObject({
+    station_id: "station-0",
+    engine_id: "tts.google_translate_en_com",
+    language: "iw",
+    message: "נא להגיע לכניסה",
+  });
+});
+
+test("WisKey 04 mobile camera keeps typed composer and sends a saved phrase to its station", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() =>
+    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "wiskey-dark"),
+  );
+  await page.goto("/?lang=he");
+  await page.evaluate(() => {
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      tts_engine_id: "tts.google_translate_en_com",
+      tts_language: "iw",
+      tts_phrases: ["נא להמתין ליד הדלת"],
+    };
+    window.demoNotify();
+  });
+  await page.locator(".wk4-open-camera").first().click();
+  const call = page.getByRole("dialog");
+  const tts = call.locator("wiskey-intercom-tts");
+  await expect(call.locator("hikvision-intercom-camera")).toBeVisible();
+  await expect(tts.getByRole("textbox")).toBeVisible();
+  await expect(tts.getByRole("combobox")).toHaveCount(0);
+  await tts.getByRole("button", { name: "נא להמתין ליד הדלת" }).click();
+  expect(
+    await page.evaluate(() => window.calls.findLast((call) => call.type.endsWith("/tts/start"))),
+  ).toMatchObject({
+    station_id: "station-0",
+    language: "iw",
+    message: "נא להמתין ליד הדלת",
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test("blank and duplicate quick phrases cannot be saved", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".nav").getByRole("button", { name: "Management tools" }).click();
+  await page
+    .locator(".tools-grid")
+    .getByRole("button", { name: "Video, audio and announcements" })
+    .click();
+  const settings = page.locator("hikvision-media-settings");
+  await settings.getByRole("button", { name: "Add phrase" }).click();
+  await expect(settings.getByRole("button", { name: "Save global settings" })).toBeDisabled();
+  await settings.getByRole("textbox", { name: "Announcement phrase 1" }).fill("Please wait");
+  await settings.getByRole("button", { name: "Add phrase" }).click();
+  await settings.getByRole("textbox", { name: "Announcement phrase 2" }).fill("please wait");
+  await expect(settings.getByRole("alert")).toContainText("remove duplicates");
+  await expect(settings.getByRole("button", { name: "Save global settings" })).toBeDisabled();
+  await settings.getByRole("button", { name: "Remove phrase 2" }).click();
+  await expect(settings.getByRole("button", { name: "Save global settings" })).toBeEnabled();
 });

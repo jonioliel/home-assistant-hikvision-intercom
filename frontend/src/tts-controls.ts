@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { icon } from "./icons";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
+import type { MediaPolicy } from "./media-settings";
 
 interface TtsEngine {
   engine_id: string;
@@ -172,6 +173,26 @@ export class IntercomTtsControls extends LitElement {
       padding: 5px 8px;
       max-width: 250px;
     }
+    .quick-phrases {
+      display: flex;
+      gap: 6px;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      margin-top: 8px;
+      padding-bottom: 3px;
+      scrollbar-width: thin;
+    }
+    .quick-phrases button {
+      flex: 0 0 auto;
+      max-width: 220px;
+      min-height: 34px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 999px;
+    }
     .counter {
       margin-inline-start: auto;
       color: var(--secondary-text-color, #64748b);
@@ -264,6 +285,7 @@ export class IntercomTtsControls extends LitElement {
   static properties = {
     hass: { attribute: false },
     station: { attribute: false },
+    settings: { attribute: false },
     message: { state: true },
     engines: { state: true },
     engineId: { state: true },
@@ -276,9 +298,11 @@ export class IntercomTtsControls extends LitElement {
 
   hass?: Hass;
   station?: Station;
+  settings?: MediaPolicy | null;
   private message = "";
   private engines: TtsEngine[] = [];
   private engineId = "";
+  private defaultEngine = "";
   private language = "";
   private loading = false;
   private speaking = false;
@@ -318,14 +342,7 @@ export class IntercomTtsControls extends LitElement {
       this.loadedConnection = this.hass?.connection;
       void this.loadEngines();
     }
-    // Select options are populated asynchronously and Lit updates their children after
-    // the select value part. Re-apply controlled values after every completed render.
-    const engineSelect = this.renderRoot.querySelector<HTMLSelectElement>(".tts-engine");
-    if (engineSelect && engineSelect.value !== this.engineId) engineSelect.value = this.engineId;
-    const languageSelect = this.renderRoot.querySelector<HTMLSelectElement>(".tts-language");
-    if (languageSelect && languageSelect.value !== this.language) {
-      languageSelect.value = this.language;
-    }
+    if (changed.has("settings") && this.engines.length) this.applySettings();
   }
 
   disconnectedCallback() {
@@ -343,6 +360,13 @@ export class IntercomTtsControls extends LitElement {
     return engine.default_language ?? engine.supported_languages[0] ?? "";
   }
 
+  private applySettings() {
+    const configured = this.settings?.tts_engine_id ?? "";
+    this.engineId = configured || this.defaultEngine || this.engines[0]?.engine_id || "";
+    const engine = this.engines.find((item) => item.engine_id === this.engineId);
+    this.language = this.settings?.tts_language || this.chooseLanguage(engine);
+  }
+
   private async loadEngines() {
     if (!this.hass) return;
     const epoch = ++this.epoch;
@@ -354,13 +378,8 @@ export class IntercomTtsControls extends LitElement {
       });
       if (!this.isConnected || epoch !== this.epoch) return;
       this.engines = Array.isArray(result.engines) ? result.engines : [];
-      this.engineId =
-        this.engines.find((item) => item.engine_id === result.default)?.engine_id ??
-        this.engines[0]?.engine_id ??
-        "";
-      this.language = this.chooseLanguage(
-        this.engines.find((item) => item.engine_id === this.engineId),
-      );
+      this.defaultEngine = result.default ?? "";
+      this.applySettings();
     } catch {
       if (this.isConnected && epoch === this.epoch) this.error = "tts_engines_failed";
     } finally {
@@ -417,6 +436,13 @@ export class IntercomTtsControls extends LitElement {
       !this.hass ||
       !this.station?.online ||
       !this.engineId ||
+      !this.engines.some(
+        (engine) =>
+          engine.engine_id === this.engineId &&
+          (!this.settings?.tts_language ||
+            !engine.supported_languages.length ||
+            engine.supported_languages.includes(this.settings.tts_language)),
+      ) ||
       !this.message.trim() ||
       this.message.trim().length > 500
     )
@@ -457,6 +483,14 @@ export class IntercomTtsControls extends LitElement {
   render() {
     if (!this.hass || !this.station) return nothing;
     const engine = this.engines.find((item) => item.engine_id === this.engineId);
+    const invalidVoice = this.engines.length > 0 && !engine;
+    const invalidLanguage = Boolean(
+      engine &&
+      this.settings?.tts_language &&
+      engine.supported_languages.length &&
+      !engine.supported_languages.includes(this.settings.tts_language),
+    );
+    const phrases = this.settings?.tts_phrases ?? [];
     return html`<form class="tts-panel" @submit=${this.submit} aria-label=${this.t("tts_title")}>
       <div class="heading">
         <span class="title">${icon("speaker")} ${this.t("tts_title")}</span>
@@ -468,7 +502,7 @@ export class IntercomTtsControls extends LitElement {
           .value=${this.message}
           aria-label=${this.t("tts_message")}
           placeholder=${this.t("tts_placeholder")}
-          ?disabled=${this.speaking || !this.engines.length}
+          ?disabled=${this.speaking || !this.engines.length || invalidVoice || invalidLanguage}
           @input=${(event: Event) => (this.message = (event.target as HTMLTextAreaElement).value)}
           @keydown=${(event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -480,47 +514,34 @@ export class IntercomTtsControls extends LitElement {
         <button
           class="primary"
           type="submit"
-          ?disabled=${this.speaking || !this.station.online || !this.engineId || !this.message.trim()}
+          ?disabled=${this.speaking || !this.station.online || !this.engineId || invalidVoice || invalidLanguage || !this.message.trim()}
         >
           ${this.t("tts_send")}
         </button>
       </div>
-      <div class="settings">
-        <label
-          ><span class="setting-label">${this.t("tts_engine")}</span>
-          <select
-            class="tts-engine"
-            aria-label=${this.t("tts_engine")}
-            .value=${this.engineId}
-            ?disabled=${this.speaking || this.loading}
-            @change=${(event: Event) => {
-              this.engineId = (event.target as HTMLSelectElement).value;
-              this.language = this.chooseLanguage(
-                this.engines.find((item) => item.engine_id === this.engineId),
-              );
-            }}
-          >
-            ${this.engines.map((item) => html`<option value=${item.engine_id} ?selected=${item.engine_id === this.engineId}>${item.name}</option>`)}
-          </select>
-        </label>
-        ${
-          engine?.supported_languages.length
-            ? html`<label
-                ><span class="setting-label">${this.t("tts_language")}</span>
-                <select
-                  class="tts-language"
-                  aria-label=${this.t("tts_language")}
-                  .value=${this.language}
-                  ?disabled=${this.speaking}
-                  @change=${(event: Event) => (this.language = (event.target as HTMLSelectElement).value)}
-                >
-                  ${engine.supported_languages.map((item) => html`<option value=${item} ?selected=${item === this.language}>${item}</option>`)}
-                </select>
-              </label>`
-            : nothing
-        }
-        <span class="counter">${this.message.length}/500</span>
-      </div>
+      ${
+        phrases.length
+          ? html`<div class="quick-phrases" aria-label=${this.t("tts_quick_phrases")}>
+              ${phrases.map(
+                (phrase) =>
+                  html`<button
+                    type="button"
+                    title=${phrase}
+                    ?disabled=${this.speaking || !this.station?.online || !engine || invalidLanguage}
+                    @click=${() => {
+                      this.message = phrase;
+                      void this.submit();
+                    }}
+                  >
+                    ${phrase}
+                  </button>`,
+              )}
+            </div>`
+          : nothing
+      }
+      <div class="settings"><span class="counter">${this.message.length}/500</span></div>
+      ${invalidVoice ? html`<p class="status error" role="alert">${this.t("tts_engine_unavailable")}</p>` : nothing}
+      ${invalidLanguage ? html`<p class="status error" role="alert">${this.t("tts_language_unavailable")}</p>` : nothing}
       ${
         !this.loading && !this.engines.length && !this.error
           ? html`<p class="status error" role="alert">${this.t("tts_no_engine")}</p>`

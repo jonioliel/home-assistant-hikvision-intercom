@@ -6,6 +6,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { downloadText } from "./download";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
+import type { MediaPolicy } from "./media-settings";
 import { decodeMuLaw } from "./audio-codec";
 
 interface AudioEvent {
@@ -206,6 +207,7 @@ export class IntercomAudioControls extends LitElement {
     hideTts: { type: Boolean },
     v4: { type: Boolean, reflect: true },
     talkMode: { attribute: false },
+    ttsSettings: { attribute: false },
     hass: { attribute: false },
     station: { attribute: false },
     _state: { state: true },
@@ -228,6 +230,7 @@ export class IntercomAudioControls extends LitElement {
   hideTts = false;
   v4 = false;
   talkMode: "ptt" | "toggle" = "ptt";
+  ttsSettings?: MediaPolicy | null;
   hass?: Hass;
   station?: Station;
   private _state = "idle";
@@ -1059,7 +1062,7 @@ export class IntercomAudioControls extends LitElement {
       ${this.dock && this._talking ? html`<meter class="microphone-level" min="0" max="100" .value=${this._signal} aria-label=${this.t("audio_signal")}></meter>` : nothing}
       ${!window.isSecureContext ? html`<p>${this.t("audio_https_required")}</p>` : nothing}
       ${this._error ? html`<p class="error" role="alert">${this.t(this._error)}</p>` : nothing}
-      ${this.dock && !this.hideTts ? html`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station}></wiskey-intercom-tts>` : nothing}
+      ${this.dock && !this.hideTts ? html`<wiskey-intercom-tts compact .hass=${this.hass} .station=${this.station} .settings=${this.ttsSettings}></wiskey-intercom-tts>` : nothing}
     </section>`;
   }
 }

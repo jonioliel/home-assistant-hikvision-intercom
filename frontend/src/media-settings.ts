@@ -11,6 +11,9 @@ export interface MediaPolicy {
   webrtc_mode: "rtc" | "mse";
   fallback_hls: boolean;
   go2rtc_url: string;
+  tts_engine_id?: string;
+  tts_language?: string;
+  tts_phrases?: string[];
 }
 export const DEFAULT_MEDIA: MediaPolicy = {
   talk_mode: "ptt",
@@ -19,7 +22,17 @@ export const DEFAULT_MEDIA: MediaPolicy = {
   webrtc_mode: "rtc",
   fallback_hls: true,
   go2rtc_url: "",
+  tts_engine_id: "",
+  tts_language: "",
+  tts_phrases: [],
 };
+interface TtsEngine {
+  engine_id: string;
+  name: string;
+  supported_languages: string[];
+  default_language: string | null;
+}
+
 export class MediaSettingsPanel extends LitElement {
   static styles = styles;
   static properties = {
@@ -31,6 +44,9 @@ export class MediaSettingsPanel extends LitElement {
     server: { state: true },
     error: { state: true },
     stale: { state: true },
+    engines: { state: true },
+    engineDefault: { state: true },
+    engineLoadError: { state: true },
   };
   hass?: Hass;
   settings?: MediaPolicy | null;
@@ -41,6 +57,10 @@ export class MediaSettingsPanel extends LitElement {
   private server = "";
   private error = "";
   private stale = false;
+  private engines: TtsEngine[] = [];
+  private engineDefault = "";
+  private engineLoadError = false;
+  private loadedConnection?: Hass["connection"];
   private requests = new ScopedRequests(() => this.hass);
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   protected updated(_changed: PropertyValues) {
@@ -52,11 +72,55 @@ export class MediaSettingsPanel extends LitElement {
       this.notice = "";
       this.stale = false;
     }
-    if (this.settings && !this.draft) this.draft = { ...this.settings };
+    if (this.settings && !this.draft) this.draft = this.asDraft(this.settings);
+    if (this.hass?.user?.is_admin && this.loadedConnection !== this.hass.connection) {
+      this.loadedConnection = this.hass.connection;
+      void this.loadEngines();
+    }
+    const select = this.renderRoot.querySelector<HTMLSelectElement>(".tts-settings-engine");
+    if (select && select.value !== (this.draft?.tts_engine_id ?? "")) {
+      select.value = this.draft?.tts_engine_id ?? "";
+    }
+    const languageSelect =
+      this.renderRoot.querySelector<HTMLSelectElement>(".tts-settings-language");
+    if (languageSelect && languageSelect.value !== (this.draft?.tts_language ?? "")) {
+      languageSelect.value = this.draft?.tts_language ?? "";
+    }
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.requests.cancel();
+  }
+  private asDraft(value: MediaPolicy): MediaPolicy {
+    return { ...DEFAULT_MEDIA, ...value, tts_phrases: [...(value.tts_phrases ?? [])] };
+  }
+  private async loadEngines() {
+    const connection = this.hass?.connection;
+    try {
+      const result = await this.hass?.callWS<{ default: string | null; engines: TtsEngine[] }>({
+        type: "hikvision_intercom/tts/engines",
+      });
+      if (!this.isConnected || connection !== this.hass?.connection) return;
+      this.engines = Array.isArray(result?.engines) ? result.engines : [];
+      this.engineDefault = result?.default ?? "";
+      this.engineLoadError = false;
+    } catch {
+      if (this.isConnected && connection === this.hass?.connection) this.engineLoadError = true;
+    }
+  }
+  private updatePhrase(index: number, value: string) {
+    const phrases = [...(this.draft?.tts_phrases ?? [])];
+    phrases[index] = value;
+    this.change("tts_phrases", phrases);
+  }
+  private invalidPhrases(): boolean {
+    const phrases = this.draft?.tts_phrases ?? [];
+    const trimmed = phrases.map((phrase) => phrase.trim());
+    return (
+      phrases.length > 10 ||
+      trimmed.some((phrase) => !phrase || phrase.length > 160) ||
+      new Set(trimmed.map((phrase) => phrase.toLocaleLowerCase())).size !== trimmed.length
+    );
   }
   private change(key: keyof MediaPolicy, value: unknown) {
     this.draft = { ...this.draft!, [key]: value };
@@ -66,9 +130,11 @@ export class MediaSettingsPanel extends LitElement {
     this.busy = true;
     this.error = "";
     try {
-      this.draft = await this.requests.run<MediaPolicy>(
-        { type: "hikvision_intercom/media/settings_get" },
-        10000,
+      this.draft = this.asDraft(
+        await this.requests.run<MediaPolicy>(
+          { type: "hikvision_intercom/media/settings_get" },
+          10000,
+        ),
       );
       this.stale = false;
     } catch {
@@ -89,7 +155,7 @@ export class MediaSettingsPanel extends LitElement {
         12000,
       );
       if (!this.isConnected) return;
-      this.draft = result;
+      this.draft = this.asDraft(result);
       this.notice = "media_saved";
       this.dispatchEvent(new CustomEvent("media-saved", { detail: result }));
     } catch (e) {
@@ -218,8 +284,102 @@ export class MediaSettingsPanel extends LitElement {
                 }`
             : nothing
         }
+        <fieldset class="tts-settings" style="margin-top: 20px">
+          <legend>${this.t("tts_settings_title")}</legend>
+          <p>${this.t("tts_settings_hint")}</p>
+          <label
+            >${this.t("tts_engine")}
+            <select
+              class="tts-settings-engine"
+              aria-label=${this.t("tts_engine")}
+              .value=${draft.tts_engine_id ?? ""}
+              ?disabled=${this.busy}
+              @change=${(e: Event) => {
+                this.change("tts_engine_id", (e.target as HTMLSelectElement).value);
+                this.change("tts_language", "");
+              }}
+            >
+              <option value="">${this.t("tts_default_engine")}</option>
+              ${
+                draft.tts_engine_id &&
+                !this.engines.some((engine) => engine.engine_id === draft.tts_engine_id)
+                  ? html`<option value=${draft.tts_engine_id}>
+                      ${draft.tts_engine_id} · ${this.t("tts_engine_unavailable")}
+                    </option>`
+                  : nothing
+              }
+              ${this.engines.map((engine) => html`<option value=${engine.engine_id}>${engine.name}</option>`)}
+            </select>
+          </label>
+          ${this.engineLoadError ? html`<p role="alert">${this.t("tts_engines_failed")}</p>` : nothing}
+          <label
+            >${this.t("tts_language")}
+            <select
+              class="tts-settings-language"
+              aria-label=${this.t("tts_language")}
+              .value=${draft.tts_language ?? ""}
+              ?disabled=${this.busy}
+              @change=${(e: Event) => this.change("tts_language", (e.target as HTMLSelectElement).value)}
+            >
+              <option value="">${this.t("tts_auto_language")}</option>
+              ${(() => {
+                const selected = this.engines.find(
+                  (engine) => engine.engine_id === (draft.tts_engine_id || this.engineDefault),
+                );
+                const languages = selected?.supported_languages ?? [];
+                return html`${
+                  draft.tts_language && !languages.includes(draft.tts_language)
+                    ? html`<option value=${draft.tts_language}>
+                        ${draft.tts_language} · ${this.t("tts_language_unavailable")}
+                      </option>`
+                    : nothing
+                }${languages.map((language) => html`<option value=${language}>${language}</option>`)}`;
+              })()}
+            </select>
+          </label>
+          <h3>${this.t("tts_quick_phrases")}</h3>
+          <p class="sub">${this.t("tts_phrase_hint")}</p>
+          ${(draft.tts_phrases ?? []).map(
+            (phrase, index) =>
+              html`<div class="row" style="margin-bottom: 8px">
+                <input
+                  type="text"
+                  maxlength="160"
+                  style="flex: 1"
+                  .value=${phrase}
+                  aria-label=${`${this.t("tts_phrase")} ${index + 1}`}
+                  ?disabled=${this.busy}
+                  @input=${(e: Event) => this.updatePhrase(index, (e.target as HTMLInputElement).value)}
+                />
+                <button
+                  type="button"
+                  ?disabled=${this.busy}
+                  aria-label=${`${this.t("tts_phrase_remove")} ${index + 1}`}
+                  @click=${() =>
+                    this.change(
+                      "tts_phrases",
+                      (this.draft?.tts_phrases ?? []).filter((_, position) => position !== index),
+                    )}
+                >
+                  ${this.t("tts_phrase_remove")}
+                </button>
+              </div>`,
+          )}
+          <button
+            type="button"
+            ?disabled=${this.busy || (draft.tts_phrases ?? []).length >= 10}
+            @click=${() => this.change("tts_phrases", [...(this.draft?.tts_phrases ?? []), ""])}
+          >
+            ${this.t("tts_phrase_add")}
+          </button>
+          ${this.invalidPhrases() ? html`<p role="alert">${this.t("tts_phrase_invalid")}</p>` : nothing}
+        </fieldset>
         <div class="row" style="margin-top: 20px; flex-wrap: wrap">
-          <button class="primary" type="submit" ?disabled=${this.busy || this.stale}>
+          <button
+            class="primary"
+            type="submit"
+            ?disabled=${this.busy || this.stale || this.invalidPhrases()}
+          >
             ${this.t("media_save")}
           </button>
           <button type="button" ?disabled=${this.busy} @click=${() => this.reload()}>

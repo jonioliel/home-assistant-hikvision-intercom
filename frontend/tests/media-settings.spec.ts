@@ -32,23 +32,51 @@ async function signing(page: Page) {
 
 test("global options save, reload, broadcast and conflicts", async ({ page }) => {
   await page.goto("/");
-  await navigate(page, "Camera playback options");
+  await navigate(page, "Video, audio and announcements");
   const form = page.locator("hikvision-media-settings");
   await form.getByLabel("WebRTC / go2rtc player mode", { exact: true }).selectOption("mse");
   await form.getByLabel("Allow automatic HLS fallback if the selected mode fails").uncheck();
-  await form.getByRole("button", { name: "Save for all cameras" }).click();
+  await form.getByRole("button", { name: "Save global settings" }).click();
   await expect(form).toContainText("Saved globally");
   expect(await page.evaluate(() => window.demoData.media_settings.webrtc_mode)).toBe("mse");
-  await navigate(page, "Camera playback options");
+  await navigate(page, "Video, audio and announcements");
   await expect(form.getByLabel("WebRTC / go2rtc player mode", { exact: true })).toHaveValue("mse");
   await page.evaluate(() => {
     window.demoData.media_settings.revision++;
     window.demoNotify();
   });
-  await form.getByRole("button", { name: "Save for all cameras" }).click();
+  await form.getByRole("button", { name: "Save global settings" }).click();
   await expect(form).toContainText("Another administrator changed");
   await form.getByRole("button", { name: "Reload saved settings" }).click();
-  await expect(form.getByRole("button", { name: "Save for all cameras" })).toBeEnabled();
+  await expect(form.getByRole("button", { name: "Save global settings" })).toBeEnabled();
+});
+
+test("saving TTS phrases does not restart an open camera player", async ({ page }) => {
+  await page.goto("/");
+  await selectPolicy(page, { ...policy, transport: "hls" });
+  await open(page);
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+    )
+    .toBeGreaterThan(0);
+  const before = await page.evaluate(
+    () => window.calls.filter((call) => call.type === "camera/stream").length,
+  );
+  await page.evaluate(() => {
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      revision: window.demoData.media_settings.revision + 1,
+      tts_phrases: ["Please wait"],
+    };
+    window.demoNotify();
+  });
+  await expect(
+    page.locator("wiskey-intercom-tts").getByRole("button", { name: "Please wait" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+  ).toBe(before);
 });
 
 test("explicit HLS never probes RTC or opens MSE", async ({ page }) => {
@@ -160,10 +188,10 @@ for (const width of [360, 768, 1440]) {
       const panel = document.querySelector("hikvision-intercom-panel") as any;
       panel._appearance = "modern";
     });
-    await navigate(page, "אפשרויות ניגון מצלמות");
+    await navigate(page, "הגדרות וידאו, שמע והודעות קוליות");
     const form = page.locator("hikvision-media-settings");
     await form.getByLabel("מצב נגן WebRTC / go2rtc", { exact: true }).selectOption("mse");
-    await expect(form.getByRole("button", { name: "שמירה לכל המצלמות" })).toBeVisible();
+    await expect(form.getByRole("button", { name: "שמירה לכל המערכת" })).toBeVisible();
     expect(await form.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBeTruthy();
     if (width === 1440)
       await page.screenshot({ path: "test-results/media-options-he.png", fullPage: true });

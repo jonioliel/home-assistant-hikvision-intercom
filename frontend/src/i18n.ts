@@ -470,10 +470,10 @@ const en = {
   media_discovered: "Add-on found. Save to use it for both RTC and MSE.",
   media_discover_failed:
     "Add-on DNS was not reachable. Enter the HA server address with port 1984, save and check the connection.",
-  media_options: "Camera playback options",
-  tools_media_options: "Global video transport for all WisKey cameras.",
+  media_options: "Video, audio and announcements",
+  tools_media_options: "Global video, talk and announcement settings for WisKey.",
   media_scope:
-    "Applies to every WisKey live player, station and browser. Other Home Assistant camera cards use their own player settings.",
+    "Applies to every WisKey live player and intercom announcement. Other Home Assistant camera cards use their own player settings.",
   media_transport: "Video transport",
   media_webrtc_mode: "WebRTC / go2rtc player mode",
   media_mse_hint:
@@ -484,7 +484,7 @@ const en = {
   media_go2rtc_url: "go2rtc server address (RTC and MSE)",
   media_go2rtc_hint:
     "Leave empty to use the Home Assistant go2rtc integration. Otherwise enter a trusted local server reachable from HA, such as http://go2rtc:1984. HA sends the camera source to this server; its address and camera credentials stay out of the player. No username or password in this address.",
-  media_save: "Save for all cameras",
+  media_save: "Save global settings",
   media_reload: "Reload saved settings",
   media_provider_check: "Check saved go2rtc server",
   media_saved: "Saved globally. Open WisKey players reconnect using this preference.",
@@ -534,6 +534,19 @@ const en = {
   tts_stop: "Stop announcement",
   tts_engine: "Voice engine",
   tts_language: "Language",
+  tts_settings_title: "Intercom announcements",
+  tts_settings_hint:
+    "Choose the voice and language once for all stations. Saved quick phrases appear in every camera call window.",
+  tts_default_engine: "Home Assistant default engine",
+  tts_auto_language: "Automatic language",
+  tts_quick_phrases: "Quick announcements",
+  tts_phrase: "Announcement phrase",
+  tts_phrase_hint:
+    "Add up to 10 phrases, 160 characters each. A tap in the camera sends the selected phrase immediately to that station.",
+  tts_phrase_add: "Add phrase",
+  tts_phrase_remove: "Remove phrase",
+  tts_phrase_invalid: "Complete each phrase and remove duplicates before saving.",
+  tts_language_unavailable: "The saved language is not supported by the selected voice engine.",
   tts_connecting: "Preparing the announcement…",
   tts_generating: "Generating speech in Home Assistant…",
   tts_speaking: "Speaking at the selected station…",
@@ -2310,10 +2323,10 @@ const he: Record<keyof typeof en, string> = {
   media_discovered: "התוסף נמצא. שמור כדי להשתמש בו גם ב־RTC וגם ב־MSE.",
   media_discover_failed:
     "התוסף לא נגיש בשם הרשת שלו. הזן את כתובת שרת HA עם פורט 1984, שמור ובדוק חיבור.",
-  media_options: "אפשרויות ניגון מצלמות",
-  tools_media_options: "בחירת אופן ניגון הווידאו בכל מצלמות WisKey.",
+  media_options: "הגדרות וידאו, שמע והודעות קוליות",
+  tools_media_options: "הגדרות וידאו, דיבור והודעות קוליות לכל מערכת WisKey.",
   media_scope:
-    "ההגדרה חלה על כל נגני הווידאו החיים ב־WisKey, בכל התחנות והדפדפנים. כרטיסי מצלמה אחרים ב־Home Assistant משתמשים בהגדרות הנגן שלהם.",
+    "ההגדרות חלות על כל נגני WisKey ועל ההודעות הקוליות בכל התחנות. כרטיסי מצלמה אחרים ב־Home Assistant משתמשים בהגדרות הנגן שלהם.",
   media_transport: "אופן ניגון הווידאו",
   media_webrtc_mode: "מצב נגן WebRTC / go2rtc",
   media_mse_hint:
@@ -2323,14 +2336,14 @@ const he: Record<keyof typeof en, string> = {
   media_go2rtc_url: "כתובת שרת go2rtc (ל־RTC ול־MSE)",
   media_go2rtc_hint:
     "השאר ריק כדי להשתמש באינטגרציית go2rtc של Home Assistant. לחלופין הזן שרת מקומי מהימן שנגיש מ־HA, למשל http://go2rtc:1984. HA מוסר לשרת זה את מקור המצלמה; הכתובת ופרטי המצלמה אינם נשלחים לנגן. אין להזין שם משתמש או סיסמה בכתובת.",
-  media_save: "שמירה לכל המצלמות",
+  media_save: "שמירה לכל המערכת",
   media_reload: "טעינת ההגדרות השמורות",
   media_provider_check: "בדיקת שרת go2rtc השמור",
   media_saved: "נשמר לכל המערכת. נגני WisKey פתוחים מתחברים מחדש לפי ההגדרה.",
   media_load_failed: "לא ניתן לטעון את הגדרות הניגון. רענן או בדוק את אבחון האינטגרציה.",
   media_conflict: "מנהל אחר שינה את ההגדרות. טען אותן מחדש לפני שמירה.",
   media_invalid:
-    "בדוק את הכתובת והאפשרויות; הכתובת אינה יכולה לכלול פרטי התחברות, נתיב או פרמטרים.",
+    "בדוק את הגדרות הווידאו, מנוע הקול והמשפטים; כתובת השרת אינה יכולה לכלול פרטי התחברות, נתיב או פרמטרים.",
   media_save_unknown: "השמירה לא אושרה. טען את ההגדרות השמורות לפני ניסיון נוסף.",
   media_provider_ready: "שרת go2rtc השמור נגיש. פענוח וידאו מהמצלמה נבדק בפתיחת הנגן.",
   media_provider_failed:
@@ -2370,6 +2383,19 @@ const he: Record<keyof typeof en, string> = {
   tts_stop: "עצור הקראה",
   tts_engine: "מנוע קול",
   tts_language: "שפה",
+  tts_settings_title: "הודעות קוליות לאינטרקומים",
+  tts_settings_hint:
+    "בחר מנוע קול ושפה פעם אחת לכל התחנות. משפטים שמורים יופיעו בחלון המצלמה של כל תחנה.",
+  tts_default_engine: "מנוע ברירת המחדל של Home Assistant",
+  tts_auto_language: "שפה אוטומטית",
+  tts_quick_phrases: "הודעות מהירות",
+  tts_phrase: "משפט להקראה",
+  tts_phrase_hint:
+    "ניתן להוסיף עד 10 משפטים, עד 160 תווים למשפט. לחיצה בחלון המצלמה שולחת מיד את המשפט לתחנה שנבחרה.",
+  tts_phrase_add: "הוסף משפט",
+  tts_phrase_remove: "הסר משפט",
+  tts_phrase_invalid: "יש להשלים כל משפט ולהסיר כפילויות לפני השמירה.",
+  tts_language_unavailable: "השפה השמורה אינה נתמכת במנוע הקול שנבחר.",
   tts_connecting: "מכין את ההודעה…",
   tts_generating: "Home Assistant מייצר את ההקראה…",
   tts_speaking: "ההודעה מוקראת בתחנה שנבחרה…",

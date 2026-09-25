@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from typing import Any
@@ -16,20 +17,53 @@ DEFAULTS = {
     "fallback_hls": True,
     "go2rtc_url": "",
     "talk_mode": "ptt",
+    "tts_engine_id": "",
+    "tts_language": "",
+    "tts_phrases": [],
 }
+CORE_FIELDS = {"transport", "webrtc_mode", "fallback_hls", "go2rtc_url"}
 
 
 def normalize(values: dict[str, Any]) -> dict[str, Any]:
-    if isinstance(values, dict) and set(values) == set(DEFAULTS) - {"talk_mode"}:
-        values = {**values, "talk_mode": "ptt"}
-    if not isinstance(values, dict) or set(values) != set(DEFAULTS):
+    """Accept older stored media policies while rejecting unknown or malformed fields."""
+    if (
+        not isinstance(values, dict)
+        or not CORE_FIELDS.issubset(values)
+        or not set(values).issubset(DEFAULTS)
+    ):
         raise AccessError("invalid_fields")
+    values = {**deepcopy(DEFAULTS), **values}
     if values["transport"] not in ("hls", "webrtc") or values["webrtc_mode"] not in ("rtc", "mse"):
         raise AccessError("invalid_fields")
     if values["talk_mode"] not in ("ptt", "toggle"):
         raise AccessError("invalid_fields")
     if type(values["fallback_hls"]) is not bool:
         raise AccessError("invalid_fields")
+    engine = values["tts_engine_id"]
+    language = values["tts_language"]
+    phrases = values["tts_phrases"]
+    if not isinstance(engine, str) or (
+        engine and not re.fullmatch(r"tts\.[a-z0-9_]{1,200}", engine)
+    ):
+        raise AccessError("invalid_fields")
+    if not isinstance(language, str) or (
+        language and not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", language)
+    ):
+        raise AccessError("invalid_fields")
+    if not isinstance(phrases, list) or len(phrases) > 10:
+        raise AccessError("invalid_fields")
+    normalized_phrases: list[str] = []
+    for phrase in phrases:
+        if not isinstance(phrase, str) or any(ord(char) < 32 for char in phrase):
+            raise AccessError("invalid_fields")
+        clean = phrase.strip()
+        if (
+            not clean
+            or len(clean) > 160
+            or clean.casefold() in {row.casefold() for row in normalized_phrases}
+        ):
+            raise AccessError("invalid_fields")
+        normalized_phrases.append(clean)
     url = values["go2rtc_url"]
     if not isinstance(url, str) or len(url) > 512 or any(ord(c) < 33 for c in url):
         raise AccessError("invalid_fields")
@@ -50,7 +84,7 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError
         except ValueError:
             raise AccessError("invalid_fields") from None
-    return {**values, "go2rtc_url": url.rstrip("/")}
+    return {**values, "go2rtc_url": url.rstrip("/"), "tts_phrases": normalized_phrases}
 
 
 class MediaSettings:
@@ -59,7 +93,7 @@ class MediaSettings:
     ):
         self.save = save
         self.changed = changed
-        self.data: dict[str, Any] = {"schema": 1, "revision": 0, "values": dict(DEFAULTS)}
+        self.data: dict[str, Any] = {"schema": 1, "revision": 0, "values": deepcopy(DEFAULTS)}
         self.lock = asyncio.Lock()
 
     def load(self, data: dict[str, Any] | None) -> None:
@@ -84,8 +118,16 @@ class MediaSettings:
 
     async def update(self, revision: int, values: dict[str, Any]) -> dict[str, Any]:
         async with self.lock:
-            if isinstance(values, dict) and "talk_mode" not in values:
-                values = {**values, "talk_mode": self.data["values"]["talk_mode"]}
+            if isinstance(values, dict):
+                # An older open panel must not erase newly saved preferences.
+                values = {
+                    **{
+                        key: self.data["values"][key]
+                        for key in DEFAULTS
+                        if key not in values and key not in CORE_FIELDS
+                    },
+                    **values,
+                }
             values = normalize(values)
             if type(revision) is not int or revision != self.data["revision"]:
                 raise AccessError("revision_conflict")

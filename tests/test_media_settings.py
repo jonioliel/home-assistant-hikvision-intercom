@@ -101,3 +101,50 @@ async def test_talk_mode_legacy_load_preserved_by_old_client_and_failed_save():
     assert store.public()["talk_mode"] == "toggle"
     with pytest.raises(AccessError):
         normalize({**DEFAULTS, "talk_mode": "always"})
+
+
+async def test_tts_preferences_persist_and_legacy_client_cannot_erase_them():
+    save = AsyncMock()
+    store = MediaSettings(save, Mock())
+    values = {
+        **DEFAULTS,
+        "tts_engine_id": "tts.google_translate_en_com",
+        "tts_language": "iw",
+        "tts_phrases": [" נא לגשת לדלת ", "הכניסה סגורה"],
+    }
+    saved = await store.update(0, values)
+    assert saved["tts_phrases"] == ["נא לגשת לדלת", "הכניסה סגורה"]
+    saved["tts_phrases"].append("not persisted")
+    assert store.public()["tts_phrases"] == ["נא לגשת לדלת", "הכניסה סגורה"]
+    reloaded = MediaSettings(AsyncMock(), Mock())
+    reloaded.load(deepcopy(save.call_args.args[0]))
+    assert reloaded.public() == store.public()
+    legacy = {key: value for key, value in DEFAULTS.items() if not key.startswith("tts_")}
+    await store.update(1, {**legacy, "transport": "hls"})
+    assert store.public()["tts_engine_id"] == "tts.google_translate_en_com"
+    assert store.public()["tts_language"] == "iw"
+    assert store.public()["tts_phrases"] == ["נא לגשת לדלת", "הכניסה סגורה"]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"tts_engine_id": "http://untrusted"},
+        {"tts_language": "bad language"},
+        {"tts_phrases": "not a list"},
+        {"tts_phrases": [" "]},
+        {"tts_phrases": ["שלום", "שלום"]},
+        {"tts_phrases": ["x" * 161]},
+        {"tts_phrases": ["x"] * 11},
+        {"tts_phrases": ["line\nbreak"]},
+    ],
+)
+def test_tts_settings_reject_invalid_values(change):
+    with pytest.raises(AccessError, match="invalid_fields"):
+        normalize({**DEFAULTS, **change})
+
+
+async def test_partial_core_update_is_rejected():
+    store = MediaSettings(AsyncMock(), Mock())
+    with pytest.raises(AccessError, match="invalid_fields"):
+        await store.update(0, {"transport": "hls"})

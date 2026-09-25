@@ -2,10 +2,10 @@ import { test, expect } from "@playwright/test";
 import { navigate } from "./navigation";
 test("global microphone mode persists through admin settings", async ({ page }) => {
   await page.goto("/");
-  await navigate(page, "Camera playback options");
+  await navigate(page, "Video, audio and announcements");
   const form = page.locator("hikvision-media-settings");
   await form.getByLabel("Microphone control (all stations)").selectOption("toggle");
-  await form.getByRole("button", { name: "Save for all cameras" }).click();
+  await form.getByRole("button", { name: "Save global settings" }).click();
   await expect(form).toContainText("Saved globally");
   expect(await page.evaluate(() => window.demoData.media_settings.talk_mode)).toBe("toggle");
 });

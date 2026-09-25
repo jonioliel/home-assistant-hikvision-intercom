@@ -22,7 +22,13 @@ async def test_global_settings_survive_reload_and_conflicting_admin(
     other = await hass_ws_client(hass)
     original = await request(client, "media/settings_get")
     assert original["result"] == {"revision": 0, **DEFAULTS}
-    values = {**DEFAULTS, "transport": "hls"}
+    values = {
+        **DEFAULTS,
+        "transport": "hls",
+        "tts_engine_id": "tts.google_translate_en_com",
+        "tts_language": "iw",
+        "tts_phrases": ["היכנסו בבקשה"],
+    }
     result = await request(client, "media/settings_update", revision=0, values=values)
     assert result["success"] and result["result"]["revision"] == 1
     conflict = await request(other, "media/settings_update", revision=0, values=DEFAULTS)

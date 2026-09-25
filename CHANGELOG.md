@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.11.0] - 2026-09-25
+
+- Move intercom TTS voice and language selection from each camera window into administrator-managed, fleet-wide media settings. Retain the Home Assistant default option and migrate existing saved media policies without loss.
+- Add up to ten editable quick announcements. Operators can send a saved phrase with one click to the selected station while keeping the free-text composer, playback status and stop controls.
+- Validate phrases and voice preferences, preserve settings across reloads and old-client updates, and prevent TTS-only changes from restarting an open camera player.
+- Add backend and browser coverage plus a focused Hebrew acceptance checklist for verifying actual loudspeaker playback.
+
 ## [1.10.1] - 2026-09-25
 
 - Keep the WisKey 04 light and dark background across the full Home Assistant viewport on short-content pages, including the entry dashboard and people view. The four earlier appearances are unchanged.
