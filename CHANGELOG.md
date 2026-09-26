@@ -4,6 +4,8 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+- Document the HA add-on connection path, WisKey command/permission boundary, complete VMS screen-parity map and media integration limits for SMPLWISE VMS.
+
 ## [2.0.0-rc.4] - 2026-09-27
 
 - Display saved quick TTS announcements as full-width, vertically stacked buttons in the camera dialog, with complete text and no horizontal scrolling in desktop and mobile layouts.
