@@ -60,7 +60,7 @@ configuration differences are field names only. The desired draft names/windows 
 should be treated as private scheduling information. Delete local proposal releases only its
 local reservations; it never removes a device configuration.
 
-Storage `.storage/hikvision_intercom.schedule_plans` is independent, private and atomic. Load
+Storage `.storage/smplwise_access_control.schedule_plans` is independent, private and atomic. Load
 validates the schema, candidate bounds, report allowlists, digests and reservation uniqueness.
 Corruption raises its own Repair while core access, drafts and comparison baselines remain usable.
 Rechecking is explicit; this release adds no background monitor or automatic deployment.

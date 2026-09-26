@@ -19,7 +19,7 @@ Unknown PIN modes disable PIN writes. Capability ranges override manufacturer ex
 
 ## Durable reconciliation
 
-Private versioned data lives in `.storage/hikvision_intercom.users` in HA's Store envelope, with
+Private versioned data lives in `.storage/smplwise_access_control.users` in HA's Store envelope, with
 private file permissions and HA's atomic/fsync file helper. Secrets are recoverable for deployment;
 this is not encryption. Restrict access to HA configuration and backups.
 The adapter propagates write errors instead of relying on Store's log-only failure path.
@@ -41,7 +41,7 @@ revocations finish: its stored target ID is needed to resume pending cleanup.
 
 ## Actions and administrator interface
 
-`hikvision_intercom.sync_user` takes a central `user_id`; `sync_station` and `rescan_station` take
+`smplwise_access_control.sync_user` takes a central `user_id`; `sync_station` and `rescan_station` take
 `station_id` (a HA config-entry ID). `sync_all` takes no arguments. All four are administrator-only.
 Sync actions queue reconciliation without waiting for offline devices. Rescan waits for a read-only
 capability/inventory refresh and never requests reconciliation; ordinary background work continues.

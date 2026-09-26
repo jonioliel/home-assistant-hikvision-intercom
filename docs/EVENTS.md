@@ -37,7 +37,7 @@ actions:
       message: Someone is ringing the intercom.
 ```
 
-History is private, versioned `.storage/hikvision_intercom.events`, capped at 5,000 records
+History is private, versioned `.storage/smplwise_access_control.events`, capped at 5,000 records
 and 30 days from receipt, pruned hourly and on queries. It contains masked cards and no PINs,
 raw payloads, images or device URLs. A short batching interval reduces disk writes; an abrupt
 power loss may lose the last unsaved batch. Graceful shutdown flushes pending history.
