@@ -3,9 +3,9 @@
 import json
 from unittest.mock import AsyncMock, patch
 
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.access_runtime import get_manager
-from custom_components.hikvision_intercom.storage import AccessStore
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access_runtime import get_manager
+from custom_components.smplwise_access_control.storage import AccessStore
 
 from .test_websocket import request
 
@@ -86,7 +86,7 @@ async def test_permission_audit_endpoint_is_readonly_and_bounded(
 ):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.hikvision_intercom.admin_operations_api.inspect_permissions",
+        "custom_components.smplwise_access_control.admin_operations_api.inspect_permissions",
         AsyncMock(return_value={"device_writes": 0, "rows": []}),
     ) as read:
         result = await request(

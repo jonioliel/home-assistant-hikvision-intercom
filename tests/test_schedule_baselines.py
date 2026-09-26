@@ -10,14 +10,14 @@ import pytest
 from test_client import SETTINGS
 from test_schedule_inventory import ROOTS, transport
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedule_baselines import (
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedule_baselines import (
     KINDS,
     ScheduleBaselines,
     compare,
 )
-from custom_components.hikvision_intercom.client.client import HikvisionClient
-from custom_components.hikvision_intercom.client.schedule_inventory import inspect_inventory
+from custom_components.smplwise_access_control.client.client import HikvisionClient
+from custom_components.smplwise_access_control.client.schedule_inventory import inspect_inventory
 
 STAMP = "2026-09-09T10:00:00+00:00"
 IDENTITY = "a" * 64

@@ -5,9 +5,9 @@ from datetime import timedelta
 import pytest
 from test_events import NOW, normalized, payload
 
-from custom_components.hikvision_intercom.events import EventCache
-from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
-from custom_components.hikvision_intercom.reporting import event_report
+from custom_components.smplwise_access_control.events import EventCache
+from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
+from custom_components.smplwise_access_control.reporting import event_report
 
 
 def test_reports_do_not_count_unlock_as_second_authentication():

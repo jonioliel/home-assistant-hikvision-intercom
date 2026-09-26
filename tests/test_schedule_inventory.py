@@ -10,14 +10,14 @@ import pytest
 from test_client import SETTINGS
 from test_schedules import CAPS, FLAGS, draft, holiday
 
-from custom_components.hikvision_intercom.access.schedule_assessment import assess
-from custom_components.hikvision_intercom.client.client import HikvisionClient
-from custom_components.hikvision_intercom.client.schedule_inventory import (
+from custom_components.smplwise_access_control.access.schedule_assessment import assess
+from custom_components.smplwise_access_control.client.client import HikvisionClient
+from custom_components.smplwise_access_control.client.schedule_inventory import (
     SEARCH,
     inspect_inventory,
     search_capability,
 )
-from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
+from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
 
 OBSERVED = json.loads(
     (Path(__file__).parent / "fixtures/schedule_search_readonly.json").read_text()

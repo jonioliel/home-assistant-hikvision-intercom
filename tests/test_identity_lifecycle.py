@@ -4,11 +4,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from custom_components.hikvision_intercom.access.identity_lifecycle import (
+from custom_components.smplwise_access_control.access.identity_lifecycle import (
     candidate_matches,
     report,
 )
-from custom_components.hikvision_intercom.access.models import AccessError, build_user
+from custom_components.smplwise_access_control.access.models import AccessError, build_user
 
 NOW = datetime(2026, 9, 23, 9, 0, tzinfo=UTC)
 

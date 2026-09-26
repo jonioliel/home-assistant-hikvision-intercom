@@ -8,12 +8,12 @@ for (const [width, height, count] of [
   test(`camera proportions and full frame ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.addInitScript(() =>
-      localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
+      localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
     );
     await page.goto("/?lang=he");
     await expect(page.locator(".overview-wall")).toBeVisible();
     await page.evaluate((n) => {
-      const p = document.querySelector("hikvision-intercom-panel") as any;
+      const p = document.querySelector("smplwise-access-control-panel") as any;
       const src = p._data.stations;
       p._data = {
         ...p._data,
@@ -24,7 +24,7 @@ for (const [width, height, count] of [
         })),
       };
     }, count);
-    const camera = page.locator(".overview-wall hikvision-intercom-camera").first();
+    const camera = page.locator(".overview-wall smplwise-access-control-camera").first();
     await expect(camera.locator("img")).toBeVisible();
     await expect
       .poll(async () => {

@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import (
+from custom_components.smplwise_access_control.access.models import (
     AccessError,
     SecretValue,
     valid_period,
 )
-from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.repository import AccessRepository
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ async def test_pin_availability_generation_and_atomic_collision(repo, monkeypatc
 
     values = iter([23_456, 654_321, 1, 2])
     monkeypatch.setattr(
-        "custom_components.hikvision_intercom.access.repository.secrets.randbelow",
+        "custom_components.smplwise_access_control.access.repository.secrets.randbelow",
         lambda _maximum: next(values),
     )
     assert repo.generate_unique_pin() == "754321"

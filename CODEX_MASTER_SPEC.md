@@ -5,14 +5,14 @@
 > **Owner scope amendment — 2026-09-11:** WisKey manages **1–X intercoms**, with dynamic station registration. Nine stations are neither a product target nor a prerequisite for acceptance or release. Fleet size in older examples is illustrative. DoD 1 is retired as a separate fixed-count gate; independent station behavior remains mandatory under section 3 and routine functional tests. DoD 40 is retained as a sustained stability test at the relevant deployment/load size, without a fixed hardware count. See [scope and recalculated acceptance](docs/SCALABLE_SCOPE_HE.md). Resource budgets and measured capacity limits remain explicit.
 
 
-**Project domain:** `hikvision_intercom`  
+**Project domain:** `smplwise_access_control`
 **Target:** Home Assistant 2026.9+ custom integration / HACS  
 **Target fleet:** 1–X independently managed Hikvision DS-KV6124-E1 stations  
 **Observed target firmware:** V3.9.0 build 260115  
 **Design:** Local-first ISAPI integration + centralized access-control administration panel
 
 **Mandatory product requirements added in v1.1:**
-- Every intercom camera must be viewable both as a standard Home Assistant `camera` entity and inside the dedicated Intercom Manager sidebar panel.
+- Every intercom camera must be viewable both as a standard Home Assistant `camera` entity and inside the dedicated WisKey sidebar panel.
 - During setup/reconfigure of every intercom, the administrator must explicitly choose which physical lock outputs are imported and managed: Relay 1 only, Relay 2 only, or both.
 - An unselected relay must not create an entity, appear in the panel, be targetable by services/actions, or appear in user door-permission controls.
 
@@ -188,7 +188,7 @@ Repository root should include at minimum:
 ```text
 /
 ├── custom_components/
-│   └── hikvision_intercom/
+│   └── smplwise_access_control/
 │       ├── __init__.py
 │       ├── manifest.json
 │       ├── config_flow.py
@@ -210,7 +210,7 @@ Repository root should include at minimum:
 
 Rules:
 - There must be only one Home Assistant integration under `custom_components/`.
-- Every file required at runtime must be distributed inside `custom_components/hikvision_intercom/`.
+- Every file required at runtime must be distributed inside `custom_components/smplwise_access_control/`.
 - Frontend source may live outside the integration directory, but compiled production frontend assets required at runtime must be packaged inside the integration directory.
 - Root `hacs.json` is required and must describe the integration.
 - `manifest.json` must contain the custom integration `version`.
@@ -224,7 +224,7 @@ Example `hacs.json`:
 
 ```json
 {
-  "name": "Hikvision Intercom Manager",
+  "name": "smplwise access control",
   "render_readme": true
 }
 ```
@@ -344,7 +344,7 @@ Pre-1.0 versions may evolve more quickly, but migrations must still be implement
 
 The same release version must be consistent between:
 - Git tag / GitHub Release
-- `custom_components/hikvision_intercom/manifest.json`
+- `custom_components/smplwise_access_control/manifest.json`
 - release notes / changelog
 
 Tags should use:
@@ -423,7 +423,7 @@ It is not necessary to wait for inclusion in HACS's default repository list to u
 # 4. Repository layout
 
 ```text
-custom_components/hikvision_intercom/
+custom_components/smplwise_access_control/
 ├── __init__.py
 ├── manifest.json
 ├── const.py
@@ -466,7 +466,7 @@ custom_components/hikvision_intercom/
 │
 └── frontend/
     └── dist/
-        ├── hikvision-intercom-panel.js
+        ├── smplwise-access-control-panel.js
         └── assets/...
 
 frontend/
@@ -612,7 +612,7 @@ Save sanitized responses into fixtures.
 # 6. Config Flow
 
 Home Assistant:
-`Settings → Devices & services → Add Integration → Hikvision Intercom`
+`Settings → Devices & services → Add Integration → smplwise access control`
 
 ## Page 1 — Connection
 Fields:
@@ -669,7 +669,7 @@ Allowed configurations:
 
 Rules:
 - Only selected relays create `lock` entities.
-- Only selected relays appear on the dedicated Intercom Manager screens.
+- Only selected relays appear on the dedicated WisKey screens.
 - Only selected relays appear in unlock actions/services.
 - Only selected relays are available in per-user door-permission assignment.
 - Backend validation rejects unlock or access-right requests for an unselected relay.
@@ -953,7 +953,7 @@ Important: the datasheet documents two lock relays but only one native door-cont
 
 ## HA action
 ```yaml
-action: hikvision_intercom.unlock_door
+action: smplwise_access_control.unlock_door
 target:
   device_id: ...
 data:
@@ -979,7 +979,7 @@ camera.<station>
 Requirements:
 - usable in ordinary Home Assistant dashboards/Lovelace
 - usable in popup cards and automations
-- independent of the custom Intercom Manager panel
+- independent of the custom WisKey panel
 - local video with no cloud dependency
 - RTSP preferred for live video
 - snapshot support where available
@@ -1000,7 +1000,7 @@ GET /ISAPI/Streaming/channels/101/picture
 
 A substream can be exposed as an optional, disabled-by-default secondary camera entity if confirmed useful.
 
-## 12.2 Camera inside the dedicated Intercom Manager panel
+## 12.2 Camera inside the dedicated WisKey panel
 
 The same intercom video must also be viewable from the dedicated Home Assistant sidebar panel.
 
@@ -1684,7 +1684,7 @@ Register an administrator-only custom panel.
 
 Suggested route:
 ```text
-/hikvision-intercom
+/smplwise-access-control
 ```
 
 Hebrew title:
@@ -1694,7 +1694,7 @@ Hebrew title:
 
 English:
 ```text
-Intercom Manager
+WisKey
 ```
 
 Use:
@@ -1739,7 +1739,7 @@ Sync
 Top summary:
 
 ```text
-Intercom Manager
+smplwise access control
 
 8/9 Online       1 Ringing       3 Pending sync
 ```
@@ -1952,32 +1952,32 @@ Buttons:
 Panel commands:
 
 ```text
-hikvision_intercom/overview
-hikvision_intercom/users/list
-hikvision_intercom/users/get
-hikvision_intercom/users/create
-hikvision_intercom/users/update
-hikvision_intercom/users/delete
-hikvision_intercom/users/set_active
+smplwise_access_control/overview
+smplwise_access_control/users/list
+smplwise_access_control/users/get
+smplwise_access_control/users/create
+smplwise_access_control/users/update
+smplwise_access_control/users/delete
+smplwise_access_control/users/set_active
 
-hikvision_intercom/cards/add
-hikvision_intercom/cards/remove
+smplwise_access_control/cards/add
+smplwise_access_control/cards/remove
 
-hikvision_intercom/stations/list
-hikvision_intercom/stations/get
-hikvision_intercom/stations/test_unlock
-hikvision_intercom/stations/rescan
+smplwise_access_control/stations/list
+smplwise_access_control/stations/get
+smplwise_access_control/stations/test_unlock
+smplwise_access_control/stations/rescan
 
-hikvision_intercom/sync/user
-hikvision_intercom/sync/station
-hikvision_intercom/sync/all
-hikvision_intercom/sync/status
+smplwise_access_control/sync/user
+smplwise_access_control/sync/station
+smplwise_access_control/sync/all
+smplwise_access_control/sync/status
 
-hikvision_intercom/conflicts/list
-hikvision_intercom/conflicts/resolve
+smplwise_access_control/conflicts/list
+smplwise_access_control/conflicts/resolve
 
-hikvision_intercom/events/list
-hikvision_intercom/subscribe
+smplwise_access_control/events/list
+smplwise_access_control/subscribe
 ```
 
 Every mutating WebSocket command:
@@ -2030,17 +2030,17 @@ Never send raw cardNo or PIN unless a one-time admin write operation absolutely 
 Register in `async_setup`, not per-entry.
 
 ```text
-hikvision_intercom.unlock_door
-hikvision_intercom.sync_user
-hikvision_intercom.sync_station
-hikvision_intercom.sync_all
-hikvision_intercom.rescan_station
+smplwise_access_control.unlock_door
+smplwise_access_control.sync_user
+smplwise_access_control.sync_station
+smplwise_access_control.sync_all
+smplwise_access_control.rescan_station
 ```
 
 Optional capability-gated later:
 ```text
-hikvision_intercom.reject_call
-hikvision_intercom.hangup_call
+smplwise_access_control.reject_call
+smplwise_access_control.hangup_call
 ```
 
 Use translated `ServiceValidationError` / `HomeAssistantError`.
@@ -2054,9 +2054,9 @@ Use `homeassistant.helpers.storage.Store`.
 Suggested files:
 
 ```text
-.storage/hikvision_intercom.users
-.storage/hikvision_intercom.sync
-.storage/hikvision_intercom.events
+.storage/smplwise_access_control.users
+.storage/smplwise_access_control.sync
+.storage/smplwise_access_control.events
 ```
 
 Schema version every Store.
@@ -2651,7 +2651,7 @@ These requirements are release blockers.
 
 ## Camera
 - Every video-capable station exposes `camera.<station>` as a normal Home Assistant entity.
-- The same station video is viewable inside the custom Intercom Manager panel.
+- The same station video is viewable inside the custom WisKey panel.
 - The user is never forced to choose between the HA camera and the dedicated-panel camera; both are provided.
 - A ringing station prominently displays its camera in the panel.
 - The panel never embeds Hikvision usernames/passwords in browser-visible URLs.
@@ -2676,7 +2676,7 @@ These requirements are release blockers.
 - [ ] Ring state.
 - [ ] Doorbell event.
 - [ ] Live camera is viewable as a normal Home Assistant camera entity.
-- [ ] Live camera is viewable inside the dedicated Intercom Manager panel.
+- [ ] Live camera is viewable inside the dedicated WisKey panel.
 - [ ] Ringing station prominently displays its live camera in the dedicated panel.
 - [ ] Relay 1 only can be selected during setup.
 - [ ] Relay 2 only can be selected during setup.
@@ -2805,14 +2805,14 @@ Hikvision Add-ons ISAPI notes:
 https://github.com/pergolafabio/Hikvision-Addons/blob/main/doorbell/ISAPI.md
 
 Native HA Hikvision intercom project:
-https://github.com/TimLuist1/hikvision-intercom
+https://github.com/TimLuist1/smplwise-access-control
 
 ---
 
 # 63. Key implementation warning
 
 Two non-negotiable product requirements must remain intact in every phase:
-1. Camera must be available both as a normal Home Assistant camera entity and inside the dedicated Intercom Manager panel.
+1. Camera must be available both as a normal Home Assistant camera entity and inside the dedicated WisKey panel.
 2. Every station setup/reconfigure flow must explicitly choose the managed relay set; never expose an unused second relay by default.
 
 The most important rule in this entire specification:

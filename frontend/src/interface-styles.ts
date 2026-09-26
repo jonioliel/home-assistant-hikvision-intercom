@@ -194,7 +194,7 @@ export const interfaceStyles = css`
     margin: 0;
     background: var(--secondary-background-color, #eef2f4);
   }
-  .station .camera-wrap hikvision-intercom-camera {
+  .station .camera-wrap smplwise-access-control-camera {
     border-radius: 0;
   }
   .station .camera-wrap > button {

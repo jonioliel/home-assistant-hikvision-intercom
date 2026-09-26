@@ -2,7 +2,7 @@ import csv
 import io
 import json
 
-from custom_components.hikvision_intercom.access.operational_readiness import (
+from custom_components.smplwise_access_control.access.operational_readiness import (
     export_inventory,
     fleet_inventory,
     upgrade_readiness,

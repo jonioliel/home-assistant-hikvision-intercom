@@ -3,7 +3,7 @@
 import json
 from datetime import UTC, datetime, timedelta
 
-from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.smplwise_access_control.access_runtime import get_manager
 
 from .test_websocket import request
 

@@ -1,12 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { navigate, openAppearance } from "./navigation";
 
-const key = "hikvision-intercom:appearance:v1:demo-admin";
+const key = "smplwise-access-control:appearance:v1:demo-admin";
 async function start(page: Page, design = "access-light", width = 1440) {
   await page.setViewportSize({ width, height: 900 });
   await page.addInitScript(({ key, design }) => localStorage.setItem(key, design), { key, design });
   await page.goto("/?lang=he");
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute("data-appearance", design);
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
+    "data-appearance",
+    design,
+  );
 }
 async function noOverflow(page: Page) {
   await expect
@@ -110,25 +113,25 @@ test("global default is saved, followed by another user and preserves personal o
   await picker.getByRole("radio", { name: "WisKey Access · Dark", exact: true }).check();
   await picker.getByLabel("Set this design as the shared default for all users").check();
   await picker.getByRole("button", { name: "Apply design" }).click();
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
     "data-appearance",
     "access-dark",
   );
   expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBeNull();
   await page.evaluate(() => {
-    const p = document.querySelector("hikvision-intercom-panel") as any;
+    const p = document.querySelector("smplwise-access-control-panel") as any;
     p.hass = { ...window.demoHass, user: { id: "second-admin", is_admin: true } };
   });
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
     "data-appearance",
     "access-dark",
   );
   await page.evaluate(() => {
-    localStorage.setItem("hikvision-intercom:appearance:v1:third-admin", "modern");
-    const p = document.querySelector("hikvision-intercom-panel") as any;
+    localStorage.setItem("smplwise-access-control:appearance:v1:third-admin", "modern");
+    const p = document.querySelector("smplwise-access-control-panel") as any;
     p.hass = { ...window.demoHass, user: { id: "third-admin", is_admin: true } };
   });
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
     "data-appearance",
     "modern",
   );
@@ -148,7 +151,7 @@ test("failed shared save stays open and does not claim the new default", async (
   await picker.getByLabel("Set this design as the shared default for all users").check();
   await picker.getByRole("button", { name: "Apply design" }).click();
   await expect(picker.getByRole("alert")).toBeVisible();
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
     "data-appearance",
     "current",
   );
@@ -240,7 +243,7 @@ for (const design of ["access-light", "access-dark"]) {
     await names.nth(1).click();
     await expect(page.locator("wiskey-user-details[embedded] h2")).toHaveText(selected);
     await navigate(page, "אירועים");
-    await expect(page.locator("hikvision-intercom-events")).toBeVisible();
+    await expect(page.locator("smplwise-access-control-events")).toBeVisible();
     await expect(page.locator("wiskey-user-details")).toHaveCount(0);
     await expect(page.locator(".editor-dialog")).toHaveCount(0);
     await navigate(page, "משתמשים");

@@ -1,4 +1,6 @@
-# WisKey — smart access for Home Assistant
+# smplwise access control — WisKey interface for Home Assistant
+
+> **Domain migration in development:** this working tree uses `smplwise_access_control` instead of `hikvision_intercom`. Do not install it over an existing Home Assistant system without the [offline migration procedure](docs/DOMAIN_RENAME_MIGRATION_HE.md) and a verified full backup. Published releases remain on the old domain until the migration is rehearsed.
 
 Published runtime: **[1.11.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.11.0)**.
 This release moves intercom TTS voice and language preferences into global administrator settings and adds saved one-click announcements beside the free-text camera composer.
@@ -6,7 +8,8 @@ The existing appearance choices, audio controls, camera playback and access comm
 [Focused Hebrew TTS check](docs/manual-tests/WISKEY_1.11.0_TTS_TESTS_HE.html).
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
-Home Assistant integration for Hikvision DS-KV6124-E1 stations, distributed through HACS.
+Home Assistant access-control integration, distributed through HACS. The current device adapter supports the tested Hikvision DS-KV6124-E1 stations; other vendors, including Akuvox, require separate adapters and capability validation.
+The [branding and future-vendor compatibility note](docs/BRAND_AND_VENDOR_COMPATIBILITY_HE.md) explains which technical identifiers are retained.
 The [Master Spec](CODEX_MASTER_SPEC.md) defines the full project. Observed firmware:
 V3.9.0 build 260115. Other Hikvision models are not enabled by this release.
 
@@ -108,7 +111,7 @@ or earlier requires restoring a matching backup.
 - A supervised mapping wizard: explicitly send a test release, then confirm that the intended
   lock released and returned. No lock is enabled by capability discovery alone.
 - Momentary release through the lock entity and the administrator-only
-  `hikvision_intercom.unlock_door` action. Unselected locks are rejected before network I/O.
+  `smplwise_access_control.unlock_door` action. Unselected locks are rejected before network I/O.
 - Shared polling with active/idle intervals, offline backoff and connection cleanup.
 - Diagnostics that exclude host addresses, credentials, serials and raw device responses.
 
@@ -192,9 +195,9 @@ and access/event features:
 
 1. In HACS, add `https://github.com/jonioliel/home-assistant-hikvision-intercom` as a
    **Custom repository**, category **Integration**.
-2. Open **Hikvision Intercom Manager**, select the intended release in the download
+2. Open **smplwise access control**, select the intended release in the download
    dialog (enable beta versions if needed), download it and restart Home Assistant.
-3. In **Settings → Devices & services → Add integration**, choose **WisKey**.
+3. In **Settings → Devices & services → Add integration**, choose **smplwise access control**.
 4. Enter the station address, account and ports, then confirm the detected device.
 5. Choose camera-only mode or stand beside the active lock and complete the mapping test.
 6. Repeat for each station. Receive subsequent releases through HACS and restart after updates.
@@ -220,7 +223,7 @@ Open **Sync** to see the translated reason below each failed assignment. After r
 Station/user references shown in the matrix match the pseudonyms in the report. The report
 excludes names, addresses, employee IDs, PINs, card numbers and raw ISAPI payloads.
 Home Assistant entry diagnostics include the same station-specific trace. Debug logging for
-`custom_components.hikvision_intercom.access.diagnostics` adds individual stages; failed stages
+`custom_components.smplwise_access_control.access.diagnostics` adds individual stages; failed stages
 also produce a warning, with repeated identical failures throttled for five minutes.
 
 A permanent user uses `Valid.enable=false`; the auxiliary dates do not impose an expiry.

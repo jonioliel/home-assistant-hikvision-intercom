@@ -9,12 +9,15 @@ from unittest.mock import AsyncMock
 import pytest
 from test_access_engine import create_user, setup  # noqa: F401
 
-from custom_components.hikvision_intercom import api_contract
-from custom_components.hikvision_intercom.access.engine import SyncEngine
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.access.sync_tracking import pending_age, pending_users
-from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+from custom_components.smplwise_access_control import api_contract
+from custom_components.smplwise_access_control.access.engine import SyncEngine
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.sync_tracking import (
+    pending_age,
+    pending_users,
+)
+from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
 
 
 @pytest.mark.parametrize("version", [0, 1])
@@ -167,7 +170,7 @@ async def test_repeated_absence_readback_does_not_rewrite_completed_operation(se
     operation = deepcopy(repo.public()["sync_operations"])
     calls = repo._save.await_count
     monkeypatch.setattr(
-        "custom_components.hikvision_intercom.access.sync_tracking.utc_now",
+        "custom_components.smplwise_access_control.access.sync_tracking.utc_now",
         lambda: "2030-01-01T00:00:00+00:00",
     )
     await engine.async_reconcile("a", driver)
@@ -178,7 +181,7 @@ async def test_repeated_absence_readback_does_not_rewrite_completed_operation(se
 async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
     from test_profiles import PHOTO
 
-    from custom_components.hikvision_intercom.profile_settings import ProfileSettings
+    from custom_components.smplwise_access_control.profile_settings import ProfileSettings
 
     repo = AccessRepository(AsyncMock())
     policy = ProfileSettings(repo.async_profile_settings, lambda: None, repo.profile_settings)

@@ -1,0 +1,36 @@
+unlock_door:
+  target:
+    entity:
+      integration: smplwise_access_control
+      domain: lock
+  fields:
+    lock:
+      required: true
+      default: 1
+      selector:
+        select:
+          options:
+            - "1"
+            - "2"
+
+sync_user:
+  fields:
+    user_id:
+      required: true
+      selector:
+        text:
+sync_station:
+  fields:
+    station_id:
+      required: true
+      selector:
+        config_entry:
+          integration: smplwise_access_control
+sync_all:
+rescan_station:
+  fields:
+    station_id:
+      required: true
+      selector:
+        config_entry:
+          integration: smplwise_access_control

@@ -17,12 +17,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from custom_components.hikvision_intercom.client.client import (
+from custom_components.smplwise_access_control.client.client import (
     ConnectionSettings,
     HikvisionClient,
     create_session,
 )
-from custom_components.hikvision_intercom.exceptions import HikvisionAuthError, HikvisionError
+from custom_components.smplwise_access_control.exceptions import HikvisionAuthError, HikvisionError
 
 
 @dataclass
@@ -103,7 +103,7 @@ async def run(config: Path, seconds: int, interval: int) -> dict[str, Any]:
     started = datetime.now(UTC).isoformat()
     results = await asyncio.gather(*(measure(item, seconds, interval) for item in settings))
     return {
-        "format": "hikvision_intercom.fleet_soak",
+        "format": "smplwise_access_control.fleet_soak",
         "started_at": started,
         "finished_at": datetime.now(UTC).isoformat(),
         "read_only": True,

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
 
 
 @pytest.mark.parametrize(
@@ -52,13 +52,13 @@ async def test_earlier_central_user_does_not_identify_events_before_station_owne
     repo = AccessRepository(AsyncMock())
     await repo.async_load(None)
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-01T00:00:00+00:00",
     ):
         user = await repo.async_create({"display_name": "Current resident", "employee_no": "00042"})
         await repo.async_bind("a", user.id, fingerprint="observed-a")
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-10T00:00:00+00:00",
     ):
         if mode == "adopt":
@@ -95,14 +95,14 @@ async def test_legacy_binding_waits_for_observation_and_preserves_its_time_on_re
     assert repo.snapshot()["bindings"] == legacy["bindings"]
     assert repo.event_person_name("a", "00042", "2026-09-01T00:00:00+00:00") is None
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-10T00:00:00+00:00",
     ):
         await repo.async_record_observation(
             "a", user.id, fingerprint="observed", applied_revision=user.revision
         )
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-11T00:00:00+00:00",
     ):
         await repo.async_record_observation(
@@ -141,7 +141,7 @@ async def test_create_intent_does_not_backdate_owner_and_recreated_binding_gets_
     )
     assert repo.event_person_name("a", "00042", "2030-01-01T00:00:00+00:00") is None
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-10T00:00:00+00:00",
     ):
         await repo.async_record_observation("a", user.id, fingerprint="new", applied_revision=None)
@@ -149,7 +149,7 @@ async def test_create_intent_does_not_backdate_owner_and_recreated_binding_gets_
     assert repo.event_person_name("a", "00042", "2026-09-10T00:00:01+00:00") == "Resident"
     await repo.async_confirm_absent("a", user.id)
     with patch(
-        "custom_components.hikvision_intercom.access.repository.utc_now",
+        "custom_components.smplwise_access_control.access.repository.utc_now",
         return_value="2026-09-11T00:00:00+00:00",
     ):
         await repo.async_bind("a", user.id, fingerprint="recreated")

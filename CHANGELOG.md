@@ -2,6 +2,11 @@
 
 Semantic Versioning is used throughout the project.
 
+## Unreleased
+
+- Prepare the successor `smplwise_access_control` integration domain, package and panel routes, with a matching browser client and offline, backup-first migration tool. Preserve station entry IDs, entity IDs, device links and private access stores during migration. This source change is not yet a published upgrade; it requires a stopped-HA rehearsal on a configuration copy.
+- Rename the visible Home Assistant/HACS integration to **smplwise access control** and document the future vendor-adapter boundary.
+
 ## [1.11.1] - 2026-09-26
 
 - Route explicit camera listening through the WebKit playback audio session on supported mobile browsers, then restore the prior session when listening ends or the camera closes. This addresses silent Web Audio output on iOS while retaining the existing camera gain and microphone paths.

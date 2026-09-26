@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.user_directory import query_users
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.user_directory import query_users
 
 
 def user(identifier: str, employee: str, name: str, **values):

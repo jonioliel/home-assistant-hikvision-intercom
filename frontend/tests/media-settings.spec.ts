@@ -99,7 +99,7 @@ test("explicit HLS never probes RTC or opens MSE", async ({ page }) => {
 
 for (const fallback of [false, true]) {
   test(`MSE failure respects fallback ${fallback}`, async ({ page }) => {
-    await page.routeWebSocket(/\/api\/hikvision_intercom\/mse\//, (ws) =>
+    await page.routeWebSocket(/\/api\/smplwise_access_control\/mse\//, (ws) =>
       ws.onMessage(() =>
         ws.send(JSON.stringify({ type: "error", code: "mse_provider_unavailable" })),
       ),
@@ -123,7 +123,7 @@ test("MSE decodes synthetic fMP4, exports safe evidence and stops on global chan
 }) => {
   let data: number[] = [];
   let closed = false;
-  await page.routeWebSocket(/\/api\/hikvision_intercom\/mse\//, (ws) => {
+  await page.routeWebSocket(/\/api\/smplwise_access_control\/mse\//, (ws) => {
     ws.onClose(() => (closed = true));
     ws.onMessage((message) => {
       const codecs = JSON.parse(message.toString()).codecs;
@@ -185,7 +185,7 @@ for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/?lang=he");
     await page.evaluate(() => {
-      const panel = document.querySelector("hikvision-intercom-panel") as any;
+      const panel = document.querySelector("smplwise-access-control-panel") as any;
       panel._appearance = "modern";
     });
     await navigate(page, "הגדרות וידאו, שמע והודעות קוליות");

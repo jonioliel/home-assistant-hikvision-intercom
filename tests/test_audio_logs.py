@@ -5,7 +5,7 @@ import logging
 
 import pytest
 
-from custom_components.hikvision_intercom.log_filter import AccessWebSocketFilter
+from custom_components.smplwise_access_control.log_filter import AccessWebSocketFilter
 
 
 @pytest.mark.parametrize("encoding", ["dict", "bytes", "string", "batch"])
@@ -14,7 +14,7 @@ def test_outgoing_audio_packets_and_tokens_are_redacted_without_mutating_message
         "id": 7,
         "type": "event",
         "event": {
-            "format": "hikvision_intercom.audio",
+            "format": "smplwise_access_control.audio",
             "token": "PRIVATE_SESSION_TOKEN",
             "data": "PRIVATE_AUDIO",
         },

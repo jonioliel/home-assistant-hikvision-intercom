@@ -322,19 +322,19 @@ const fake = {
   ),
   connection: {
     async subscribeMessage(callback, message = {}) {
-      if (message.type === "hikvision_intercom/tts/start") {
+      if (message.type === "smplwise_access_control/tts/start") {
         window.calls.push(structuredClone(message));
         window.tts ??= { starts: 0, stops: 0 };
         window.tts.starts++;
         let cancelled = false;
         queueMicrotask(() => {
-          if (!cancelled) callback({ state: "generating", format: "hikvision_intercom.tts" });
+          if (!cancelled) callback({ state: "generating", format: "smplwise_access_control.tts" });
         });
         setTimeout(() => {
           if (!cancelled)
             callback({
               state: "speaking",
-              format: "hikvision_intercom.tts",
+              format: "smplwise_access_control.tts",
               duration_seconds: 1.2,
             });
         }, 1000);
@@ -342,7 +342,7 @@ const fake = {
           if (!cancelled)
             callback({
               state: "completed",
-              format: "hikvision_intercom.tts",
+              format: "smplwise_access_control.tts",
               duration_seconds: 1.2,
               bytes_written: 9600,
             });
@@ -358,7 +358,7 @@ const fake = {
   },
   async callWS(message) {
     window.calls.push(structuredClone(message));
-    const command = message.type.replace("hikvision_intercom/", "");
+    const command = message.type.replace("smplwise_access_control/", "");
     if (command === "authorization/session")
       return structuredClone(
         this?.user?.is_admin === false && !query.has("reader")
@@ -680,7 +680,7 @@ const fake = {
     }
     if (command === "schedules/export")
       return {
-        format: "hikvision_intercom.schedule_drafts",
+        format: "smplwise_access_control.schedule_drafts",
         version: 1,
         schedules: schedules.map(({ name, weekly, holidays }) =>
           structuredClone({ name, weekly, holidays }),
@@ -694,7 +694,7 @@ const fake = {
         throw { code: "schedule_transfer_invalid" };
       }
       if (
-        document.format !== "hikvision_intercom.schedule_drafts" ||
+        document.format !== "smplwise_access_control.schedule_drafts" ||
         document.version !== 1 ||
         !Array.isArray(document.schedules) ||
         !document.schedules.length
@@ -977,7 +977,7 @@ const fake = {
     }
     if (command === "users/lifecycle") {
       return {
-        format: "hikvision_intercom.identity_lifecycle",
+        format: "smplwise_access_control.identity_lifecycle",
         generated_at: "2026-09-23T09:00:00Z",
         warning_days: message.warning_days,
         summary: {
@@ -1341,6 +1341,6 @@ const fake = {
   },
 };
 window.demoHass = fake;
-const panel = document.createElement("hikvision-intercom-panel");
+const panel = document.createElement("smplwise-access-control-panel");
 panel.hass = fake;
 document.body.append(panel);

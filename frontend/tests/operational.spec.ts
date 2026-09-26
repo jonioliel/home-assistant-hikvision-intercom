@@ -92,7 +92,7 @@ for (const design of ["current", "modern"]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
       await page.evaluate((design) => {
-        const panel = document.querySelector("hikvision-intercom-panel");
+        const panel = document.querySelector("smplwise-access-control-panel");
         panel._appearance = design;
         panel.requestUpdate();
       }, design);
@@ -121,7 +121,7 @@ for (const design of ["current", "modern"]) {
     await page.goto("/");
     await page.evaluate((design) => {
       document.body.style.zoom = "2";
-      const panel = document.querySelector("hikvision-intercom-panel");
+      const panel = document.querySelector("smplwise-access-control-panel");
       panel._appearance = design;
       panel.requestUpdate();
     }, design);

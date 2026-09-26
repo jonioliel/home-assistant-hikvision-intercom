@@ -7,13 +7,13 @@ import httpx
 import pytest
 from test_schedule_inventory import SETTINGS
 
-from custom_components.hikvision_intercom.client.client import HikvisionClient
-from custom_components.hikvision_intercom.client.schedule_dependencies import (
+from custom_components.smplwise_access_control.client.client import HikvisionClient
+from custom_components.smplwise_access_control.client.schedule_dependencies import (
     inspect_dependencies,
     summarize,
     user_references,
 )
-from custom_components.hikvision_intercom.exceptions import HikvisionAuthError
+from custom_components.smplwise_access_control.exceptions import HikvisionAuthError
 
 
 def inventory(state="complete"):
@@ -87,11 +87,11 @@ def test_public_id_lists_are_bounded_without_losing_counts():
 async def test_reads_only_user_search_and_redacts_failed_read():
     with (
         patch(
-            "custom_components.hikvision_intercom.client.schedule_dependencies.inspect_inventory",
+            "custom_components.smplwise_access_control.client.schedule_dependencies.inspect_inventory",
             AsyncMock(return_value=inventory()),
         ),
         patch(
-            "custom_components.hikvision_intercom.client.schedule_dependencies.AccessClient"
+            "custom_components.smplwise_access_control.client.schedule_dependencies.AccessClient"
         ) as access,
     ):
         access.return_value.async_capabilities = AsyncMock()

@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 from test_access_engine import Device
 
-from custom_components.hikvision_intercom.client.audio import CHANNEL
+from custom_components.smplwise_access_control.client.audio import CHANNEL
 
 
 class AudioPeer:

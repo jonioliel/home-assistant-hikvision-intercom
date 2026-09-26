@@ -100,7 +100,7 @@ export class ProfileSettingsPanel extends LitElement {
     this.busy = true;
     try {
       this.draft = await this.requests.run<ProfilePolicy>(
-        { type: "hikvision_intercom/profiles/settings_get" },
+        { type: "smplwise_access_control/profiles/settings_get" },
         10000,
       );
       this.stale = false;
@@ -121,7 +121,7 @@ export class ProfileSettingsPanel extends LitElement {
     const { revision, ...values } = this.draft;
     try {
       const result = await this.requests.run<PolicyReview>(
-        { type: "hikvision_intercom/profiles/settings_preview", revision, values },
+        { type: "smplwise_access_control/profiles/settings_preview", revision, values },
         15000,
       );
       if (!this.isConnected) return;
@@ -152,7 +152,7 @@ export class ProfileSettingsPanel extends LitElement {
     this.busy = true;
     try {
       await this.requests.run(
-        { type: "hikvision_intercom/profiles/settings_apply", operation_id: this.pending },
+        { type: "smplwise_access_control/profiles/settings_apply", operation_id: this.pending },
         20000,
       );
       if (!this.isConnected) return;
@@ -173,7 +173,7 @@ export class ProfileSettingsPanel extends LitElement {
     this.busy = true;
     try {
       await this.requests.run(
-        { type: "hikvision_intercom/users/bulk_receipt", operation_id: this.pending },
+        { type: "smplwise_access_control/users/bulk_receipt", operation_id: this.pending },
         10000,
       );
       await this.reload();

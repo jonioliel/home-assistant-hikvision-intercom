@@ -9,8 +9,8 @@ import pytest
 from aiohttp import web
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from custom_components.hikvision_intercom.const import DOMAIN
-from custom_components.hikvision_intercom.media_settings import DEFAULTS, MediaSettings
+from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.smplwise_access_control.media_settings import DEFAULTS, MediaSettings
 
 from .test_websocket import request
 
@@ -35,7 +35,7 @@ async def test_global_settings_survive_reload_and_conflicting_admin(
     assert conflict["error"]["code"] == "revision_conflict"
     overview = await request(other, "overview")
     assert overview["result"]["media_settings"] == result["result"]
-    from custom_components.hikvision_intercom.storage import AccessStore
+    from custom_components.smplwise_access_control.storage import AccessStore
 
     loaded = MediaSettings(AsyncMock(), lambda: None)
     loaded.load(await AccessStore(hass, key=f"{DOMAIN}.media_settings").async_load())

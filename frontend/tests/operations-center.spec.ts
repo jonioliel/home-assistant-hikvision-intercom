@@ -37,7 +37,7 @@ test("operations center is usable on mobile without horizontal overflow", async 
 
 test("person details use the dedicated endpoint and reuse the bounded cache", async ({ page }) => {
   await page.addInitScript(() =>
-    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "access-light"),
+    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "access-light"),
   );
   await page.goto("/?operations=1");
   await navigate(page, "Users");

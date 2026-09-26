@@ -116,7 +116,7 @@ test("stored image loads through the bridge without exposing upstream URLs", asy
   await page.evaluate(() => {
     const original = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = async (msg: Record<string, unknown>) => {
-      if (msg.type === "hikvision_intercom/whatsapp/history")
+      if (msg.type === "smplwise_access_control/whatsapp/history")
         return {
           messages: [
             {
@@ -130,7 +130,7 @@ test("stored image loads through the bridge without exposing upstream URLs", asy
             },
           ],
         };
-      if (msg.type === "hikvision_intercom/whatsapp/media")
+      if (msg.type === "smplwise_access_control/whatsapp/media")
         return {
           mime: "image/png",
           data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",

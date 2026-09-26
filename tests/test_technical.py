@@ -5,14 +5,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.client.technical import (
+from custom_components.smplwise_access_control.client.technical import (
     PASSWORD_FIELDS,
     constraints,
     door_values,
     password_status,
     update_door,
 )
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionTimeoutError,
     HikvisionValidationError,
 )
@@ -65,7 +65,7 @@ async def test_invalid_change_has_no_write(changes):
     }
     with (
         patch(
-            "custom_components.hikvision_intercom.client.technical.read_door",
+            "custom_components.smplwise_access_control.client.technical.read_door",
             AsyncMock(return_value=current),
         ),
         pytest.raises(HikvisionValidationError),
@@ -80,7 +80,7 @@ async def test_stale_expected_values_do_not_write():
     c = client()
     with (
         patch(
-            "custom_components.hikvision_intercom.client.technical.read_door",
+            "custom_components.smplwise_access_control.client.technical.read_door",
             AsyncMock(return_value={"values": {"openDuration": 4}}),
         ),
         pytest.raises(HikvisionValidationError),
@@ -99,7 +99,7 @@ async def test_update_requires_readback_and_sends_only_changed_fields():
     }
     last = {"values": {"openDuration": 5, "doorName": "Door"}}
     with patch(
-        "custom_components.hikvision_intercom.client.technical.read_door",
+        "custom_components.smplwise_access_control.client.technical.read_door",
         AsyncMock(side_effect=[first, last]),
     ):
         assert await update_door(c, 1, first["values"], {"openDuration": 5}) == last
@@ -119,7 +119,7 @@ async def test_lost_ack_is_never_replayed():
     }
     with (
         patch(
-            "custom_components.hikvision_intercom.client.technical.read_door",
+            "custom_components.smplwise_access_control.client.technical.read_door",
             AsyncMock(return_value=current),
         ),
         pytest.raises(HikvisionTimeoutError),

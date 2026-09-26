@@ -99,12 +99,12 @@ test("camera capture retake use and remove are explicit; tracks close", async ({
   await photo.getByRole("button", { name: "Use this photo" }).click();
   expect(
     await page.evaluate(
-      () => window.calls.filter((c) => c.type === "hikvision_intercom/users/update").length,
+      () => window.calls.filter((c) => c.type === "smplwise_access_control/users/update").length,
     ),
   ).toBe(0);
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   const payload = await page.evaluate(
-    () => window.calls.find((c) => c.type === "hikvision_intercom/users/update").data.photo,
+    () => window.calls.find((c) => c.type === "smplwise_access_control/users/update").data.photo,
   );
   expect(payload).toMatch(/^data:image\/jpeg;base64,/);
   expect(payload.length).toBeLessThan(44000);
@@ -144,7 +144,7 @@ for (const reason of ["close", "hidden", "denied"]) {
     ).toBe(true);
     expect(
       await page.evaluate(() =>
-        window.calls.some((c) => c.type === "hikvision_intercom/users/update"),
+        window.calls.some((c) => c.type === "smplwise_access_control/users/update"),
       ),
     ).toBe(false);
   });
@@ -154,7 +154,7 @@ for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/?lang=he");
     await page.evaluate(() => {
-      const p = document.querySelector("hikvision-intercom-panel");
+      const p = document.querySelector("smplwise-access-control-panel");
       p._appearance = "modern";
     });
     await navigate(page, "אפשרויות פרטי משתמש");

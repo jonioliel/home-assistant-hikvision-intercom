@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>smplwise access control — בדיקות מעבר מזהה</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box} body{margin:0} main{max-width:980px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0} h2{font-size:1.2rem;margin:0 0 10px}
+    p{margin:.5em 0} .muted{color:#61757a}.card{background:white;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 4px 20px #173c3008}
+    .notice{border-inline-start:5px solid #c98311;background:#fff8e9}.pass{border-inline-start:5px solid #218663;background:#ebf8f2}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+    .metric{background:#eaf5f0;border-radius:12px;padding:14px}.metric strong{display:block;font-size:1.4rem;color:#196a51}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    code{direction:ltr;unicode-bidi:embed;background:#eaf0ee;border-radius:5px;padding:1px 5px}
+    button,a.button{border:0;background:#185d51;color:white;border-radius:9px;padding:10px 15px;cursor:pointer;text-decoration:none;display:inline-block;font:inherit}
+    footer{color:#52696b;padding:10px 0 30px}
+  </style>
+</head>
+<body>
+<main>
+  <header><p>WisKey → smplwise access control</p><h1>בדיקות מעבר המזהה הטכני</h1><p>מ־<code>hikvision_intercom</code> אל <code>smplwise_access_control</code></p></header>
+  <section class="card pass"><h2>מה כבר נבדק אוטומטית</h2><div class="grid"><div class="metric"><strong>1,282</strong>בדיקות Python עברו</div><div class="metric"><strong>530</strong>בדיקות ממשק עברו</div><div class="metric"><strong>3</strong>בדיקות ממוקדות לכלי המעבר</div></div><p>נבדקו גם טיפוסים, lint, בניית הממשק ושמירת בחירת העיצוב האישית במעבר.</p></section>
+  <section class="card notice"><h2>הגרסה עדיין אינה מוכנה להתקנה חיה</h2><p>השינויים נמצאים בעץ המקור המקומי בלבד. אין לעדכן את האינטגרציה ב־HACS לפני בדיקת המעבר על עותק מלא של תצורת Home Assistant. אין צורך לבצע עכשיו בדיקת פתיחה פיזית.</p></section>
+  <section class="card"><h2>בדיקות נדרשות לפני פרסום</h2>
+    <label><input type="checkbox" data-id="backup"> נוצר גיבוי מלא ונפרד של HA, כולל <code>.storage</code>, תיקיית האינטגרציה ואוטומציות.</label>
+    <label><input type="checkbox" data-id="copy"> הופעל כלי המעבר במצב בדיקה יבשה על עותק תצורה; מספר התחנות וקובצי הנתונים תואם למקור.</label>
+    <label><input type="checkbox" data-id="migrate"> כשה־HA של העותק כבוי, בוצע המעבר ונוצר קובץ גיבוי ZIP; מקור הנתונים הישן נשמר.</label>
+    <label><input type="checkbox" data-id="boot"> עותק HA עלה עם התיקייה החדשה בלבד, ללא שגיאות טעינה וללא אינטרקומים כפולים.</label>
+    <label><input type="checkbox" data-id="data"> משתמשים, PIN, כרטיסים, קבוצות, דלתות מורשות, אירועים ולוחות זמנים תואמים למקור.</label>
+    <label><input type="checkbox" data-id="entities"> מזהי הישויות, אזורים, מכשירים וקישורי האוטומציות נשמרו; שירותים ישנים אותרו ועודכנו.</label>
+    <label><input type="checkbox" data-id="panel"> הפאנל החדש, וידאו, שמע, משתמשים, סנכרון ודוחות נטענים בעותק הבדיקה.</label>
+    <label><input type="checkbox" data-id="hacs"> HACS מתקין את התיקייה החדשה ומזהה עדכון נוסף בלי להחזיר את התיקייה הישנה.</label>
+    <label><input type="checkbox" data-id="rollback"> שחזור גיבוי מחזיר את ה־domain הישן ואת הנתונים לתפקוד.</label>
+  </section>
+  <section class="card"><h2>רק לאחר מכן: קבלה בהתקנה החיה</h2><p>יש לבצע חלון מעבר מתואם, לבדוק תחנה אחת תחילה, ואז את כלל התחנות. כל שלב כושל מחייב חזרה מהגיבוי לפני המשך סנכרון.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <footer>הסימונים נשמרים בדפדפן זה בלבד ואינם מהווים אישור מערכת. <a href="../DOMAIN_RENAME_MIGRATION_HE.md">מסמך המעבר המלא</a>.</footer>
+</main>
+<script>
+  const prefix='smplwise-domain-check:';
+  for(const box of document.querySelectorAll('input[data-id]')){
+    box.checked=localStorage.getItem(prefix+box.dataset.id)==='true';
+    box.addEventListener('change',()=>localStorage.setItem(prefix+box.dataset.id,String(box.checked)));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const box of document.querySelectorAll('input[data-id]')){
+      box.checked=false;localStorage.removeItem(prefix+box.dataset.id);
+    }
+  });
+</script>
+</body>
+</html>

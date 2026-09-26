@@ -127,7 +127,7 @@ test("Hebrew mobile schedules support end of day without horizontal overflow", a
     page.getByText("הטיוטה נשמרה ב־Home Assistant. הרשאות התחנות לא השתנו."),
   ).toBeVisible();
   const overflow = await page
-    .locator("hikvision-intercom-schedules")
+    .locator("smplwise-access-control-schedules")
     .evaluate((e) => e.scrollWidth > e.clientWidth);
   expect(overflow).toBeFalsy();
   await page.screenshot({ path: "test-results/schedules-he-mobile.png", fullPage: true });

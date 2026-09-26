@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from test_clock import RULE
 
-from custom_components.hikvision_intercom.client.events import EventClient
-from custom_components.hikvision_intercom.clock import device_zone
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.client.events import EventClient
+from custom_components.smplwise_access_control.clock import device_zone
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )
@@ -50,7 +50,7 @@ async def history(
     ec.page_size = 30
     ec.position_limit = 1000
     zone = device_zone(RULE)
-    with patch("custom_components.hikvision_intercom.client.events.ClockClient") as clock_type:
+    with patch("custom_components.smplwise_access_control.client.events.ClockClient") as clock_type:
         clock_type.return_value.async_read = AsyncMock(
             side_effect=[{"zone": zone}, {"zone": device_zone("CST-2:00:00") if changed else zone}]
         )

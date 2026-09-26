@@ -9,10 +9,13 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from custom_components.hikvision_intercom.client.client import ConnectionSettings, HikvisionClient
-from custom_components.hikvision_intercom.client.events import EventClient, EventFrames
-from custom_components.hikvision_intercom.events import EventCache, normalize_event
-from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
+from custom_components.smplwise_access_control.client.client import (
+    ConnectionSettings,
+    HikvisionClient,
+)
+from custom_components.smplwise_access_control.client.events import EventClient, EventFrames
+from custom_components.smplwise_access_control.events import EventCache, normalize_event
+from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
 
 NOW = datetime(2026, 9, 8, 12, tzinfo=UTC)
 KEY = b"x" * 32

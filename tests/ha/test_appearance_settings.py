@@ -2,9 +2,9 @@
 
 from unittest.mock import AsyncMock, Mock
 
-from custom_components.hikvision_intercom.appearance_settings import AppearanceSettings
-from custom_components.hikvision_intercom.const import DOMAIN
-from custom_components.hikvision_intercom.storage import AccessStore
+from custom_components.smplwise_access_control.appearance_settings import AppearanceSettings
+from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.smplwise_access_control.storage import AccessStore
 
 from .test_websocket import request
 

@@ -10,11 +10,14 @@ import httpx
 import pytest
 from test_access_client import CARD_CAP, PERSON, USER_CAP
 
-from custom_components.hikvision_intercom.access.engine import SyncEngine
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.client.access import AccessCapabilities, AccessClient
-from custom_components.hikvision_intercom.client.client import ConnectionSettings, HikvisionClient
-from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
+from custom_components.smplwise_access_control.access.engine import SyncEngine
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.client.access import AccessCapabilities, AccessClient
+from custom_components.smplwise_access_control.client.client import (
+    ConnectionSettings,
+    HikvisionClient,
+)
+from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
 
 CAP = AccessCapabilities.from_payloads(USER_CAP, CARD_CAP, {"pwMgrMode": "local"})
 
@@ -315,7 +318,7 @@ async def test_name_edit_only_sends_the_changed_name(setup):
 
 
 async def test_lost_request_before_device_receives_it_is_read_before_retry(setup):
-    from custom_components.hikvision_intercom.exceptions import HikvisionTimeoutError
+    from custom_components.smplwise_access_control.exceptions import HikvisionTimeoutError
 
     repo, device, driver, engine = setup
     user = await create_user(repo)
@@ -369,7 +372,7 @@ async def test_unchanged_periodic_reconciliation_does_not_rewrite_storage(setup)
 
 @pytest.mark.parametrize("kind", ["busy", "timeout", "conflict", "deadline"])
 async def test_failed_first_person_does_not_block_remaining_people(setup, kind):
-    from custom_components.hikvision_intercom.exceptions import (
+    from custom_components.smplwise_access_control.exceptions import (
         HikvisionBusyError,
         HikvisionConflictError,
         HikvisionTimeoutError,

@@ -10,7 +10,7 @@ async function wallPage(page) {
 }
 async function live(page) {
   return page
-    .locator("wiskey-camera-wall hikvision-intercom-camera")
+    .locator("wiskey-camera-wall smplwise-access-control-camera")
     .evaluateAll((els) => els.some((el) => el.live));
 }
 
@@ -23,7 +23,7 @@ test("named layouts preserve order and budget across reload, and load stops live
   await firstCamera.uncheck();
   await firstCamera.check();
   const order = await wall
-    .locator("hikvision-intercom-camera")
+    .locator("smplwise-access-control-camera")
     .evaluateAll((els) => els.map((el) => el.stationId));
   await wall.getByRole("textbox", { name: "Layout name", exact: true }).fill("Entrances");
   await wall.getByRole("button", { name: "Save layout", exact: true }).click();
@@ -40,7 +40,7 @@ test("named layouts preserve order and budget across reload, and load stops live
   expect(await live(page)).toBe(false);
   expect(
     await wall
-      .locator("hikvision-intercom-camera")
+      .locator("smplwise-access-control-camera")
       .evaluateAll((els) => els.map((el) => el.stationId)),
   ).toEqual(order);
   await page.evaluate((id) => {
@@ -49,7 +49,7 @@ test("named layouts preserve order and budget across reload, and load stops live
   }, order[0]);
   await wall.getByRole("button", { name: "Load layout", exact: true }).click();
   await expect(wall.getByRole("alert")).toContainText("no longer available");
-  await expect(wall.locator("hikvision-intercom-camera")).toHaveCount(3);
+  await expect(wall.locator("smplwise-access-control-camera")).toHaveCount(3);
   expect(await live(page)).toBe(false);
   await wall.getByRole("button", { name: "Delete layout", exact: true }).click();
   expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key)).toEqual([]);

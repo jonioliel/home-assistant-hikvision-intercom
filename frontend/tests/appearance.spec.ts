@@ -1,7 +1,7 @@
 import { navigate, openAppearance } from "./navigation";
 import { test, expect, type Page } from "@playwright/test";
-const panel = (page: Page) => page.locator("hikvision-intercom-panel");
-const key = "hikvision-intercom:appearance:v1:demo-admin";
+const panel = (page: Page) => page.locator("smplwise-access-control-panel");
+const key = "smplwise-access-control:appearance:v1:demo-admin";
 async function choose(page: Page, choice = "New") {
   const active = await page.locator('.nav [aria-current="page"]').innerText();
   await openAppearance(page);
@@ -27,7 +27,7 @@ test("existing default; design persists per user and ignores invalid saved value
   await page.reload();
   await expect(panel(page)).toHaveAttribute("data-appearance", "modern");
   await page.evaluate(() => {
-    const p = document.querySelector("hikvision-intercom-panel") as any;
+    const p = document.querySelector("smplwise-access-control-panel") as any;
     p.hass = { ...window.demoHass, user: { id: "second-admin", is_admin: true } };
   });
   await expect(panel(page)).toHaveAttribute("data-appearance", "current");
@@ -94,7 +94,7 @@ test("effective Home Assistant theme changes palette without changing selected d
   await page.goto("/");
   await choose(page);
   await page.evaluate(() => {
-    const p = document.querySelector("hikvision-intercom-panel") as any;
+    const p = document.querySelector("smplwise-access-control-panel") as any;
     p.hass = { ...window.demoHass, themes: { darkMode: true } };
   });
   await expect(panel(page)).toHaveAttribute("data-dark", "");
@@ -107,7 +107,7 @@ test("effective Home Assistant theme changes palette without changing selected d
   await nav(page, "Events");
   expect(
     await page
-      .locator("hikvision-intercom-events")
+      .locator("smplwise-access-control-events")
       .evaluate((el) => getComputedStyle(el).getPropertyValue("--surface").trim()),
   ).toBe("#1c2835");
 });

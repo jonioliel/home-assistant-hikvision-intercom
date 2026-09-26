@@ -257,7 +257,7 @@ export class IntercomHealth extends LitElement {
       const report = await boundedRequest(
         () =>
           hass.callWS<Health>({
-            type: `hikvision_intercom/health/${refresh ? "refresh" : "get"}`,
+            type: `smplwise_access_control/health/${refresh ? "refresh" : "get"}`,
             station_id: id,
           }),
         refresh ? 45000 : 20000,
@@ -301,7 +301,7 @@ export class IntercomHealth extends LitElement {
       const report = await boundedRequest(
         () =>
           hass.callWS<Record<string, unknown>>({
-            type: "hikvision_intercom/support/bundle",
+            type: "smplwise_access_control/support/bundle",
           }),
         30000,
         controller.signal,
@@ -331,7 +331,7 @@ export class IntercomHealth extends LitElement {
       const result = await boundedRequest(
         () =>
           this.hass!.callWS<FleetExport>({
-            type: "hikvision_intercom/fleet/inventory_export",
+            type: "smplwise_access_control/fleet/inventory_export",
             format,
           }),
         30000,
@@ -358,7 +358,7 @@ export class IntercomHealth extends LitElement {
       const result = await boundedRequest(
         () =>
           this.hass!.callWS<UpgradeReadiness>({
-            type: "hikvision_intercom/upgrade/readiness",
+            type: "smplwise_access_control/upgrade/readiness",
           }),
         30000,
         controller.signal,
@@ -389,7 +389,7 @@ export class IntercomHealth extends LitElement {
       const result = await boundedRequest(
         () =>
           hass.callWS<Acceptance>({
-            type: `hikvision_intercom/acceptance/${step ? "update" : "get"}`,
+            type: `smplwise_access_control/acceptance/${step ? "update" : "get"}`,
             station_id: id,
             ...(step ? { step, state, revision: this._acceptance[id].revision } : {}),
           }),
@@ -446,7 +446,7 @@ export class IntercomHealth extends LitElement {
           </form>`,
       )}
       <button
-        @click=${() => downloadText(JSON.stringify({ format: "hikvision_intercom.field_results", ...data }, null, 2), "hikvision-field-results.json", "application/json")}
+        @click=${() => downloadText(JSON.stringify({ format: "smplwise_access_control.field_results", ...data }, null, 2), "hikvision-field-results.json", "application/json")}
       >
         ${this.t("field_export")}
       </button>
@@ -531,12 +531,12 @@ export class IntercomHealth extends LitElement {
               <summary>${this.t("media_signals")}</summary>
               ${
                 this._callDetails.has(station.id)
-                  ? html`<hikvision-intercom-call-controls
+                  ? html`<smplwise-access-control-call-controls
                       .hass=${this.hass}
                       .station=${station}
                       .blocked=${this.callBusy.has(station.id)}
                       .onBusy=${this.onCallBusy}
-                    ></hikvision-intercom-call-controls>`
+                    ></smplwise-access-control-call-controls>`
                   : nothing
               }
               <p>
@@ -546,10 +546,10 @@ export class IntercomHealth extends LitElement {
             </details>`
           : nothing
       }
-      <hikvision-intercom-event-tools
+      <smplwise-access-control-event-tools
         .hass=${this.hass}
         .station=${station}
-      ></hikvision-intercom-event-tools>
+      ></smplwise-access-control-event-tools>
       ${this._fieldErrors[station.id] ? html`<p class="notice error" role="alert">${this._fieldErrors[station.id]}</p>` : nothing}
       ${this.fieldView(station)}
     </article>`;
@@ -637,13 +637,13 @@ export class IntercomHealth extends LitElement {
             </article>`
           : nothing
       }
-      <hikvision-intercom-fleet-clocks
+      <smplwise-access-control-fleet-clocks
         .hass=${this.hass}
         .stations=${this.stations}
         .reports=${this._reports}
-      ></hikvision-intercom-fleet-clocks>
+      ></smplwise-access-control-fleet-clocks>
       <div class="health-grid">${this.stations.map((station) => this.card(station))}</div>
     </section>`;
   }
 }
-customElements.define("hikvision-intercom-health", IntercomHealth);
+customElements.define("smplwise-access-control-health", IntercomHealth);

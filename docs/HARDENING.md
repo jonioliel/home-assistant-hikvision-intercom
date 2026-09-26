@@ -31,7 +31,7 @@ days and operation receipts to 1,000; previous administrator history is not fabr
 The HA Store envelope remains version 1; the independently validated access payload is schema 3.
 
 Corrupt/oversized/duplicate-key storage is rejected and preserved. Restore a compatible backup;
-do not delete `.storage/hikvision_intercom.users` to reset it, because it owns synchronization
+do not delete `.storage/smplwise_access_control.users` to reset it, because it owns synchronization
 and pending removals. A storage failure prevents subsequent credential writes. Repair the disk
 space/permissions or restore the correct backup, then reload the integration.
 
@@ -45,7 +45,7 @@ acceptance must still be tested on the installed firmware.
 
 ## Diagnostics and Repairs
 
-Download diagnostics from Settings > Devices & services > Hikvision Intercom. They include
+Download diagnostics from Settings > Devices & services > smplwise access control. They include
 model/validated firmware, advertised camera/call/access capabilities, counts, queue depth,
 normalized error categories and the last 100 request durations (milliseconds, including queue).
 They exclude connection details, people, PINs, complete cards, raw payloads and device URLs.

@@ -5,14 +5,14 @@ import logging
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedule_compiler import compile_schedule
-from custom_components.hikvision_intercom.access.schedule_plans import SchedulePlans
-from custom_components.hikvision_intercom.access.schedules import DAYS
-from custom_components.hikvision_intercom.access_runtime import get_manager
-from custom_components.hikvision_intercom.client.schedules import ROUTES, capability
-from custom_components.hikvision_intercom.const import DOMAIN
-from custom_components.hikvision_intercom.storage import AccessStore
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedule_compiler import compile_schedule
+from custom_components.smplwise_access_control.access.schedule_plans import SchedulePlans
+from custom_components.smplwise_access_control.access.schedules import DAYS
+from custom_components.smplwise_access_control.access_runtime import get_manager
+from custom_components.smplwise_access_control.client.schedules import ROUTES, capability
+from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.smplwise_access_control.storage import AccessStore
 
 from .test_schedules import draft
 from .test_websocket import request
@@ -67,7 +67,7 @@ async def test_proposal_roundtrip_source_staleness_export_and_delete(
     client = await hass_ws_client(hass)
     created = (await request(client, "schedules/create", data=draft()))["result"]
     with patch(
-        "custom_components.hikvision_intercom.schedule_plan_api.inspect_plan",
+        "custom_components.smplwise_access_control.schedule_plan_api.inspect_plan",
         AsyncMock(return_value=inspection()),
     ):
         preview = await request(
@@ -127,7 +127,7 @@ async def test_stale_source_during_read_does_not_produce_approval(
         )
         return inspection()
 
-    with patch("custom_components.hikvision_intercom.schedule_plan_api.inspect_plan", inspect):
+    with patch("custom_components.smplwise_access_control.schedule_plan_api.inspect_plan", inspect):
         result = await request(
             client,
             "schedules/plan_preview",
@@ -149,7 +149,7 @@ async def test_invalid_bindings_and_busy_reads_never_issue_requests_or_log_conte
     client = await hass_ws_client(hass)
     source = (await request(client, "schedules/create", data=draft()))["result"]
     with patch(
-        "custom_components.hikvision_intercom.schedule_plan_api.inspect_plan", AsyncMock()
+        "custom_components.smplwise_access_control.schedule_plan_api.inspect_plan", AsyncMock()
     ) as inspect:
         result = await request(
             client,

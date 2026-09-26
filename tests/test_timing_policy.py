@@ -9,11 +9,11 @@ from test_access_engine import create_user
 from test_access_engine import setup as access_setup
 from test_user_timing import weekly
 
-from custom_components.hikvision_intercom.access import timing_policy
-from custom_components.hikvision_intercom.access.csv_transfer import desired_fields
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.access.timing_policy import policy, rolling_validity
+from custom_components.smplwise_access_control.access import timing_policy
+from custom_components.smplwise_access_control.access.csv_transfer import desired_fields
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.timing_policy import policy, rolling_validity
 
 setup = access_setup
 
@@ -133,7 +133,7 @@ async def test_engine_renews_after_gap_without_resending_pin_and_survives_restar
 ):
     repo, device, driver, engine = setup
     monkeypatch.setattr(timing_policy, "datetime", Frozen)
-    from custom_components.hikvision_intercom.client.clock import ClockClient
+    from custom_components.smplwise_access_control.client.clock import ClockClient
 
     monkeypatch.setattr(
         ClockClient,
@@ -192,12 +192,12 @@ async def test_failed_native_activation_expires_previous_managed_grant(setup):
 
 
 async def test_csv_roundtrip_cannot_turn_timed_user_into_unlimited():
-    from custom_components.hikvision_intercom.access.csv_transfer import (
+    from custom_components.smplwise_access_control.access.csv_transfer import (
         export_users,
         parse_csv,
         row_patch,
     )
-    from custom_components.hikvision_intercom.access.models import build_user
+    from custom_components.smplwise_access_control.access.models import build_user
 
     repo = AccessRepository(AsyncMock())
     await repo.async_load(None)
@@ -211,7 +211,7 @@ async def test_csv_roundtrip_cannot_turn_timed_user_into_unlimited():
 
 
 async def test_clock_failure_cannot_leave_previous_unlimited_grant(setup, monkeypatch):
-    from custom_components.hikvision_intercom.client.clock import ClockClient
+    from custom_components.smplwise_access_control.client.clock import ClockClient
 
     repo, device, driver, engine = setup
     user = await create_user(repo)
@@ -240,7 +240,7 @@ async def test_clock_failure_cannot_leave_previous_unlimited_grant(setup, monkey
 
 
 async def test_native_engine_binds_only_verified_plan_and_can_return_to_ha(setup, monkeypatch):
-    from custom_components.hikvision_intercom.client.clock import ClockClient
+    from custom_components.smplwise_access_control.client.clock import ClockClient
 
     repo, device, driver, engine = setup
     plans = [{"doorNo": 1, "planTemplateNo": "10"}]

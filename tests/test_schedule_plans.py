@@ -10,9 +10,9 @@ import pytest
 from test_schedule_compiler import capabilities, slots
 from test_schedules import draft
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedule_compiler import compile_schedule
-from custom_components.hikvision_intercom.access.schedule_plans import SchedulePlans
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedule_compiler import compile_schedule
+from custom_components.smplwise_access_control.access.schedule_plans import SchedulePlans
 
 SOURCE = str(uuid4())
 

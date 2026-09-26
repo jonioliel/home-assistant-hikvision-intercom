@@ -5,7 +5,7 @@ async function setup(page: Page, language = "en") {
   await page.clock.install({ time: new Date("2026-09-11T12:00:00Z") });
   await page.goto("/");
   await navigate(page, "Health & field tests");
-  await expect(page.locator("hikvision-intercom-fleet-clocks")).toBeAttached();
+  await expect(page.locator("smplwise-access-control-fleet-clocks")).toBeAttached();
   await page.evaluate((language) => {
     const hass = {
       ...window.demoHass,
@@ -15,9 +15,9 @@ async function setup(page: Page, language = "en") {
         throw new Error("unexpected request");
       },
     };
-    document.querySelector("hikvision-intercom-panel").remove();
+    document.querySelector("smplwise-access-control-panel").remove();
     window.fleetCalls = 0;
-    const view: any = document.createElement("hikvision-intercom-fleet-clocks");
+    const view: any = document.createElement("smplwise-access-control-fleet-clocks");
     const clock = {
       status: "ready",
       source: "manual",
@@ -66,7 +66,7 @@ async function setup(page: Page, language = "en") {
     document.body.append(view);
     window.fleetView = view;
   }, language);
-  const view = page.locator("hikvision-intercom-fleet-clocks");
+  const view = page.locator("smplwise-access-control-fleet-clocks");
   await view.locator("summary").click();
   return view;
 }

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.hikvision_intercom.client.audio import AudioError
-from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.smplwise_access_control.client.audio import AudioError
+from custom_components.smplwise_access_control.const import DOMAIN
 
 from .test_websocket import request
 
@@ -41,7 +41,9 @@ async def audio_driver():
             self.mutes += 1
 
     driver = Driver()
-    with patch("custom_components.hikvision_intercom.audio_api.AudioSession", return_value=driver):
+    with patch(
+        "custom_components.smplwise_access_control.audio_api.AudioSession", return_value=driver
+    ):
         yield driver
 
 
@@ -220,7 +222,7 @@ async def test_audio_server_enforces_lifetime_even_when_browser_stalls(
     hass, loaded_entry, hass_ws_client, audio_driver, limit, reason
 ):
     client = await hass_ws_client(hass)
-    with patch("custom_components.hikvision_intercom.audio_api." + limit, 0.01):
+    with patch("custom_components.smplwise_access_control.audio_api." + limit, 0.01):
         await started(client, loaded_entry.entry_id)
         result = await asyncio.wait_for(client.receive_json(), 3)
     assert result["event"]["reason"] == reason
@@ -236,7 +238,7 @@ async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
 
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    from custom_components.hikvision_intercom.event_manager import get_events
+    from custom_components.smplwise_access_control.event_manager import get_events
 
     from .conftest import DATA, PROFILE
     from .test_events import live
@@ -275,14 +277,14 @@ async def test_audio_nine_station_runtime_isolates_sessions_and_door_actions(
     clients = []
     with (
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_profile",
             profile,
         ),
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
             info,
         ),
-        patch("custom_components.hikvision_intercom.audio_api.AudioSession", factory),
+        patch("custom_components.smplwise_access_control.audio_api.AudioSession", factory),
     ):
         try:
             for index in range(9):
@@ -342,7 +344,7 @@ async def test_cancellation_before_audio_task_starts_releases_subscription(
     from types import SimpleNamespace
     from unittest.mock import Mock
 
-    from custom_components.hikvision_intercom.audio_api import AudioBridge
+    from custom_components.smplwise_access_control.audio_api import AudioBridge
 
     connection = SimpleNamespace(
         subscriptions={},

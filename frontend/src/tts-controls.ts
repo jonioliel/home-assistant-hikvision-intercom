@@ -374,7 +374,7 @@ export class IntercomTtsControls extends LitElement {
     this.error = "";
     try {
       const result = await this.hass.callWS<TtsEngines>({
-        type: "hikvision_intercom/tts/engines",
+        type: "smplwise_access_control/tts/engines",
       });
       if (!this.isConnected || epoch !== this.epoch) return;
       this.engines = Array.isArray(result.engines) ? result.engines : [];
@@ -457,7 +457,7 @@ export class IntercomTtsControls extends LitElement {
       const unsubscribe = await this.hass.connection.subscribeMessage<TtsEvent>(
         (message) => this.handleEvent(message, epoch),
         {
-          type: "hikvision_intercom/tts/start",
+          type: "smplwise_access_control/tts/start",
           station_id: this.station.id,
           engine_id: this.engineId,
           language: this.language || null,

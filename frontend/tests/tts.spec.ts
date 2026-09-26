@@ -48,7 +48,7 @@ test("operator can stop an in-progress announcement without opening a microphone
   await page.evaluate(() => {
     const original = window.demoHass.connection.subscribeMessage.bind(window.demoHass.connection);
     window.demoHass.connection.subscribeMessage = async (callback, message, options) => {
-      if (message.type !== "hikvision_intercom/tts/start")
+      if (message.type !== "smplwise_access_control/tts/start")
         return original(callback, message, options);
       window.calls.push(structuredClone(message));
       callback({ state: "generating" });
@@ -72,7 +72,7 @@ test("closing the call window cancels a live announcement", async ({ page }) => 
   await page.evaluate(() => {
     const original = window.demoHass.connection.subscribeMessage.bind(window.demoHass.connection);
     window.demoHass.connection.subscribeMessage = async (callback, message, options) => {
-      if (message.type !== "hikvision_intercom/tts/start")
+      if (message.type !== "smplwise_access_control/tts/start")
         return original(callback, message, options);
       callback({ state: "speaking", duration_seconds: 30 });
       return () => {
@@ -117,7 +117,8 @@ test("composer reports missing HA engines and keeps transmission disabled", asyn
   await page.evaluate(() => {
     const base = window.demoHass.callWS.bind(window.demoHass);
     window.demoHass.callWS = async (message) => {
-      if (message.type === "hikvision_intercom/tts/engines") return { default: null, engines: [] };
+      if (message.type === "smplwise_access_control/tts/engines")
+        return { default: null, engines: [] };
       return base(message);
     };
   });
@@ -170,7 +171,7 @@ test("WisKey 04 mobile camera keeps typed composer and sends a saved phrase to i
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() =>
-    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "wiskey-dark"),
+    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "wiskey-dark"),
   );
   await page.goto("/?lang=he");
   await page.evaluate(() => {
@@ -185,7 +186,7 @@ test("WisKey 04 mobile camera keeps typed composer and sends a saved phrase to i
   await page.locator(".wk4-open-camera").first().click();
   const call = page.getByRole("dialog");
   const tts = call.locator("wiskey-intercom-tts");
-  await expect(call.locator("hikvision-intercom-camera")).toBeVisible();
+  await expect(call.locator("smplwise-access-control-camera")).toBeVisible();
   await expect(tts.getByRole("textbox")).toBeVisible();
   await expect(tts.getByRole("combobox")).toHaveCount(0);
   await tts.getByRole("button", { name: "נא להמתין ליד הדלת" }).click();
