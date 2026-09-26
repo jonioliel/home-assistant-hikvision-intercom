@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [1.11.1] - 2026-09-26
+
+- Route explicit camera listening through the WebKit playback audio session on supported mobile browsers, then restore the prior session when listening ends or the camera closes. This addresses silent Web Audio output on iOS while retaining the existing camera gain and microphone paths.
+- Move the compact camera refresh control into the action row below the video so it cannot cover the stream.
+- Show only the active transport label (MSE, RTC or HLS) on live video instead of the long audio explanation.
+- Add focused mobile layout, audio-session lifecycle and transport-label regressions; physical mobile speaker audibility remains an operator acceptance check.
+
+
 ## [1.11.0] - 2026-09-25
 
 - Move intercom TTS voice and language selection from each camera window into administrator-managed, fleet-wide media settings. Retain the Home Assistant default option and migrate existing saved media policies without loss.

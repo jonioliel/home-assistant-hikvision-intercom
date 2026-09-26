@@ -65,6 +65,7 @@ export class IntercomCamera extends LitElement {
   private playbackSource?: AudioNode;
   private playbackGain?: GainNode;
   private playbackUsesCapturedStream = false;
+  private previousAudioSessionType?: string;
   private playbackLimiter?: DynamicsCompressorNode;
   live = false;
   label = "";
@@ -195,6 +196,7 @@ export class IntercomCamera extends LitElement {
     this.bindConnection(undefined);
     this.stop();
     this.closePlaybackGraph();
+    this.setPlaybackSession(false);
   }
   private bindConnection(connection?: Hass["connection"]) {
     this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
@@ -279,9 +281,27 @@ export class IntercomCamera extends LitElement {
       return false;
     }
   }
+  /** WebKit routes Web Audio to the silent-switch-controlled ambient session by default. */
+  private setPlaybackSession(enabled: boolean) {
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (!session) return;
+    try {
+      if (enabled) {
+        if (this.previousAudioSessionType === undefined)
+          this.previousAudioSessionType = session.type;
+        session.type = "playback";
+      } else if (this.previousAudioSessionType !== undefined) {
+        session.type = this.previousAudioSessionType;
+        this.previousAudioSessionType = undefined;
+      }
+    } catch {
+      // Older WebKit versions may expose a read-only or unsupported session.
+    }
+  }
   /** Enable camera-stream audio only after an explicit user gesture. */
   setPlaybackAudio(enabled: boolean) {
     this.audioEnabled = enabled;
+    this.setPlaybackSession(enabled);
     const video = this.renderRoot.querySelector("video");
     if (!video) return false;
     if (enabled) this.ensurePlaybackGraph(video);
@@ -635,8 +655,15 @@ export class IntercomCamera extends LitElement {
           @error=${() => this.failPlayer("media_failed")}
         ></video
         ><span class="player-status" role="status"
-          >${this.t(this._mode)} ·
-          ${this.t("player_video_only")}${this._fallback ? " · " + this.t("player_fallback") : ""}</span
+          >${
+            this._mode === "player_mse"
+              ? "MSE"
+              : this._mode === "player_webrtc"
+                ? "RTC"
+                : this._mode === "player_hls"
+                  ? "HLS"
+                  : this.t(this._mode)
+          }</span
         >${this.exportButton()}`;
     const picture = this.hass?.states[this.entity]?.attributes.entity_picture;
     let source = "";

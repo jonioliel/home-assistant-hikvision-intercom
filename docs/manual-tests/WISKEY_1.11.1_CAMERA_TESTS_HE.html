@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WisKey 1.11.1 · בדיקת מצלמה ושמע בנייד</title>
+<style>
+:root{font:16px/1.5 Arial,sans-serif;color:#18302e;background:#f4f7f6}*{box-sizing:border-box}body{margin:0 auto;max-width:860px;padding:24px}h1{font-size:1.8rem;margin:.3em 0}p{color:#526661}.intro,article{background:white;border:1px solid #d9e5e1;border-radius:14px;padding:18px;margin-bottom:12px}.tag,.status{color:#087e70;font-weight:700}article h2{font-size:1.05rem;margin:0 0 6px}article p{margin:0 0 10px}label{display:inline-flex;gap:6px;align-items:center;margin-inline-end:14px;cursor:pointer}input[type=radio]{accent-color:#087e70}textarea{width:100%;min-height:54px;margin-top:10px;border:1px solid #cddbd7;border-radius:8px;padding:9px;font:inherit}button{border:0;border-radius:8px;background:#087e70;color:white;padding:10px 15px;font:inherit;cursor:pointer}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{font-size:.9rem}@media(max-width:600px){body{padding:12px}h1{font-size:1.5rem}article{padding:12px}label{margin-bottom:8px}}
+</style>
+</head>
+<body>
+<div class="intro"><span class="tag">WisKey · גרסה 1.11.1</span><h1>בדיקת שמע ותצוגת מצלמה</h1>
+<p>שלוש בדיקות קצרות בלבד לתיקונים במסך המצלמה. בדיקות הקוד, הממשק והשמע המדומה כבר עברו אוטומטית; כאן דרושה בדיקת שמיעה אמיתית בנייד.</p>
+<p class="muted">בדוק מול אותה תחנה שבה השמע עובד במחשב. אין צורך לפתוח דלת, לדבר או לשנות הגדרות תחנה. התוצאות נשמרות בדפדפן הזה בלבד.</p></div>
+<div class="actions"><strong id="progress" class="status"></strong><button id="export" type="button">הורדת תוצאות</button><button id="reset" type="button">ניקוי בחירות</button></div>
+<main id="checks"></main>
+<script>
+const items=[
+["mobile-audio","שמיעה בנייד","פתח את מצלמת התחנה בנייד ולחץ על ״פתח האזנה״. ודא ששומעים קול בפועל מהרמקול. אם זה iPhone, בדוק גם כשהמתג הצדדי על שקט, וציין את דגם המכשיר והדפדפן בהערה."],
+["stop-audio","סיום האזנה","לחץ על ״סגור האזנה״ או סגור את חלון המצלמה. ודא שהשמע נפסק. פתח מחדש ובדוק שנדרשת לחיצה חדשה כדי לשמוע."],
+["camera-ui","כפתור רענון ותווית שידור","במחשב ובנייד ודא שכפתור הרענון הקטן נמצא ליד שאר הפקדים מתחת לווידאו ואינו מסתיר את התמונה. על הווידאו מופיע רק MSE, RTC או HLS ללא הסבר השמע הארוך."]
+];
+const key="wiskey-1.11.1-camera-tests";let data;try{data=JSON.parse(localStorage.getItem(key)||"{}")}catch{data={}};
+function save(){localStorage.setItem(key,JSON.stringify(data));const results=items.map(([id])=>data[id]?.result);document.getElementById("progress").textContent=`עברו ${results.filter(x=>x==="pass").length} · נכשלו ${results.filter(x=>x==="fail").length} · ממתינות ${results.filter(x=>!x).length}`}
+document.getElementById("checks").innerHTML=items.map(([id,title,desc],i)=>`<article data-id="${id}"><h2>${i+1}. ${title}</h2><p>${desc}</p><div role="radiogroup" aria-label="תוצאה: ${title}">${[["pass","עבר"],["fail","נכשל"],["skip","מאוחר יותר"]].map(([value,label])=>`<label><input type="radio" name="${id}" value="${value}" ${data[id]?.result===value?"checked":""}>${label}</label>`).join("")}</div><textarea aria-label="הערה: ${title}" placeholder="מה שמעת ומה ראית? ללא פרטי גישה"></textarea></article>`).join("");
+for(const card of document.querySelectorAll("article")){const id=card.dataset.id,note=card.querySelector("textarea");note.value=data[id]?.note||"";const update=()=>{data[id]={result:card.querySelector("input:checked")?.value||"",note:note.value};save()};card.addEventListener("change",update);note.addEventListener("input",update)}
+document.getElementById("export").onclick=()=>{const blob=new Blob([JSON.stringify({format:"wiskey.camera.acceptance",version:"1.11.1",exported_at:new Date().toISOString(),results:data},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="wiskey-1.11.1-camera-results.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+document.getElementById("reset").onclick=()=>{data={};localStorage.removeItem(key);for(const input of document.querySelectorAll("input"))input.checked=false;for(const area of document.querySelectorAll("textarea"))area.value="";save()};save();
+</script>
+</body></html>

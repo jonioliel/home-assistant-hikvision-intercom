@@ -84,7 +84,7 @@ for (const design of ["current", "modern", "access-light", "access-dark"]) {
       expect(box.width).toBeLessThanOrEqual(46);
       expect(box.height).toBeLessThanOrEqual(46);
       const video = (await dialog.locator("hikvision-intercom-camera").boundingBox())!;
-      expect(box.y + box.height).toBeLessThanOrEqual(video.y);
+      expect(box.y).toBeGreaterThanOrEqual(video.y + video.height);
       await expect(
         dialog
           .locator("hikvision-intercom-audio-controls")

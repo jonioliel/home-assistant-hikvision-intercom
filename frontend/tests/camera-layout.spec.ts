@@ -65,3 +65,21 @@ for (const [width, height, language] of [
     ).toBe(0);
   });
 }
+
+test("WisKey 04 keeps refresh below the video on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() =>
+    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "wiskey-light"),
+  );
+  await page.goto("/?lang=he");
+  await page.locator(".wk4-door .wk4-open-camera").first().click();
+  const dialog = page.getByRole("dialog");
+  const refresh = dialog.locator(".camera-refresh");
+  await expect(refresh).toHaveCount(1);
+  const positions = await dialog.evaluate((node) => ({
+    videoBottom: node.querySelector(".camera-video")!.getBoundingClientRect().bottom,
+    refreshTop: node.querySelector(".camera-refresh")!.getBoundingClientRect().top,
+  }));
+  expect(positions.refreshTop).toBeGreaterThanOrEqual(positions.videoBottom);
+  expect(await dialog.locator(".camera-toolbar").count()).toBe(0);
+});

@@ -661,23 +661,22 @@ export const styles = css`
     aspect-ratio: 16 / 9;
     border-radius: 0;
   }
-  .camera-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 4px;
-    background: var(--card-background-color, white);
-  }
-  .camera-toolbar .camera-refresh {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 10px;
-    flex: 0 0 44px;
+  .camera-refresh {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 7px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    background: var(--card-background-color, white);
+    color: var(--primary-text-color, #172a2d);
+    border: 1px solid var(--divider-color, #dce5e6);
+    border-radius: 8px;
+  }
+  .camera-refresh:disabled {
+    opacity: 0.55;
   }
   .camera-door-actions {
     display: flex;

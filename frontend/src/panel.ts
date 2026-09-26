@@ -4508,24 +4508,7 @@ export class IntercomManagerPanel extends LitElement {
   }
   private cameraBody(station: Station) {
     const v4 = isWiskeyAppearance(this._appearance);
-    const video = html`<div class="camera-video">
-      ${
-        this.canManage("overview") || this.canManage("stations")
-          ? html`<div class="camera-toolbar">
-              <button
-                class="camera-refresh"
-                aria-label=${this.t("call_refresh")}
-                title=${this.t("call_refresh")}
-                ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
-                @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
-              >
-                ${icon("sync")}
-              </button>
-            </div>`
-          : nothing
-      }
-      ${this.camera(station, true)}
-    </div>`;
+    const video = html`<div class="camera-video">${this.camera(station, true)}</div>`;
     const controls = html`<hikvision-intercom-audio-controls
       .dock=${true}
       .hideTts=${v4}
@@ -4539,6 +4522,19 @@ export class IntercomManagerPanel extends LitElement {
       <div class="camera-door-actions">
         ${station.lock_enabled ? this.releaseButton(station, true, true) : nothing}
       </div>
+      ${
+        this.canManage("overview") || this.canManage("stations")
+          ? html`<button
+              class="camera-refresh"
+              aria-label=${this.t("call_refresh")}
+              title=${this.t("call_refresh")}
+              ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
+              @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
+            >
+              ${icon("sync")}
+            </button>`
+          : nothing
+      }
       <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
         ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
       </button>

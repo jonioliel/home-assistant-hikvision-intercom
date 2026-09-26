@@ -772,23 +772,6 @@ export const wiskeyV4Styles = css`
     overflow: hidden;
     position: relative;
   }
-  :host([data-appearance^="wiskey-"]) .camera-layout.wk4-camera-layout .camera-toolbar {
-    position: absolute;
-    z-index: 1;
-    inset-block-start: 8px;
-    inset-inline-end: 8px;
-    padding: 0;
-    border-radius: 8px;
-    background: #122e2bdd;
-  }
-  :host([data-appearance^="wiskey-"]) .camera-layout.wk4-camera-layout .camera-refresh {
-    min-width: 30px;
-    width: 30px;
-    min-height: 30px;
-    height: 30px;
-    padding: 5px;
-    color: white;
-  }
   :host([data-appearance^="wiskey-"]) .wk4-camera-tts {
     min-width: 0;
   }
