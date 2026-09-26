@@ -20,10 +20,17 @@ def test_versions_and_hacs_layout():
     )
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     assert manifest["version"] == project["project"]["version"] == VERSION
-    assert release_metadata(ROOT)[0] == VERSION
-    assert AwesomeVersion(VERSION).valid
-    assert not AwesomeVersion(VERSION).release_candidate
-    assert AwesomeVersion(VERSION) > AwesomeVersion("0.36.0-beta.1")
+    release, notes = release_metadata(ROOT)
+    assert release == VERSION
+    version = AwesomeVersion(VERSION)
+    assert version.valid
+    if version.release_candidate:
+        # The domain migration is deliberately an RC until a copied HA instance
+        # proves config entries, registries, stores and HACS survive the upgrade.
+        assert VERSION.startswith("2.0.0-rc.")
+        assert manifest["domain"] == "smplwise_access_control"
+        assert "manual domain migration" in notes
+    assert version > AwesomeVersion("0.36.0-beta.1")
     assert manifest["codeowners"] == ["@jonioliel"]
     assert manifest["documentation"].endswith("/home-assistant-hikvision-intercom")
     assert json.loads((ROOT / "hacs.json").read_text()) == {

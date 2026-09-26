@@ -4,8 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
-- Prepare the successor `smplwise_access_control` integration domain, package and panel routes, with a matching browser client and offline, backup-first migration tool. Preserve station entry IDs, entity IDs, device links and private access stores during migration. This source change is not yet a published upgrade; it requires a stopped-HA rehearsal on a configuration copy.
-- Rename the visible Home Assistant/HACS integration to **smplwise access control** and document the future vendor-adapter boundary.
+## [2.0.0-rc.1] - 2026-09-26
+
+- Introduce `smplwise_access_control` as the successor integration domain, package, service and panel namespace. Keep Hikvision as the first vendor adapter while preparing a vendor-neutral product identity.
+- Include a backup-first offline migration tool for existing Home Assistant config entries, entity/device registries, repairs and private stores. This is a **manual domain migration**, not a one-click HACS update: rehearse it on a full HA configuration copy before using it on the live system.
+- Preserve station entry IDs, entity IDs, user and permission stores, and provide a Hebrew migration checklist and rollback instructions.
+- Publish a source-derived VMS command catalog and integration handoff for external clients using a dedicated HA user token.
 
 ## [1.11.1] - 2026-09-26
 

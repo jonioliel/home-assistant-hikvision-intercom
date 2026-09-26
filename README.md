@@ -1,11 +1,8 @@
 # smplwise access control — WisKey interface for Home Assistant
 
-> **Domain migration in development:** this working tree uses `smplwise_access_control` instead of `hikvision_intercom`. Do not install it over an existing Home Assistant system without the [offline migration procedure](docs/DOMAIN_RENAME_MIGRATION_HE.md) and a verified full backup. Published releases remain on the old domain until the migration is rehearsed.
+> **2.0.0-rc.1 changes the Home Assistant integration domain** from `hikvision_intercom` to `smplwise_access_control`. This is a manual migration, not a one-click HACS update. Do not install the release candidate over an existing HA system until you have a verified full backup and have rehearsed the [offline migration procedure](docs/DOMAIN_RENAME_MIGRATION_HE.md) on a copy. The VMS and automations must use the new service/WebSocket namespace after migration.
 
-Published runtime: **[1.11.0](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.11.0)**.
-This release moves intercom TTS voice and language preferences into global administrator settings and adds saved one-click announcements beside the free-text camera composer.
-The existing appearance choices, audio controls, camera playback and access command paths remain available.
-[Focused Hebrew TTS check](docs/manual-tests/WISKEY_1.11.0_TTS_TESTS_HE.html).
+Last stable release on the old domain: **[1.11.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.11.1)**. The `2.0.0-rc.1` migration release candidate is intended for a rehearsed upgrade. [Migration checklist](docs/manual-tests/SMPLWISE_DOMAIN_MIGRATION_TESTS_HE.html) and [VMS handoff](docs/integrations/WISKEY_VMS_HANDOFF.md).
 
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant access-control integration, distributed through HACS. The current device adapter supports the tested Hikvision DS-KV6124-E1 stations; other vendors, including Akuvox, require separate adapters and capability validation.
