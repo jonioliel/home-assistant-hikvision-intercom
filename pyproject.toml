@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = ["httpx==0.28.1", "defusedxml==0.7.1"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "pytest-cov>=6,<8", "ruff>=0.12,<1", "mypy>=1.15,<2", "types-defusedxml", "awesomeversion", "pyyaml", "tzdata"]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "pytest-cov>=6,<8", "ruff>=0.12,<1", "mypy>=1.15,<3", "types-defusedxml", "awesomeversion", "pyyaml", "tzdata"]
 
 [tool.setuptools.packages.find]
 include = ["custom_components.hikvision_intercom*", "tools*"]
