@@ -7,10 +7,10 @@ from datetime import timedelta
 import pytest
 from test_events import NOW, normalized, payload
 
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.events import EventCache
-from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
-from custom_components.hikvision_intercom.reporting import audience_filter, build_report
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.events import EventCache
+from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
+from custom_components.smplwise_access_control.reporting import audience_filter, build_report
 
 POLICY = {"groups": [{"id": "staff"}], "fields": [{"id": "department"}]}
 

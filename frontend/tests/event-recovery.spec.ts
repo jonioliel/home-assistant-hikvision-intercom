@@ -3,18 +3,18 @@ import { test, expect, type Page } from "@playwright/test";
 async function setup(page: Page, command: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const events = page.locator("hikvision-intercom-events");
+  const events = page.locator("smplwise-access-control-events");
   await expect(events.locator(".audit-row").first()).toBeVisible();
   await page.evaluate((command) => {
     const base = window.demoHass.callWS;
     window.eventOriginalApi = base;
     window.demoHass.callWS = async function (message) {
       const result = await base.call(this, message);
-      if (message.type === "hikvision_intercom/events/" + command)
+      if (message.type === "smplwise_access_control/events/" + command)
         return await new Promise((resolve) => (window.lateEventResponse = () => resolve(result)));
       return result;
     };
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   }, command);
   return events;
 }
@@ -83,7 +83,7 @@ test("new filters replace a slow list request and ignore its previous unfiltered
   await events.getByRole("button", { name: "Refresh", exact: true }).click();
   await page.evaluate(() => {
     window.demoHass.callWS = window.eventOriginalApi;
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   });
   await events.getByLabel("Result", { exact: true }).selectOption("denied");
   await events.getByRole("button", { name: "Apply filters", exact: true }).click();
@@ -134,7 +134,7 @@ test("HA disconnect discards an event export and reconnect never repeats the dow
       for (const callback of listeners.get(online ? "ready" : "disconnected") ?? []) callback();
     };
     window.demoHass.connection = connection;
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   });
   await expect(events.locator(".audit-row")).toHaveCount(2);
   let downloads = 0;
@@ -165,7 +165,7 @@ test("Hebrew mobile event errors preserve readable records without horizontal ov
   const events = await setup(page, "export");
   await page.evaluate(() => {
     window.demoHass.language = "he";
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   });
   await events.getByRole("button", { name: "ייצוא אירועים מסוננים CSV", exact: true }).click();
   await events.evaluate((node: any) => {
@@ -197,7 +197,7 @@ test("replacing the HA connection clears old filters and rejects an export from 
   await expect.poll(() => page.evaluate(() => typeof window.lateEventResponse)).toBe("function");
   await page.evaluate(() => {
     window.demoHass.connection = { ...window.demoHass.connection };
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   });
   await expect(button).toBeEnabled();
   await expect(events.locator('input[name="person"]')).toHaveValue("");

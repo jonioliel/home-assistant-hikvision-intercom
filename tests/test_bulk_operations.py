@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.admin_audit import audit_actor, export, query
-from custom_components.hikvision_intercom.access.bulk_operations import selection
-from custom_components.hikvision_intercom.access.manager import AccessManager
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.admin_audit import audit_actor, export, query
+from custom_components.smplwise_access_control.access.bulk_operations import selection
+from custom_components.smplwise_access_control.access.manager import AccessManager
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
 
 
 @pytest.fixture
@@ -224,7 +224,7 @@ async def test_existing_tombstones_are_not_logged_again_by_another_delete(batch)
 
 
 async def test_audit_retention_and_formula_safe_export(batch, monkeypatch):
-    from custom_components.hikvision_intercom.access import admin_audit
+    from custom_components.smplwise_access_control.access import admin_audit
 
     monkeypatch.setattr(admin_audit, "LIMIT", 3)
     user = batch.repository.users()[0]
@@ -283,7 +283,7 @@ async def test_capacity_uses_cached_card_records_and_preserves_unselected(
 
     from test_access_engine import CAP
 
-    from custom_components.hikvision_intercom.client.access import StationInventory
+    from custom_components.smplwise_access_control.client.access import StationInventory
 
     first, second = batch.repository.users()
     batch.stations["a"].inventory = StationInventory(

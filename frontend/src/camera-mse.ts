@@ -54,7 +54,7 @@ export class CameraMSE {
       // go2rtc repackages the intercom's PCMA/PCMU track to FLAC for MSE.
       // Codec support is validated again against the negotiated combined MIME.
       const codecs = [...videoCodecs, ...AUDIO_CODECS];
-      const path = "/api/hikvision_intercom/mse/" + encodeURIComponent(this.station);
+      const path = "/api/smplwise_access_control/mse/" + encodeURIComponent(this.station);
       const signed = await this.hass.callWS<{ path: string }>({
         type: "auth/sign_path",
         path,

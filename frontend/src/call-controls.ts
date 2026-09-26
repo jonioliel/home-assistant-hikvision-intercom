@@ -303,7 +303,7 @@ export class IntercomCallControls extends LitElement {
     this._error = "";
     try {
       const context = await this.request<CallContext>("read", {
-        type: "hikvision_intercom/media/call",
+        type: "smplwise_access_control/media/call",
         station_id: station,
       });
       if (this.valid(epoch, station)) {
@@ -359,7 +359,7 @@ export class IntercomCallControls extends LitElement {
     notify?.(station, true);
     try {
       const result = await this.request<CallResult>("signal", {
-        type: "hikvision_intercom/media/signal",
+        type: "smplwise_access_control/media/signal",
         station_id: station,
         command,
       });
@@ -422,4 +422,4 @@ export class IntercomCallControls extends LitElement {
     </section>`;
   }
 }
-customElements.define("hikvision-intercom-call-controls", IntercomCallControls);
+customElements.define("smplwise-access-control-call-controls", IntercomCallControls);

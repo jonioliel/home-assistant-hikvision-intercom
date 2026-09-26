@@ -115,7 +115,7 @@ test("Hebrew mobile comparison keeps partial results readable", async ({ page })
   await region.scrollIntoViewIfNeeded();
   expect(
     await page
-      .locator("hikvision-intercom-panel")
+      .locator("smplwise-access-control-panel")
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/baselines-he-mobile.png" });

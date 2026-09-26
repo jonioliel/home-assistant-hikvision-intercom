@@ -33,7 +33,7 @@ test("clock ticks without requests or remounting the expanded video", async ({ p
   await freeze(page, "2026-09-10T12:00:00Z");
   await page.goto("/");
   await page.locator(".overview-station .camera-wrap button").first().click();
-  const camera = page.locator(".camera-dialog hikvision-intercom-camera");
+  const camera = page.locator(".camera-dialog smplwise-access-control-camera");
   await camera.evaluate((el) => ((window as any).retainedCamera = el));
   await page.clock.runFor(1000);
   const calls = await page.evaluate(() => window.calls.length);
@@ -92,7 +92,7 @@ test("management hub contains every advanced tool and revoked admin access close
   await expect(page.locator(".tools-grid .appearance-button")).toBeVisible();
   await expect(page.locator(".tools-grid a")).toHaveAttribute(
     "href",
-    "/config/integrations/integration/hikvision_intercom",
+    "/config/integrations/integration/smplwise_access_control",
   );
   for (const name of [
     "Intercoms",
@@ -110,7 +110,7 @@ test("management hub contains every advanced tool and revoked admin access close
   }
   await openAppearance(page);
   await page.evaluate(() => {
-    const p = document.querySelector("hikvision-intercom-panel") as any;
+    const p = document.querySelector("smplwise-access-control-panel") as any;
     p.hass = { ...window.demoHass, user: { id: "reader", is_admin: false } };
   });
   await expect(page.getByText("WisKey access has not been granted")).toBeVisible();
@@ -124,7 +124,7 @@ test("management hub contains every advanced tool and revoked admin access close
 for (const design of ["current", "modern"]) {
   test(`WisKey hub and live header fit responsive RTL: ${design}`, async ({ page }) => {
     await page.addInitScript(
-      (value) => localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", value),
+      (value) => localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", value),
       design,
     );
     await page.goto("/?lang=he");

@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.smplwise_access_control.const import DOMAIN
 
 from .test_websocket import request
 
@@ -46,10 +46,12 @@ async def tts_player():
         ],
     }
     with (
-        patch("custom_components.hikvision_intercom.audio_tts.AudioSession", return_value=driver),
-        patch("custom_components.hikvision_intercom.audio_tts.synthesize", synthesize),
         patch(
-            "custom_components.hikvision_intercom.audio_tts.available_engines",
+            "custom_components.smplwise_access_control.audio_tts.AudioSession", return_value=driver
+        ),
+        patch("custom_components.smplwise_access_control.audio_tts.synthesize", synthesize),
+        patch(
+            "custom_components.smplwise_access_control.audio_tts.available_engines",
             return_value=engines,
         ),
     ):
@@ -204,7 +206,7 @@ async def test_tts_message_and_provider_failure_do_not_leak_to_logs(
 
 
 async def test_home_assistant_tts_is_requested_as_8khz_mono_wave(hass):
-    from custom_components.hikvision_intercom.audio_tts import synthesize
+    from custom_components.smplwise_access_control.audio_tts import synthesize
 
     output = io.BytesIO()
     with wave.open(output, "wb") as target:
@@ -218,7 +220,7 @@ async def test_home_assistant_tts_is_requested_as_8khz_mono_wave(hass):
         async_get_media_source_audio=AsyncMock(return_value=("wav", output.getvalue())),
     )
     with patch(
-        "custom_components.hikvision_intercom.audio_tts._tts_component",
+        "custom_components.smplwise_access_control.audio_tts._tts_component",
         return_value=component,
     ):
         packets, duration = await synthesize(hass, "tts.google_translate_en_com", "iw", "בדיקה")
@@ -238,21 +240,21 @@ async def test_home_assistant_tts_is_requested_as_8khz_mono_wave(hass):
 
 
 def test_missing_tts_runtime_keeps_engine_discovery_empty(hass):
-    from custom_components.hikvision_intercom.audio_tts import available_engines
+    from custom_components.smplwise_access_control.audio_tts import available_engines
 
     with patch(
-        "custom_components.hikvision_intercom.audio_tts._tts_component",
+        "custom_components.smplwise_access_control.audio_tts._tts_component",
         side_effect=ImportError,
     ):
         assert available_engines(hass) == {"default": None, "engines": []}
 
 
 async def test_missing_tts_runtime_is_a_bounded_generation_failure(hass):
-    from custom_components.hikvision_intercom.audio_tts import IntercomTtsError, synthesize
+    from custom_components.smplwise_access_control.audio_tts import IntercomTtsError, synthesize
 
     with (
         patch(
-            "custom_components.hikvision_intercom.audio_tts._tts_component",
+            "custom_components.smplwise_access_control.audio_tts._tts_component",
             side_effect=ImportError,
         ),
         pytest.raises(IntercomTtsError) as raised,

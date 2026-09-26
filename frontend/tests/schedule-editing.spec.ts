@@ -81,7 +81,7 @@ test("Hebrew mobile copy controls fit the panel", async ({ page }) => {
   await copy.scrollIntoViewIfNeeded();
   expect(
     await page
-      .locator("hikvision-intercom-panel")
+      .locator("smplwise-access-control-panel")
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/schedule-editing-he-mobile.png" });

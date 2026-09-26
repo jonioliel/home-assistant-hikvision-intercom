@@ -6,7 +6,7 @@ test("mobile activity starts with records visible and filters available on deman
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "אירועים", exact: true }).click();
-  const events = page.locator("hikvision-intercom-events");
+  const events = page.locator("smplwise-access-control-events");
   await expect(events.locator(".event-filters")).not.toHaveAttribute("open");
   await expect(events.locator(".audit-row").first()).toBeVisible();
   const heading = await events.locator(".audit-row h3").first().boundingBox();
@@ -22,7 +22,7 @@ test("mobile activity starts with records visible and filters available on deman
 test("desktop filters remain open and report only applied criteria", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const events = page.locator("hikvision-intercom-events");
+  const events = page.locator("smplwise-access-control-events");
   await expect(events.locator(".event-filters")).toHaveAttribute("open");
   await events.getByLabel("Result", { exact: true }).selectOption("denied");
   await expect(events.locator(".event-filters summary")).toContainText("All events");
@@ -39,7 +39,7 @@ test("filter disclosure preserves an unapplied draft through a list refresh", as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const events = page.locator("hikvision-intercom-events");
+  const events = page.locator("smplwise-access-control-events");
   const summary = events.locator(".event-filters summary");
   await summary.focus();
   await page.keyboard.press("Enter");

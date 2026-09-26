@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.manager import AccessManager
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.permission_directory import directory
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.profile_settings import ProfileSettings
+from custom_components.smplwise_access_control.access.manager import AccessManager
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.permission_directory import directory
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.profile_settings import ProfileSettings
 
 
 @pytest.fixture

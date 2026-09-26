@@ -9,12 +9,15 @@ from test_schedule_compiler import capabilities, slots
 from test_user_timing import weekly
 from test_user_timing_plan import USER_CAP
 
-from custom_components.hikvision_intercom.access import native_timing as module
-from custom_components.hikvision_intercom.access.models import AccessError, build_user
-from custom_components.hikvision_intercom.access.native_timing import NativeTiming
-from custom_components.hikvision_intercom.access.schedule_compiler import ROOTS, compile_schedule
-from custom_components.hikvision_intercom.access.schedule_journal import ScheduleJournal
-from custom_components.hikvision_intercom.access.user_timing_plan import user_schedule
+from custom_components.smplwise_access_control.access import native_timing as module
+from custom_components.smplwise_access_control.access.models import AccessError, build_user
+from custom_components.smplwise_access_control.access.native_timing import NativeTiming
+from custom_components.smplwise_access_control.access.schedule_compiler import (
+    ROOTS,
+    compile_schedule,
+)
+from custom_components.smplwise_access_control.access.schedule_journal import ScheduleJournal
+from custom_components.smplwise_access_control.access.user_timing_plan import user_schedule
 
 
 async def environment(monkeypatch):
@@ -223,7 +226,9 @@ async def test_allocator_excludes_external_references_and_respects_partial_cover
 async def test_dependency_context_changes_only_when_controlled_resources_gain_references(
     monkeypatch,
 ):
-    from custom_components.hikvision_intercom.client import schedule_plan_inspection as inspection
+    from custom_components.smplwise_access_control.client import (
+        schedule_plan_inspection as inspection,
+    )
 
     draft = user_schedule({**weekly(), "timezone": "UTC"})
     candidates = compile_schedule(draft, slots(), capabilities())

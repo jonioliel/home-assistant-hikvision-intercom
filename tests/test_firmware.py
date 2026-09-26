@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from custom_components.hikvision_intercom.client.probe import (
+from custom_components.smplwise_access_control.client.probe import (
     ENDPOINTS,
     READ_CAPABILITIES,
     REMOTE_CAPABILITIES,
@@ -14,8 +14,8 @@ from custom_components.hikvision_intercom.client.probe import (
     _stream_documents,
     build_capabilities,
 )
-from custom_components.hikvision_intercom.client.redaction import REDACTED, sanitize
-from custom_components.hikvision_intercom.models import CapabilityReport, ProbeRecord
+from custom_components.smplwise_access_control.client.redaction import REDACTED, sanitize
+from custom_components.smplwise_access_control.models import CapabilityReport, ProbeRecord
 from tools.probe_ds_kv6124 import argument_parser
 
 FIXTURES = Path(__file__).parent / "fixtures" / "ds_kv6124_e1_fw_3_9_0"

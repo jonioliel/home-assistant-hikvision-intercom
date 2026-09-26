@@ -2,9 +2,9 @@
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.phone import mobile_display, whatsapp_number
-from custom_components.hikvision_intercom.whatsapp_messages import project_messages
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.phone import mobile_display, whatsapp_number
+from custom_components.smplwise_access_control.whatsapp_messages import project_messages
 
 
 @pytest.mark.parametrize("raw", ["0511231234", "051-123-1234", "+972511231234", "00972511231234"])

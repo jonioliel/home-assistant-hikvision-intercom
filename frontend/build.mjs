@@ -5,7 +5,7 @@ await build({
   minify: true,
   format: "esm",
   target: "es2022",
-  outfile: "../custom_components/hikvision_intercom/frontend/panel.js",
+  outfile: "../custom_components/smplwise_access_control/frontend/panel.js",
   legalComments: "external",
   sourcemap: false,
 });
@@ -16,6 +16,6 @@ await build({
   minify: true,
   format: "esm",
   target: "es2022",
-  outfile: "../custom_components/hikvision_intercom/frontend/audio-worklet.js",
+  outfile: "../custom_components/smplwise_access_control/frontend/audio-worklet.js",
   sourcemap: false,
 });

@@ -1,6 +1,6 @@
 # WisKey panel
 
-Phase 3 added the **Intercom Manager** sidebar at `/hikvision-intercom`. Home Assistant
+Phase 3 added the **WisKey** sidebar at `/smplwise-access-control`. Home Assistant
 administrators retain full access. Version 1.4 lets administrators explicitly delegate per-area
 view or manage access to active non-administrator HA users. Every API and media request is enforced
 server-side, and active sessions are revoked immediately. See

@@ -1,0 +1,404 @@
+{
+  "title": "smplwise access control",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect an intercom",
+        "description": "Connect to a DS-KV6124-E1 on your local network.",
+        "data": {
+          "name": "Station name",
+          "host": "Host or IP address",
+          "username": "Username",
+          "password": "Password",
+          "scheme": "HTTP / HTTPS",
+          "port": "ISAPI port",
+          "verify_ssl": "Verify HTTPS certificate",
+          "rtsp_port": "RTSP port"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure intercom",
+        "description": "Leave the password empty to keep the existing password. Relay mapping can be retained or tested again in the following steps.",
+        "data": {
+          "name": "Station name",
+          "host": "Host or IP address",
+          "username": "Username",
+          "password": "Password",
+          "scheme": "HTTP / HTTPS",
+          "port": "ISAPI port",
+          "verify_ssl": "Verify HTTPS certificate",
+          "rtsp_port": "RTSP port"
+        }
+      },
+      "confirm_device": {
+        "title": "Confirm the detected intercom",
+        "description": "Model: {model}\nFirmware: {firmware}\nSerial: {serial}"
+      },
+      "locks": {
+        "title": "Manage the active lock",
+        "description": "This installation uses one active physical relay per intercom. Choose camera only, test its mapping, or retain an earlier confirmed mapping.",
+        "data": {
+          "mode": "Lock management",
+          "lock_name": "Lock name"
+        },
+        "data_description": {
+          "mode": "Camera-only mode creates no lock and does not permit release commands.",
+          "lock_name": "Name shown in Home Assistant and WisKey, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
+        }
+      },
+      "mapping": {
+        "title": "Test the active lock",
+        "description": "Stand beside the lock. Submitting with the checkbox selected sends ONE release command to the selected output. Confirm the physical result on the next screen.",
+        "data": {
+          "api_id": "Device output number",
+          "test_unlock": "I am ready to test the release now"
+        }
+      },
+      "confirm_mapping": {
+        "title": "Confirm the lock operation",
+        "description": "The device accepted the command. Confirm that the intended lock released and returned to its normal state.",
+        "data": {
+          "result": "Physical test result"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update authentication",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed. Check the account and password.",
+      "unsupported_device": "This model or core endpoint has not been verified for this integration.",
+      "invalid_response": "The station returned invalid data or the connection settings are invalid.",
+      "cannot_connect": "Could not connect to the intercom.",
+      "test_required": "Select the release test checkbox when you are beside the lock.",
+      "invalid_mapping": "Select an advertised output.",
+      "unlock_failed": "Release was not confirmed. Check the door before choosing to retry.",
+      "confirmation_required": "Confirm the physical result before managing this lock.",
+      "access_removal_pending": "Remove user assignments and wait for confirmed device removal before disabling this lock."
+    },
+    "abort": {
+      "already_configured": "This intercom is already configured.",
+      "unique_id_mismatch": "This is a different intercom. The existing configuration was preserved.",
+      "reauth_successful": "Authentication updated.",
+      "reconfigure_successful": "Intercom configuration updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Intercom options",
+        "description": "By default, display uses the station time zone and daylight saving rules. A manual override changes integration display only; it does not set the device clock or NTP.",
+        "data": {
+          "idle_interval": "Idle polling interval (seconds)",
+          "active_interval": "Active call polling interval (seconds)",
+          "pulse_seconds": "Display release duration (seconds)",
+          "display_time_zone": "Display time zone source",
+          "manual_time_zone": "Manual time zone (IANA)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time_zone": "Enter a valid IANA time zone, for example Asia/Jerusalem."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      },
+      "ringing": {
+        "name": "Ringing"
+      }
+    },
+    "sensor": {
+      "call_status": {
+        "name": "Call status",
+        "state": {
+          "idle": "Idle",
+          "ringing": "Ringing",
+          "in_call": "Busy / in call",
+          "ending": "Ending",
+          "unknown": "Unknown",
+          "unavailable": "Unavailable"
+        }
+      },
+      "managed_users": {
+        "name": "Observed managed users"
+      },
+      "pending_users": {
+        "name": "Users pending synchronization"
+      },
+      "sync_health": {
+        "name": "Synchronization state",
+        "state": {
+          "synced": "Synced",
+          "pending": "Pending",
+          "syncing": "Syncing",
+          "offline": "Offline",
+          "conflict": "Conflict",
+          "error": "Error",
+          "delete_pending": "Deletion pending",
+          "unknown": "Unknown"
+        }
+      },
+      "last_reconciled": {
+        "name": "Last reconciliation completed"
+      },
+      "pending_age": {
+        "name": "Oldest pending work age"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Camera"
+      }
+    },
+    "lock": {
+      "door_1": {
+        "name": "Active lock"
+      },
+      "door_2": {
+        "name": "Relay 2"
+      }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Doorbell",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "Ring"
+            }
+          }
+        }
+      },
+      "access": {
+        "name": "Access event"
+      }
+    }
+  },
+  "services": {
+    "unlock_door": {
+      "name": "Release door",
+      "description": "Momentarily release the selected active lock. The intercom controls the return duration. Requires an administrator.",
+      "fields": {
+        "lock": {
+          "name": "Physical lock",
+          "description": "Only a selected relay with a confirmed mapping can be operated."
+        }
+      }
+    },
+    "sync_user": {
+      "name": "Synchronize user",
+      "description": "Queue reconciliation for every station assigned to this user.",
+      "fields": {
+        "user_id": {
+          "name": "User ID",
+          "description": "Central user UUID or station configuration entry ID."
+        }
+      }
+    },
+    "sync_station": {
+      "name": "Synchronize station",
+      "description": "Queue reconciliation for this station.",
+      "fields": {
+        "station_id": {
+          "name": "Station",
+          "description": "Central user UUID or station configuration entry ID."
+        }
+      }
+    },
+    "sync_all": {
+      "name": "Synchronize all stations",
+      "description": "Queue independent reconciliation for all stations."
+    },
+    "rescan_station": {
+      "name": "Rescan station",
+      "description": "Read access-management capabilities and station inventory. This action does not queue synchronization or change access rights.",
+      "fields": {
+        "station_id": {
+          "name": "Station",
+          "description": "Central user UUID or station configuration entry ID."
+        }
+      }
+    }
+  },
+  "selector": {
+    "lock_mode": {
+      "options": {
+        "camera_only": "Camera only",
+        "map_active_relay": "Test the active relay mapping",
+        "keep_confirmed_mapping": "Keep the confirmed mapping"
+      }
+    },
+    "mapping_result": {
+      "options": {
+        "released_and_returned": "The intended lock released and returned",
+        "choose_again": "Choose an output and test again",
+        "camera_only": "Continue with camera only"
+      }
+    },
+    "display_time_zone": {
+      "options": {
+        "device": "Follow station (default)",
+        "manual": "Manual time zone"
+      }
+    }
+  },
+  "exceptions": {
+    "connection_closed": {
+      "message": "The intercom connection is closed"
+    },
+    "lock_not_managed": {
+      "message": "This lock is not managed"
+    },
+    "release_in_progress": {
+      "message": "A release is already in progress"
+    },
+    "release_unconfirmed": {
+      "message": "The intercom did not confirm release; check the door before retrying"
+    },
+    "invalid_configuration": {
+      "message": "Invalid saved intercom configuration; reconfigure the station"
+    },
+    "identity_changed": {
+      "message": "The address belongs to a different intercom; reconfigure this entry"
+    },
+    "mapping_changed": {
+      "message": "The confirmed relay is no longer advertised; reconfigure this entry"
+    },
+    "authentication_failed": {
+      "message": "Intercom authentication failed"
+    },
+    "unsupported_device": {
+      "message": "Unsupported intercom model or core endpoint"
+    },
+    "connection_failed": {
+      "message": "Intercom could not be reached or validated"
+    },
+    "target_required": {
+      "message": "Select an intercom device or entity"
+    },
+    "invalid_target": {
+      "message": "Target must belong to a smplwise access control station"
+    },
+    "target_unloaded": {
+      "message": "Target intercom is not loaded"
+    },
+    "target_lock_not_managed": {
+      "message": "Target lock is not managed"
+    },
+    "forced_lock_unsupported": {
+      "message": "This relay returns automatically; forced locking is not supported"
+    },
+    "access_action_failed": {
+      "message": "Access action could not be completed: {reason}"
+    }
+  },
+  "issues": {
+    "access_auth": {
+      "title": "Access management authentication failed for {station}",
+      "description": "Reconfigure the integration credentials in Settings > Devices & services. Existing device credentials were not changed."
+    },
+    "sync_conflict": {
+      "title": "Synchronization needs review for {station}",
+      "description": "Open WisKey > Sync and review the conflict. Choose the central or device version explicitly."
+    },
+    "access_capacity": {
+      "title": "Access capacity reached on {station}",
+      "description": "Review the station user/card limits and pending assignments in WisKey. No existing users are removed automatically."
+    },
+    "identity": {
+      "title": "Station identity changed: {station}",
+      "description": "The address now identifies a different station. Verify the address and configure the replacement separately. Writes are blocked."
+    },
+    "relay_mapping": {
+      "title": "Relay mapping unavailable: {station}",
+      "description": "Reconfigure and physically confirm the active relay. No other relay is enabled automatically."
+    },
+    "capability_regression": {
+      "title": "Previously observed capability missing: {station}",
+      "description": "Check station connectivity and firmware, then reload. A previously working camera or call capability is no longer advertised."
+    },
+    "migration": {
+      "title": "Configuration upgrade needs review: {station}",
+      "description": "The saved configuration is invalid or from a newer version. Restore a compatible backup or reinstall the matching integration version. Permissions were not changed."
+    },
+    "users_storage_corrupt": {
+      "title": "Users storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "users_storage_write": {
+      "title": "Users storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "events_storage_corrupt": {
+      "title": "Events storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "events_storage_write": {
+      "title": "Events storage requires attention",
+      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+    },
+    "schedules_storage_corrupt": {
+      "title": "Schedule storage could not be loaded",
+      "description": "Schedule drafts are unavailable. The existing file is preserved; restore smplwise_access_control.schedules from a valid backup and restart. Existing user access continues to operate."
+    },
+    "schedules_storage_write": {
+      "title": "Schedule storage write failed",
+      "description": "Check free disk space and write permissions, then save again. The change was not acknowledged as saved."
+    },
+    "schedule_baselines_storage_corrupt": {
+      "title": "Schedule references unavailable",
+      "description": "The schedule reference file could not be loaded. Preserve it and restore a valid backup, then restart Home Assistant. Schedule assessments and existing access remain available."
+    },
+    "schedule_baselines_storage_write": {
+      "title": "Schedule reference save failed",
+      "description": "The reference could not be saved. Check storage space and permissions, then run another assessment before retrying. No station configuration was changed by this operation."
+    },
+    "schedule_plans_storage_corrupt": {
+      "title": "Deployment proposal storage unavailable",
+      "description": "Local deployment proposals could not be loaded. The file is preserved without overwrite. Restore a valid backup and restart Home Assistant. User management and draft storage remain independent."
+    },
+    "schedule_journal_storage_corrupt": {
+      "title": "Schedule journal unavailable",
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+    },
+    "schedule_journal_storage_write": {
+      "title": "Schedule journal could not be saved",
+      "description": "Check free space and storage directory permissions. Do not assume the action was saved; reload the list after fixing the storage problem."
+    },
+    "schedule_operations_storage_corrupt": {
+      "title": "Schedule operations unavailable",
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+    },
+    "schedule_operations_storage_write": {
+      "title": "Schedule operations could not be saved",
+      "description": "Check free space and storage directory permissions. Do not assume the action was saved; reload the list after fixing the storage problem."
+    },
+    "acceptance_storage_corrupt": {
+      "title": "Field test results cannot be loaded",
+      "description": "Existing field results were not overwritten. Restore a valid backup of the acceptance store and reload the integration."
+    },
+    "acceptance_storage_write": {
+      "title": "Field test results could not be saved",
+      "description": "The new result was not committed. Check available disk space and configuration-directory permissions, then save again."
+    },
+    "media_settings_storage_corrupt": {
+      "title": "Camera playback settings could not be loaded",
+      "description": "The stored WisKey playback preferences failed validation. Restore this storage file from a trusted backup and restart Home Assistant. Camera and user configuration are separate."
+    },
+    "profile_settings_storage_corrupt": {
+      "title": "WisKey user profile settings are unavailable",
+      "description": "User field and group settings could not be loaded. Restore a valid profile settings backup. Door controls and synchronization remain available."
+    },
+    "panel_permissions_storage_corrupt": {
+      "title": "WisKey user permissions are unavailable",
+      "description": "The stored Home Assistant user permissions failed validation. Non-administrators are denied access until a valid backup is restored and the integration is reloaded. Home Assistant administrators retain recovery access."
+    }
+  }
+}

@@ -16,12 +16,18 @@ export function appearanceOverride(user?: string): Appearance | null {
   if (!user) return null;
   try {
     const value = localStorage.getItem(appearanceKey(user));
-    return appearances.includes(value as Appearance) ? (value as Appearance) : null;
+    if (appearances.includes(value as Appearance)) return value as Appearance;
+    // Preserve a user's choice when upgrading the Home Assistant domain.
+    const legacy = localStorage.getItem(`hikvision-intercom:appearance:v1:${user}`);
+    if (!appearances.includes(legacy as Appearance)) return null;
+    localStorage.setItem(appearanceKey(user), legacy!);
+    localStorage.removeItem(`hikvision-intercom:appearance:v1:${user}`);
+    return legacy as Appearance;
   } catch {
     return null;
   }
 }
-export const appearanceKey = (user: string) => `hikvision-intercom:appearance:v1:${user}`;
+export const appearanceKey = (user: string) => `smplwise-access-control:appearance:v1:${user}`;
 export function readAppearance(user?: string, shared: Appearance = "current"): Appearance {
   return appearanceOverride(user) ?? shared;
 }
@@ -33,6 +39,7 @@ export function saveAppearance(
   try {
     if (appearance === "default") localStorage.removeItem(appearanceKey(user));
     else localStorage.setItem(appearanceKey(user), appearance);
+    localStorage.removeItem(`hikvision-intercom:appearance:v1:${user}`);
     return true;
   } catch {
     return false;

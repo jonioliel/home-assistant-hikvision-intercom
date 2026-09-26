@@ -9,14 +9,17 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from custom_components.hikvision_intercom.client.access import (
+from custom_components.smplwise_access_control.client.access import (
     AccessCapabilities,
     AccessClient,
     validate_card,
     validate_identifier,
 )
-from custom_components.hikvision_intercom.client.client import ConnectionSettings, HikvisionClient
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.client.client import (
+    ConnectionSettings,
+    HikvisionClient,
+)
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionDeviceError,
     HikvisionValidationError,
 )

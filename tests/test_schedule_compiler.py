@@ -5,13 +5,13 @@ from copy import deepcopy
 import pytest
 from test_schedules import CAPS, draft, holiday
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedule_compiler import (
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedule_compiler import (
     bindings_for,
     compile_schedule,
 )
-from custom_components.hikvision_intercom.access.schedules import DAYS
-from custom_components.hikvision_intercom.client.schedules import ROUTES, capability
+from custom_components.smplwise_access_control.access.schedules import DAYS
+from custom_components.smplwise_access_control.client.schedules import ROUTES, capability
 
 
 def capabilities():

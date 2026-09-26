@@ -13,14 +13,17 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedule_compiler import compile_schedule
-from custom_components.hikvision_intercom.access.schedule_executor import (
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedule_compiler import compile_schedule
+from custom_components.smplwise_access_control.access.schedule_executor import (
     ScheduleExecutor,
     ScheduleObservation,
 )
-from custom_components.hikvision_intercom.access.schedule_journal import CONTEXT, ScheduleJournal
-from custom_components.hikvision_intercom.access.schedules import DAYS
+from custom_components.smplwise_access_control.access.schedule_journal import (
+    CONTEXT,
+    ScheduleJournal,
+)
+from custom_components.smplwise_access_control.access.schedules import DAYS
 
 SCENARIOS = (
     "success",

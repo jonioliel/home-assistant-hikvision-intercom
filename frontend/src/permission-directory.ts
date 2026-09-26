@@ -110,7 +110,7 @@ export class PermissionDirectory extends LitElement {
     try {
       const report = await this.requests.run<Directory>(
         {
-          type: "hikvision_intercom/permissions/directory",
+          type: "smplwise_access_control/permissions/directory",
           filters: {
             station_id: this.stationId,
             mode: this.mode,

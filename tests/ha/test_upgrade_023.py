@@ -11,10 +11,10 @@ import httpx
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from test_access_engine import Device
 
-from custom_components.hikvision_intercom.access_runtime import get_manager
-from custom_components.hikvision_intercom.client.access import AccessClient
-from custom_components.hikvision_intercom.const import DOMAIN
-from custom_components.hikvision_intercom.storage import AccessStore
+from custom_components.smplwise_access_control.access_runtime import get_manager
+from custom_components.smplwise_access_control.client.access import AccessClient
+from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.smplwise_access_control.storage import AccessStore
 
 from .conftest import DATA, PROFILE
 from .test_access_runtime import finish_workers
@@ -60,15 +60,15 @@ async def test_ha_boots_023_store_recovers_offline_queue_and_preserves_bulk_rece
 
     entries = []
     with (
-        patch("custom_components.hikvision_intercom.runtime.create_session", session_factory),
+        patch("custom_components.smplwise_access_control.runtime.create_session", session_factory),
         patch.object(AccessClient, "async_inventory", INVENTORY),
         patch.object(AccessClient, "async_write_person", WRITE_PERSON),
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_profile",
             profile,
         ),
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
             info,
         ),
     ):

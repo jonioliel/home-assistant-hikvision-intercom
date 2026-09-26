@@ -5,13 +5,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.hold_open import (
+from custom_components.smplwise_access_control.access.hold_open import (
     HoldOpenDrafts,
     HoldOpenExecutor,
     window,
 )
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.schedules import DAYS
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.schedules import DAYS
 
 
 def sample():

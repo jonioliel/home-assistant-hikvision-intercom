@@ -11,14 +11,14 @@ from test_access_manager import drain
 from test_access_manager import fleet as fleet
 from test_client import SETTINGS
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.client.capture import (
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.client.capture import (
     CaptureCapabilities,
     CapturedCard,
     CardCaptureClient,
 )
-from custom_components.hikvision_intercom.client.client import HikvisionClient
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.client.client import HikvisionClient
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )

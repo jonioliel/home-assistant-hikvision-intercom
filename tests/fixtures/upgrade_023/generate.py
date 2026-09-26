@@ -4,7 +4,7 @@ Usage: python generate.py /path/to/archived/0.23 /path/to/output.json
 No network or real credentials. UUIDs/timestamps differ on regeneration.
 """
 
-# ruff: noqa: E402
+# ruff: noqa: E402, I001
 import asyncio
 import json
 import sys

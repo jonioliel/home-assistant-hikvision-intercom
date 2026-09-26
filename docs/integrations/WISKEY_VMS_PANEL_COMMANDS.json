@@ -1,0 +1,1138 @@
+{
+  "source": "custom_components/smplwise_access_control/websocket.py:COMMANDS",
+  "integration_domain": "smplwise_access_control",
+  "integration_version": "2.0.0-rc.1",
+  "api_contract_version": 1,
+  "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
+  "commands": {
+    "smplwise_access_control/acceptance/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/acceptance/update": {
+      "required": {
+        "station_id": "str",
+        "step": "str",
+        "state": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/appearance/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/appearance/settings_update": {
+      "required": {
+        "revision": "int",
+        "default": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/audit/export": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/audit/list": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/authorization/session": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/authorization/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/authorization/settings_update": {
+      "required": {
+        "revision": "int",
+        "users": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/add": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/capture_cancel": {
+      "required": {
+        "session_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/capture_confirm": {
+      "required": {
+        "session_id": "str",
+        "label": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/capture_start": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "reader_id": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/capture_status": {
+      "required": {
+        "session_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/reader_capabilities": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/cards/remove": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "card_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/clock/host_apply": {
+      "required": {
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/clock/host_status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/clock/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/clock/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/clock/station_sync": {
+      "required": {
+        "station_id": "str",
+        "revision": "int",
+        "copy_system": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/conflicts/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/conflicts/resolve": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "review_token": "str",
+        "revision": "int",
+        "direction": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/conflicts/resolve_deletion": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/conflicts/review": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/detail": {
+      "required": {
+        "event_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/export": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/history_inspect": {
+      "required": {
+        "station_id": "str",
+        "start": "str",
+        "end": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/list": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/print": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/report": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/support": {
+      "required": {
+        "event_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/trace_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/trace_start": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/events/trace_stop": {
+      "required": {
+        "station_id": "str",
+        "capture_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/fleet/inventory_export": {
+      "required": {
+        "format": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/health/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/health/refresh": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/call": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/provider_check": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/provider_discover": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/media/signal": {
+      "required": {
+        "station_id": "str",
+        "command": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/operations/query": {
+      "required": {
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/overview": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/permissions/directory": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/profiles/settings_apply": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/profiles/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/profiles/settings_preview": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/profiles/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/assess": {
+      "required": {
+        "station_id": "str",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/baseline_clear": {
+      "required": {
+        "station_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/baseline_save": {
+      "required": {
+        "station_id": "str",
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/create": {
+      "required": {
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/delete": {
+      "required": {
+        "schedule_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/dependencies": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/import_apply": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/import_preview": {
+      "required": {
+        "document": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_archive": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_cancel": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_check": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_claim_confirm": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_claim_preview": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_claim_release": {
+      "required": {
+        "claim_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_create": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/operations_list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_delete": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_export": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_preview": {
+      "required": {
+        "station_id": "str",
+        "schedule_id": "str",
+        "revision": "int",
+        "bindings": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_recheck": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/plan_save": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/preview": {
+      "required": {
+        "data": "dict",
+        "date": "str",
+        "time": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/readiness": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/schedules/update": {
+      "required": {
+        "schedule_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/clock_refresh": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/inventory": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/permission_audit": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/rescan": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_codes_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_codes_write": {
+      "required": {
+        "station_id": "str",
+        "slot": "int",
+        "action": "str",
+        "door": "int",
+        "expected": "bool",
+        "old_pin": "str",
+        "new_pin": "str",
+        "compatibility": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_hold_delete": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_hold_get": {
+      "required": {
+        "station_id": "str",
+        "door": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_hold_save": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "policy": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_program_action": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_program_list": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_program_save": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "policy": "dict",
+        "enabled": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_relays": {
+      "required": {
+        "station_id": "str",
+        "expected": "list",
+        "locks": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/technical_update": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "expected": "dict",
+        "changes": "dict",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/stations/test_unlock": {
+      "required": {
+        "station_id": "str",
+        "lock": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/support/bundle": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/sync/all": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/sync/diagnostics": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/sync/station": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/sync/status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/sync/user": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/upgrade/readiness": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/adopt": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/bulk_apply": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/bulk_preview": {
+      "required": {
+        "request": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/bulk_receipt": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/bulk_receipts": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/create": {
+      "required": {
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/csv_apply": {
+      "required": {
+        "csv": "str",
+        "mode": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/csv_export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/csv_inspect": {
+      "required": {
+        "csv": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/csv_preview": {
+      "required": {
+        "csv": "str",
+        "mode": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/delete": {
+      "required": {
+        "user_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/delete_unmanaged": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/duplicate_check": {
+      "required": {
+        "user_id": "str",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/get": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/ignore": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "ignored": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/lifecycle": {
+      "required": {
+        "warning_days": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/photo_get": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/pin_check": {
+      "required": {
+        "user_id": "str",
+        "pin": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/pin_generate": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/query": {
+      "required": {
+        "query": "str",
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/set_active": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "active": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/users/update": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/history": {
+      "required": {
+        "user_id": "str",
+        "account": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/media": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/preview": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "language": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/send": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "token": "str",
+        "message": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/templates_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "smplwise_access_control/whatsapp/templates_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    }
+  }
+}

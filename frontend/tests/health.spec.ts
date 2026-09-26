@@ -71,7 +71,7 @@ async function setup(page, path = "/") {
       if (message.type.endsWith("events/support")) {
         window.calls.push(message);
         return {
-          format: "hikvision_intercom.event_support",
+          format: "smplwise_access_control.event_support",
           event: { major: 5, minor: 1 },
           evidence: { identity_state: "identity_unavailable" },
         };
@@ -95,7 +95,7 @@ async function setup(page, path = "/") {
 test("health shows queue reasons and refreshes selected stations only", async ({ page }) => {
   await setup(page);
   await navigate(page, "Health & field tests");
-  const health = page.locator("hikvision-intercom-health");
+  const health = page.locator("smplwise-access-control-health");
   await expect(health.locator(".health-card")).toHaveCount(9);
   await expect(health.locator(".health-card").first()).toContainText("Pending sync jobs: 2");
   await health.getByRole("checkbox", { name: "Main gate", exact: true }).check();
@@ -121,7 +121,7 @@ test("fleet support bundle downloads cached secret-free diagnostics", async ({ p
       if (message.type.endsWith("support/bundle")) {
         window.calls.push(message);
         return {
-          format: "hikvision_intercom.support_bundle",
+          format: "smplwise_access_control.support_bundle",
           scope: "cached_diagnostics_no_device_reads",
           privacy: "no_credentials_addresses_user_names_phone_numbers_or_card_numbers",
           stations: [{ station_ref: "7b20cb112233", model: "DS-KV6124-E1" }],
@@ -226,7 +226,7 @@ test("health data clears on administrator role loss", async ({ page }) => {
   await navigate(page, "Health & field tests");
   await expect(page.locator(".health-card")).toHaveCount(9);
   await page.evaluate(() => {
-    const panel = document.querySelector("hikvision-intercom-panel");
+    const panel = document.querySelector("smplwise-access-control-panel");
     panel.hass = { ...window.demoHass, user: { is_admin: false } };
   });
   await expect(page.locator(".health-card")).toHaveCount(0);
@@ -236,14 +236,14 @@ test("Hebrew health on mobile has no horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await page.evaluate(() => {
-    const panel = document.querySelector("hikvision-intercom-panel");
+    const panel = document.querySelector("smplwise-access-control-panel");
     window.demoHass.language = "he";
     panel.hass = { ...window.demoHass };
   });
   await navigate(page, "בריאות ובדיקות שטח");
   await expect(page.locator(".health-card")).toHaveCount(9);
   expect(
-    await page.locator("hikvision-intercom-health").evaluate((el) => el.scrollWidth > 390),
+    await page.locator("smplwise-access-control-health").evaluate((el) => el.scrollWidth > 390),
   ).toBeFalsy();
   await page.screenshot({ path: "test-results/health-he-mobile.png", fullPage: true });
 });
@@ -294,7 +294,7 @@ test("a pending health call command remains owned by its station after switching
   await card.getByText("Call signaling", { exact: true }).click();
   await card.getByRole("button", { name: "Reject signal", exact: true }).click();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
-  const controls = page.locator("hikvision-intercom-call-controls").first();
+  const controls = page.locator("smplwise-access-control-call-controls").first();
   await expect(controls.getByRole("button", { name: "Answer signal", exact: true })).toBeDisabled();
   await page.evaluate(() => window.healthLateSignal());
   await expect(controls.getByRole("button", { name: "Answer signal", exact: true })).toBeEnabled();
@@ -308,11 +308,11 @@ test("health reads call state only after opening that station's call controls", 
 }) => {
   await setup(page);
   await navigate(page, "Health & field tests");
-  const health = page.locator("hikvision-intercom-health");
+  const health = page.locator("smplwise-access-control-health");
   await expect(
     health.getByRole("button", { name: "Export compatibility report", exact: true }).last(),
   ).toBeEnabled();
-  await expect(health.locator("hikvision-intercom-call-controls")).toHaveCount(0);
+  await expect(health.locator("smplwise-access-control-call-controls")).toHaveCount(0);
   const count = () =>
     page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/call")).length);
   const before = await count();
@@ -321,7 +321,7 @@ test("health reads call state only after opening that station's call controls", 
   await expect(first.getByRole("button", { name: "Reject signal", exact: true })).toBeEnabled();
   expect(await count()).toBe(before + 1);
   await first.getByText("Call signaling", { exact: true }).click();
-  await expect(health.locator("hikvision-intercom-call-controls")).toHaveCount(0);
+  await expect(health.locator("smplwise-access-control-call-controls")).toHaveCount(0);
   expect(
     await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("media/signal")).length),
   ).toBe(0);

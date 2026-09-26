@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.csv_transfer import desired_fields
-from custom_components.hikvision_intercom.access.models import AccessError, build_user
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.access.user_timing import timing_draft
+from custom_components.smplwise_access_control.access.csv_transfer import desired_fields
+from custom_components.smplwise_access_control.access.models import AccessError, build_user
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.user_timing import timing_draft
 
 
 def weekly():

@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.hikvision_intercom.clock import device_zone, parse_clock
-from custom_components.hikvision_intercom.clock_runtime import StationClock
-from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
+from custom_components.smplwise_access_control.clock import device_zone, parse_clock
+from custom_components.smplwise_access_control.clock_runtime import StationClock
+from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
 
 from .test_websocket import request
 
@@ -116,7 +116,7 @@ async def test_explicit_clock_refresh_rejects_unloaded_station(hass, loaded_entr
 async def test_measured_clock_health_survives_display_override_and_failed_read_resets_trend(hass):
     from datetime import timedelta
 
-    from custom_components.hikvision_intercom.clock_health import measured_clock
+    from custom_components.smplwise_access_control.clock_health import measured_clock
 
     instant = datetime(2026, 9, 8, 21, tzinfo=UTC)
     sample = measured_clock(
@@ -129,7 +129,8 @@ async def test_measured_clock_health_survives_display_override_and_failed_read_r
     clock.client.async_read = AsyncMock(return_value=sample)
     try:
         with patch(
-            "custom_components.hikvision_intercom.clock_runtime.monotonic", side_effect=[0, 300]
+            "custom_components.smplwise_access_control.clock_runtime.monotonic",
+            side_effect=[0, 300],
         ):
             await clock.async_refresh()
             assert clock.public()["drift_state"] == "ahead"

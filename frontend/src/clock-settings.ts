@@ -158,14 +158,14 @@ export class ClockSettingsPanel extends LitElement {
     this.busy = true;
     try {
       const policy = await this.requests.run<Policy>({
-        type: "hikvision_intercom/clock/settings_get",
+        type: "smplwise_access_control/clock/settings_get",
       });
       if (g !== this.generation) return;
       this.policy = policy;
       this.dirty = false;
       if (!this.compact) {
         const host = await this.requests.run<Host>({
-          type: "hikvision_intercom/clock/host_status",
+          type: "smplwise_access_control/clock/host_status",
         });
         if (g === this.generation) this.host = host;
       }
@@ -182,7 +182,7 @@ export class ClockSettingsPanel extends LitElement {
     const { revision, ...values } = this.policy;
     try {
       const policy = await this.requests.run<Policy>({
-        type: "hikvision_intercom/clock/settings_update",
+        type: "smplwise_access_control/clock/settings_update",
         revision,
         values,
       });
@@ -214,7 +214,7 @@ export class ClockSettingsPanel extends LitElement {
         try {
           const result = await this.requests.run<{ clock_verified: boolean }>(
             {
-              type: "hikvision_intercom/clock/station_sync",
+              type: "smplwise_access_control/clock/station_sync",
               station_id: station.id,
               revision,
               copy_system: copy,
@@ -241,7 +241,7 @@ export class ClockSettingsPanel extends LitElement {
     this.busy = true;
     try {
       await this.requests.run({
-        type: "hikvision_intercom/clock/host_apply",
+        type: "smplwise_access_control/clock/host_apply",
         revision: this.policy.revision,
       });
       if (g === this.generation) this.notice = this.t("hostSaved");

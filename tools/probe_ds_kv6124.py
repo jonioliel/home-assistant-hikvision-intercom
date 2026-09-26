@@ -16,14 +16,17 @@ from pathlib import Path
 
 import httpx
 
-from custom_components.hikvision_intercom.client.probe import (
+from custom_components.smplwise_access_control.client.probe import (
     ENDPOINTS,
     ProbeClient,
     ProbeLimits,
 )
-from custom_components.hikvision_intercom.client.transport import LimitedTransport
-from custom_components.hikvision_intercom.exceptions import HikvisionError, HikvisionValidationError
-from custom_components.hikvision_intercom.models import CapabilityReport
+from custom_components.smplwise_access_control.client.transport import LimitedTransport
+from custom_components.smplwise_access_control.exceptions import (
+    HikvisionError,
+    HikvisionValidationError,
+)
+from custom_components.smplwise_access_control.models import CapabilityReport
 
 
 def argument_parser() -> argparse.ArgumentParser:

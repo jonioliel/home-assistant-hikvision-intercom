@@ -8,9 +8,9 @@ import pytest
 from test_access_client import PERSON
 from test_access_engine import setup as setup  # noqa: F401
 
-from custom_components.hikvision_intercom.access.manager import AccessManager
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.smplwise_access_control.access.manager import AccessManager
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
 
 
 async def drain(manager):
@@ -238,8 +238,8 @@ async def test_eight_online_stations_progress_with_one_offline_and_max_three_wri
     import httpx
     from test_access_engine import CAP, Device
 
-    from custom_components.hikvision_intercom.client.access import AccessClient
-    from custom_components.hikvision_intercom.client.client import (
+    from custom_components.smplwise_access_control.client.access import AccessClient
+    from custom_components.smplwise_access_control.client.client import (
         ConnectionSettings,
         HikvisionClient,
     )
@@ -904,7 +904,7 @@ async def test_station_metrics_deduplicate_pending_removals(fleet):
 
 
 async def test_person_failure_is_not_broadcast_as_station_error(fleet):
-    from custom_components.hikvision_intercom.exceptions import HikvisionBusyError
+    from custom_components.smplwise_access_control.exceptions import HikvisionBusyError
 
     manager, device, _ = fleet
     for index in range(3):

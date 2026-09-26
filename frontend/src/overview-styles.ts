@@ -108,7 +108,7 @@ export const overviewStyles = css`
     margin: 0 8px;
     border-radius: 6px;
   }
-  .overview-wall .camera-wrap hikvision-intercom-camera {
+  .overview-wall .camera-wrap smplwise-access-control-camera {
     width: 100%;
     height: 100%;
     aspect-ratio: 16 / 9;

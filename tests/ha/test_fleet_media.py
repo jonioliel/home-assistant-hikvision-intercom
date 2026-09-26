@@ -7,10 +7,10 @@ from unittest.mock import patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.hikvision_intercom.const import DOMAIN
-from custom_components.hikvision_intercom.event_manager import get_events
-from custom_components.hikvision_intercom.health_api import dispatch_health
-from custom_components.hikvision_intercom.websocket import overview
+from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.smplwise_access_control.event_manager import get_events
+from custom_components.smplwise_access_control.health_api import dispatch_health
+from custom_components.smplwise_access_control.websocket import overview
 
 from .conftest import DATA, PROFILE
 from .test_events import live
@@ -52,14 +52,14 @@ async def test_nine_ha_stations_keep_events_calls_and_unload_independent(hass, d
     pending = None
     with (
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_profile",
             profile,
         ),
         patch(
-            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
             info,
         ),
-        patch("custom_components.hikvision_intercom.health_api.MediaClient.signal", signal),
+        patch("custom_components.smplwise_access_control.health_api.MediaClient.signal", signal),
     ):
         try:
             for index in range(9):

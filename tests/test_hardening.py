@@ -8,12 +8,15 @@ import pytest
 from test_access_engine import CAP, Device
 from test_access_manager import drain
 
-from custom_components.hikvision_intercom.access.manager import AccessManager
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.access.repository import AccessRepository
-from custom_components.hikvision_intercom.client.access import AccessClient
-from custom_components.hikvision_intercom.client.client import ConnectionSettings, HikvisionClient
-from custom_components.hikvision_intercom.hardening import (
+from custom_components.smplwise_access_control.access.manager import AccessManager
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.smplwise_access_control.client.access import AccessClient
+from custom_components.smplwise_access_control.client.client import (
+    ConnectionSettings,
+    HikvisionClient,
+)
+from custom_components.smplwise_access_control.hardening import (
     AdminLimiter,
     RequestMetrics,
     firmware_label,

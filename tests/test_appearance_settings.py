@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.appearance_settings import AppearanceSettings
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.appearance_settings import AppearanceSettings
 
 
 async def test_default_reload_conflict_and_noop():

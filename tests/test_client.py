@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from custom_components.hikvision_intercom.client.client import (
+from custom_components.smplwise_access_control.client.client import (
     CallState,
     ConnectionSettings,
     HikvisionClient,
     normalize_call_state,
 )
-from custom_components.hikvision_intercom.configuration import managed_locks
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.configuration import managed_locks
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionAuthError,
     HikvisionBusyError,
     HikvisionConnectionError,
@@ -296,7 +296,7 @@ async def test_cancellation_releases_request_lock():
 
 @pytest.mark.parametrize("value", [True, False, float("nan"), float("inf"), -1, 0, 1000, "2"])
 def test_invalid_poll_options(value):
-    from custom_components.hikvision_intercom.configuration import PollOptions
+    from custom_components.smplwise_access_control.configuration import PollOptions
 
     with pytest.raises(HikvisionValidationError):
         PollOptions.from_mapping({"idle_interval": value})

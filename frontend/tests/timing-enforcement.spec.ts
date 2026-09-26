@@ -5,7 +5,7 @@ async function enable(page: any) {
   await page.goto("/");
   await page.evaluate(async () => {
     (window as any).demoData.api.capabilities.push("user_timing_enforcement");
-    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
+    await (document.querySelector("smplwise-access-control-panel") as any).refresh();
   });
   await navigate(page, "Users");
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
@@ -96,7 +96,7 @@ test("Hebrew saved draft requires explicit activation and date labels are not dr
       dates: [],
       periods: [{ start: "12:00", end: "18:00" }],
     };
-    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
+    await (document.querySelector("smplwise-access-control-panel") as any).refresh();
   });
   await navigate(page, "משתמשים");
   await page.getByRole("button", { name: "עריכה", exact: true }).first().click();

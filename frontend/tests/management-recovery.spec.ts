@@ -4,7 +4,7 @@ async function hold(page: Page, command: string) {
   await page.evaluate((command) => {
     const original = window.demoHass.callWS;
     window.demoHass.callWS = function (message) {
-      if (message.type === "hikvision_intercom/" + command) {
+      if (message.type === "smplwise_access_control/" + command) {
         window.calls.push(message);
         return new Promise((resolve) => {
           window.lateManagement = resolve;
@@ -12,7 +12,7 @@ async function hold(page: Page, command: string) {
       }
       return original.call(this, message);
     };
-    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
+    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
   }, command);
 }
 
@@ -42,7 +42,7 @@ test("a missing user save result closes the sensitive draft without replaying th
   await expect(page.getByRole("alert")).toContainText("The change may have been saved");
   const result = await page.evaluate(() => ({
     requests: window.calls.filter((c) => c.type.endsWith("users/create")).length,
-    draft: document.querySelector("hikvision-intercom-panel")._draft,
+    draft: document.querySelector("smplwise-access-control-panel")._draft,
   }));
   expect(result.requests).toBe(1);
   expect(result.draft).toBeUndefined();
@@ -57,17 +57,17 @@ test("logout abandons a pending inventory read and discards late private results
   await page.getByRole("button", { name: "Import existing", exact: true }).click();
   await expect.poll(() => page.evaluate(() => typeof window.lateManagement)).toBe("function");
   await page.evaluate(() => {
-    const panel = document.querySelector("hikvision-intercom-panel");
+    const panel = document.querySelector("smplwise-access-control-panel");
     panel.hass = { ...window.demoHass, user: { is_admin: false } };
   });
   await expect
-    .poll(() => page.evaluate(() => document.querySelector("hikvision-intercom-panel")._busy))
+    .poll(() => page.evaluate(() => document.querySelector("smplwise-access-control-panel")._busy))
     .toBe(false);
   await page.evaluate(() =>
     window.lateManagement([{ employee_no: "PRIVATE-LATE", display_name: "Private resident" }]),
   );
   expect(
-    await page.evaluate(() => document.querySelector("hikvision-intercom-panel")._importRows),
+    await page.evaluate(() => document.querySelector("smplwise-access-control-panel")._importRows),
   ).toEqual([]);
 });
 
@@ -78,7 +78,7 @@ test("returning to the panel during an old save permits new work and ignores its
   await hold(page, "users/create");
   await submit(page);
   await page.evaluate(() => {
-    const panel = document.querySelector("hikvision-intercom-panel");
+    const panel = document.querySelector("smplwise-access-control-panel");
     panel.remove();
     document.body.append(panel);
   });
@@ -102,13 +102,13 @@ test("disconnect during a user save releases the form immediately and never rese
   await submit(page);
   await page.evaluate(() => {
     window.demoHass.connection.connected = false;
-    document.querySelector("hikvision-intercom-panel").haDisconnected();
+    document.querySelector("smplwise-access-control-panel").haDisconnected();
   });
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("alert")).toContainText("The change may have been saved");
   await page.evaluate(() => {
     window.demoHass.connection.connected = true;
-    document.querySelector("hikvision-intercom-panel").haReady();
+    document.querySelector("smplwise-access-control-panel").haReady();
     window.lateManagement({ id: "saved-before-disconnect" });
   });
   await expect(page.getByRole("alert")).toContainText("The change may have been saved");

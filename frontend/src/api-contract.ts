@@ -99,7 +99,7 @@ export function contractHass(
       if (property !== "callWS") return Reflect.get(target, property, receiver);
       return (message: Record<string, unknown>) => {
         const type = String(message.type ?? ""),
-          prefix = "hikvision_intercom/";
+          prefix = "smplwise_access_control/";
         if (!type.startsWith(prefix)) return target.callWS(message);
         const command = type.slice(prefix.length),
           policy = current();

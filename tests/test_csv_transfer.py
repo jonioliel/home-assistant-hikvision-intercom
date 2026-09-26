@@ -10,12 +10,12 @@ from test_access_engine import setup as setup  # noqa: F401
 from test_access_manager import drain  # noqa: F401
 from test_access_manager import fleet as fleet
 
-from custom_components.hikvision_intercom.access.csv_transfer import (
+from custom_components.smplwise_access_control.access.csv_transfer import (
     MAX_CSV_ROWS,
     csv_text,
     parse_csv,
 )
-from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.smplwise_access_control.access.models import AccessError
 
 
 def content(rows, headers=("employee_no", "display_name", "pin", "cards", "stations")):

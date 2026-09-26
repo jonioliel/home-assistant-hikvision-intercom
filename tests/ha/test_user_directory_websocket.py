@@ -1,7 +1,7 @@
 """Exercise the paginated user directory through Home Assistant WebSocket."""
 
-from custom_components.hikvision_intercom.access_runtime import get_manager
-from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.smplwise_access_control.access_runtime import get_manager
+from custom_components.smplwise_access_control.const import DOMAIN
 
 
 async def request(client, command, **data):

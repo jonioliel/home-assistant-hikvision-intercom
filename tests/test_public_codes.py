@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.hikvision_intercom.access.models import AccessError
-from custom_components.hikvision_intercom.client.public_codes import TYPES, inspect, mutate
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.smplwise_access_control.client.public_codes import TYPES, inspect, mutate
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionTimeoutError,
     HikvisionUnsupportedError,
 )

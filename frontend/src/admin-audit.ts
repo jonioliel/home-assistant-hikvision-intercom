@@ -278,7 +278,7 @@ export class AdminAudit extends LitElement {
       const filters = more ? this.applied : this.filters();
       const result = await this.request<AuditReport>(
         {
-          type: "hikvision_intercom/audit/list",
+          type: "smplwise_access_control/audit/list",
           filters: { ...filters, ...(more ? { before: this._report!.next_cursor } : {}) },
         },
         20000,
@@ -309,7 +309,7 @@ export class AdminAudit extends LitElement {
     try {
       const result = await this.request<AuditReport>(
         {
-          type: "hikvision_intercom/audit/export",
+          type: "smplwise_access_control/audit/export",
           filters: { ...this.applied },
         },
         60000,
@@ -342,7 +342,7 @@ export class AdminAudit extends LitElement {
     try {
       const report = await this.request<Permissions>(
         {
-          type: "hikvision_intercom/stations/permission_audit",
+          type: "smplwise_access_control/stations/permission_audit",
           station_id: sid,
         },
         120000,

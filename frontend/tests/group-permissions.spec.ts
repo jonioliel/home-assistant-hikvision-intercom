@@ -124,14 +124,16 @@ test("stale group policy cannot overwrite newer permission decisions", async ({ 
   });
   await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.locator("hikvision-intercom-panel")).toContainText("Group settings changed");
+  await expect(page.locator("smplwise-access-control-panel")).toContainText(
+    "Group settings changed",
+  );
 });
 
 test("modern users table contains many configured fields without page overflow", async ({
   page,
 }) => {
   await page.addInitScript(() =>
-    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
+    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
   await setup(page, true);
@@ -145,7 +147,7 @@ test("modern users table contains many configured fields without page overflow",
       });
     window.demoNotify();
   });
-  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
     "data-appearance",
     "modern",
   );

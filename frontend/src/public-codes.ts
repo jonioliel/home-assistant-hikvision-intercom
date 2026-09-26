@@ -111,7 +111,10 @@ export class PublicCodes extends LitElement {
     const id = this.identity;
     try {
       const report = await this.requests.run<Report>(
-        { type: "hikvision_intercom/stations/technical_codes_get", station_id: this.station?.id },
+        {
+          type: "smplwise_access_control/stations/technical_codes_get",
+          station_id: this.station?.id,
+        },
         70000,
       );
       if (id === this.identity) this.report = report;
@@ -132,7 +135,7 @@ export class PublicCodes extends LitElement {
     }
     if (!confirm(this.t("public_pin_confirm"))) return;
     const msg = {
-      type: "hikvision_intercom/stations/technical_codes_write",
+      type: "smplwise_access_control/stations/technical_codes_write",
       station_id: this.station?.id,
       ...this.editor,
       old_pin: this.oldPin,

@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.hikvision_intercom.client.events import HistoryWindowFull
-from custom_components.hikvision_intercom.client.history_diagnostics import inspect_history
-from custom_components.hikvision_intercom.exceptions import (
+from custom_components.smplwise_access_control.client.events import HistoryWindowFull
+from custom_components.smplwise_access_control.client.history_diagnostics import inspect_history
+from custom_components.smplwise_access_control.exceptions import (
     HikvisionTimeoutError,
     HikvisionValidationError,
 )
@@ -48,13 +48,13 @@ async def test_invalid_range_sends_no_requests(start, end):
 async def test_inspection_keeps_absolute_time_and_exports_only_counts(rows, honored):
     with (
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.HikvisionClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.HikvisionClient"
         ) as client_type,
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.EventClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.EventClient"
         ) as event_type,
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.ClockClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.ClockClient"
         ) as clock_type,
     ):
         client_type.return_value = AsyncMock()
@@ -78,13 +78,13 @@ async def test_inspection_keeps_absolute_time_and_exports_only_counts(rows, hono
 async def test_dense_window_does_not_report_empty_success_and_clock_failure_is_separate():
     with (
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.HikvisionClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.HikvisionClient"
         ) as client_type,
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.EventClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.EventClient"
         ) as event_type,
         patch(
-            "custom_components.hikvision_intercom.client.history_diagnostics.ClockClient"
+            "custom_components.smplwise_access_control.client.history_diagnostics.ClockClient"
         ) as clock_type,
     ):
         client_type.return_value = AsyncMock()

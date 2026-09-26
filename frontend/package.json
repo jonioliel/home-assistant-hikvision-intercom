@@ -1,6 +1,6 @@
 {
-  "name": "hikvision-intercom-panel",
-  "version": "1.11.1",
+  "name": "smplwise-access-control-panel",
+  "version": "2.0.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {

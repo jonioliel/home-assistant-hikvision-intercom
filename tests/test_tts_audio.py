@@ -7,7 +7,7 @@ import wave
 
 import pytest
 
-from custom_components.hikvision_intercom.client.tts_audio import (
+from custom_components.smplwise_access_control.client.tts_audio import (
     MAX_AUDIO_SECONDS,
     TtsCodecError,
     encode_mulaw_sample,

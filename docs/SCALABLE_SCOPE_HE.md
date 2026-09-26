@@ -39,4 +39,4 @@
 
 הרחבות Phase 6 והמשימות החדשות נשארות נפרדות ממדד הליבה. הספירות הישנות בתיעוד שחרורים ובראיות מתארות את ההיקף שהיה בתוקף במועדן. המדד הזה מחליף את מסלולי ה־38 והמדד המשולב הישן לצורך תכנון סיום הליבה.
 
-[מפרט](../CODEX_MASTER_SPEC.md), [מצב הליבה](ORIGINAL_SCOPE_STATUS_HE.md), [מנהל התחנות](../custom_components/hikvision_intercom/access/manager.py).
+[מפרט](../CODEX_MASTER_SPEC.md), [מצב הליבה](ORIGINAL_SCOPE_STATUS_HE.md), [מנהל התחנות](../custom_components/smplwise_access_control/access/manager.py).
