@@ -655,7 +655,7 @@ export const styles = css`
     --camera-object-fit: contain;
     background: #172a2d;
   }
-  .camera-video smplwise-access-control-camera {
+  .camera-video hikvision-intercom-camera {
     width: 100%;
     height: auto;
     aspect-ratio: 16 / 9;

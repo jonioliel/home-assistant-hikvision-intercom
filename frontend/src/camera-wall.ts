@@ -294,7 +294,7 @@ export class CameraWall extends LitElement {
           (s) =>
             html`<article class="tile">
               <h3>${s.name} ֲ· ${this.t(s.online ? "online" : "offline")}</h3>
-              <smplwise-access-control-camera
+              <hikvision-intercom-camera
                 .hass=${this.hass}
                 .entity=${s.entities.camera}
                 .stationId=${s.id}
@@ -302,7 +302,7 @@ export class CameraWall extends LitElement {
                 .version=${this.version}
                 .live=${this.active && !this.suspended}
                 .label=${s.name}
-              ></smplwise-access-control-camera>
+              ></hikvision-intercom-camera>
               <button
                 @click=${() => this.dispatchEvent(new CustomEvent("open-station", { detail: s.id }))}
               >

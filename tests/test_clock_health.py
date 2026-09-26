@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from test_clock import OBSERVED, RULE
 
-from custom_components.smplwise_access_control.clock import device_zone, named_zone
-from custom_components.smplwise_access_control.clock_health import (
+from custom_components.hikvision_intercom.clock import device_zone, named_zone
+from custom_components.hikvision_intercom.clock_health import (
     ClockTrend,
     measured_clock,
     next_transition,

@@ -8,10 +8,10 @@ import pytest
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smplwise_access_control.access_runtime import get_manager
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.diagnostics import async_get_config_entry_diagnostics
-from custom_components.smplwise_access_control.migrations import async_migrate_entry
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.diagnostics import async_get_config_entry_diagnostics
+from custom_components.hikvision_intercom.migrations import async_migrate_entry
 
 from .conftest import DATA, PROFILE
 from .test_access_runtime import finish_workers
@@ -128,8 +128,8 @@ async def test_diagnostics_include_metrics_counts_not_private_values(hass, loade
 
 
 async def test_independent_storage_issue_clears_only_after_matching_success(hass, loaded_entry):
-    from custom_components.smplwise_access_control.access.models import AccessError
-    from custom_components.smplwise_access_control.storage import AccessStore
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
 
     users = AccessStore(hass)
     events = AccessStore(hass, key=f"{DOMAIN}.events")
@@ -148,7 +148,7 @@ async def test_independent_storage_issue_clears_only_after_matching_success(hass
 async def test_audit_retention_is_persisted_after_an_admin_query(hass, loaded_entry):
     from datetime import UTC, datetime, timedelta
 
-    from custom_components.smplwise_access_control.event_manager import get_events
+    from custom_components.hikvision_intercom.event_manager import get_events
 
     from .test_events import live
 
@@ -165,15 +165,15 @@ async def test_audit_retention_is_persisted_after_an_admin_query(hass, loaded_en
 async def test_storage_rejects_duplicate_keys_and_oversized_file(hass):
     from pathlib import Path
 
-    from custom_components.smplwise_access_control.access.models import AccessError
-    from custom_components.smplwise_access_control.storage import AccessStore
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
 
     store = AccessStore(hass)
 
     def write_duplicate():
         path = Path(store.path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text('{"version":1,"key":"smplwise_access_control.users","data":{},"data":{}}')
+        path.write_text('{"version":1,"key":"hikvision_intercom.users","data":{},"data":{}}')
 
     await hass.async_add_executor_job(write_duplicate)
     with pytest.raises(AccessError):
@@ -192,17 +192,15 @@ async def test_storage_rejects_duplicate_keys_and_oversized_file(hass):
 async def test_oversized_save_preserves_reloadable_store_and_sets_repair(hass, character):
     from pathlib import Path
 
-    from custom_components.smplwise_access_control.access.models import AccessError
-    from custom_components.smplwise_access_control.storage import AccessStore
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
 
     store = AccessStore(hass)
     original = {"resident": "retained"}
     await store.async_save(original)
     before = await hass.async_add_executor_job(Path(store.path).read_bytes)
     # A small limit exercises the identical atomic-write boundary without large fixtures.
-    with patch(
-        "custom_components.smplwise_access_control.storage.MAX_STORAGE_BYTES", 512, create=True
-    ):
+    with patch("custom_components.hikvision_intercom.storage.MAX_STORAGE_BYTES", 512, create=True):
         with pytest.raises(AccessError, match="storage_write_failed"):
             await store.async_save({"resident": character * 512})
         assert await hass.async_add_executor_job(Path(store.path).read_bytes) == before
@@ -215,15 +213,15 @@ async def test_oversized_save_preserves_reloadable_store_and_sets_repair(hass, c
 async def test_storage_byte_limit_includes_envelope_and_accepts_exact_boundary(hass):
     from pathlib import Path
 
-    from custom_components.smplwise_access_control.access.models import AccessError
-    from custom_components.smplwise_access_control.storage import AccessStore
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.storage import AccessStore
 
     store = AccessStore(hass)
     data = {"resident": "משתמש 😀"}
     await store.async_save(data)
     encoded = await hass.async_add_executor_job(Path(store.path).read_bytes)
     with patch(
-        "custom_components.smplwise_access_control.storage.MAX_STORAGE_BYTES",
+        "custom_components.hikvision_intercom.storage.MAX_STORAGE_BYTES",
         len(encoded),
         create=True,
     ):

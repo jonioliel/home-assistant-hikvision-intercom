@@ -6,9 +6,9 @@ import pytest
 from test_schedule_compiler import capabilities, slots
 from test_user_timing import weekly
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedules import preview
-from custom_components.smplwise_access_control.access.user_timing_plan import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedules import preview
+from custom_components.hikvision_intercom.access.user_timing_plan import (
     prepare_user_timing,
     right_plan,
     user_schedule,

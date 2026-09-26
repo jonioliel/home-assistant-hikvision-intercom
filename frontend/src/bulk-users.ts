@@ -262,7 +262,7 @@ export class BulkUsers extends LitElement {
       const message =
         action === "preview"
           ? {
-              type: "smplwise_access_control/users/bulk_preview",
+              type: "hikvision_intercom/users/bulk_preview",
               request: {
                 action: this._action,
                 selection: this.current(),
@@ -278,9 +278,9 @@ export class BulkUsers extends LitElement {
               },
             }
           : action === "recent"
-            ? { type: "smplwise_access_control/users/bulk_receipts" }
+            ? { type: "hikvision_intercom/users/bulk_receipts" }
             : {
-                type: `smplwise_access_control/users/bulk_${action}`,
+                type: `hikvision_intercom/users/bulk_${action}`,
                 operation_id: operation,
               };
       const result = await boundedRequest(

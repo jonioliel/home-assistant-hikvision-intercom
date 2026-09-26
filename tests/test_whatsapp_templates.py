@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.whatsapp_api import access_message
-from custom_components.smplwise_access_control.whatsapp_templates import DEFAULTS, WhatsAppTemplates
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.whatsapp_api import access_message
+from custom_components.hikvision_intercom.whatsapp_templates import DEFAULTS, WhatsAppTemplates
 
 
 def person(*, policy=None, draft=None, pin="646464", cards=None):

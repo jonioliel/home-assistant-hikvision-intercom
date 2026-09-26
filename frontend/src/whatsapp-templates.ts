@@ -143,7 +143,7 @@ export class WhatsAppTemplateSettings extends LitElement {
     this.error = "";
     try {
       const result = await this.requests.run<TemplatePolicy>(
-        { type: "smplwise_access_control/whatsapp/templates_get" },
+        { type: "hikvision_intercom/whatsapp/templates_get" },
         10000,
       );
       if (!this.isConnected) return;
@@ -174,7 +174,7 @@ export class WhatsAppTemplateSettings extends LitElement {
     try {
       const result = await this.requests.run<TemplatePolicy>(
         {
-          type: "smplwise_access_control/whatsapp/templates_update",
+          type: "hikvision_intercom/whatsapp/templates_update",
           revision: this.policy.revision,
           values: this.draft,
         },

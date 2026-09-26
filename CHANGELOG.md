@@ -4,9 +4,16 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.2] - 2026-09-26
+
+- Restore the existing `hikvision_intercom` package, Home Assistant domain, API/panel routes and private storage namespace while keeping **smplwise access control** as the visible integration and HACS name.
+- Existing v1.11.x installations can update through HACS without deleting station entries, users, cards, permissions, events, or settings. No domain migration is required; restart Home Assistant after updating.
+- Replace the v2.0.0-rc.1 migration instructions with a focused recovery path and regression checks for the HACS package layout. The earlier RC remains in release history but must not be selected for an existing installation.
+- Keep the source-derived VMS handoff and command catalog, corrected to the retained `hikvision_intercom/` API namespace.
+
 ## [2.0.0-rc.1] - 2026-09-26
 
-- Introduce `smplwise_access_control` as the successor integration domain, package, service and panel namespace. Keep Hikvision as the first vendor adapter while preparing a vendor-neutral product identity.
+- Introduced `smplwise_access_control` as a successor integration domain and package. This RC could not update existing HACS installations and was superseded by v2.0.0-rc.2. Keep Hikvision as the first vendor adapter while preparing a vendor-neutral product identity.
 - Include a backup-first offline migration tool for existing Home Assistant config entries, entity/device registries, repairs and private stores. This is a **manual domain migration**, not a one-click HACS update: rehearse it on a full HA configuration copy before using it on the live system.
 - Preserve station entry IDs, entity IDs, user and permission stores, and provide a Hebrew migration checklist and rollback instructions.
 - Publish a source-derived VMS command catalog and integration handoff for external clients using a dedicated HA user token.

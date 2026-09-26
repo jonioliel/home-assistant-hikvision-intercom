@@ -53,7 +53,7 @@ def explain_event(row: dict[str, Any]) -> dict[str, Any]:
 def event_support(row: dict[str, Any], version: str) -> dict[str, Any]:
     """Export has no person, credential, station ID or raw device configuration."""
     return {
-        "format": "smplwise_access_control.event_support",
+        "format": "hikvision_intercom.event_support",
         "version": 1,
         "integration_version": version,
         "case_id": row["id"][:16],

@@ -5,13 +5,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.smplwise_access_control.client.client import CallState
-from custom_components.smplwise_access_control.client.media import (
+from custom_components.hikvision_intercom.client.client import CallState
+from custom_components.hikvision_intercom.client.media import (
     MediaClient,
     audio_channels,
     call_commands,
 )
-from custom_components.smplwise_access_control.exceptions import (
+from custom_components.hikvision_intercom.exceptions import (
     HikvisionTimeoutError,
     HikvisionUnsupportedError,
     HikvisionValidationError,

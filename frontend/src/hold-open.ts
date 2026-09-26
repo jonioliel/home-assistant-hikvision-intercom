@@ -71,11 +71,11 @@ export class HoldOpenEditor extends LitElement {
     try {
       const [result, list] = await Promise.all([
         this.requests.run<{ draft: Draft | null; timezone: string }>({
-          type: "smplwise_access_control/stations/technical_hold_get",
+          type: "hikvision_intercom/stations/technical_hold_get",
           station_id: this.station?.id,
           door: this.door,
         }),
-        this.requests.run<Schedule[]>({ type: "smplwise_access_control/schedules/list" }),
+        this.requests.run<Schedule[]>({ type: "hikvision_intercom/schedules/list" }),
       ]);
       if (id !== this.identity) return;
       this.draft = result.draft;
@@ -97,7 +97,7 @@ export class HoldOpenEditor extends LitElement {
     const id = this.identity;
     try {
       const result = await this.requests.run<{ draft: Draft }>({
-        type: "smplwise_access_control/stations/technical_hold_save",
+        type: "hikvision_intercom/stations/technical_hold_save",
         station_id: this.station?.id,
         door: this.door,
         revision: this.draft?.revision ?? 0,

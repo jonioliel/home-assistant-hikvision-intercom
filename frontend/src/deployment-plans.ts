@@ -193,7 +193,7 @@ export class DeploymentPlans extends LitElement {
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>(
-      { type: `smplwise_access_control/schedules/plan_${command}`, ...data },
+      { type: `hikvision_intercom/schedules/plan_${command}`, ...data },
       ["preview", "recheck"].includes(command) ? 120000 : 60000,
     );
   }

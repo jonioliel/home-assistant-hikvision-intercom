@@ -59,7 +59,7 @@ test("one full day validity uses local midnight boundaries across daylight chang
   await page.goto("/");
   await page.evaluate(async () => {
     (window as any).demoData.default_zone = { kind: "iana", name: "Asia/Jerusalem" };
-    await (document.querySelector("smplwise-access-control-panel") as any).refresh();
+    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
   });
   await navigate(page, "Users");
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
@@ -104,7 +104,7 @@ test("older backend retains ordinary user editing without receiving an unknown f
   await page.goto("/");
   await page.evaluate(async () => {
     (window as any).demoData.api.capabilities = [];
-    await (document.querySelector("smplwise-access-control-panel") as any).refresh();
+    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
   });
   await navigate(page, "Users");
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
@@ -124,7 +124,7 @@ async function datesEditor(page, dates: string[]) {
   await page.goto("/");
   await page.evaluate(async () => {
     (window as any).demoData.default_zone = { kind: "iana", name: "Asia/Jerusalem" };
-    await (document.querySelector("smplwise-access-control-panel") as any).refresh();
+    await (document.querySelector("hikvision-intercom-panel") as any).refresh();
   });
   await navigate(page, "Users");
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
@@ -218,7 +218,7 @@ test("conversion intersects an existing validity restriction", async ({ page }) 
   const timing = await datesEditor(page, ["2026-09-21"]);
   // Existing restriction is stored as an absolute instant, including an explicit offset.
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel") as any;
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
     panel._draft.timed = true;
     panel._draft.valid_from = "2026-09-21T10:00:00+03:00";
     panel._draft.valid_until = "2026-09-21T12:00:00+03:00";

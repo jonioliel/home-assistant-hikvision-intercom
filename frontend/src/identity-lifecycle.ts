@@ -266,7 +266,7 @@ export class IdentityLifecycle extends LitElement {
       const result = await boundedRequest<LifecycleReport>(
         () =>
           this.hass!.callWS({
-            type: "smplwise_access_control/users/lifecycle",
+            type: "hikvision_intercom/users/lifecycle",
             api_contract: 1,
             warning_days: this._days,
           }),

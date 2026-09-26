@@ -109,7 +109,7 @@ test("two relays have distinct labels and independent pending commands", async (
       }
       return base(m);
     };
-    return (document.querySelector("smplwise-access-control-panel") as any).refresh();
+    return (document.querySelector("hikvision-intercom-panel") as any).refresh();
   });
   const card = page.locator("article.station").first();
   const buttons = card.locator("button[aria-label^='Open ']");
@@ -121,6 +121,6 @@ test("two relays have distinct labels and independent pending commands", async (
   await expect(buttons.nth(1)).toBeDisabled();
   await expect(buttons.nth(0)).toBeEnabled();
   expect(await page.evaluate(() => (window as any).relayWrites)).toEqual([
-    { type: "smplwise_access_control/stations/test_unlock", station_id: "station-0", lock: 2 },
+    { type: "hikvision_intercom/stations/test_unlock", station_id: "station-0", lock: 2 },
   ]);
 });

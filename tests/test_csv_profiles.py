@@ -10,8 +10,8 @@ import pytest
 from test_beta_permissions import managed as managed  # noqa: F401
 from test_csv_transfer import content
 
-from custom_components.smplwise_access_control.access.csv_transfer import inspect_csv, parse_csv
-from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.hikvision_intercom.access.csv_transfer import inspect_csv, parse_csv
+from custom_components.hikvision_intercom.access.models import AccessError
 
 
 async def test_group_profile_export_round_trip_is_noop_and_does_not_flatten_grants(managed):

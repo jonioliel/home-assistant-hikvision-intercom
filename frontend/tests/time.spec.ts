@@ -18,7 +18,7 @@ async function configure(page) {
     s.clock.device_zone = zone;
     s.clock.source = "device";
     s.last_access.timestamp = "2026-09-08T21:30:00Z";
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   }, zone);
 }
 
@@ -31,7 +31,7 @@ test("station time follows device instead of browser and applies source offset o
   await expect(output).toContainText("UTC+03:00");
   await page.evaluate(async () => {
     window.demoData.stations[0].last_access.timestamp = "2026-09-09T00:30:00+03:00";
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(output).toContainText("9/9/2026, 12:30:00 AM");
 });
@@ -47,7 +47,7 @@ test("device daylight boundaries and manual IANA override use their own rules", 
   ]) {
     await page.evaluate(async (timestamp) => {
       window.demoData.stations[0].last_access.timestamp = timestamp;
-      await document.querySelector("smplwise-access-control-panel").refresh();
+      await document.querySelector("hikvision-intercom-panel").refresh();
     }, instant);
     await expect(page.locator("article.station").first().locator(".last-access")).toContainText(
       text,
@@ -61,7 +61,7 @@ test("device daylight boundaries and manual IANA override use their own rules", 
     s.clock.zone = { kind: "iana", name: "Asia/Jerusalem" };
     s.clock.source = "manual";
     s.last_access.timestamp = "2026-03-28T12:00:00Z";
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(page.locator("article.station").first().locator(".last-access")).toContainText(
     "3:00:00 PM",
@@ -146,14 +146,14 @@ test("Hebrew mobile clock rules wrap and use explicit offset", async ({ page }) 
     window.demoData.stations[0].clock.zone = zone;
     window.demoData.stations[0].clock.device_zone = zone;
     window.demoData.stations[0].clock.device_time = "2026-09-09T00:30:00+03:00";
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   }, zone);
   await navigate(page, "אינטרקומים");
   await page.locator(".clock-details").first().scrollIntoViewIfNeeded();
   await expect(page.locator(".clock-details").first()).toContainText("UTC+03:00");
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/clock-he-mobile.png" });
@@ -167,7 +167,7 @@ test("unchanged validity preserves a known fold instant and seconds when changin
     const user = window.demoData.users[0];
     user.valid_from = "2026-10-24T22:30:37Z";
     user.valid_until = "2026-10-26T12:00:19Z";
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
@@ -200,7 +200,7 @@ for (const target of ["station", "ha", "removed"]) {
       if (target === "ha") window.demoData.default_zone = { kind: "iana", name: "Asia/Jerusalem" };
       else if (target === "removed") window.demoData.stations = window.demoData.stations.slice(1);
       else window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
-      await document.querySelector("smplwise-access-control-panel").refresh();
+      await document.querySelector("hikvision-intercom-panel").refresh();
     }, target);
     await expect(page.getByLabel("Start", { exact: true })).toHaveValue(
       target === "ha" ? "2026-09-10T15:00" : "2026-09-10T09:00",
@@ -226,13 +226,13 @@ test("background zone refresh preserves a saved fold and seconds in the validity
       valid_from: "2026-10-24T22:30:37Z",
       valid_until: "2026-10-26T12:00:19Z",
     });
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
   await page.evaluate(async () => {
     window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("2026-10-24T22:30");
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -253,7 +253,7 @@ test("an ambiguous unsaved validity range is cleared when its clock rules change
   await page.getByLabel("End", { exact: true }).fill("2026-10-26T04:00");
   await page.evaluate(async () => {
     window.demoData.stations[0].clock.zone = { kind: "iana", name: "UTC" };
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("End", { exact: true })).toHaveValue("");
@@ -283,7 +283,7 @@ for (const source of ["station", "ha", "removed"]) {
       else if (source === "ha")
         window.demoData.default_zone = { kind: "iana", name: "America/New_York" };
       else window.demoData.stations.shift();
-      await document.querySelector("smplwise-access-control-panel").refresh();
+      await document.querySelector("hikvision-intercom-panel").refresh();
     }, source);
     await page.getByRole("button", { name: "Apply filters", exact: true }).click();
     expect(
@@ -315,7 +315,7 @@ test("change-history filters preserve their instant after HA clock settings chan
   );
   await page.evaluate(async () => {
     window.demoData.default_zone = { kind: "iana", name: "America/New_York" };
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   expect(
@@ -334,7 +334,7 @@ test("ambiguous event time drafts are visibly cleared when station clock rules c
   await page.getByLabel("From time", { exact: true }).fill("2026-10-25T01:30");
   await page.evaluate(async () => {
     window.demoData.stations[0].clock.zone = { kind: "iana", name: "Etc/UTC" };
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(page.getByLabel("From time", { exact: true })).toHaveValue("");
   await expect(page.getByRole("alert")).toContainText("Enter the date range again");

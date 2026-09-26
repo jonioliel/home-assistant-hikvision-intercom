@@ -11,13 +11,13 @@ from test_access_engine import setup as setup  # noqa: F401
 from test_access_manager import drain  # noqa: F401
 from test_access_manager import fleet as fleet
 
-from custom_components.smplwise_access_control.access.diagnostics import SyncDiagnostics
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.normalize import canonical
-from custom_components.smplwise_access_control.access.repository import AccessRepository
-from custom_components.smplwise_access_control.client.access import StationInventory
-from custom_components.smplwise_access_control.client.parser import check_response_status
-from custom_components.smplwise_access_control.exceptions import HikvisionDeviceError
+from custom_components.hikvision_intercom.access.diagnostics import SyncDiagnostics
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.normalize import canonical
+from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.client.access import StationInventory
+from custom_components.hikvision_intercom.client.parser import check_response_status
+from custom_components.hikvision_intercom.exceptions import HikvisionDeviceError
 
 
 def rejected_dates():
@@ -40,7 +40,7 @@ async def test_date_rejection_visible_and_retry_recovers_saved_intent(fleet, cap
     original = driver.async_write_person
     driver.async_write_person = AsyncMock(side_effect=rejected_dates())
     caplog.set_level(
-        logging.DEBUG, logger="custom_components.smplwise_access_control.access.diagnostics"
+        logging.DEBUG, logger="custom_components.hikvision_intercom.access.diagnostics"
     )
     user = await manager.async_create(
         {
@@ -137,7 +137,7 @@ async def test_diagnostics_bound_redact_and_throttle_warnings(caplog):
     repo = AccessRepository(AsyncMock())
     diagnostics = SyncDiagnostics(repo.fingerprint)
     caplog.set_level(
-        logging.DEBUG, logger="custom_components.smplwise_access_control.access.diagnostics"
+        logging.DEBUG, logger="custom_components.hikvision_intercom.access.diagnostics"
     )
     error = HikvisionDeviceError(
         "RAW-PIN-918273 CARD-001122334455",
@@ -305,7 +305,7 @@ async def test_utc_echo_is_rewritten_as_verified_local_wall_time(fleet):
         },
     }
     with patch(
-        "custom_components.smplwise_access_control.client.clock.ClockClient.async_read",
+        "custom_components.hikvision_intercom.client.clock.ClockClient.async_read",
         AsyncMock(return_value=clock),
     ):
         user = await manager.async_create(

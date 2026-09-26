@@ -2,7 +2,7 @@ import { navigate } from "./navigation";
 import { test, expect } from "@playwright/test";
 
 const screens = [
-  ["smplwise-access-control-schedules", "schedules/list", "Reload drafts"],
+  ["hikvision-intercom-schedules", "schedules/list", "Reload drafts"],
   ["hikvision-deployment-plans", "schedules/plan_list", "Reload proposals"],
   ["hikvision-schedule-operations", "schedules/operations_list", "Reload operations"],
 ];
@@ -52,7 +52,7 @@ for (const [selector, command, reload] of screens) {
     }, command);
     await navigate(page, "Access schedules");
     const screen = page.locator(selector);
-    await page.locator("smplwise-access-control-panel").evaluate(async (node: any) => {
+    await page.locator("hikvision-intercom-panel").evaluate(async (node: any) => {
       node.hass = { ...node.hass, connection: { ...node.hass.connection } };
       await node.updateComplete;
     });

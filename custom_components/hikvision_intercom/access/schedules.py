@@ -19,7 +19,7 @@ from .repository import Save
 DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 MAX_SCHEDULES = 100
 MAX_HOLIDAYS = 64
-TRANSFER_FORMAT = "smplwise_access_control.schedule_drafts"
+TRANSFER_FORMAT = "hikvision_intercom.schedule_drafts"
 MAX_TRANSFER_BYTES = 8 * 1024 * 1024
 
 

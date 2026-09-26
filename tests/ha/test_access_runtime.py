@@ -10,11 +10,11 @@ from homeassistant import config_entries
 from homeassistant.core import Context, CoreState
 from homeassistant.exceptions import ServiceValidationError, Unauthorized
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.repository import AccessRepository
-from custom_components.smplwise_access_control.access_runtime import get_manager
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.storage import AccessStore
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.storage import AccessStore
 
 from .conftest import DATA
 
@@ -43,7 +43,7 @@ async def test_storage_error_prevents_repository_commit(hass):
     await repo.async_load(None)
     before = repo.snapshot()
     with patch(
-        "custom_components.smplwise_access_control.storage.write_utf8_file_atomic",
+        "custom_components.hikvision_intercom.storage.write_utf8_file_atomic",
         side_effect=OSError("disk full"),
     ):
         with pytest.raises(AccessError, match="storage_write_failed"):

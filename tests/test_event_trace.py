@@ -4,8 +4,8 @@ from unittest.mock import patch
 import pytest
 from test_events import normalized, payload
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.event_trace import EventTrace, identity_evidence
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.event_trace import EventTrace, identity_evidence
 
 
 def test_trace_is_opt_in_bounded_and_contains_no_person_or_credentials():
@@ -45,7 +45,7 @@ def test_trace_is_opt_in_bounded_and_contains_no_person_or_credentials():
 
 def test_trace_expiration_stop_revision_and_snapshot_independence():
     with patch(
-        "custom_components.smplwise_access_control.event_trace.monotonic", return_value=100
+        "custom_components.hikvision_intercom.event_trace.monotonic", return_value=100
     ) as clock:
         trace = EventTrace()
         report = trace.start("idle")

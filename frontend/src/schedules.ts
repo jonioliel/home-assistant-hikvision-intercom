@@ -330,7 +330,7 @@ export class IntercomSchedules extends LitElement {
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>(
-      { type: `smplwise_access_control/schedules/${command}`, ...data },
+      { type: `hikvision_intercom/schedules/${command}`, ...data },
       ["readiness", "assess", "dependencies"].includes(command) ? 120000 : 60000,
     );
   }
@@ -1313,4 +1313,4 @@ export class IntercomSchedules extends LitElement {
       </section>`;
   }
 }
-customElements.define("smplwise-access-control-schedules", IntercomSchedules);
+customElements.define("hikvision-intercom-schedules", IntercomSchedules);

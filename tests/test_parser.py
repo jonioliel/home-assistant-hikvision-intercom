@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from custom_components.smplwise_access_control.client.parser import (
+from custom_components.hikvision_intercom.client.parser import (
     check_response_status,
     find_values,
     parse_payload,
 )
-from custom_components.smplwise_access_control.exceptions import (
+from custom_components.hikvision_intercom.exceptions import (
     HikvisionAuthError,
     HikvisionBusyError,
     HikvisionCapacityError,

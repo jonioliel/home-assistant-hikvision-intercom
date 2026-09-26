@@ -135,7 +135,7 @@ def report(
     expiry_page, expiry_truncated = _bounded(expirations)
     credentials_page, credentials_truncated = _bounded(missing_credentials)
     return {
-        "format": "smplwise_access_control.identity_lifecycle",
+        "format": "hikvision_intercom.identity_lifecycle",
         "generated_at": current.isoformat(timespec="seconds"),
         "warning_days": warning_days,
         "summary": {

@@ -20,9 +20,9 @@ async function installApi(page) {
       let values = structuredClone(defaults);
       const base = window.demoHass.callWS.bind(window.demoHass);
       window.demoHass.callWS = async (message) => {
-        if (message.type === "smplwise_access_control/whatsapp/templates_get")
+        if (message.type === "hikvision_intercom/whatsapp/templates_get")
           return { revision, ...structuredClone(values), defaults, placeholders };
-        if (message.type === "smplwise_access_control/whatsapp/templates_update") {
+        if (message.type === "hikvision_intercom/whatsapp/templates_update") {
           window.calls.push(structuredClone(message));
           if (message.revision !== revision) throw { code: "revision_conflict" };
           values = structuredClone(message.values);

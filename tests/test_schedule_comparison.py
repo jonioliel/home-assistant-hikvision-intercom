@@ -10,11 +10,11 @@ from test_schedule_compiler import capabilities, slots
 from test_schedule_inventory import SETTINGS, transport
 from test_schedules import draft
 
-from custom_components.smplwise_access_control.access.schedule_comparison import compare_resource
-from custom_components.smplwise_access_control.access.schedule_compiler import compile_schedule
-from custom_components.smplwise_access_control.client.client import HikvisionClient
-from custom_components.smplwise_access_control.client.schedule_inventory import inspect_inventory
-from custom_components.smplwise_access_control.client.schedule_plan_inspection import inspect_plan
+from custom_components.hikvision_intercom.access.schedule_comparison import compare_resource
+from custom_components.hikvision_intercom.access.schedule_compiler import compile_schedule
+from custom_components.hikvision_intercom.client.client import HikvisionClient
+from custom_components.hikvision_intercom.client.schedule_inventory import inspect_inventory
+from custom_components.hikvision_intercom.client.schedule_plan_inspection import inspect_plan
 
 
 def weekly():
@@ -116,11 +116,11 @@ async def test_plan_inspection_blocks_unknown_users_and_external_dependencies():
     }
     with (
         patch(
-            "custom_components.smplwise_access_control.client.schedule_plan_inspection.inspect_inventory",
+            "custom_components.hikvision_intercom.client.schedule_plan_inspection.inspect_inventory",
             inventory,
         ),
         patch(
-            "custom_components.smplwise_access_control.client.schedule_plan_inspection.read_user_dependencies",
+            "custom_components.hikvision_intercom.client.schedule_plan_inspection.read_user_dependencies",
             AsyncMock(return_value=dependency),
         ),
     ):

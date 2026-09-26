@@ -4,20 +4,20 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.smplwise_access_control.access.admin_audit import audit_actor
-from custom_components.smplwise_access_control.access.csv_transfer import (
+from custom_components.hikvision_intercom.access.admin_audit import audit_actor
+from custom_components.hikvision_intercom.access.csv_transfer import (
     desired_fields,
     export_users,
     parse_csv,
     row_patch,
 )
-from custom_components.smplwise_access_control.access.models import (
+from custom_components.hikvision_intercom.access.models import (
     AccessError,
     build_user,
     phone_value,
 )
-from custom_components.smplwise_access_control.access.repository import AccessRepository
-from custom_components.smplwise_access_control.phone import mobile_display
+from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.phone import mobile_display
 
 
 @pytest.mark.parametrize("number", ["0501234567", "+972 50-123-4567", "(020) 1234 5678", ""])

@@ -31,12 +31,12 @@ test("repeated navigation releases connection listeners and never replays a devi
         };
       return base.call(this, message);
     };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   const count = () => page.evaluate(() => window.listenerCount());
   await expect(
     page
-      .locator("smplwise-access-control-call-controls")
+      .locator("hikvision-intercom-call-controls")
       .first()
       .getByRole("button", { name: "Answer signal", exact: true }),
   ).toBeEnabled();
@@ -44,7 +44,7 @@ test("repeated navigation releases connection listeners and never replays a devi
   expect(baseline).toBeGreaterThan(0);
   for (let cycle = 0; cycle < 12; cycle++) {
     await navigate(page, "Health & field tests");
-    const health = page.locator("smplwise-access-control-health");
+    const health = page.locator("hikvision-intercom-health");
     await health
       .locator(".health-card")
       .first()
@@ -52,15 +52,15 @@ test("repeated navigation releases connection listeners and never replays a devi
       .click();
     await expect(
       health
-        .locator("smplwise-access-control-call-controls")
+        .locator("hikvision-intercom-call-controls")
         .getByRole("button", { name: "Refresh call state", exact: true }),
     ).toBeEnabled();
     await page.getByRole("button", { name: "Events", exact: true }).click();
-    await expect(page.locator("smplwise-access-control-events .audit-row")).toHaveCount(2);
+    await expect(page.locator("hikvision-intercom-events .audit-row")).toHaveCount(2);
     await page.getByRole("button", { name: "Overview", exact: true }).click();
     await expect.poll(count).toBe(baseline);
-    await expect(page.locator("smplwise-access-control-health")).toHaveCount(0);
-    await expect(page.locator("smplwise-access-control-event-tools")).toHaveCount(0);
+    await expect(page.locator("hikvision-intercom-health")).toHaveCount(0);
+    await expect(page.locator("hikvision-intercom-event-tools")).toHaveCount(0);
   }
   expect(
     await page.evaluate(() =>

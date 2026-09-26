@@ -4,12 +4,12 @@ for (const count of [4, 6, 9, 12]) {
   test(`wall fits ${count} stations without desktop scrolling`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript(() =>
-      localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
+      localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
     );
     await page.goto("/?lang=he");
     await expect(page.locator(".overview-wall")).toBeVisible();
     await page.evaluate((n) => {
-      const p = document.querySelector("smplwise-access-control-panel") as any;
+      const p = document.querySelector("hikvision-intercom-panel") as any;
       const source = p._data.stations;
       p._data = {
         ...p._data,
@@ -38,7 +38,7 @@ for (const count of [4, 6, 9, 12]) {
 test("mobile pages all stations and search resets page", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() =>
-    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
+    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
   );
   await page.goto("/");
   await expect(page.locator(".overview-wall")).toBeVisible();
@@ -54,13 +54,13 @@ test("mobile pages all stations and search resets page", async ({ page }) => {
 test("ringing does not move tiles and activity remains available", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.addInitScript(() =>
-    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
+    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
   );
   await page.goto("/");
   await expect(page.locator(".overview-wall article")).toHaveCount(9);
   const names = await page.locator(".overview-wall h3").allTextContents();
   await page.evaluate(() => {
-    const p = document.querySelector("smplwise-access-control-panel") as any;
+    const p = document.querySelector("hikvision-intercom-panel") as any;
     p._data = {
       ...p._data,
       stations: p._data.stations.map((s: any, i: number) => ({

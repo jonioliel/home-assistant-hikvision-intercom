@@ -1,11 +1,11 @@
 {
-  "source": "custom_components/smplwise_access_control/websocket.py:COMMANDS",
-  "integration_domain": "smplwise_access_control",
-  "integration_version": "2.0.0-rc.1",
+  "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
+  "integration_domain": "hikvision_intercom",
+  "integration_version": "2.0.0-rc.2",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
-    "smplwise_access_control/acceptance/get": {
+    "hikvision_intercom/acceptance/get": {
       "required": {
         "station_id": "str"
       },
@@ -13,7 +13,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/acceptance/update": {
+    "hikvision_intercom/acceptance/update": {
       "required": {
         "station_id": "str",
         "step": "str",
@@ -24,13 +24,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/appearance/settings_get": {
+    "hikvision_intercom/appearance/settings_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/appearance/settings_update": {
+    "hikvision_intercom/appearance/settings_update": {
       "required": {
         "revision": "int",
         "default": "str"
@@ -39,7 +39,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/audit/export": {
+    "hikvision_intercom/audit/export": {
       "required": {
         "filters": "dict"
       },
@@ -47,7 +47,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/audit/list": {
+    "hikvision_intercom/audit/list": {
       "required": {
         "filters": "dict"
       },
@@ -55,19 +55,19 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/authorization/session": {
+    "hikvision_intercom/authorization/session": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/authorization/settings_get": {
+    "hikvision_intercom/authorization/settings_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/authorization/settings_update": {
+    "hikvision_intercom/authorization/settings_update": {
       "required": {
         "revision": "int",
         "users": "dict"
@@ -76,7 +76,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/add": {
+    "hikvision_intercom/cards/add": {
       "required": {
         "user_id": "str",
         "revision": "int",
@@ -86,7 +86,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/capture_cancel": {
+    "hikvision_intercom/cards/capture_cancel": {
       "required": {
         "session_id": "str"
       },
@@ -94,7 +94,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/capture_confirm": {
+    "hikvision_intercom/cards/capture_confirm": {
       "required": {
         "session_id": "str",
         "label": "str"
@@ -103,7 +103,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/capture_start": {
+    "hikvision_intercom/cards/capture_start": {
       "required": {
         "station_id": "str",
         "user_id": "str",
@@ -114,7 +114,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/capture_status": {
+    "hikvision_intercom/cards/capture_status": {
       "required": {
         "session_id": "str"
       },
@@ -122,7 +122,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/reader_capabilities": {
+    "hikvision_intercom/cards/reader_capabilities": {
       "required": {
         "station_id": "str"
       },
@@ -130,7 +130,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/cards/remove": {
+    "hikvision_intercom/cards/remove": {
       "required": {
         "user_id": "str",
         "revision": "int",
@@ -140,7 +140,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/clock/host_apply": {
+    "hikvision_intercom/clock/host_apply": {
       "required": {
         "revision": "int"
       },
@@ -148,19 +148,19 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/clock/host_status": {
+    "hikvision_intercom/clock/host_status": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/clock/settings_get": {
+    "hikvision_intercom/clock/settings_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/clock/settings_update": {
+    "hikvision_intercom/clock/settings_update": {
       "required": {
         "revision": "int",
         "values": "dict"
@@ -169,7 +169,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/clock/station_sync": {
+    "hikvision_intercom/clock/station_sync": {
       "required": {
         "station_id": "str",
         "revision": "int",
@@ -179,13 +179,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/conflicts/list": {
+    "hikvision_intercom/conflicts/list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/conflicts/resolve": {
+    "hikvision_intercom/conflicts/resolve": {
       "required": {
         "station_id": "str",
         "user_id": "str",
@@ -197,7 +197,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/conflicts/resolve_deletion": {
+    "hikvision_intercom/conflicts/resolve_deletion": {
       "required": {
         "station_id": "str",
         "user_id": "str",
@@ -207,7 +207,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/conflicts/review": {
+    "hikvision_intercom/conflicts/review": {
       "required": {
         "station_id": "str",
         "user_id": "str"
@@ -216,7 +216,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/detail": {
+    "hikvision_intercom/events/detail": {
       "required": {
         "event_id": "str"
       },
@@ -224,7 +224,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/export": {
+    "hikvision_intercom/events/export": {
       "required": {
         "filters": "dict"
       },
@@ -232,7 +232,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/history_inspect": {
+    "hikvision_intercom/events/history_inspect": {
       "required": {
         "station_id": "str",
         "start": "str",
@@ -242,7 +242,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/list": {
+    "hikvision_intercom/events/list": {
       "required": {
         "filters": "dict"
       },
@@ -250,7 +250,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/print": {
+    "hikvision_intercom/events/print": {
       "required": {
         "filters": "dict"
       },
@@ -258,7 +258,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/report": {
+    "hikvision_intercom/events/report": {
       "required": {
         "filters": "dict"
       },
@@ -266,7 +266,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/support": {
+    "hikvision_intercom/events/support": {
       "required": {
         "event_id": "str"
       },
@@ -274,7 +274,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/trace_get": {
+    "hikvision_intercom/events/trace_get": {
       "required": {
         "station_id": "str"
       },
@@ -282,7 +282,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/trace_start": {
+    "hikvision_intercom/events/trace_start": {
       "required": {
         "station_id": "str"
       },
@@ -290,7 +290,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/events/trace_stop": {
+    "hikvision_intercom/events/trace_stop": {
       "required": {
         "station_id": "str",
         "capture_id": "str"
@@ -299,7 +299,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/fleet/inventory_export": {
+    "hikvision_intercom/fleet/inventory_export": {
       "required": {
         "format": "str"
       },
@@ -307,7 +307,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/health/get": {
+    "hikvision_intercom/health/get": {
       "required": {
         "station_id": "str"
       },
@@ -315,7 +315,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/health/refresh": {
+    "hikvision_intercom/health/refresh": {
       "required": {
         "station_id": "str"
       },
@@ -323,7 +323,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/call": {
+    "hikvision_intercom/media/call": {
       "required": {
         "station_id": "str"
       },
@@ -331,25 +331,25 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/provider_check": {
+    "hikvision_intercom/media/provider_check": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/provider_discover": {
+    "hikvision_intercom/media/provider_discover": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/settings_get": {
+    "hikvision_intercom/media/settings_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/settings_update": {
+    "hikvision_intercom/media/settings_update": {
       "required": {
         "revision": "int",
         "values": "dict"
@@ -358,7 +358,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/media/signal": {
+    "hikvision_intercom/media/signal": {
       "required": {
         "station_id": "str",
         "command": "str"
@@ -367,7 +367,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/operations/query": {
+    "hikvision_intercom/operations/query": {
       "required": {
         "filters": "dict",
         "offset": "int",
@@ -378,13 +378,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/overview": {
+    "hikvision_intercom/overview": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/permissions/directory": {
+    "hikvision_intercom/permissions/directory": {
       "required": {
         "filters": "dict"
       },
@@ -392,7 +392,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/profiles/settings_apply": {
+    "hikvision_intercom/profiles/settings_apply": {
       "required": {
         "operation_id": "str"
       },
@@ -400,13 +400,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/profiles/settings_get": {
+    "hikvision_intercom/profiles/settings_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/profiles/settings_preview": {
+    "hikvision_intercom/profiles/settings_preview": {
       "required": {
         "revision": "int",
         "values": "dict"
@@ -415,7 +415,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/profiles/settings_update": {
+    "hikvision_intercom/profiles/settings_update": {
       "required": {
         "revision": "int",
         "values": "dict"
@@ -424,7 +424,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/assess": {
+    "hikvision_intercom/schedules/assess": {
       "required": {
         "station_id": "str",
         "data": "dict"
@@ -433,7 +433,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/baseline_clear": {
+    "hikvision_intercom/schedules/baseline_clear": {
       "required": {
         "station_id": "str",
         "revision": "int"
@@ -442,7 +442,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/baseline_save": {
+    "hikvision_intercom/schedules/baseline_save": {
       "required": {
         "station_id": "str",
         "token": "str"
@@ -451,7 +451,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/create": {
+    "hikvision_intercom/schedules/create": {
       "required": {
         "data": "dict"
       },
@@ -459,7 +459,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/delete": {
+    "hikvision_intercom/schedules/delete": {
       "required": {
         "schedule_id": "str",
         "revision": "int"
@@ -468,7 +468,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/dependencies": {
+    "hikvision_intercom/schedules/dependencies": {
       "required": {
         "station_id": "str"
       },
@@ -476,13 +476,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/export": {
+    "hikvision_intercom/schedules/export": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/import_apply": {
+    "hikvision_intercom/schedules/import_apply": {
       "required": {
         "token": "str"
       },
@@ -490,7 +490,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/import_preview": {
+    "hikvision_intercom/schedules/import_preview": {
       "required": {
         "document": "str"
       },
@@ -498,13 +498,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/list": {
+    "hikvision_intercom/schedules/list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_archive": {
+    "hikvision_intercom/schedules/operations_archive": {
       "required": {
         "job_id": "str",
         "revision": "int"
@@ -513,7 +513,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_cancel": {
+    "hikvision_intercom/schedules/operations_cancel": {
       "required": {
         "job_id": "str",
         "revision": "int"
@@ -522,7 +522,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_check": {
+    "hikvision_intercom/schedules/operations_check": {
       "required": {
         "job_id": "str",
         "revision": "int"
@@ -531,7 +531,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_claim_confirm": {
+    "hikvision_intercom/schedules/operations_claim_confirm": {
       "required": {
         "token": "str"
       },
@@ -539,7 +539,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_claim_preview": {
+    "hikvision_intercom/schedules/operations_claim_preview": {
       "required": {
         "plan_id": "str",
         "revision": "int"
@@ -548,7 +548,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_claim_release": {
+    "hikvision_intercom/schedules/operations_claim_release": {
       "required": {
         "claim_id": "str",
         "revision": "int"
@@ -557,7 +557,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_create": {
+    "hikvision_intercom/schedules/operations_create": {
       "required": {
         "plan_id": "str",
         "revision": "int"
@@ -566,19 +566,19 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_export": {
+    "hikvision_intercom/schedules/operations_export": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/operations_list": {
+    "hikvision_intercom/schedules/operations_list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_delete": {
+    "hikvision_intercom/schedules/plan_delete": {
       "required": {
         "plan_id": "str",
         "revision": "int"
@@ -587,7 +587,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_export": {
+    "hikvision_intercom/schedules/plan_export": {
       "required": {
         "plan_id": "str",
         "revision": "int"
@@ -596,13 +596,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_list": {
+    "hikvision_intercom/schedules/plan_list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_preview": {
+    "hikvision_intercom/schedules/plan_preview": {
       "required": {
         "station_id": "str",
         "schedule_id": "str",
@@ -613,7 +613,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_recheck": {
+    "hikvision_intercom/schedules/plan_recheck": {
       "required": {
         "plan_id": "str",
         "revision": "int"
@@ -622,7 +622,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/plan_save": {
+    "hikvision_intercom/schedules/plan_save": {
       "required": {
         "token": "str"
       },
@@ -630,7 +630,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/preview": {
+    "hikvision_intercom/schedules/preview": {
       "required": {
         "data": "dict",
         "date": "str",
@@ -640,7 +640,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/readiness": {
+    "hikvision_intercom/schedules/readiness": {
       "required": {
         "station_id": "str"
       },
@@ -648,7 +648,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/schedules/update": {
+    "hikvision_intercom/schedules/update": {
       "required": {
         "schedule_id": "str",
         "revision": "int",
@@ -658,7 +658,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/clock_refresh": {
+    "hikvision_intercom/stations/clock_refresh": {
       "required": {
         "station_id": "str"
       },
@@ -666,7 +666,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/get": {
+    "hikvision_intercom/stations/get": {
       "required": {
         "station_id": "str"
       },
@@ -674,7 +674,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/inventory": {
+    "hikvision_intercom/stations/inventory": {
       "required": {
         "station_id": "str"
       },
@@ -682,13 +682,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/list": {
+    "hikvision_intercom/stations/list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/permission_audit": {
+    "hikvision_intercom/stations/permission_audit": {
       "required": {
         "station_id": "str"
       },
@@ -696,7 +696,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/rescan": {
+    "hikvision_intercom/stations/rescan": {
       "required": {
         "station_id": "str"
       },
@@ -704,7 +704,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_codes_get": {
+    "hikvision_intercom/stations/technical_codes_get": {
       "required": {
         "station_id": "str"
       },
@@ -712,7 +712,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_codes_write": {
+    "hikvision_intercom/stations/technical_codes_write": {
       "required": {
         "station_id": "str",
         "slot": "int",
@@ -728,7 +728,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_get": {
+    "hikvision_intercom/stations/technical_get": {
       "required": {
         "station_id": "str"
       },
@@ -736,7 +736,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_hold_delete": {
+    "hikvision_intercom/stations/technical_hold_delete": {
       "required": {
         "station_id": "str",
         "door": "int",
@@ -746,7 +746,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_hold_get": {
+    "hikvision_intercom/stations/technical_hold_get": {
       "required": {
         "station_id": "str",
         "door": "int"
@@ -755,7 +755,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_hold_save": {
+    "hikvision_intercom/stations/technical_hold_save": {
       "required": {
         "station_id": "str",
         "door": "int",
@@ -766,7 +766,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_program_action": {
+    "hikvision_intercom/stations/technical_program_action": {
       "required": {
         "station_id": "str",
         "door": "int",
@@ -777,7 +777,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_program_list": {
+    "hikvision_intercom/stations/technical_program_list": {
       "required": {
         "station_id": "str"
       },
@@ -785,7 +785,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_program_save": {
+    "hikvision_intercom/stations/technical_program_save": {
       "required": {
         "station_id": "str",
         "door": "int",
@@ -797,7 +797,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_relays": {
+    "hikvision_intercom/stations/technical_relays": {
       "required": {
         "station_id": "str",
         "expected": "list",
@@ -807,7 +807,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/technical_update": {
+    "hikvision_intercom/stations/technical_update": {
       "required": {
         "station_id": "str",
         "door": "int",
@@ -819,7 +819,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/stations/test_unlock": {
+    "hikvision_intercom/stations/test_unlock": {
       "required": {
         "station_id": "str",
         "lock": "int"
@@ -828,25 +828,25 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/support/bundle": {
+    "hikvision_intercom/support/bundle": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/sync/all": {
+    "hikvision_intercom/sync/all": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/sync/diagnostics": {
+    "hikvision_intercom/sync/diagnostics": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/sync/station": {
+    "hikvision_intercom/sync/station": {
       "required": {
         "station_id": "str"
       },
@@ -854,13 +854,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/sync/status": {
+    "hikvision_intercom/sync/status": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/sync/user": {
+    "hikvision_intercom/sync/user": {
       "required": {
         "user_id": "str"
       },
@@ -868,13 +868,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/upgrade/readiness": {
+    "hikvision_intercom/upgrade/readiness": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/adopt": {
+    "hikvision_intercom/users/adopt": {
       "required": {
         "station_id": "str",
         "employee_no": "str",
@@ -884,7 +884,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/bulk_apply": {
+    "hikvision_intercom/users/bulk_apply": {
       "required": {
         "operation_id": "str"
       },
@@ -892,7 +892,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/bulk_preview": {
+    "hikvision_intercom/users/bulk_preview": {
       "required": {
         "request": "dict"
       },
@@ -900,7 +900,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/bulk_receipt": {
+    "hikvision_intercom/users/bulk_receipt": {
       "required": {
         "operation_id": "str"
       },
@@ -908,13 +908,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/bulk_receipts": {
+    "hikvision_intercom/users/bulk_receipts": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/create": {
+    "hikvision_intercom/users/create": {
       "required": {
         "data": "dict"
       },
@@ -922,7 +922,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/csv_apply": {
+    "hikvision_intercom/users/csv_apply": {
       "required": {
         "csv": "str",
         "mode": "str",
@@ -932,13 +932,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/csv_export": {
+    "hikvision_intercom/users/csv_export": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/csv_inspect": {
+    "hikvision_intercom/users/csv_inspect": {
       "required": {
         "csv": "str"
       },
@@ -946,7 +946,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/csv_preview": {
+    "hikvision_intercom/users/csv_preview": {
       "required": {
         "csv": "str",
         "mode": "str"
@@ -955,7 +955,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/delete": {
+    "hikvision_intercom/users/delete": {
       "required": {
         "user_id": "str",
         "revision": "int"
@@ -964,7 +964,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/delete_unmanaged": {
+    "hikvision_intercom/users/delete_unmanaged": {
       "required": {
         "station_id": "str",
         "employee_no": "str",
@@ -974,7 +974,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/duplicate_check": {
+    "hikvision_intercom/users/duplicate_check": {
       "required": {
         "user_id": "str",
         "data": "dict"
@@ -983,7 +983,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/get": {
+    "hikvision_intercom/users/get": {
       "required": {
         "user_id": "str"
       },
@@ -991,7 +991,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/ignore": {
+    "hikvision_intercom/users/ignore": {
       "required": {
         "station_id": "str",
         "employee_no": "str",
@@ -1001,7 +1001,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/lifecycle": {
+    "hikvision_intercom/users/lifecycle": {
       "required": {
         "warning_days": "int"
       },
@@ -1009,13 +1009,13 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/list": {
+    "hikvision_intercom/users/list": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/photo_get": {
+    "hikvision_intercom/users/photo_get": {
       "required": {
         "user_id": "str"
       },
@@ -1023,7 +1023,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/pin_check": {
+    "hikvision_intercom/users/pin_check": {
       "required": {
         "user_id": "str",
         "pin": "str"
@@ -1032,7 +1032,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/pin_generate": {
+    "hikvision_intercom/users/pin_generate": {
       "required": {
         "user_id": "str"
       },
@@ -1040,7 +1040,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/query": {
+    "hikvision_intercom/users/query": {
       "required": {
         "query": "str",
         "filters": "dict",
@@ -1052,7 +1052,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/set_active": {
+    "hikvision_intercom/users/set_active": {
       "required": {
         "user_id": "str",
         "revision": "int",
@@ -1062,7 +1062,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/users/update": {
+    "hikvision_intercom/users/update": {
       "required": {
         "user_id": "str",
         "revision": "int",
@@ -1072,7 +1072,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/history": {
+    "hikvision_intercom/whatsapp/history": {
       "required": {
         "user_id": "str",
         "account": "str"
@@ -1081,7 +1081,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/media": {
+    "hikvision_intercom/whatsapp/media": {
       "required": {
         "user_id": "str",
         "account": "str",
@@ -1091,7 +1091,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/preview": {
+    "hikvision_intercom/whatsapp/preview": {
       "required": {
         "user_id": "str",
         "account": "str",
@@ -1101,7 +1101,7 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/send": {
+    "hikvision_intercom/whatsapp/send": {
       "required": {
         "user_id": "str",
         "account": "str",
@@ -1113,19 +1113,19 @@
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/status": {
+    "hikvision_intercom/whatsapp/status": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/templates_get": {
+    "hikvision_intercom/whatsapp/templates_get": {
       "required": {},
       "optional_common": {
         "api_contract": "int"
       }
     },
-    "smplwise_access_control/whatsapp/templates_update": {
+    "hikvision_intercom/whatsapp/templates_update": {
       "required": {
         "revision": "int",
         "values": "dict"

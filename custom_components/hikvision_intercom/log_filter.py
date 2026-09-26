@@ -8,19 +8,19 @@ class AccessWebSocketFilter(logging.Filter):
     @staticmethod
     def _redact(value: Any) -> Any:
         # HA 2026.9 logs outgoing websocket messages as already serialized bytes.
-        if (isinstance(value, bytes) and b"smplwise_access_control.audio" in value) or (
-            isinstance(value, str) and "smplwise_access_control.audio" in value
+        if (isinstance(value, bytes) and b"hikvision_intercom.audio" in value) or (
+            isinstance(value, str) and "hikvision_intercom.audio" in value
         ):
             return "Hikvision audio payload REDACTED"
         if (
             isinstance(value, dict)
             and isinstance(value.get("type"), str)
-            and value["type"].startswith("smplwise_access_control/")
+            and value["type"].startswith("hikvision_intercom/")
         ):
             return {"id": value.get("id"), "type": value["type"], "payload": "REDACTED"}
         if isinstance(value, dict) and any(
             isinstance(value.get(key), dict)
-            and value[key].get("format") == "smplwise_access_control.audio"
+            and value[key].get("format") == "hikvision_intercom.audio"
             for key in ("event", "result")
         ):
             return {"id": value.get("id"), "type": value.get("type"), "payload": "REDACTED"}

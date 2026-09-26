@@ -627,7 +627,7 @@ export class UserDetails extends LitElement {
   }
   private api<T>(command: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>({
-      type: `smplwise_access_control/whatsapp/${command}`,
+      type: `hikvision_intercom/whatsapp/${command}`,
       user_id: this.person?.id,
       account: this.account,
       ...data,
@@ -652,7 +652,7 @@ export class UserDetails extends LitElement {
     const generation = this.generation;
     await this.action(async () => {
       const status = await this.requests.run<Status>({
-        type: "smplwise_access_control/whatsapp/status",
+        type: "hikvision_intercom/whatsapp/status",
       });
       if (generation !== this.generation) return;
       this.status = {
@@ -663,7 +663,7 @@ export class UserDetails extends LitElement {
       this.account = this.status.accounts.length === 1 ? this.status.accounts[0].id : "";
       if (this.person?.photo_configured) {
         const result = await this.requests.run<{ photo: string | null }>({
-          type: "smplwise_access_control/users/photo_get",
+          type: "hikvision_intercom/users/photo_get",
           user_id: this.person.id,
         });
         if (generation === this.generation) this.photo = result.photo ?? undefined;

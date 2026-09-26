@@ -12,7 +12,7 @@ const draft = {
   holidays: [],
 };
 const document = JSON.stringify({
-  format: "smplwise_access_control.schedule_drafts",
+  format: "hikvision_intercom.schedule_drafts",
   version: 1,
   schedules: [draft],
 });

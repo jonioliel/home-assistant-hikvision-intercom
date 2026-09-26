@@ -43,11 +43,11 @@ async function setup(page: Page) {
       }
       return base.call(this, message);
     };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await navigate(page, "Health & field tests");
   await expect.poll(() => page.evaluate(() => window.healthRequests.length)).toBe(3);
-  return page.locator("smplwise-access-control-health");
+  return page.locator("hikvision-intercom-health");
 }
 
 test("one slow health snapshot does not hold the next station behind a completed peer", async ({
@@ -163,7 +163,7 @@ test("replacing the HA connection discards pending diagnostics and starts a new 
     window.healthPending.clear();
     window.healthActive = 0;
     window.demoHass.connection = { ...window.demoHass.connection };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await expect.poll(() => page.evaluate(() => window.healthRequests.length)).toBe(6);
   await page.evaluate(() => window.oldHealthResponse("old account snapshot"));
@@ -223,7 +223,7 @@ async function fieldSetup(page: Page, hold: "get" | "update") {
       }
       return base.call(this, message);
     };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   }, hold);
   await expect(health.getByRole("button", { name: "Refresh", exact: true }).last()).toBeEnabled();
   await page.clock.install();

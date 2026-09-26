@@ -6,7 +6,7 @@ async function setup(page) {
   await page.evaluate(() => {
     const base = window.demoHass.callWS.bind(window.demoHass);
     let trace = {
-      format: "smplwise_access_control.event_trace",
+      format: "hikvision_intercom.event_trace",
       capture: null,
       remaining_seconds: 0,
     };
@@ -18,7 +18,7 @@ async function setup(page) {
         window.calls.push(message);
         if (message.type.endsWith("trace_start"))
           trace = {
-            format: "smplwise_access_control.event_trace",
+            format: "hikvision_intercom.event_trace",
             capture: {
               capture_id: "synthetic",
               state: "recording",
@@ -33,7 +33,7 @@ async function setup(page) {
       if (message.type.endsWith("events/history_inspect")) {
         window.calls.push(message);
         return {
-          format: "smplwise_access_control.history_inspection",
+          format: "hikvision_intercom.history_inspection",
           complete: true,
           filter_honored: null,
           records: 0,
@@ -45,7 +45,7 @@ async function setup(page) {
     };
   });
   await navigate(page, "Health & field tests");
-  const tools = page.locator("smplwise-access-control-event-tools").first();
+  const tools = page.locator("hikvision-intercom-event-tools").first();
   await tools.getByText("Event and call investigation", { exact: true }).click();
   return tools;
 }
@@ -98,11 +98,11 @@ async function hold(page, action) {
     window.originalEventToolsApi = base;
     window.demoHass.callWS = async function (message) {
       const result = await base.call(this, message);
-      if (message.type === "smplwise_access_control/events/" + action)
+      if (message.type === "hikvision_intercom/events/" + action)
         return await new Promise((resolve) => (window.lateToolsReply = () => resolve(result)));
       return result;
     };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   }, action);
 }
 
@@ -162,7 +162,7 @@ test("a capture response from the previous HA connection cannot populate investi
   await page.evaluate(() => {
     window.demoHass.callWS = window.originalEventToolsApi;
     window.demoHass.connection = { ...window.demoHass.connection };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await expect(tools.getByRole("button", { name: "Refresh capture status" })).toBeEnabled();
   await page.evaluate(() => window.lateToolsReply());
@@ -238,7 +238,7 @@ test("disconnect cancels investigation waits and reconnect does not start captur
       for (const callback of listeners.get(connected ? "ready" : "disconnected") ?? []) callback();
     };
     window.demoHass.connection = connection;
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await hold(page, "trace_start");
   await tools.getByRole("button", { name: "Start 90-second capture" }).click();

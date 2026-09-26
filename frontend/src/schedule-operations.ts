@@ -177,7 +177,7 @@ export class ScheduleOperationsPanel extends LitElement {
   }
   private api<T>(action: string, data: Record<string, unknown> = {}) {
     return this.requests.run<T>({
-      type: `smplwise_access_control/schedules/operations_${action}`,
+      type: `hikvision_intercom/schedules/operations_${action}`,
       ...data,
     });
   }

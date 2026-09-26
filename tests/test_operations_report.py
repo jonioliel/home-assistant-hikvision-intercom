@@ -1,5 +1,5 @@
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.operations_report import query
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.operations_report import query
 
 
 def state():

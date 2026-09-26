@@ -15,7 +15,7 @@ export class AddonSignaling {
     request: Record<string, unknown>,
     _options?: unknown,
   ): Promise<() => void> {
-    const path = "/api/smplwise_access_control/rtc/" + encodeURIComponent(this.station);
+    const path = "/api/hikvision_intercom/rtc/" + encodeURIComponent(this.station);
     const signed = await this.hass.callWS<{ path: string }>({
       type: "auth/sign_path",
       path,

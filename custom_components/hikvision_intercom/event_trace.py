@@ -87,7 +87,7 @@ class EventTrace:
     def public(self) -> dict[str, Any]:
         active = self.active()
         return {
-            "format": "smplwise_access_control.event_trace",
+            "format": "hikvision_intercom.event_trace",
             "schema": 1,
             "capture": deepcopy(self.run),
             "remaining_seconds": max(0, round(self.deadline - monotonic())) if active else 0,

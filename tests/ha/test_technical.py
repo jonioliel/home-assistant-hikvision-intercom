@@ -8,7 +8,7 @@ from .test_websocket import request
 async def test_technical_rejects_unmanaged_door(hass, loaded_entry, hass_ws_client):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.technical_api.update_door", AsyncMock()
+        "custom_components.hikvision_intercom.technical_api.update_door", AsyncMock()
     ) as write:
         result = await request(
             client,
@@ -26,7 +26,7 @@ async def test_technical_rejects_unmanaged_door(hass, loaded_entry, hass_ws_clie
 async def test_technical_requires_confirmation(hass, loaded_entry, hass_ws_client):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.technical_api.update_door", AsyncMock()
+        "custom_components.hikvision_intercom.technical_api.update_door", AsyncMock()
     ) as write:
         result = await request(
             client,
@@ -82,7 +82,7 @@ async def test_hold_program_inactive_roundtrip_and_removal(hass, loaded_entry, h
     client = await hass_ws_client(hass)
     prefix = "stations/technical_program_"
     with patch(
-        "custom_components.smplwise_access_control.client.technical.verify_hold_support",
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support",
         AsyncMock(),
     ) as probe:
         result = await request(
@@ -112,12 +112,12 @@ async def test_hold_program_inactive_roundtrip_and_removal(hass, loaded_entry, h
 
 
 async def test_hold_program_activation_is_capability_gated(hass, loaded_entry, hass_ws_client):
-    from custom_components.smplwise_access_control.access.models import AccessError
+    from custom_components.hikvision_intercom.access.models import AccessError
     from tests.test_hold_open import sample
 
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.technical.verify_hold_support",
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support",
         AsyncMock(side_effect=AccessError("operation_unsupported")),
     ):
         result = await request(
@@ -130,9 +130,7 @@ async def test_hold_program_activation_is_capability_gated(hass, loaded_entry, h
             enabled=True,
         )
     assert not result["success"]
-    assert (
-        hass.data["smplwise_access_control"]["hold_programs"].listing(loaded_entry.entry_id) == []
-    )
+    assert hass.data["hikvision_intercom"]["hold_programs"].listing(loaded_entry.entry_id) == []
 
 
 async def test_hold_program_runtime_uses_bound_station_and_restores(
@@ -144,7 +142,7 @@ async def test_hold_program_runtime_uses_bound_station_and_restores(
 
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.technical.verify_hold_support",
+        "custom_components.hikvision_intercom.client.technical.verify_hold_support",
         AsyncMock(),
     ):
         result = await request(
@@ -157,9 +155,9 @@ async def test_hold_program_runtime_uses_bound_station_and_restores(
             enabled=True,
         )
     assert result["success"], result
-    manager = hass.data["smplwise_access_control"]["hold_programs"]
+    manager = hass.data["hikvision_intercom"]["hold_programs"]
     with patch(
-        "custom_components.smplwise_access_control.access_runtime.hold_command", AsyncMock()
+        "custom_components.hikvision_intercom.access_runtime.hold_command", AsyncMock()
     ) as send:
         await manager.tick(datetime(2026, 9, 14, 10, tzinfo=UTC))
         send.assert_awaited_once_with(
@@ -175,7 +173,7 @@ async def test_public_code_write_routes_transient_secret_to_guarded_client(
 ):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.public_codes.mutate",
+        "custom_components.hikvision_intercom.client.public_codes.mutate",
         AsyncMock(return_value={"acknowledged": True, "physical_verified": False}),
     ) as write:
         result = await request(
@@ -200,7 +198,7 @@ async def test_public_code_write_routes_transient_secret_to_guarded_client(
 async def test_public_code_read_routes_to_current_station(hass, loaded_entry, hass_ws_client):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.public_codes.inspect",
+        "custom_components.hikvision_intercom.client.public_codes.inspect",
         AsyncMock(return_value={"status": {"states": {"public1Configured": False}}}),
     ) as read:
         result = await request(

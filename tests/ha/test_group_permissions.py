@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock
 
-from custom_components.smplwise_access_control.access.repository import AccessRepository
-from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.const import DOMAIN
 
 from .test_websocket import request
 
@@ -107,7 +107,7 @@ async def test_group_settings_reject_unknown_station_reader_and_stale_revision(
 async def test_prior_profile_file_is_seeded_once_into_authoritative_access_store(hass, device_io):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    from custom_components.smplwise_access_control.storage import AccessStore
+    from custom_components.hikvision_intercom.storage import AccessStore
 
     from .conftest import DATA, PROFILE
 

@@ -9,17 +9,17 @@ import pytest
 from test_client import SETTINGS
 from test_events import normalized, payload
 
-from custom_components.smplwise_access_control.client.client import HikvisionClient
-from custom_components.smplwise_access_control.client.clock import ClockClient
-from custom_components.smplwise_access_control.clock import (
+from custom_components.hikvision_intercom.client.client import HikvisionClient
+from custom_components.hikvision_intercom.client.clock import ClockClient
+from custom_components.hikvision_intercom.clock import (
     device_zone,
     localize,
     named_zone,
     parse_clock,
     resolve_device_local_time,
 )
-from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
-from custom_components.smplwise_access_control.reporting import build_report
+from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
+from custom_components.hikvision_intercom.reporting import build_report
 
 RULE = "CST-2:00:00DST01:00:00,M4.1.0/02:00:00,M10.5.0/02:00:00"
 OBSERVED = json.loads((Path(__file__).parent / "fixtures/device_clock_readonly.json").read_text())

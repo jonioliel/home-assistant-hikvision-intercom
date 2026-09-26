@@ -31,7 +31,7 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 class AccessStore(Store[dict[str, Any]]):
-    def __init__(self, hass: HomeAssistant, *, key: str = "smplwise_access_control.users") -> None:
+    def __init__(self, hass: HomeAssistant, *, key: str = "hikvision_intercom.users") -> None:
         super().__init__(hass, 1, key, private=True, atomic_writes=True)
 
     async def async_load(self) -> dict[str, Any] | None:

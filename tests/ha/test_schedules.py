@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from custom_components.smplwise_access_control.access.schedules import DAYS, ScheduleLibrary
-from custom_components.smplwise_access_control.access_runtime import get_manager
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.storage import AccessStore
+from custom_components.hikvision_intercom.access.schedules import DAYS, ScheduleLibrary
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.storage import AccessStore
 
 from .test_websocket import request
 
@@ -85,7 +85,7 @@ async def test_readiness_does_not_enable_assignment_and_bounds_concurrency(
 ):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_schedules",
+        "custom_components.hikvision_intercom.websocket.inspect_schedules",
         AsyncMock(return_value={"can_apply": False, "checks": []}),
     ) as inspect:
         result = await request(client, "schedules/readiness", station_id=loaded_entry.entry_id)
@@ -142,7 +142,7 @@ async def test_assessment_reads_fresh_inventory_and_does_not_save_or_write(
     data["name"] = "PRIVATE_DRAFT_NAME"
     before = hass.data[DOMAIN]["schedules"].list()
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory",
+        "custom_components.hikvision_intercom.websocket.inspect_inventory",
         AsyncMock(return_value=inventory_summary()),
     ) as inspect:
         result = await request(
@@ -163,7 +163,7 @@ async def test_invalid_draft_is_rejected_before_inventory_read(hass, loaded_entr
     data = draft()
     data["weekly"]["Monday"][0]["start"] = "bad"
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory", AsyncMock()
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", AsyncMock()
     ) as inspect:
         result = await request(
             client, "schedules/assess", station_id=loaded_entry.entry_id, data=data
@@ -175,7 +175,7 @@ async def test_assessment_shares_station_and_fleet_read_limits(hass, loaded_entr
     client = await hass_ws_client(hass)
     hass.data[DOMAIN]["schedule_reads"] = {loaded_entry.entry_id}
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory", AsyncMock()
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", AsyncMock()
     ) as inspect:
         result = await request(
             client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft()
@@ -188,7 +188,7 @@ async def test_assessment_does_not_need_writable_draft_storage(hass, loaded_entr
     client = await hass_ws_client(hass)
     hass.data[DOMAIN]["schedules"] = None
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory",
+        "custom_components.hikvision_intercom.websocket.inspect_inventory",
         AsyncMock(return_value=inventory_summary()),
     ):
         result = await request(
@@ -210,7 +210,7 @@ async def test_assessment_rejects_late_result_after_station_unload(
         await release.wait()
         return inventory_summary()
 
-    with patch("custom_components.smplwise_access_control.websocket.inspect_inventory", inspect):
+    with patch("custom_components.hikvision_intercom.websocket.inspect_inventory", inspect):
         task = asyncio.create_task(
             request(client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft())
         )
@@ -240,7 +240,7 @@ async def baseline_inspection(_client, *, evidence, fingerprint):
 async def test_baseline_explicit_save_roundtrip_and_clear_do_not_write_station(
     hass, loaded_entry, hass_ws_client, device_io
 ):
-    from custom_components.smplwise_access_control.access.schedule_baselines import (
+    from custom_components.hikvision_intercom.access.schedule_baselines import (
         ScheduleBaselines,
     )
 
@@ -248,7 +248,7 @@ async def test_baseline_explicit_save_roundtrip_and_clear_do_not_write_station(
     station = loaded_entry.entry_id
     store = AccessStore(hass, key=f"{DOMAIN}.schedule_baselines")
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory", baseline_inspection
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", baseline_inspection
     ):
         report = await request(client, "schedules/assess", station_id=station, data=draft())
         baseline = report["result"]["baseline"]
@@ -295,7 +295,7 @@ async def test_unavailable_baseline_store_preserves_inventory_assessment(
     client = await hass_ws_client(hass)
     hass.data[DOMAIN]["schedule_baselines"] = None
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory",
+        "custom_components.hikvision_intercom.websocket.inspect_inventory",
         AsyncMock(return_value=inventory_summary()),
     ):
         result = await request(
@@ -311,7 +311,7 @@ async def test_unavailable_baseline_store_preserves_inventory_assessment(
 async def test_new_scan_invalidates_earlier_baseline_approval(hass, loaded_entry, hass_ws_client):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_inventory", baseline_inspection
+        "custom_components.hikvision_intercom.websocket.inspect_inventory", baseline_inspection
     ):
         old = await request(
             client, "schedules/assess", station_id=loaded_entry.entry_id, data=draft()
@@ -330,7 +330,7 @@ async def test_baseline_corruption_during_setup_preserves_core(hass, device_io):
     from homeassistant.helpers import issue_registry as ir
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    from custom_components.smplwise_access_control.access.models import AccessError
+    from custom_components.hikvision_intercom.access.models import AccessError
 
     from .conftest import DATA, PROFILE
 
@@ -361,7 +361,7 @@ async def test_dependency_audit_uses_read_lane_and_preserves_stores(
     client = await hass_ws_client(hass)
     before = hass.data[DOMAIN]["schedules"].list()
     with patch(
-        "custom_components.smplwise_access_control.websocket.inspect_dependencies",
+        "custom_components.hikvision_intercom.websocket.inspect_dependencies",
         AsyncMock(return_value={"can_apply": False, "users_checked": True}),
     ) as read:
         response = await request(client, "schedules/dependencies", station_id=loaded_entry.entry_id)
@@ -382,7 +382,7 @@ async def test_transfer_preview_then_atomic_apply_has_no_device_writes(
     caplog.set_level(logging.DEBUG, logger="homeassistant.components.websocket_api.http.connection")
     client = await hass_ws_client(hass)
     data = {
-        "format": "smplwise_access_control.schedule_drafts",
+        "format": "hikvision_intercom.schedule_drafts",
         "version": 1,
         "schedules": [draft(), draft()],
     }

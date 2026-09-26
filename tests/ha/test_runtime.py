@@ -11,10 +11,10 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
-from custom_components.smplwise_access_control.client.client import CallState
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.diagnostics import async_get_config_entry_diagnostics
-from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
+from custom_components.hikvision_intercom.client.client import CallState
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.diagnostics import async_get_config_entry_diagnostics
+from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
 from .conftest import DATA, PROFILE
 
@@ -145,7 +145,7 @@ async def test_identity_change_fails_setup_without_writes(hass, device_io):
 
 
 async def test_camera_image_and_backend_source(hass, loaded_entry):
-    from custom_components.smplwise_access_control.camera import IntercomCamera
+    from custom_components.hikvision_intercom.camera import IntercomCamera
 
     camera = IntercomCamera(loaded_entry)
     assert await camera.async_camera_image() == b"\xff\xd8image\xff\xd9"
@@ -191,7 +191,7 @@ async def test_service_invalid_lock_never_reaches_device(hass, loaded_entry, dev
 async def test_setup_failure_closes_owned_session(hass, device_io):
     from unittest.mock import patch
 
-    from custom_components.smplwise_access_control.client.client import create_session
+    from custom_components.hikvision_intercom.client.client import create_session
 
     sessions = []
 
@@ -203,7 +203,7 @@ async def test_setup_failure_closes_owned_session(hass, device_io):
     device_io["profile"].return_value = replace(PROFILE, unique_id="DIFFERENT")
     entry = MockConfigEntry(domain=DOMAIN, unique_id=PROFILE.unique_id, data=DATA)
     entry.add_to_hass(hass)
-    with patch("custom_components.smplwise_access_control.runtime.create_session", capture):
+    with patch("custom_components.hikvision_intercom.runtime.create_session", capture):
         assert not await hass.config_entries.async_setup(entry.entry_id)
     assert len(sessions) == 1 and sessions[0].is_closed
 
@@ -211,7 +211,7 @@ async def test_setup_failure_closes_owned_session(hass, device_io):
 async def test_camera_optional_failure(hass, loaded_entry, device_io):
     from unittest.mock import AsyncMock, patch
 
-    from custom_components.smplwise_access_control.camera import IntercomCamera
+    from custom_components.hikvision_intercom.camera import IntercomCamera
 
     camera = IntercomCamera(loaded_entry)
     with patch.object(
@@ -346,18 +346,18 @@ async def test_closing_runtime_rejects_api_work_before_clock_cleanup(
         patch.object(runtime.clock, "async_close", close_clock),
         patch.object(runtime.clock, "async_refresh", new=AsyncMock()) as clock_read,
         patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.signal",
+            "custom_components.hikvision_intercom.health_api.MediaClient.signal",
             new=AsyncMock(),
         ) as signal,
         patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.call_context",
+            "custom_components.hikvision_intercom.health_api.MediaClient.call_context",
             new=AsyncMock(),
         ) as call,
         patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.inspect",
+            "custom_components.hikvision_intercom.health_api.MediaClient.inspect",
             new=AsyncMock(),
         ) as inspect,
-        patch("custom_components.smplwise_access_control.audio_api.AudioSession") as audio,
+        patch("custom_components.hikvision_intercom.audio_api.AudioSession") as audio,
     ):
         unloading = asyncio.create_task(hass.config_entries.async_unload(loaded_entry.entry_id))
         try:
@@ -411,7 +411,7 @@ async def test_recovery_callback_does_not_queue_sync_while_runtime_closes(hass, 
 async def test_opt_in_sync_entities_update_without_device_polling(hass, loaded_entry, device_io):
     from homeassistant.helpers.entity import EntityCategory
 
-    from custom_components.smplwise_access_control.access_runtime import get_manager
+    from custom_components.hikvision_intercom.access_runtime import get_manager
 
     registry = er.async_get(hass)
     keys = ("managed_users", "pending_users", "pending_age", "sync_health", "last_reconciled")

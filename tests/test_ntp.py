@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.client.ntp import BASE, synchronize
-from custom_components.smplwise_access_control.client.parser import parse_payload
-from custom_components.smplwise_access_control.ntp_settings import DEFAULTS, NtpSettings, normalize
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.client.ntp import BASE, synchronize
+from custom_components.hikvision_intercom.client.parser import parse_payload
+from custom_components.hikvision_intercom.ntp_settings import DEFAULTS, NtpSettings, normalize
 
 
 @pytest.mark.parametrize(
@@ -96,7 +96,7 @@ async def test_apply_verified_readback_and_alignment(copy, skew):
     obj, state, _ = fake()
     before = state["Time"]["timeZone"]
     clock = {"measurement": {"status": "measured", "estimated_skew_seconds": skew}}
-    with patch("custom_components.smplwise_access_control.client.ntp.ClockClient") as reader:
+    with patch("custom_components.hikvision_intercom.client.ntp.ClockClient") as reader:
         reader.return_value.async_read = AsyncMock(return_value=clock)
         result = await synchronize(obj, DEFAULTS, copy_system=copy)
     assert result["configuration_verified"]

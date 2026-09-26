@@ -364,7 +364,7 @@ export class IntercomEvents extends LitElement {
       const result = await boundedRequest(
         () =>
           hass.callWS<T>({
-            type: `smplwise_access_control/events/${command}`,
+            type: `hikvision_intercom/events/${command}`,
             ...data,
           }),
         timeout,
@@ -1135,4 +1135,4 @@ export class IntercomEvents extends LitElement {
     </section>`;
   }
 }
-customElements.define("smplwise-access-control-events", IntercomEvents);
+customElements.define("hikvision-intercom-events", IntercomEvents);

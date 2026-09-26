@@ -342,7 +342,7 @@ export const accessStyles = css`
     border-radius: 0;
     background: #0c0f15;
   }
-  :host([data-access]) .camera-video smplwise-access-control-camera {
+  :host([data-access]) .camera-video hikvision-intercom-camera {
     --camera-object-fit: contain;
   }
   :host([data-access]) .camera-layout {
@@ -476,7 +476,7 @@ export const accessStyles = css`
     overflow: hidden;
     background: var(--secondary-background-color);
   }
-  :host([data-access]) .access-door-camera smplwise-access-control-camera {
+  :host([data-access]) .access-door-camera hikvision-intercom-camera {
     width: 100%;
     height: 100%;
     --camera-object-fit: contain;
@@ -521,7 +521,7 @@ export const accessStyles = css`
     border-radius: 7px;
     background: #151921;
   }
-  :host([data-access]) .access-context-camera smplwise-access-control-camera {
+  :host([data-access]) .access-context-camera hikvision-intercom-camera {
     width: 100%;
     height: 100%;
     --camera-object-fit: contain;

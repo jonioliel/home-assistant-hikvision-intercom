@@ -69,7 +69,7 @@ class AudioBridge:
                     self.connection.send_event(
                         self.subscription,
                         {
-                            "format": "smplwise_access_control.audio",
+                            "format": "hikvision_intercom.audio",
                             "state": "closed",
                             "reason": "audio_stopped",
                             "close_confirmed": None,
@@ -98,7 +98,7 @@ class AudioBridge:
             self.connection.send_event(
                 self.subscription,
                 {
-                    "format": "smplwise_access_control.audio",
+                    "format": "hikvision_intercom.audio",
                     "state": "ready",
                     "token": self.token,
                     "sample_rate": 8000,
@@ -168,7 +168,7 @@ class AudioBridge:
                     self.connection.send_event(
                         self.subscription,
                         {
-                            "format": "smplwise_access_control.audio",
+                            "format": "hikvision_intercom.audio",
                             "state": "closed",
                             "reason": reason,
                             "close_confirmed": self.session.close_confirmed
@@ -259,7 +259,7 @@ def packet_handler(operation: str) -> Any:
                     if not bridge.valid():
                         raise AudioError("audio_not_started")
                     result = {
-                        "format": "smplwise_access_control.audio",
+                        "format": "hikvision_intercom.audio",
                         "data": base64.b64encode(packet).decode("ascii"),
                     }
                 finally:

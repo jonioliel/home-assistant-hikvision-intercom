@@ -28,7 +28,7 @@ for (const [width, height, language] of [
         head: box(".dialog-head"),
 
         video: box(".camera-video"),
-        controls: box("smplwise-access-control-audio-controls"),
+        controls: box("hikvision-intercom-audio-controls"),
         width: node.scrollWidth,
         client: node.clientWidth,
       };
@@ -69,7 +69,7 @@ for (const [width, height, language] of [
 test("WisKey 04 keeps refresh below the video on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() =>
-    localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "wiskey-light"),
+    localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "wiskey-light"),
   );
   await page.goto("/?lang=he");
   await page.locator(".wk4-door .wk4-open-camera").first().click();

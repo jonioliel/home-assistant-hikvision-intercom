@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.smplwise_access_control.access.hold_programs import HoldPrograms
-from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.hikvision_intercom.access.hold_programs import HoldPrograms
+from custom_components.hikvision_intercom.access.models import AccessError
 from tests.test_hold_open import sample
 
 NOW = datetime(2026, 9, 14, 10, tzinfo=UTC)

@@ -8,12 +8,12 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smplwise_access_control.client.access import (
+from custom_components.hikvision_intercom.client.access import (
     AccessCapabilities,
     StationInventory,
 )
-from custom_components.smplwise_access_control.client.client import CallState, StationProfile
-from custom_components.smplwise_access_control.const import DOMAIN
+from custom_components.hikvision_intercom.client.client import CallState, StationProfile
+from custom_components.hikvision_intercom.const import DOMAIN
 
 DATA = {
     "name": "Front",
@@ -62,21 +62,21 @@ def device_io():
         return caps
 
     with (
-        patch("custom_components.smplwise_access_control.event_manager.StationEvents.start"),
+        patch("custom_components.hikvision_intercom.event_manager.StationEvents.start"),
         patch(
-            "custom_components.smplwise_access_control.client.access.AccessClient.async_capabilities",
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_capabilities",
             access_caps,
         ),
         patch(
-            "custom_components.smplwise_access_control.client.access.AccessClient.async_inventory",
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_inventory",
             AsyncMock(return_value=StationInventory()),
         ) as inventory,
         patch(
-            "custom_components.smplwise_access_control.client.access.AccessClient.async_write_person",
+            "custom_components.hikvision_intercom.client.access.AccessClient.async_write_person",
             AsyncMock(),
         ) as write_person,
         patch(
-            "custom_components.smplwise_access_control.client.clock.ClockClient.async_read",
+            "custom_components.hikvision_intercom.client.clock.ClockClient.async_read",
             AsyncMock(
                 return_value={
                     "zone": {"kind": "iana", "name": "UTC"},
@@ -88,25 +88,25 @@ def device_io():
             ),
         ),
         patch(
-            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_profile",
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
             AsyncMock(return_value=PROFILE),
         ) as profile,
         patch(
-            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_call_status",
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_call_status",
             AsyncMock(return_value=CallState("idle", "idle")),
         ) as call,
         patch(
-            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
             AsyncMock(
                 return_value=(PROFILE.unique_id, PROFILE.model, PROFILE.firmware, PROFILE.serial)
             ),
         ),
         patch(
-            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_unlock",
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_unlock",
             AsyncMock(),
         ) as unlock,
         patch(
-            "custom_components.smplwise_access_control.client.client.HikvisionClient.async_snapshot",
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_snapshot",
             AsyncMock(return_value=b"\xff\xd8image\xff\xd9"),
         ),
     ):

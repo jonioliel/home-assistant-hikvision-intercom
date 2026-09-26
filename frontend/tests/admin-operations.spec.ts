@@ -8,7 +8,7 @@ async function setup(page, he = false) {
     let next = 0;
     const receipts = {};
     window.demoHass.callWS = async (message) => {
-      const type = message.type.replace("smplwise_access_control/", "");
+      const type = message.type.replace("hikvision_intercom/", "");
       if (type.startsWith("users/bulk_")) {
         window.calls.push(structuredClone(message));
         if (type === "users/bulk_preview") {
@@ -273,7 +273,7 @@ test("Hebrew bulk preview and history fit a mobile screen", async ({ page }) => 
   await expect(page.locator("hikvision-bulk-users .preview")).toBeVisible();
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth > 390),
   ).toBe(false);
   await page.screenshot({ path: "test-results/bulk-he-mobile.png", fullPage: true });
@@ -281,7 +281,7 @@ test("Hebrew bulk preview and history fit a mobile screen", async ({ page }) => 
   await expect(page.locator("hikvision-admin-audit .history article")).toHaveCount(1);
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((e) => e.shadowRoot.querySelector("main").scrollWidth > 390),
   ).toBe(false);
   await page.screenshot({ path: "test-results/audit-he-mobile.png", fullPage: true });

@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.core import SupportsResponse
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access_runtime import get_manager
-from custom_components.smplwise_access_control.whatsapp_api import access_message, dispatch_whatsapp
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.whatsapp_api import access_message, dispatch_whatsapp
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ async def whatsapp(hass, loaded_entry):
     )
     with (
         patch(
-            "custom_components.smplwise_access_control.whatsapp_api._accounts",
+            "custom_components.hikvision_intercom.whatsapp_api._accounts",
             return_value=[{"id": "wa", "name": "Test"}],
         ),
     ):

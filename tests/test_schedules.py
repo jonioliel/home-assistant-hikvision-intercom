@@ -10,20 +10,20 @@ import httpx
 import pytest
 from test_client import SETTINGS
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedules import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedules import (
     DAYS,
     ScheduleLibrary,
     normalize,
     preview,
 )
-from custom_components.smplwise_access_control.client.client import HikvisionClient
-from custom_components.smplwise_access_control.client.schedules import (
+from custom_components.hikvision_intercom.client.client import HikvisionClient
+from custom_components.hikvision_intercom.client.schedules import (
     ROUTES,
     capability,
     inspect_schedules,
 )
-from custom_components.smplwise_access_control.exceptions import (
+from custom_components.hikvision_intercom.exceptions import (
     HikvisionAuthError,
     HikvisionValidationError,
 )
@@ -230,9 +230,7 @@ async def test_corrupt_record_is_not_replaced_and_capacity_is_bounded(monkeypatc
     next(iter(data["schedules"].values()))["updated_at"] = "2026-09-07"
     with pytest.raises(AccessError, match="invalid_storage"):
         await repo.async_load(data)
-    monkeypatch.setattr(
-        "custom_components.smplwise_access_control.access.schedules.MAX_SCHEDULES", 1
-    )
+    monkeypatch.setattr("custom_components.hikvision_intercom.access.schedules.MAX_SCHEDULES", 1)
     with pytest.raises(AccessError, match="schedule_limit"):
         await repo.async_save(draft())
 

@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from test_schedules import draft
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedules import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedules import (
     TRANSFER_FORMAT,
     ScheduleLibrary,
     transfer_document,
@@ -42,7 +42,7 @@ async def test_export_roundtrip_only_portable_fields_and_atomic_new_ids():
     [
         "{",
         '{"format":"x","format":"y"}',
-        '{"format":"smplwise_access_control.schedule_drafts","version":true,"schedules":[]}',
+        '{"format":"hikvision_intercom.schedule_drafts","version":true,"schedules":[]}',
         "[]",
         "null",
         "[" * 2000,
@@ -79,14 +79,10 @@ async def test_preview_bound_to_actor_expiry_library_and_latest_review():
     await library.async_save(draft())
     with pytest.raises(AccessError, match="revision_conflict"):
         await library.async_import(second["token"], "a")
-    with patch(
-        "custom_components.smplwise_access_control.access.schedules.monotonic", return_value=0
-    ):
+    with patch("custom_components.hikvision_intercom.access.schedules.monotonic", return_value=0):
         third = library.preview_import(document(), "a")
     with (
-        patch(
-            "custom_components.smplwise_access_control.access.schedules.monotonic", return_value=301
-        ),
+        patch("custom_components.hikvision_intercom.access.schedules.monotonic", return_value=301),
         pytest.raises(AccessError, match="schedule_import_expired"),
     ):
         await library.async_import(third["token"], "a")

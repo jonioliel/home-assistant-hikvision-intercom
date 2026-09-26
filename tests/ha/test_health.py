@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.smplwise_access_control.access.acceptance import Acceptance
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.event_manager import get_events
-from custom_components.smplwise_access_control.storage import AccessStore
+from custom_components.hikvision_intercom.access.acceptance import Acceptance
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.event_manager import get_events
+from custom_components.hikvision_intercom.storage import AccessStore
 
 from .test_events import live
 from .test_websocket import request
@@ -21,11 +21,11 @@ async def test_health_snapshot_is_private_and_does_not_touch_device(
 ):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.health_api.MediaClient.inspect", new=AsyncMock()
+        "custom_components.hikvision_intercom.health_api.MediaClient.inspect", new=AsyncMock()
     ) as probe:
         result = await request(client, "health/get", station_id=loaded_entry.entry_id)
         assert result["success"]
-        assert result["result"]["format"] == "smplwise_access_control.compatibility"
+        assert result["result"]["format"] == "hikvision_intercom.compatibility"
         encoded = json.dumps(result)
         assert "demo-secret" not in encoded and "DEMO-SERIAL" not in encoded
         probe.assert_not_called()
@@ -37,12 +37,12 @@ async def test_support_bundle_is_cached_pseudonymous_and_does_not_touch_device(
 ):
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.health_api.MediaClient.inspect", new=AsyncMock()
+        "custom_components.hikvision_intercom.health_api.MediaClient.inspect", new=AsyncMock()
     ) as probe:
         result = await request(client, "support/bundle")
     assert result["success"]
     report = result["result"]
-    assert report["format"] == "smplwise_access_control.support_bundle"
+    assert report["format"] == "hikvision_intercom.support_bundle"
     assert report["scope"] == "cached_diagnostics_no_device_reads"
     assert len(report["stations"]) == 1
     assert len(report["stations"][0]["station_ref"]) == 12
@@ -125,7 +125,7 @@ async def test_health_refresh_reads_only_and_does_not_block_snapshot(
 
     with (
         patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.inspect",
+            "custom_components.hikvision_intercom.health_api.MediaClient.inspect",
             side_effect=inspect,
         ),
         patch.object(loaded_entry.runtime_data.clock, "async_refresh", new=AsyncMock()),
@@ -164,7 +164,7 @@ async def test_media_signal_is_explicit_and_serialized(hass, loaded_entry, hass_
         return await connection.receive_json()
 
     with patch(
-        "custom_components.smplwise_access_control.health_api.MediaClient.signal",
+        "custom_components.hikvision_intercom.health_api.MediaClient.signal",
         side_effect=signal,
     ) as operation:
         pending = asyncio.create_task(send(client))
@@ -185,7 +185,7 @@ async def test_call_context_caches_result_but_never_writes(
     result = {"acknowledged": None, "observation": "unavailable"}
     hass.data[DOMAIN].setdefault("call_results", {})[loaded_entry.entry_id] = (runtime, result)
     with patch(
-        "custom_components.smplwise_access_control.health_api.MediaClient.call_context",
+        "custom_components.hikvision_intercom.health_api.MediaClient.call_context",
         new=AsyncMock(return_value={"state": "idle", "call_commands": ["reject"]}),
     ):
         response = await request(client, "media/call", station_id=loaded_entry.entry_id)
@@ -204,7 +204,7 @@ async def test_call_context_rejects_replaced_runtime(hass, loaded_entry, hass_ws
 
     try:
         with patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.call_context",
+            "custom_components.hikvision_intercom.health_api.MediaClient.call_context",
             side_effect=context,
         ):
             response = await request(client, "media/call", station_id=loaded_entry.entry_id)
@@ -225,10 +225,10 @@ async def test_call_operation_cancelled_at_runtime_unload(hass, loaded_entry, ha
             cancelled.set()
 
     client = await hass_ws_client(hass)
-    from custom_components.smplwise_access_control.health_api import dispatch_health
+    from custom_components.hikvision_intercom.health_api import dispatch_health
 
     with patch(
-        "custom_components.smplwise_access_control.health_api.MediaClient.signal",
+        "custom_components.hikvision_intercom.health_api.MediaClient.signal",
         side_effect=signal,
     ):
         task = asyncio.create_task(
@@ -284,7 +284,7 @@ async def test_manual_history_never_moves_recovery_cursor_or_accepts_rows(
     before = dict(events.cursors)
     records = list(events.cache.rows)
     with patch(
-        "custom_components.smplwise_access_control.client.history_diagnostics.inspect_history",
+        "custom_components.hikvision_intercom.client.history_diagnostics.inspect_history",
         new=AsyncMock(return_value={"complete": True, "records": 3}),
     ):
         response = await request(
@@ -329,8 +329,8 @@ async def test_actual_camera_exposes_registered_webrtc_provider(hass, loaded_ent
 async def test_health_refresh_rejects_runtime_change_during_media_read(
     hass, loaded_entry, device_io, transition
 ):
-    from custom_components.smplwise_access_control.access.models import AccessError
-    from custom_components.smplwise_access_control.health_api import dispatch_health
+    from custom_components.hikvision_intercom.access.models import AccessError
+    from custom_components.hikvision_intercom.health_api import dispatch_health
 
     runtime = loaded_entry.runtime_data
     entered, finish = asyncio.Event(), asyncio.Event()
@@ -342,7 +342,7 @@ async def test_health_refresh_rejects_runtime_change_during_media_read(
 
     with (
         patch(
-            "custom_components.smplwise_access_control.health_api.MediaClient.inspect",
+            "custom_components.hikvision_intercom.health_api.MediaClient.inspect",
             side_effect=inspect,
         ),
         patch.object(runtime.clock, "async_refresh", new=AsyncMock()),
@@ -396,7 +396,7 @@ async def test_upgrade_readiness_uses_cached_state_and_blocks_unavailable_storag
     client = await hass_ws_client(hass)
     ready = await request(client, "upgrade/readiness")
     assert ready["success"]
-    assert ready["result"]["format"] == "smplwise_access_control.upgrade_readiness"
+    assert ready["result"]["format"] == "hikvision_intercom.upgrade_readiness"
     assert ready["result"]["ready"] is True
     schedules = hass.data[DOMAIN]["schedules"]
     hass.data[DOMAIN]["schedules"] = None
