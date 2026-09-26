@@ -9392,24 +9392,22 @@ Monday, Tuesday, Thursday
       max-width: 250px;
     }
     .quick-phrases {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 6px;
-      max-width: 100%;
-      overflow-x: auto;
-      overflow-y: hidden;
+      min-width: 0;
       margin-top: 8px;
-      padding-bottom: 3px;
-      scrollbar-width: thin;
     }
     .quick-phrases button {
-      flex: 0 0 auto;
-      max-width: 220px;
+      width: 100%;
+      min-width: 0;
       min-height: 34px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      padding: 5px 10px;
-      border-radius: 999px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      text-align: start;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.4;
     }
     .counter {
       margin-inline-start: auto;

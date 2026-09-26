@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.4 — בדיקת משפטי TTS מהירים</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box}body{margin:0}main{max-width:840px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0}h2{font-size:1.15rem;margin:0 0 10px}
+    p{margin:.5em 0}.card{background:#fff;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    button{border:0;background:#185d51;color:#fff;border-radius:9px;padding:10px 15px;cursor:pointer;font:inherit}
+    .muted{color:#52696b}a{color:#176753}
+    @media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.4</p><h1>בדיקת משפטי TTS מהירים</h1><p>בדיקה חזותית קצרה לאחר עדכון HACS והפעלה מחדש של Home Assistant</p></header>
+  <section class="card"><h2>מה כבר נבדק אוטומטית</h2><p>בדיקות דפדפן ב־1440px וב־390px אישרו שכל משפט מופיע בשורה משלו, ללא גלילה רוחבית או קיצור טקסט. הבדיקות גם אישרו שלחיצה על משפט שולחת את הטקסט המלא לתחנה שנבחרה.</p></section>
+  <section class="card"><h2>בדיקות אצלך</h2>
+    <label><input type="checkbox" data-id="upgrade"> ב־HACS מותקנת v2.0.0-rc.4, ו־Home Assistant הופעל מחדש.</label>
+    <label><input type="checkbox" data-id="desktop"> במחשב: פתח מצלמה עם לפחות שני משפטים מוכנים. כל כפתור מופיע מתחת לקודם, הטקסט שלו מוצג במלואו ואין פס גלילה ימינה־שמאלה באזור המשפטים.</label>
+    <label><input type="checkbox" data-id="mobile"> בנייד: פתח את אותו מסך. המשפטים נשארים אחד מתחת לשני ברוחב החלון, בלי גלילה אופקית.</label>
+    <label><input type="checkbox" data-id="send"> כשאפשר לבדוק מול התחנה: לחץ על משפט מוכן וודא שהוא נשמע בתחנה שבחרת, בלי שינוי בפעולת המצלמה או בהקלדת הודעה חופשית.</label>
+  </section>
+  <section class="card"><h2>אם עדיין יש בעיה</h2><p>עדכן באיזה מכשיר ודפדפן, איזו ערכת עיצוב נבחרה וכמה משפטים הוגדרו. לתקלה חזותית מספיקה תמונת מסך; אין צורך לשנות משתמשים, הרשאות או סנכרון.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן זה בלבד. <a href="SMPLWISE_HACS_UPGRADE_TESTS_HE.html">בדיקות השדרוג המלאות</a>.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.4-tts-layout';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

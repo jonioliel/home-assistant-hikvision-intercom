@@ -203,6 +203,60 @@ test("WisKey 04 mobile camera keeps typed composer and sends a saved phrase to i
   ).toBe(true);
 });
 
+for (const { appearance, width, height } of [
+  { appearance: "wiskey-light", width: 1440, height: 900 },
+  { appearance: "wiskey-dark", width: 390, height: 844 },
+]) {
+  test(`quick TTS phrases stack without horizontal scrolling in ${appearance} at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript((theme) => {
+      localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", theme);
+    }, appearance);
+    await page.goto("/?lang=he");
+    const phrases = [
+      "נא להמתין ליד הדלת",
+      "האזור מצולם, נא לשמור על הסדר ולהמתין לנציג שיגיע אליכם בתוך זמן קצר",
+      "דלת מורדת",
+    ];
+    await page.evaluate((items) => {
+      window.demoData.media_settings = {
+        ...window.demoData.media_settings,
+        tts_engine_id: "tts.google_translate_en_com",
+        tts_language: "iw",
+        tts_phrases: items,
+      };
+      window.demoNotify();
+    }, phrases);
+    await page.locator(".wk4-open-camera").first().click();
+    const tts = page.getByRole("dialog").locator("wiskey-intercom-tts");
+    const list = tts.locator(".quick-phrases");
+    await expect(list.getByRole("button")).toHaveCount(3);
+    const layout = await list.evaluate((element) => {
+      const buttons = Array.from(element.querySelectorAll("button"));
+      const boxes = buttons.map((button) => button.getBoundingClientRect());
+      return {
+        listOverflowsHorizontally: element.scrollWidth > element.clientWidth,
+        buttonOverflowsHorizontally: buttons.some(
+          (button) => button.scrollWidth > button.clientWidth,
+        ),
+        stacked: boxes.every((box, index) => index === 0 || box.top >= boxes[index - 1].bottom),
+        completeLabels: buttons.map((button) => button.textContent?.trim()),
+      };
+    });
+    expect(layout).toEqual({
+      listOverflowsHorizontally: false,
+      buttonOverflowsHorizontally: false,
+      stacked: true,
+      completeLabels: phrases,
+    });
+    await list.getByRole("button", { name: phrases[1] }).click();
+    expect(
+      await page.evaluate(() => window.calls.findLast((call) => call.type.endsWith("/tts/start"))),
+    ).toMatchObject({ station_id: "station-0", message: phrases[1] });
+  });
+}
 test("blank and duplicate quick phrases cannot be saved", async ({ page }) => {
   await page.goto("/");
   await page.locator(".nav").getByRole("button", { name: "Management tools" }).click();
