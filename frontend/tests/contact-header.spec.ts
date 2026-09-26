@@ -22,7 +22,7 @@ for (const appearance of ["current", "modern"]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.addInitScript(
         (appearance) =>
-          localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", appearance),
+          localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", appearance),
         appearance,
       );
       await page.goto("/?lang=he");

@@ -10,9 +10,7 @@ from pathlib import Path
 def release_metadata(root: Path) -> tuple[str, str]:
     """An Unreleased entry or mismatched version cannot become a release."""
     manifest = json.loads(
-        (root / "custom_components/smplwise_access_control/manifest.json").read_text(
-            encoding="utf-8"
-        )
+        (root / "custom_components/hikvision_intercom/manifest.json").read_text(encoding="utf-8")
     )
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     version = manifest["version"]

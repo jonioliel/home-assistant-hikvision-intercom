@@ -145,7 +145,7 @@ export class DoorPrograms extends LitElement {
         saved: Program[];
         timezone: string;
       }>({
-        type: "smplwise_access_control/stations/technical_program_list",
+        type: "hikvision_intercom/stations/technical_program_list",
         station_id: this.station?.id,
       });
       if (id !== this.identity) return;
@@ -175,7 +175,7 @@ export class DoorPrograms extends LitElement {
     try {
       const result = await this.requests.run<{ programs: Program[] }>(
         {
-          type: "smplwise_access_control/stations/technical_program_action",
+          type: "hikvision_intercom/stations/technical_program_action",
           station_id: this.station?.id,
           door: item.door,
           revision: item.revision,
@@ -226,7 +226,7 @@ export class DoorPrograms extends LitElement {
     const id = this.identity;
     try {
       const result = await this.requests.run<{ programs: Program[] }>({
-        type: "smplwise_access_control/stations/technical_program_save",
+        type: "hikvision_intercom/stations/technical_program_save",
         station_id: this.station?.id,
         door: this.door,
         revision: this.revision,
@@ -250,7 +250,7 @@ export class DoorPrograms extends LitElement {
     const id = this.identity;
     try {
       await this.requests.run({
-        type: "smplwise_access_control/stations/technical_hold_delete",
+        type: "hikvision_intercom/stations/technical_hold_delete",
         station_id: this.station?.id,
         door: item.door,
         revision: item.revision,
@@ -273,7 +273,7 @@ export class DoorPrograms extends LitElement {
     try {
       const result = await this.requests.run<{ programs: Program[] }>(
         {
-          type: "smplwise_access_control/stations/technical_program_action",
+          type: "hikvision_intercom/stations/technical_program_action",
           station_id: this.station?.id,
           door: item.door,
           revision: item.revision,

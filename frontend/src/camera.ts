@@ -548,7 +548,7 @@ export class IntercomCamera extends LitElement {
     downloadText(
       JSON.stringify(
         {
-          format: "smplwise_access_control.playback",
+          format: "hikvision_intercom.playback",
           schema: 1,
           integration_version: this.version,
           generated_at: new Date().toISOString(),
@@ -686,4 +686,4 @@ export class IntercomCamera extends LitElement {
       : html`<p>${this.label}</p>`;
   }
 }
-customElements.define("smplwise-access-control-camera", IntercomCamera);
+customElements.define("hikvision-intercom-camera", IntercomCamera);

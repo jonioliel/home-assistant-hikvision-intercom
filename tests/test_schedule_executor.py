@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock
 import pytest
 from test_schedule_journal import inputs
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedule_executor import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedule_executor import (
     ScheduleExecutor,
     ScheduleObservation,
 )
-from custom_components.smplwise_access_control.access.schedule_journal import ScheduleJournal
+from custom_components.hikvision_intercom.access.schedule_journal import ScheduleJournal
 
 
 class Transport:

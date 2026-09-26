@@ -76,7 +76,7 @@ import "./operations-center";
 import "./identity-lifecycle";
 import { matchingUsers, defaultFilters, type UserFilters } from "./user-filters";
 
-const settingsPath = "/config/integrations/integration/smplwise_access_control";
+const settingsPath = "/config/integrations/integration/hikvision_intercom";
 const value = (event: Event) => (event.target as HTMLInputElement).value;
 const checked = (event: Event) => (event.target as HTMLInputElement).checked;
 
@@ -363,7 +363,7 @@ export class IntercomManagerPanel extends LitElement {
         : !this.canView(this.tabArea(tab))
     )
       return;
-    const schedules = this.renderRoot.querySelector("smplwise-access-control-schedules") as
+    const schedules = this.renderRoot.querySelector("hikvision-intercom-schedules") as
       (HTMLElement & { canLeave(): boolean }) | null;
     if (tab !== this._tab && schedules && !schedules.canLeave()) return;
     this._tab = tab;
@@ -613,7 +613,7 @@ export class IntercomManagerPanel extends LitElement {
     const connection = hass.connection;
     try {
       const session = await hass.callWS<AuthorizationSession>({
-        type: "smplwise_access_control/authorization/session",
+        type: "hikvision_intercom/authorization/session",
       });
       if (
         !this.isConnected ||
@@ -665,7 +665,7 @@ export class IntercomManagerPanel extends LitElement {
           }
           void this.refresh();
         },
-        { type: "smplwise_access_control/subscribe" },
+        { type: "hikvision_intercom/subscribe" },
         {
           preCheck: () => epoch === this._epoch && this.isConnected && !!this.authorized,
         },
@@ -699,7 +699,7 @@ export class IntercomManagerPanel extends LitElement {
     const hass = this.hass!,
       epoch = this._epoch;
     const send = () =>
-      this.protectedHass!.callWS<T>({ type: `smplwise_access_control/${command}`, ...data });
+      this.protectedHass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
     const timeout =
       command === "overview"
         ? 20000
@@ -1497,7 +1497,7 @@ export class IntercomManagerPanel extends LitElement {
       if (epoch !== this._captureEpoch || !this._capture) {
         void hass
           ?.callWS({
-            type: "smplwise_access_control/cards/capture_cancel",
+            type: "hikvision_intercom/cards/capture_cancel",
             session_id: result.session_id,
           })
           .catch(() => {});
@@ -2093,7 +2093,7 @@ export class IntercomManagerPanel extends LitElement {
   };
   private callControls(station: Station, compact = false, dock = false) {
     if (!this.canManage("overview") && !this.canManage("stations")) return nothing;
-    return html`<smplwise-access-control-call-controls
+    return html`<hikvision-intercom-call-controls
       .hass=${this.protectedHass}
       .station=${station}
       .compact=${compact}
@@ -2101,10 +2101,10 @@ export class IntercomManagerPanel extends LitElement {
       .blocked=${this._callBusy.has(station.id)}
       .onBusy=${this.setCallBusy}
       .onRefreshState=${dock ? this.setCameraRefreshEnabled : undefined}
-    ></smplwise-access-control-call-controls>`;
+    ></hikvision-intercom-call-controls>`;
   }
   private camera(station: Station, live = false) {
-    return html`<smplwise-access-control-camera
+    return html`<hikvision-intercom-camera
       .stationId=${station.id}
       .media=${this._data?.media_settings}
       .hass=${this.protectedHass}
@@ -2112,7 +2112,7 @@ export class IntercomManagerPanel extends LitElement {
       .version=${this._data?.version ?? ""}
       .live=${live}
       .label=${station.entities.camera ? `${this.t("camera")} · ${station.name}` : this.t("no_camera")}
-    ></smplwise-access-control-camera>`;
+    ></hikvision-intercom-camera>`;
   }
   private userActions(user: Person) {
     return html`<div class="user-action-group">
@@ -4503,13 +4503,13 @@ export class IntercomManagerPanel extends LitElement {
     const layout = event.currentTarget as HTMLElement | null;
     event.detail.available =
       layout
-        ?.querySelector<IntercomCamera>("smplwise-access-control-camera")
+        ?.querySelector<IntercomCamera>("hikvision-intercom-camera")
         ?.setPlaybackAudio(event.detail.enabled) === true;
   }
   private cameraBody(station: Station) {
     const v4 = isWiskeyAppearance(this._appearance);
     const video = html`<div class="camera-video">${this.camera(station, true)}</div>`;
-    const controls = html`<smplwise-access-control-audio-controls
+    const controls = html`<hikvision-intercom-audio-controls
       .dock=${true}
       .hideTts=${v4}
       .v4=${v4}
@@ -4529,7 +4529,7 @@ export class IntercomManagerPanel extends LitElement {
               aria-label=${this.t("call_refresh")}
               title=${this.t("call_refresh")}
               ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
-              @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout smplwise-access-control-call-controls")?.refreshState()}
+              @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
             >
               ${icon("sync")}
             </button>`
@@ -4538,7 +4538,7 @@ export class IntercomManagerPanel extends LitElement {
       <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
         ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
       </button>
-    </smplwise-access-control-audio-controls>`;
+    </hikvision-intercom-audio-controls>`;
     return v4
       ? html`<div
           class="camera-layout wk4-camera-layout"
@@ -4787,7 +4787,7 @@ export class IntercomManagerPanel extends LitElement {
                                               @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
                                             ></hikvision-admin-audit>`
                                           : this._tab === "health"
-                                            ? html`<smplwise-access-control-health
+                                            ? html`<hikvision-intercom-health
                                                 .callBusy=${this._callBusy}
                                                 .onCallBusy=${this.setCallBusy}
                                                 .hass=${this.protectedHass}
@@ -4795,19 +4795,19 @@ export class IntercomManagerPanel extends LitElement {
                                                 .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
                                                 .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
                                                 .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
-                                              ></smplwise-access-control-health>`
+                                              ></hikvision-intercom-health>`
                                             : this._tab === "schedules"
-                                              ? html`<smplwise-access-control-schedules
+                                              ? html`<hikvision-intercom-schedules
                                                   .hass=${this.protectedHass}
                                                   .stations=${this._data.stations}
-                                                ></smplwise-access-control-schedules>`
-                                              : html`<smplwise-access-control-events
+                                                ></hikvision-intercom-schedules>`
+                                              : html`<hikvision-intercom-events
                                                   .policy=${this._data.profile_settings}
                                                   .hass=${this.protectedHass}
                                                   .stations=${this._data.stations}
                                                   .defaultZone=${this._data.default_zone ?? UTC_ZONE}
                                                   .v4=${isWiskeyAppearance(this._appearance)}
-                                                ></smplwise-access-control-events>`
+                                                ></hikvision-intercom-events>`
         }
       </main>
       ${
@@ -4853,9 +4853,9 @@ export class IntercomManagerPanel extends LitElement {
     </div>`;
   }
 }
-customElements.define("smplwise-access-control-panel", IntercomManagerPanel);
+customElements.define("hikvision-intercom-panel", IntercomManagerPanel);
 if (typeof FontFace !== "undefined") {
-  const font = new FontFace("WisKey Heebo", "url(/smplwise_access_control_static/Heebo.ttf)", {
+  const font = new FontFace("WisKey Heebo", "url(/hikvision_intercom_static/Heebo.ttf)", {
     weight: "100 900",
     display: "swap",
   });

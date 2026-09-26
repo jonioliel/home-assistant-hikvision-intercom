@@ -98,7 +98,7 @@ export class MediaSettingsPanel extends LitElement {
     const connection = this.hass?.connection;
     try {
       const result = await this.hass?.callWS<{ default: string | null; engines: TtsEngine[] }>({
-        type: "smplwise_access_control/tts/engines",
+        type: "hikvision_intercom/tts/engines",
       });
       if (!this.isConnected || connection !== this.hass?.connection) return;
       this.engines = Array.isArray(result?.engines) ? result.engines : [];
@@ -132,7 +132,7 @@ export class MediaSettingsPanel extends LitElement {
     try {
       this.draft = this.asDraft(
         await this.requests.run<MediaPolicy>(
-          { type: "smplwise_access_control/media/settings_get" },
+          { type: "hikvision_intercom/media/settings_get" },
           10000,
         ),
       );
@@ -151,7 +151,7 @@ export class MediaSettingsPanel extends LitElement {
     const { revision, ...values } = this.draft;
     try {
       const result = await this.requests.run<MediaPolicy>(
-        { type: "smplwise_access_control/media/settings_update", revision, values },
+        { type: "hikvision_intercom/media/settings_update", revision, values },
         12000,
       );
       if (!this.isConnected) return;
@@ -178,7 +178,7 @@ export class MediaSettingsPanel extends LitElement {
     this.notice = "";
     try {
       const result = await this.requests.run<{ server: string; version: string }>(
-        { type: "smplwise_access_control/media/provider_check" },
+        { type: "hikvision_intercom/media/provider_check" },
         10000,
       );
       this.server = `${result.server} · go2rtc ${result.version}`;
@@ -195,7 +195,7 @@ export class MediaSettingsPanel extends LitElement {
     this.notice = "";
     try {
       const result = await this.requests.run<{ url: string; version: string }>(
-        { type: "smplwise_access_control/media/provider_discover" },
+        { type: "hikvision_intercom/media/provider_discover" },
         12000,
       );
       if (!this.isConnected) return;

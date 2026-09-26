@@ -26,8 +26,8 @@
 
 ## התמדה, התאוששות וגבולות
 
-- שתי חנויות HA פרטיות ונפרדות: `.storage/smplwise_access_control.schedule_operations`
-  ו־`.storage/smplwise_access_control.schedule_journal`. השמירה אטומית, והרשאות הקובץ מוגבלות.
+- שתי חנויות HA פרטיות ונפרדות: `.storage/hikvision_intercom.schedule_operations`
+  ו־`.storage/hikvision_intercom.schedule_journal`. השמירה אטומית, והרשאות הקובץ מוגבלות.
   תקלה באחת מהן מופיעה ב־Repairs ואינה מחליפה קובץ פגום או משביתה את מאגר המשתמשים.
 - יומן schema 1 מועבר ל־schema 2 באמצעות שמירה אטומית ששומרת גם תוצאות לא ודאיות.
 - עד 64 הצהרות, 32 עבודות פעילות ו־32 יומנים פעילים. בארכיונים נשמרים 128 הפריטים

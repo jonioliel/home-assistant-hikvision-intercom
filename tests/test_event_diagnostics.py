@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from test_events import NOW, normalized, payload
 
-from custom_components.smplwise_access_control.client.schedule_readiness import inspect_readiness
-from custom_components.smplwise_access_control.event_diagnostics import (
+from custom_components.hikvision_intercom.client.schedule_readiness import inspect_readiness
+from custom_components.hikvision_intercom.event_diagnostics import (
     EventTelemetry,
     event_support,
     explain_event,
 )
-from custom_components.smplwise_access_control.events import EventCache
+from custom_components.hikvision_intercom.events import EventCache
 
 
 @pytest.mark.parametrize(
@@ -117,7 +117,7 @@ async def test_readiness_search_coverage_never_enables_writes(state, count, expe
         ],
     }
     with patch(
-        "custom_components.smplwise_access_control.client.schedule_readiness.inspect_inventory",
+        "custom_components.hikvision_intercom.client.schedule_readiness.inspect_inventory",
         new=AsyncMock(return_value=copy.deepcopy(inventory)),
     ) as read:
         result = await inspect_readiness(object())

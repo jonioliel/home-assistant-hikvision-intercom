@@ -5,7 +5,7 @@
 > **Owner scope amendment — 2026-09-11:** WisKey manages **1–X intercoms**, with dynamic station registration. Nine stations are neither a product target nor a prerequisite for acceptance or release. Fleet size in older examples is illustrative. DoD 1 is retired as a separate fixed-count gate; independent station behavior remains mandatory under section 3 and routine functional tests. DoD 40 is retained as a sustained stability test at the relevant deployment/load size, without a fixed hardware count. See [scope and recalculated acceptance](docs/SCALABLE_SCOPE_HE.md). Resource budgets and measured capacity limits remain explicit.
 
 
-**Project domain:** `smplwise_access_control`
+**Project domain:** `hikvision_intercom`
 **Target:** Home Assistant 2026.9+ custom integration / HACS  
 **Target fleet:** 1–X independently managed Hikvision DS-KV6124-E1 stations  
 **Observed target firmware:** V3.9.0 build 260115  
@@ -188,7 +188,7 @@ Repository root should include at minimum:
 ```text
 /
 ├── custom_components/
-│   └── smplwise_access_control/
+│   └── hikvision_intercom/
 │       ├── __init__.py
 │       ├── manifest.json
 │       ├── config_flow.py
@@ -210,7 +210,7 @@ Repository root should include at minimum:
 
 Rules:
 - There must be only one Home Assistant integration under `custom_components/`.
-- Every file required at runtime must be distributed inside `custom_components/smplwise_access_control/`.
+- Every file required at runtime must be distributed inside `custom_components/hikvision_intercom/`.
 - Frontend source may live outside the integration directory, but compiled production frontend assets required at runtime must be packaged inside the integration directory.
 - Root `hacs.json` is required and must describe the integration.
 - `manifest.json` must contain the custom integration `version`.
@@ -344,7 +344,7 @@ Pre-1.0 versions may evolve more quickly, but migrations must still be implement
 
 The same release version must be consistent between:
 - Git tag / GitHub Release
-- `custom_components/smplwise_access_control/manifest.json`
+- `custom_components/hikvision_intercom/manifest.json`
 - release notes / changelog
 
 Tags should use:
@@ -423,7 +423,7 @@ It is not necessary to wait for inclusion in HACS's default repository list to u
 # 4. Repository layout
 
 ```text
-custom_components/smplwise_access_control/
+custom_components/hikvision_intercom/
 ├── __init__.py
 ├── manifest.json
 ├── const.py
@@ -466,7 +466,7 @@ custom_components/smplwise_access_control/
 │
 └── frontend/
     └── dist/
-        ├── smplwise-access-control-panel.js
+        ├── hikvision-intercom-panel.js
         └── assets/...
 
 frontend/
@@ -953,7 +953,7 @@ Important: the datasheet documents two lock relays but only one native door-cont
 
 ## HA action
 ```yaml
-action: smplwise_access_control.unlock_door
+action: hikvision_intercom.unlock_door
 target:
   device_id: ...
 data:
@@ -1684,7 +1684,7 @@ Register an administrator-only custom panel.
 
 Suggested route:
 ```text
-/smplwise-access-control
+/hikvision-intercom
 ```
 
 Hebrew title:
@@ -1952,32 +1952,32 @@ Buttons:
 Panel commands:
 
 ```text
-smplwise_access_control/overview
-smplwise_access_control/users/list
-smplwise_access_control/users/get
-smplwise_access_control/users/create
-smplwise_access_control/users/update
-smplwise_access_control/users/delete
-smplwise_access_control/users/set_active
+hikvision_intercom/overview
+hikvision_intercom/users/list
+hikvision_intercom/users/get
+hikvision_intercom/users/create
+hikvision_intercom/users/update
+hikvision_intercom/users/delete
+hikvision_intercom/users/set_active
 
-smplwise_access_control/cards/add
-smplwise_access_control/cards/remove
+hikvision_intercom/cards/add
+hikvision_intercom/cards/remove
 
-smplwise_access_control/stations/list
-smplwise_access_control/stations/get
-smplwise_access_control/stations/test_unlock
-smplwise_access_control/stations/rescan
+hikvision_intercom/stations/list
+hikvision_intercom/stations/get
+hikvision_intercom/stations/test_unlock
+hikvision_intercom/stations/rescan
 
-smplwise_access_control/sync/user
-smplwise_access_control/sync/station
-smplwise_access_control/sync/all
-smplwise_access_control/sync/status
+hikvision_intercom/sync/user
+hikvision_intercom/sync/station
+hikvision_intercom/sync/all
+hikvision_intercom/sync/status
 
-smplwise_access_control/conflicts/list
-smplwise_access_control/conflicts/resolve
+hikvision_intercom/conflicts/list
+hikvision_intercom/conflicts/resolve
 
-smplwise_access_control/events/list
-smplwise_access_control/subscribe
+hikvision_intercom/events/list
+hikvision_intercom/subscribe
 ```
 
 Every mutating WebSocket command:
@@ -2030,17 +2030,17 @@ Never send raw cardNo or PIN unless a one-time admin write operation absolutely 
 Register in `async_setup`, not per-entry.
 
 ```text
-smplwise_access_control.unlock_door
-smplwise_access_control.sync_user
-smplwise_access_control.sync_station
-smplwise_access_control.sync_all
-smplwise_access_control.rescan_station
+hikvision_intercom.unlock_door
+hikvision_intercom.sync_user
+hikvision_intercom.sync_station
+hikvision_intercom.sync_all
+hikvision_intercom.rescan_station
 ```
 
 Optional capability-gated later:
 ```text
-smplwise_access_control.reject_call
-smplwise_access_control.hangup_call
+hikvision_intercom.reject_call
+hikvision_intercom.hangup_call
 ```
 
 Use translated `ServiceValidationError` / `HomeAssistantError`.
@@ -2054,9 +2054,9 @@ Use `homeassistant.helpers.storage.Store`.
 Suggested files:
 
 ```text
-.storage/smplwise_access_control.users
-.storage/smplwise_access_control.sync
-.storage/smplwise_access_control.events
+.storage/hikvision_intercom.users
+.storage/hikvision_intercom.sync
+.storage/hikvision_intercom.events
 ```
 
 Schema version every Store.
@@ -2805,7 +2805,7 @@ Hikvision Add-ons ISAPI notes:
 https://github.com/pergolafabio/Hikvision-Addons/blob/main/doorbell/ISAPI.md
 
 Native HA Hikvision intercom project:
-https://github.com/TimLuist1/smplwise-access-control
+https://github.com/TimLuist1/hikvision-intercom
 
 ---
 

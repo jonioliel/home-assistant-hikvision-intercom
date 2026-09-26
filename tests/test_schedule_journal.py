@@ -9,9 +9,9 @@ import pytest
 from test_schedule_compiler import capabilities, slots
 from test_schedules import draft, holiday
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedule_compiler import compile_schedule
-from custom_components.smplwise_access_control.access.schedule_journal import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedule_compiler import compile_schedule
+from custom_components.hikvision_intercom.access.schedule_journal import (
     CONTEXT,
     ScheduleJournal,
 )
@@ -169,7 +169,7 @@ async def test_revision_checks_noop_confirmation_and_terminal_conflict():
 
 
 async def test_journal_limit_stops_preparation_without_discarding_older_transactions(monkeypatch):
-    from custom_components.smplwise_access_control.access import schedule_journal
+    from custom_components.hikvision_intercom.access import schedule_journal
 
     assert schedule_journal.MAX_TRANSACTIONS >= 255
     monkeypatch.setattr(schedule_journal, "MAX_TRANSACTIONS", 32)

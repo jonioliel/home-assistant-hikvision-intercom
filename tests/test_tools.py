@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from awesomeversion import AwesomeVersion
 
-from custom_components.smplwise_access_control.const import VERSION
-from custom_components.smplwise_access_control.models import CapabilityReport, ProbeRecord
+from custom_components.hikvision_intercom.const import VERSION
+from custom_components.hikvision_intercom.models import CapabilityReport, ProbeRecord
 from tools.prepare_release import release_metadata
 from tools.probe_ds_kv6124 import argument_parser, main, save_report
 
@@ -15,9 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_versions_and_hacs_layout():
-    manifest = json.loads(
-        (ROOT / "custom_components/smplwise_access_control/manifest.json").read_text()
-    )
+    manifest = json.loads((ROOT / "custom_components/hikvision_intercom/manifest.json").read_text())
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     assert manifest["version"] == project["project"]["version"] == VERSION
     release, notes = release_metadata(ROOT)
@@ -25,11 +23,10 @@ def test_versions_and_hacs_layout():
     version = AwesomeVersion(VERSION)
     assert version.valid
     if version.release_candidate:
-        # The domain migration is deliberately an RC until a copied HA instance
-        # proves config entries, registries, stores and HACS survive the upgrade.
+        # Keep the existing domain and HACS layout through this repair release.
         assert VERSION.startswith("2.0.0-rc.")
-        assert manifest["domain"] == "smplwise_access_control"
-        assert "manual domain migration" in notes
+        assert manifest["domain"] == "hikvision_intercom"
+        assert "existing `hikvision_intercom` package" in notes
     assert version > AwesomeVersion("0.36.0-beta.1")
     assert manifest["codeowners"] == ["@jonioliel"]
     assert manifest["documentation"].endswith("/home-assistant-hikvision-intercom")
@@ -42,9 +39,9 @@ def test_versions_and_hacs_layout():
         for p in (ROOT / "custom_components").iterdir()
         if p.is_dir() and p.name != "__pycache__"
     ]
-    assert components == ["smplwise_access_control"]
+    assert components == ["hikvision_intercom"]
     assert (
-        (ROOT / "custom_components/smplwise_access_control/brand/icon.png")
+        (ROOT / "custom_components/hikvision_intercom/brand/icon.png")
         .read_bytes()
         .startswith(b"\x89PNG\r\n\x1a\n")
     )
@@ -78,7 +75,7 @@ def test_report_and_archive_round_trip(tmp_path):
 
 
 def test_release_gate_requires_dedicated_version_notes(tmp_path):
-    integration = tmp_path / "custom_components/smplwise_access_control"
+    integration = tmp_path / "custom_components/hikvision_intercom"
     integration.mkdir(parents=True)
     (integration / "manifest.json").write_text('{"version":"0.1.0-alpha.1"}')
     (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.1.0-alpha.1"\n')

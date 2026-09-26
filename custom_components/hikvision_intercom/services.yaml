@@ -1,7 +1,7 @@
 unlock_door:
   target:
     entity:
-      integration: smplwise_access_control
+      integration: hikvision_intercom
       domain: lock
   fields:
     lock:
@@ -25,7 +25,7 @@ sync_station:
       required: true
       selector:
         config_entry:
-          integration: smplwise_access_control
+          integration: hikvision_intercom
 sync_all:
 rescan_station:
   fields:
@@ -33,4 +33,4 @@ rescan_station:
       required: true
       selector:
         config_entry:
-          integration: smplwise_access_control
+          integration: hikvision_intercom

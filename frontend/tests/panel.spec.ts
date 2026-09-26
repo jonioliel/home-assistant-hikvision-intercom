@@ -11,7 +11,7 @@ test("overview shows HA cameras and only enabled online release buttons", async 
     page.getByRole("button", { name: "Open active lock", exact: true }).nth(5),
   ).toBeDisabled();
   await expect(page.locator("article.station").first()).toHaveClass(/ringing/);
-  await expect(page.locator("smplwise-access-control-camera img").first()).toBeVisible();
+  await expect(page.locator("hikvision-intercom-camera img").first()).toBeVisible();
   expect(
     await page.evaluate(() => window.calls.some((item) => item.type.includes("unlock"))),
   ).toBeFalsy();
@@ -25,11 +25,11 @@ test("Hebrew mobile users are RTL cards without horizontal overflow", async ({ p
   await expect(page.locator(".mobile-users")).toBeVisible();
   await expect(page.locator(".desktop-users")).toBeHidden();
   const overflow = await page
-    .locator("smplwise-access-control-panel")
+    .locator("hikvision-intercom-panel")
     .evaluate((element) => element.shadowRoot.querySelector("main").scrollWidth > 390);
   expect(overflow).toBeFalsy();
   await expect(
-    page.locator("smplwise-access-control-panel").locator("div[dir]").first(),
+    page.locator("hikvision-intercom-panel").locator("div[dir]").first(),
   ).toHaveAttribute("dir", "rtl");
   await page.screenshot({ path: "test-results/users-he-mobile.png", fullPage: true });
 });
@@ -157,7 +157,7 @@ test("reader has no administrative data or subscription", async ({ page }) => {
   await page.goto("/?reader=1");
   await expect(page.getByText("WisKey access has not been granted")).toBeVisible();
   const calls = await page.evaluate(() => window.calls.map((call) => call.type));
-  expect(calls).toEqual(["smplwise_access_control/authorization/session"]);
+  expect(calls).toEqual(["hikvision_intercom/authorization/session"]);
 });
 
 test("empty and dark layouts render without application errors", async ({ page }) => {
@@ -175,15 +175,13 @@ test("ringing and offline state changes update without waiting for a refresh", a
   await page.goto("/");
   await expect(page.locator("article.station")).toHaveCount(9);
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     window.demoData.stations[1].entities.online = "binary_sensor.live_online";
     window.demoData.stations[1].entities.call_status = "sensor.live_call";
-    return panel.hass
-      .callWS({ type: "smplwise_access_control/overview" })
-      .then(() => panel.refresh());
+    return panel.hass.callWS({ type: "hikvision_intercom/overview" }).then(() => panel.refresh());
   });
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.hass = {
       ...window.demoHass,
       states: {
@@ -199,7 +197,7 @@ test("ringing and offline state changes update without waiting for a refresh", a
       .filter({ has: page.getByRole("heading", { name: "Lobby entrance" }) }),
   ).toHaveClass(/ringing/);
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.hass = {
       ...panel.hass,
       states: {
@@ -220,7 +218,7 @@ test("untrusted names render as text", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
     window.demoData.users[0].display_name = '<img src=x onerror="window.attacked=true">';
-    return document.querySelector("smplwise-access-control-panel").refresh();
+    return document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await expect(
@@ -249,16 +247,14 @@ test("live camera rejects a URL outside Home Assistant", async ({ page }) => {
   await page.getByRole("button", { name: "View camera" }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.streamRequested)).toBe(true);
-  await expect(
-    page.getByRole("dialog").locator("smplwise-access-control-camera video"),
-  ).toHaveCount(0);
+  await expect(page.getByRole("dialog").locator("hikvision-intercom-camera video")).toHaveCount(0);
   expect(external).toEqual([]);
 });
 
 test("audit filters render historical records with masked credentials", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const view = page.locator("smplwise-access-control-events");
+  const view = page.locator("hikvision-intercom-events");
   await expect(view.locator("article")).toHaveCount(2);
   await expect(view.getByText("Historical record", { exact: true })).toBeVisible();
   await expect(view.getByText("••••3210", { exact: true })).toBeVisible();
@@ -277,7 +273,7 @@ test("Hebrew audit remains within mobile screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "אירועים", exact: true }).click();
-  const view = page.locator("smplwise-access-control-events");
+  const view = page.locator("hikvision-intercom-events");
   await expect(view.locator("article")).toHaveCount(2);
   expect(await view.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/events-he-mobile.png", fullPage: true });
@@ -415,7 +411,7 @@ test("Hebrew mobile overview preserves unknown access and fits long person names
   expect(await page.evaluate(() => window.attacked)).toBeUndefined();
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/fleet-health-he-mobile.png", fullPage: true });
@@ -440,12 +436,12 @@ test("station inspection shows observed capabilities and sends only the rescan a
   await expect(gate.locator(".lock-mapping")).toHaveText("Physical lock 1 → API 1");
   await expect(gate.getByRole("link", { name: "Configure in Home Assistant" })).toHaveAttribute(
     "href",
-    "/config/integrations/integration/smplwise_access_control",
+    "/config/integrations/integration/hikvision_intercom",
   );
   await gate.getByRole("button", { name: "Rescan access capabilities" }).click();
   await expect(page.getByText("Station inspection complete.", { exact: true })).toBeVisible();
   const commands = await page.evaluate(() => window.calls.map((item) => item.type));
-  expect(commands).toContain("smplwise_access_control/stations/rescan");
+  expect(commands).toContain("hikvision_intercom/stations/rescan");
   expect(commands.some((item) => item.includes("sync/") || item.includes("test_unlock"))).toBe(
     false,
   );
@@ -512,7 +508,7 @@ test("Hebrew mobile inspection shows scan errors and preserves readable layout",
   await expect(page.locator(".capability-details").first()).toContainText("מיפוי המנעול המוגדר");
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: "test-results/station-inspection-he-mobile.png", fullPage: true });
@@ -601,7 +597,7 @@ test("configured validity distinguishes future current expired and permanent in 
       valid_from: "bad-date",
       valid_until: "2026-09-10T14:00:00+03:00",
     });
-    return document.querySelector("smplwise-access-control-panel").refresh();
+    return document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "Users", exact: true }).click();
   const row = (name) => page.getByRole("row").filter({ hasText: name });
@@ -633,7 +629,7 @@ test("validity advances on scheduled refresh even if the overview request fails"
       valid_from: "2026-09-10T09:00:00Z",
       valid_until: "2026-09-10T10:00:20Z",
     });
-    await document.querySelector("smplwise-access-control-panel").refresh();
+    await document.querySelector("hikvision-intercom-panel").refresh();
     const original = window.demoHass.callWS;
     window.demoHass.callWS = async function (message) {
       if (message.type.endsWith("overview")) throw { code: "connection_failed" };
@@ -653,7 +649,7 @@ test("named lock appears in overview camera station and assignments with the sam
   await page.goto("/");
   await page.evaluate(() => {
     window.demoData.stations[0].integrated_locks[0].name = "Garden door";
-    return document.querySelector("smplwise-access-control-panel").refresh();
+    return document.querySelector("hikvision-intercom-panel").refresh();
   });
   await expect(page.getByRole("button", { name: "Open Garden door", exact: true })).toBeVisible();
   await page
@@ -695,7 +691,7 @@ test("Hebrew mobile validity and both save actions fit without overflow", async 
       valid_from: "2026-09-09T10:00:00Z",
       valid_until: "2026-09-10T09:00:00Z",
     });
-    return document.querySelector("smplwise-access-control-panel").refresh();
+    return document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.getByRole("button", { name: "משתמשים", exact: true }).click();
   await expect(page.locator(".mobile-users .validity-summary").first()).toContainText("פג תוקף");
@@ -743,7 +739,7 @@ test("a pending release leaves other doors independently clickable", async ({ pa
       window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
     ),
   ).toEqual([
-    { type: "smplwise_access_control/stations/test_unlock", station_id: "station-0", lock: 1 },
+    { type: "hikvision_intercom/stations/test_unlock", station_id: "station-0", lock: 1 },
   ]);
   await second.click();
   await expect(second).toBeDisabled();
@@ -787,7 +783,7 @@ test("same-door pending state follows the camera dialog and Intercoms view", asy
     cards.nth(1).getByRole("button", { name: "Open active lock", exact: true }),
   ).toBeEnabled();
   await page.evaluate(() =>
-    document.querySelector("smplwise-access-control-panel").unlock(window.demoData.stations[0]),
+    document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[0]),
   );
   expect(
     await page.evaluate(() =>
@@ -817,10 +813,10 @@ test("release failures stay with their station and are never automatically retri
   );
   await expect(cards.nth(1).locator(".release-feedback")).toContainText("Release acknowledged");
   await expect(cards.nth(2).locator(".release-feedback")).toHaveCount(0);
-  await expect(page.locator("smplwise-access-control-panel")).not.toContainText(
+  await expect(page.locator("hikvision-intercom-panel")).not.toContainText(
     "PRIVATE_UNKNOWN_RELEASE_ERROR",
   );
-  await page.evaluate(() => document.querySelector("smplwise-access-control-panel").refresh());
+  await page.evaluate(() => document.querySelector("hikvision-intercom-panel").refresh());
   expect(
     await page.evaluate(() =>
       window.calls.filter((item) => item.type.endsWith("stations/test_unlock")),
@@ -869,7 +865,7 @@ test("HA unlocking state blocks only its own station even without a local reques
 }) => {
   await page.goto("/");
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.hass = {
       ...window.demoHass,
       states: {
@@ -886,7 +882,7 @@ test("HA unlocking state blocks only its own station even without a local reques
     cards.nth(1).getByRole("button", { name: "Open active lock", exact: true }),
   ).toBeEnabled();
   await page.evaluate(() =>
-    document.querySelector("smplwise-access-control-panel").unlock(window.demoData.stations[0]),
+    document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[0]),
   );
   expect(
     await page.evaluate(() =>
@@ -894,7 +890,7 @@ test("HA unlocking state blocks only its own station even without a local reques
     ),
   ).toBe(false);
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.hass = {
       ...panel.hass,
       states: { ...panel.hass.states, "lock.station_0": { state: "locked", attributes: {} } },
@@ -916,7 +912,7 @@ test("late release completion cannot restore state after the panel disconnects",
     .getByRole("button", { name: "Open active lock", exact: true })
     .click();
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.remove();
     document.body.append(panel);
     window.finishRelease("station-0");
@@ -947,7 +943,7 @@ test("Hebrew mobile keeps other release buttons active and shows station feedbac
   await expect(cards.first().locator(".release-feedback")).toContainText("לא התקבל אישור לפתיחה");
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((element) => element.shadowRoot.querySelector("main").scrollWidth <= 390),
   ).toBe(true);
   await cards.first().locator(".release-feedback").scrollIntoViewIfNeeded();
@@ -970,7 +966,7 @@ test("reconnect refreshes after an old overview response and restores its subscr
             resolve({ ...structuredClone(window.demoData), stations: [] })),
       );
     };
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     void panel.refresh();
     panel.remove();
     document.body.append(panel);
@@ -1255,7 +1251,7 @@ test("activity report covers retained matches and export uses applied filters", 
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const events = page.locator("smplwise-access-control-events");
+  const events = page.locator("hikvision-intercom-events");
   await events.getByLabel("Result", { exact: true }).selectOption("denied");
   await events.getByRole("button", { name: "Apply filters", exact: true }).click();
   await events.getByRole("button", { name: "Generate report" }).click();
@@ -1292,7 +1288,7 @@ test("late report export is discarded when filters change", async ({ page }) => 
   });
   let downloads = 0;
   page.on("download", () => downloads++);
-  const events = page.locator("smplwise-access-control-events");
+  const events = page.locator("hikvision-intercom-events");
   await events.getByRole("button", { name: "Export filtered events CSV" }).click();
   await events.getByRole("button", { name: "Apply filters", exact: true }).click();
   await page.evaluate(() => window.finishExport());
@@ -1319,7 +1315,7 @@ test("Hebrew mobile CSV preview and activity reports fit the screen", async ({ p
   await expect(page.locator(".activity-report")).toContainText("260");
   expect(
     await page
-      .locator("smplwise-access-control-panel")
+      .locator("hikvision-intercom-panel")
       .evaluate((el) => el.shadowRoot.querySelector("main").scrollWidth <= 390),
   ).toBeTruthy();
   await page.screenshot({ path: "test-results/report-he-mobile.png", fullPage: true });
@@ -1367,7 +1363,7 @@ test("reader capture requires explicit approval and never receives a full card n
 test("unsupported reader capability disables collection without starting it", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     const call = panel.hass.callWS.bind(panel.hass);
     panel.hass.callWS = (message) =>
       message.type.endsWith("reader_capabilities")
@@ -1387,7 +1383,7 @@ test("unsupported reader capability disables collection without starting it", as
 test("closing a reader capture cancels waiting and ignores late status", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     const call = panel.hass.callWS.bind(panel.hass);
     panel.hass.callWS = (message) =>
       message.type.endsWith("capture_status")
@@ -1415,7 +1411,7 @@ test("closing a reader capture cancels waiting and ignores late status", async (
 test("late capture start after dialog close is cancelled", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     const call = panel.hass.callWS.bind(panel.hass);
     panel.hass.callWS = (message) =>
       message.type.endsWith("capture_start")
@@ -1483,7 +1479,7 @@ test("reader approval with an uncertain response never claims nothing was saved 
   await dialog.getByRole("button", { name: "Start card collection", exact: true }).click();
   await expect(dialog.getByText("•••• 7788", { exact: true })).toBeVisible();
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     const call = panel.hass.callWS.bind(panel.hass);
     panel.hass.callWS = async (message) => {
       const result = await call(message);
@@ -1543,7 +1539,7 @@ test("a lost overview reply cannot block later updates and cannot replace newer 
       }
       return original.call(this, message);
     };
-    void document.querySelector("smplwise-access-control-panel").refresh();
+    void document.querySelector("hikvision-intercom-panel").refresh();
   });
   await page.clock.fastForward(21000);
   await expect(
@@ -1583,11 +1579,11 @@ test("HA disconnect marks an in-flight release uncertain and reconnect refreshes
         listeners.get(name)?.delete(callback);
       },
     };
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await holdReleaseResponses(page);
   await page.evaluate(() => {
-    document.querySelector("smplwise-access-control-panel").hass = { ...window.demoHass };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   const first = page.locator("article.station").first();
   await first.getByRole("button", { name: "Open active lock", exact: true }).click();
@@ -1606,9 +1602,7 @@ test("HA disconnect marks an in-flight release uncertain and reconnect refreshes
   ).toBeDisabled();
   await page.evaluate(async () => {
     // Even a direct handler invocation must not queue a release for reconnect.
-    await document
-      .querySelector("smplwise-access-control-panel")
-      .unlock(window.demoData.stations[1]);
+    await document.querySelector("hikvision-intercom-panel").unlock(window.demoData.stations[1]);
     window.finishRelease("station-0");
     window.demoData.stations[0].name = "Fresh after HA reconnect";
     window.demoHass.connection.connected = true;
@@ -1637,7 +1631,7 @@ test("initial data timeout shows a retry hint and allows loading again", async (
       }
       return original.call(this, message);
     };
-    const panel = document.querySelector("smplwise-access-control-panel");
+    const panel = document.querySelector("hikvision-intercom-panel");
     panel.remove();
     document.body.append(panel);
   });

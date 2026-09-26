@@ -15,11 +15,11 @@ from pathlib import Path
 sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 from test_access_engine import CAP
 
-from custom_components.smplwise_access_control.access.manager import AccessManager
-from custom_components.smplwise_access_control.access.repository import AccessRepository
-from custom_components.smplwise_access_control.client.access import AccessClient
-from custom_components.smplwise_access_control.client.audio import AudioSession
-from custom_components.smplwise_access_control.client.client import (
+from custom_components.hikvision_intercom.access.manager import AccessManager
+from custom_components.hikvision_intercom.access.repository import AccessRepository
+from custom_components.hikvision_intercom.client.access import AccessClient
+from custom_components.hikvision_intercom.client.audio import AudioSession
+from custom_components.hikvision_intercom.client.client import (
     ConnectionSettings,
     HikvisionClient,
     create_session,
@@ -31,7 +31,7 @@ async def exercise(seconds, *, cycle_seconds=5):
     peers = [AudioPeer(i) for i in range(9)]
     clients, http, sessions, readers = [], [], [], []
     report = {
-        "format": "smplwise_access_control.synthetic_audio_soak",
+        "format": "hikvision_intercom.synthetic_audio_soak",
         "physical_acceptance": False,
         "stations": 9,
         "cycles": 0,

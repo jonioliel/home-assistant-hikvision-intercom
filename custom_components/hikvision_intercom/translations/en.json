@@ -346,7 +346,7 @@
     },
     "schedules_storage_corrupt": {
       "title": "Schedule storage could not be loaded",
-      "description": "Schedule drafts are unavailable. The existing file is preserved; restore smplwise_access_control.schedules from a valid backup and restart. Existing user access continues to operate."
+      "description": "Schedule drafts are unavailable. The existing file is preserved; restore hikvision_intercom.schedules from a valid backup and restart. Existing user access continues to operate."
     },
     "schedules_storage_write": {
       "title": "Schedule storage write failed",

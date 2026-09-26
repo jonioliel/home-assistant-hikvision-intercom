@@ -385,7 +385,7 @@ def query(
 
 def export(audit: dict[str, Any], filters: dict[str, Any]) -> dict[str, Any]:
     report = query(audit, filters, exporting=True)
-    report["format"] = "smplwise_access_control.admin_audit"
+    report["format"] = "hikvision_intercom.admin_audit"
     report["schema"] = 1
     report["csv"] = csv_text(
         [

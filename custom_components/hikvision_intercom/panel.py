@@ -15,12 +15,12 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
     path = Path(__file__).parent / "frontend" / "panel.js"
     await hass.http.async_register_static_paths(
         [
-            StaticPathConfig("/smplwise_access_control_static/panel.js", str(path), True),
+            StaticPathConfig("/hikvision_intercom_static/panel.js", str(path), True),
             StaticPathConfig(
-                "/smplwise_access_control_static/Heebo.ttf", str(path.with_name("Heebo.ttf")), True
+                "/hikvision_intercom_static/Heebo.ttf", str(path.with_name("Heebo.ttf")), True
             ),
             StaticPathConfig(
-                "/smplwise_access_control_static/audio-worklet.js",
+                "/hikvision_intercom_static/audio-worklet.js",
                 str(path.with_name("audio-worklet.js")),
                 True,
             ),
@@ -28,11 +28,11 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
     )
     await panel_custom.async_register_panel(
         hass,
-        frontend_url_path="smplwise-access-control",
-        webcomponent_name="smplwise-access-control-panel",
+        frontend_url_path="hikvision-intercom",
+        webcomponent_name="hikvision-intercom-panel",
         sidebar_title="WisKey",
         sidebar_icon="mdi:doorbell-video",
-        module_url=f"/smplwise_access_control_static/panel.js?v={VERSION}",
+        module_url=f"/hikvision_intercom_static/panel.js?v={VERSION}",
         require_admin=False,
         embed_iframe=False,
         trust_external=False,

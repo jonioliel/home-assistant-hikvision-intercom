@@ -62,7 +62,7 @@ export class WiskeyAccessControl extends LitElement {
   }
   private async request<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
     if (!this.hass?.user?.is_admin) throw { code: "unauthorized" };
-    return this.hass.callWS<T>({ type: `smplwise_access_control/${command}`, ...data });
+    return this.hass.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
   }
   private clone(users: Record<string, Policy>) {
     return structuredClone(users);

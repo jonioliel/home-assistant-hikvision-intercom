@@ -68,7 +68,7 @@ def fleet_inventory(
         )
     rows.sort(key=lambda row: (row["name"].casefold(), row["station_ref"]))
     return {
-        "format": "smplwise_access_control.fleet_inventory",
+        "format": "hikvision_intercom.fleet_inventory",
         "generated_at": generated_at,
         "integration_version": integration_version,
         "scope": "cached_inventory_no_device_reads",
@@ -186,7 +186,7 @@ def upgrade_readiness(
         {"id": "sync_queue", "state": "warning" if pending else "passed", "count": pending},
     ]
     return {
-        "format": "smplwise_access_control.upgrade_readiness",
+        "format": "hikvision_intercom.upgrade_readiness",
         "generated_at": generated_at,
         "integration_version": integration_version,
         "scope": "cached_state_no_device_reads",

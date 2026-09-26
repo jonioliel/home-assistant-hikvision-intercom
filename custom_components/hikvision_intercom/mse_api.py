@@ -1,4 +1,4 @@
-"""Authenticated go2rtc RTC signaling bridge. Camera source and credentials remain in HA."""
+"""Admin-only same-origin binary MSE bridge; source URLs stay inside HA."""
 
 from __future__ import annotations
 
@@ -17,25 +17,28 @@ from .const import DOMAIN
 from .media_api import provider, settings
 from .panel_permissions import area_allowed
 
-MAX_MESSAGE = 262144
+CODECS = frozenset(
+    {
+        "avc1.640029",
+        "avc1.64002A",
+        "avc1.640033",
+        "hvc1.1.6.L153.B0",
+        "mp4a.40.2",
+        "mp4a.40.5",
+        "flac",
+        "opus",
+    }
+)
+MAX_MESSAGE = 4 * 1024 * 1024
+MIME = re.compile(
+    r'^video/mp4; codecs="(?:avc1|hvc1|hev1)[A-Za-z0-9.]+'
+    r'(?:, ?(?:mp4a\.[A-Za-z0-9.]+|flac|opus))?"$'
+)
 
 
-def valid_offer(offer: Any) -> bool:
-    """Only viewing is authorized here; microphone transmission has a separate API."""
-    if not isinstance(offer, str) or len(offer) > MAX_MESSAGE or not offer.startswith("v=0"):
-        return False
-    sections = re.split(r"(?m)^m=", offer.replace("\r\n", "\n"))[1:]
-    return bool(sections) and all(
-        part.startswith(("audio ", "video "))
-        and "\na=recvonly\n" in part
-        and not re.search(r"(?m)^a=(sendrecv|sendonly)$", part)
-        for part in sections
-    )
-
-
-class RTCView(HomeAssistantView):
-    url = "/api/smplwise_access_control/rtc/{station_id}"
-    name = "api:smplwise_access_control:rtc"
+class MSEView(HomeAssistantView):
+    url = "/api/hikvision_intercom/mse/{station_id}"
+    name = "api:hikvision_intercom:mse"
     requires_auth = True
 
     def __init__(self, hass: HomeAssistant):
@@ -59,12 +62,12 @@ class RTCView(HomeAssistantView):
         if len(self.active) >= 9:
             raise web.HTTPTooManyRequests()
         policy = settings(self.hass).public()
-        if policy["transport"] != "webrtc" or policy["webrtc_mode"] != "rtc":
+        if policy["transport"] != "webrtc" or policy["webrtc_mode"] != "mse":
             raise web.HTTPConflict()
         revision = policy["revision"]
         # Continuous video, bounded upstream reads and downstream writes detect stalls.
         # Avoid aiohttp heartbeat timers racing with concurrent receive/close.
-        ws = web.WebSocketResponse(max_msg_size=262144)
+        ws = web.WebSocketResponse(max_msg_size=1024)
         self.active.add(ws)
         self.finished.clear()
         tasks: list[asyncio.Task[Any]] = []
@@ -74,10 +77,13 @@ class RTCView(HomeAssistantView):
                 greeting = await ws.receive_json()
             if (
                 not isinstance(greeting, dict)
-                or set(greeting) != {"offer"}
-                or not valid_offer(greeting["offer"])
+                or set(greeting) != {"codecs"}
+                or not isinstance(greeting["codecs"], list)
+                or not greeting["codecs"]
+                or len(greeting["codecs"]) > len(CODECS)
+                or any(not isinstance(c, str) or c not in CODECS for c in greeting["codecs"])
             ):
-                raise AccessError("rtc_protocol_error")
+                raise AccessError("mse_protocol_error")
             session, url = provider(self.hass)
             # go2rtc GetOrPatch accepts an RTSP source without persisting configuration.
             source = runtime.client.settings.rtsp_source()
@@ -86,61 +92,40 @@ class RTCView(HomeAssistantView):
                     url + "/api/ws", params={"src": source}, max_msg_size=MAX_MESSAGE
                 )
             async with upstream:
-                await upstream.send_json({"type": "webrtc/offer", "value": greeting["offer"]})
+                await upstream.send_json({"type": "mse", "value": ",".join(greeting["codecs"])})
 
                 async def forward() -> None:
-                    answered = False
-                    count = 0
+                    negotiated = False
                     while True:
-                        # Signaling can remain silent for the lifetime of an active RTC stream.
-                        async with asyncio.timeout(None if answered else 15):
+                        async with asyncio.timeout(12):
                             message = await upstream.receive()
-                        count += 1
-                        if message.type != WSMsgType.TEXT or count > 256:
-                            raise AccessError("rtc_connection_lost")
-                        value = json.loads(message.data)
-                        if not isinstance(value, dict) or not isinstance(value.get("value"), str):
-                            raise AccessError("rtc_protocol_error")
-                        payload = value["value"]
-                        if value.get("type") == "webrtc/answer" and not answered:
-                            if len(payload) > 262144 or not payload.startswith("v=0"):
-                                raise AccessError("rtc_protocol_error")
-                            answered = True
-                            await ws.send_json({"type": "answer", "answer": payload})
-                        elif value.get("type") == "webrtc/candidate" and len(payload) <= 4096:
-                            await ws.send_json(
-                                {
-                                    "type": "candidate",
-                                    "candidate": {"candidate": payload, "sdpMid": "0"},
-                                }
-                            )
+                        if message.type == WSMsgType.TEXT:
+                            if negotiated or len(message.data) > 1024:
+                                raise AccessError("mse_protocol_error")
+                            value = json.loads(message.data)
+                            mime = value.get("value") if isinstance(value, dict) else None
+                            if not (
+                                isinstance(value, dict)
+                                and value.get("type") == "mse"
+                                and isinstance(mime, str)
+                                and MIME.fullmatch(mime)
+                            ):
+                                raise AccessError("mse_codec_unavailable")
+                            negotiated = True
+                            await ws.send_json({"type": "mse", "value": mime})
+                        elif message.type == WSMsgType.BINARY and negotiated:
+                            if not message.data or len(message.data) > MAX_MESSAGE:
+                                raise AccessError("mse_protocol_error")
+                            # Bound buffering for slow clients.
+                            async with asyncio.timeout(3):
+                                await ws.send_bytes(message.data)
                         else:
-                            raise AccessError("rtc_signaling_failed")
+                            raise AccessError("mse_connection_lost")
 
                 async def watch_client() -> None:
-                    count = 0
-                    while True:
-                        async with asyncio.timeout(35):
-                            message = await ws.receive()
-                        if message.type != WSMsgType.TEXT:
-                            return
-                        value = json.loads(message.data)
-                        if value == {"type": "ping"}:
-                            await ws.send_json({"type": "pong"})
-                            continue
-                        count += 1
-                        if (
-                            count > 100
-                            or not isinstance(value, dict)
-                            or set(value) != {"candidate"}
-                            or not isinstance(value["candidate"], str)
-                            or len(value["candidate"]) > 4096
-                            or not value["candidate"].startswith("candidate:")
-                        ):
-                            raise AccessError("rtc_protocol_error")
-                        await upstream.send_json(
-                            {"type": "webrtc/candidate", "value": value["candidate"]}
-                        )
+                    async for _message in ws:
+                        # No client commands after the codec handshake (including no microphone).
+                        raise AccessError("mse_protocol_error")
 
                 async def watch_owner() -> None:
                     while True:
@@ -171,7 +156,7 @@ class RTCView(HomeAssistantView):
                         if not valid:
                             break
                         await asyncio.sleep(0.5)
-                    raise AccessError("rtc_session_changed")
+                    raise AccessError("mse_session_changed")
 
                 tasks = [
                     asyncio.create_task(forward()),
@@ -185,7 +170,7 @@ class RTCView(HomeAssistantView):
             raise
         except Exception as error:
             # Remote error text can contain RTSP credentials. Only our own codes leave HA.
-            code = error.code if isinstance(error, AccessError) else "rtc_connection_lost"
+            code = error.code if isinstance(error, AccessError) else "mse_connection_lost"
             if ws.prepared and not ws.closed:
                 try:
                     await ws.send_json({"type": "error", "code": code})
@@ -209,8 +194,8 @@ class RTCView(HomeAssistantView):
 
 
 @callback
-def register_rtc(hass: HomeAssistant) -> None:
-    view = RTCView(hass)
-    hass.data[DOMAIN]["rtc_view"] = view
+def register_mse(hass: HomeAssistant) -> None:
+    view = MSEView(hass)
+    hass.data[DOMAIN]["mse_view"] = view
     hass.http.register_view(view)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, view.stop)

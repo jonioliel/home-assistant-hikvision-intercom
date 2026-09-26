@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.smplwise_access_control.access_runtime import get_manager
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.panel_permissions import requirements
-from custom_components.smplwise_access_control.websocket import COMMANDS
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.panel_permissions import requirements
+from custom_components.hikvision_intercom.websocket import COMMANDS
 
 
 def test_every_delegated_command_has_an_explicit_permission_classification():
@@ -48,8 +48,8 @@ async def test_admin_overview_and_panel_registration(hass, loaded_entry, hass_ws
     assert hass.data[DOMAIN]["panel_registered"]
     from homeassistant.components.frontend import DATA_PANELS
 
-    assert hass.data[DATA_PANELS]["smplwise-access-control"].sidebar_title == "WisKey"
-    assert not hass.data[DATA_PANELS]["smplwise-access-control"].require_admin
+    assert hass.data[DATA_PANELS]["hikvision-intercom"].sidebar_title == "WisKey"
+    assert not hass.data[DATA_PANELS]["hikvision-intercom"].require_admin
 
 
 @pytest.mark.parametrize(
@@ -240,7 +240,7 @@ async def test_successful_release_uses_runtime_guard(hass, loaded_entry, hass_ws
 async def test_subscription_is_data_free_and_cleans_up(hass, loaded_entry, hass_ws_client):
     from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-    from custom_components.smplwise_access_control.access_runtime import SIGNAL_ACCESS_CHANGED
+    from custom_components.hikvision_intercom.access_runtime import SIGNAL_ACCESS_CHANGED
 
     client = await hass_ws_client(hass)
     result = await request(client, "subscribe")
@@ -263,7 +263,7 @@ async def test_sync_diagnostics_export_is_admin_only_and_contains_no_record_data
         {"display_name": "PRIVATE PERSON", "pin": "847291", "cards": [{"card_no": "000077779999"}]}
     )
     manager.diagnostics.stage(loaded_entry.entry_id, user["id"], "create_person")
-    from custom_components.smplwise_access_control.exceptions import HikvisionDeviceError
+    from custom_components.hikvision_intercom.exceptions import HikvisionDeviceError
 
     manager.diagnostics.finish(
         loaded_entry.entry_id, user["id"], error=HikvisionDeviceError("SECRET BODY 847291")
@@ -289,13 +289,13 @@ async def test_overview_retains_actual_contact_time_through_failed_polls(
 ):
     from unittest.mock import patch
 
-    from custom_components.smplwise_access_control.client.client import CallState
-    from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
+    from custom_components.hikvision_intercom.client.client import CallState
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
     coordinator = loaded_entry.runtime_data.coordinator
     device_io["call"].return_value = CallState("unknown", "new_state")
     with patch(
-        "custom_components.smplwise_access_control.coordinator.monotonic", side_effect=[10, 10.025]
+        "custom_components.hikvision_intercom.coordinator.monotonic", side_effect=[10, 10.025]
     ):
         await coordinator.async_refresh()
     seen = coordinator.last_seen.isoformat()
@@ -323,8 +323,8 @@ async def test_overview_exposes_only_safe_latest_access_without_triggering_recov
     from datetime import UTC, datetime
     from unittest.mock import patch
 
-    from custom_components.smplwise_access_control.event_manager import get_events
-    from custom_components.smplwise_access_control.events import normalize_event
+    from custom_components.hikvision_intercom.event_manager import get_events
+    from custom_components.hikvision_intercom.events import normalize_event
 
     now = datetime.now(UTC)
     event = normalize_event(
@@ -343,14 +343,12 @@ async def test_overview_exposes_only_safe_latest_access_without_triggering_recov
         selected_api=1,
         historical=True,
     )
-    with patch(
-        "custom_components.smplwise_access_control.event_manager.async_dispatcher_send"
-    ) as send:
+    with patch("custom_components.hikvision_intercom.event_manager.async_dispatcher_send") as send:
         get_events(hass).accept(event)
         client = await hass_ws_client(hass)
         result = await request(client, "overview")
         # Accepting/querying a historical record never emits the live event signal.
-        from custom_components.smplwise_access_control.event_manager import SIGNAL_EVENT
+        from custom_components.hikvision_intercom.event_manager import SIGNAL_EVENT
 
         assert not any(call.args[1] == SIGNAL_EVENT for call in send.call_args_list)
     access = result["result"]["stations"][0]["last_access"]
@@ -431,7 +429,7 @@ async def test_unexpected_inspection_failure_never_reaches_ha_background_logs(
 
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.access.AccessClient.async_inventory",
+        "custom_components.hikvision_intercom.client.access.AccessClient.async_inventory",
         AsyncMock(side_effect=RuntimeError("PRIVATE-INSPECTION-CREDENTIAL")),
     ):
         response = await request(client, "stations/rescan", station_id=loaded_entry.entry_id)
@@ -521,7 +519,7 @@ async def test_configured_lock_name_is_in_admin_projection_only_for_selected_loc
 async def test_release_failure_has_safe_specific_outcome_without_retry(
     hass, loaded_entry, hass_ws_client, device_io, caplog
 ):
-    from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
     device_io["unlock"].side_effect = HikvisionConnectionError("PRIVATE_DEVICE_RELEASE_DETAIL")
     client = await hass_ws_client(hass)
@@ -542,7 +540,7 @@ async def test_parallel_release_targets_are_independent_and_same_target_is_guard
 
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
+    from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
     from .conftest import DATA, PROFILE
 
@@ -556,7 +554,7 @@ async def test_parallel_release_targets_are_independent_and_same_target_is_guard
     )
     second.add_to_hass(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
+        "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
         AsyncMock(
             return_value=(
                 second_profile.unique_id,
@@ -648,12 +646,12 @@ async def test_review_transport_is_private_and_stale_resolution_preserves_user(
     from copy import deepcopy
     from unittest.mock import AsyncMock
 
-    from custom_components.smplwise_access_control.access.normalize import (
+    from custom_components.hikvision_intercom.access.normalize import (
         canonical,
         desired_cards,
         desired_person,
     )
-    from custom_components.smplwise_access_control.client.access import StationInventory
+    from custom_components.hikvision_intercom.client.access import StationInventory
 
     manager = get_manager(hass)
     station_id = loaded_entry.entry_id
@@ -771,7 +769,7 @@ async def test_csv_failed_store_rejects_whole_batch(
 ):
     from unittest.mock import AsyncMock
 
-    from custom_components.smplwise_access_control.access.models import AccessError
+    from custom_components.hikvision_intercom.access.models import AccessError
 
     client = await hass_ws_client(hass)
     raw = "employee_no,display_name\n1001,First\n1002,Second\n"
@@ -794,7 +792,7 @@ async def test_csv_failed_store_rejects_whole_batch(
 async def test_reader_capture_real_ha_transport_keeps_number_private_until_explicit_save(
     hass, loaded_entry, hass_ws_client, device_io, caplog
 ):
-    from custom_components.smplwise_access_control.client.capture import (
+    from custom_components.hikvision_intercom.client.capture import (
         CaptureCapabilities,
         CapturedCard,
     )
@@ -805,11 +803,11 @@ async def test_reader_capture_real_ha_transport_keeps_number_private_until_expli
     client = await hass_ws_client(hass)
     with (
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capabilities",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
             AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
         ),
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capture",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
             AsyncMock(return_value=CapturedCard("000012347788", "TypeA_M1", None)),
         ),
     ):
@@ -839,7 +837,7 @@ async def test_reader_capture_real_ha_transport_keeps_number_private_until_expli
 
 
 async def test_reader_capture_stale_revision_and_strict_fields(hass, loaded_entry, hass_ws_client):
-    from custom_components.smplwise_access_control.client.capture import (
+    from custom_components.hikvision_intercom.client.capture import (
         CaptureCapabilities,
         CapturedCard,
     )
@@ -849,11 +847,11 @@ async def test_reader_capture_stale_revision_and_strict_fields(hass, loaded_entr
     client = await hass_ws_client(hass)
     with (
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capabilities",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
             AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
         ),
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capture",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
             AsyncMock(return_value=CapturedCard("000012347788", None, None)),
         ),
     ):
@@ -888,17 +886,17 @@ async def test_reader_capture_stale_revision_and_strict_fields(hass, loaded_entr
 async def test_reader_capture_cancel_and_unsupported_capabilities_are_safe(
     hass, loaded_entry, hass_ws_client
 ):
-    from custom_components.smplwise_access_control.client.capture import (
+    from custom_components.hikvision_intercom.client.capture import (
         CaptureCapabilities,
         CapturedCard,
     )
-    from custom_components.smplwise_access_control.exceptions import HikvisionUnsupportedError
+    from custom_components.hikvision_intercom.exceptions import HikvisionUnsupportedError
 
     manager = get_manager(hass)
     user = await manager.async_create({"display_name": "Cancelled target"}, sync_now=False)
     client = await hass_ws_client(hass)
     with patch(
-        "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capabilities",
+        "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
         AsyncMock(side_effect=HikvisionUnsupportedError("PRIVATE_DEVICE_MESSAGE")),
     ):
         result = await request(
@@ -907,11 +905,11 @@ async def test_reader_capture_cancel_and_unsupported_capabilities_are_safe(
         assert result["error"]["code"] == "capture_unsupported" and "PRIVATE" not in str(result)
     with (
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capabilities",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
             AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
         ),
         patch(
-            "custom_components.smplwise_access_control.client.capture.CardCaptureClient.async_capture",
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
             AsyncMock(return_value=CapturedCard("000012347788", None, None)),
         ),
     ):
@@ -985,8 +983,8 @@ async def test_notification_storm_coalesces_without_buffering_private_events(has
 
     from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-    from custom_components.smplwise_access_control.access_runtime import SIGNAL_ACCESS_CHANGED
-    from custom_components.smplwise_access_control.websocket import subscribe
+    from custom_components.hikvision_intercom.access_runtime import SIGNAL_ACCESS_CHANGED
+    from custom_components.hikvision_intercom.websocket import subscribe
 
     connection = SimpleNamespace(
         user=SimpleNamespace(is_active=True, is_admin=True),

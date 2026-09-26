@@ -60,7 +60,7 @@ for (const width of [390, 1440]) {
           },
         },
       ];
-      await (document.querySelector("smplwise-access-control-panel") as any).refresh();
+      await (document.querySelector("hikvision-intercom-panel") as any).refresh();
     });
     await page.getByRole("button", { name: "Users", exact: true }).click();
     const container = page.locator(width === 390 ? ".mobile-users" : ".desktop-users");

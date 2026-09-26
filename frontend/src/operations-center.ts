@@ -257,7 +257,7 @@ export class OperationsCenter extends LitElement {
       const page = await boundedRequest<OperationPage>(
         () =>
           this.hass!.callWS({
-            type: "smplwise_access_control/operations/query",
+            type: "hikvision_intercom/operations/query",
             api_contract: 1,
             filters: {
               kind: this._kind,
@@ -293,7 +293,7 @@ export class OperationsCenter extends LitElement {
     this._busy = true;
     try {
       await this.hass.callWS({
-        type: `smplwise_access_control/sync/${mode}`,
+        type: `hikvision_intercom/sync/${mode}`,
         api_contract: 1,
         [mode + "_id"]: mode === "user" ? row.user_ids[0] : row.station_ids[0],
       });

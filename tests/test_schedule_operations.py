@@ -9,9 +9,9 @@ from uuid import uuid4
 import pytest
 from test_schedule_journal import inputs
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedule_operations import ScheduleOperations
-from custom_components.smplwise_access_control.access.schedule_work_queue import ScheduleWorkQueue
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedule_operations import ScheduleOperations
+from custom_components.hikvision_intercom.access.schedule_work_queue import ScheduleWorkQueue
 
 
 def plan(station="station"):

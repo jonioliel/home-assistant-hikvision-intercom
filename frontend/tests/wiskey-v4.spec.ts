@@ -1,15 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const key = "smplwise-access-control:appearance:v1:demo-admin";
+const key = "hikvision-intercom:appearance:v1:demo-admin";
 
 async function start(page: Page, theme: "wiskey-light" | "wiskey-dark", width: number) {
   await page.setViewportSize({ width, height: 900 });
   await page.addInitScript(({ key, theme }) => localStorage.setItem(key, theme), { key, theme });
   await page.goto("/?lang=he");
-  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
-    "data-appearance",
-    theme,
-  );
+  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute("data-appearance", theme);
 }
 
 async function noOverflow(page: Page) {
@@ -38,14 +35,14 @@ for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
       const call = page.locator(".camera-dialog");
       await expect(call).toBeVisible();
       await expect(call.locator(".wk4-camera-layout")).toBeVisible();
-      await expect(call.locator("smplwise-access-control-audio-controls")).toHaveCount(1);
+      await expect(call.locator("hikvision-intercom-audio-controls")).toHaveCount(1);
       await expect(call.locator("wiskey-intercom-tts")).toHaveCount(1);
       await expect(call.locator(".camera-door-actions button").first()).toBeVisible();
       await page.screenshot({
         path: `test-results/wiskey-${theme}-${width}-call.png`,
         fullPage: true,
       });
-      const camera = call.locator("smplwise-access-control-camera");
+      const camera = call.locator("hikvision-intercom-camera");
       expect(
         await camera.evaluate((el) =>
           getComputedStyle(el).getPropertyValue("--camera-object-fit").trim(),
@@ -100,7 +97,7 @@ test("V4 is opt-in alongside all four earlier choices", async ({ page }) => {
   }
   await picker.getByRole("radio", { name: "WisKey 04 · כהה" }).check();
   await picker.getByRole("button", { name: "החלת העיצוב" }).click();
-  await expect(page.locator("smplwise-access-control-panel")).toHaveAttribute(
+  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
     "data-appearance",
     "wiskey-dark",
   );
@@ -126,8 +123,8 @@ for (const width of [1440, 390]) {
     await expect(station.locator("hikvision-station-technical")).toBeVisible();
     await noOverflow(page);
     await page.locator(".nav").getByRole("button", { name: "פעילות", exact: true }).click();
-    await expect(page.locator("smplwise-access-control-events")).toBeVisible();
-    const events = page.locator("smplwise-access-control-events");
+    await expect(page.locator("hikvision-intercom-events")).toBeVisible();
+    const events = page.locator("hikvision-intercom-events");
     await expect(events).toHaveAttribute("v4", "");
     await expect(events.locator(".wk4-activity-table .audit-row")).toHaveCount(2);
     await expect(events.locator(".event-filters")).not.toHaveAttribute("open", "");
@@ -150,7 +147,7 @@ for (const count of [4, 6, 9, 12]) {
   test(`V4 fits ${count} stations within a desktop screen`, async ({ page }) => {
     await start(page, "wiskey-light", 1440);
     await page.evaluate((n) => {
-      const panel = document.querySelector("smplwise-access-control-panel") as any;
+      const panel = document.querySelector("hikvision-intercom-panel") as any;
       const source = panel._data.stations;
       panel._data = {
         ...panel._data,
@@ -182,7 +179,7 @@ for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
     });
 
     async function expectBackgroundCoverage() {
-      const coverage = await page.locator("smplwise-access-control-panel").evaluate((host) => {
+      const coverage = await page.locator("hikvision-intercom-panel").evaluate((host) => {
         const shell = host.shadowRoot?.querySelector(".app-shell");
         if (!shell) throw new Error("WisKey shell missing");
         return {

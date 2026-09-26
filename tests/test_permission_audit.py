@@ -8,9 +8,9 @@ from test_access_client import PERSON
 from test_access_engine import create_user  # noqa: F401
 from test_access_engine import setup as setup
 
-from custom_components.smplwise_access_control.access.manager import AccessManager
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.permission_audit import inspect_permissions
+from custom_components.hikvision_intercom.access.manager import AccessManager
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.permission_audit import inspect_permissions
 
 
 @pytest.fixture

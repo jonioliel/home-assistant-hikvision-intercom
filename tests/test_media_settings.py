@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.media_settings import (
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.media_settings import (
     DEFAULTS,
     MediaSettings,
     normalize,

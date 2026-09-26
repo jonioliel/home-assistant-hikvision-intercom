@@ -22,7 +22,7 @@ test("camera exposes state-gated commands and requires refresh after uncertain d
     };
   });
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await expect(controls.getByRole("button", { name: "Hang up signal" })).toHaveCount(0);
   await controls.getByRole("button", { name: "Reject signal" }).click();
   await expect(controls).toContainText("Command delivery is uncertain");
@@ -91,7 +91,7 @@ test("losing administrator status during a call read does not reveal late result
   });
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
   await page.evaluate(() => {
-    document.querySelector("smplwise-access-control-panel").hass = {
+    document.querySelector("hikvision-intercom-panel").hass = {
       ...window.demoHass,
       user: { is_admin: false },
     };
@@ -105,7 +105,7 @@ test("switching station during a slow call read cannot leave the next station lo
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   await page.evaluate(() => {
     const base = window.demoHass.callWS.bind(window.demoHass);
@@ -119,7 +119,7 @@ test("switching station during a slow call read cannot leave the next station lo
     };
   });
   await page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }).click();
-  await page.locator("smplwise-access-control-panel").evaluate((node: any) => {
+  await page.locator("hikvision-intercom-panel").evaluate((node: any) => {
     node._cameraStation = structuredClone(window.demoData.stations[1]);
     node.requestUpdate();
   });
@@ -140,7 +140,7 @@ test("switching station during a slow call read cannot leave the next station lo
 test("a lost call read becomes retryable and cannot overwrite a newer result", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   await page.clock.install();
   await page.evaluate(() => {
@@ -170,7 +170,7 @@ test("a lost call signal releases the station controls with an uncertain result 
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   await page.clock.install();
   await page.evaluate(() => {
@@ -232,7 +232,7 @@ test("HA disconnect invalidates a pending signal and reconnect requires a fresh 
     };
   });
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await controls.getByRole("button", { name: "Answer signal" }).click();
   await page.evaluate(() => {
     window.demoHass.connection.connected = false;
@@ -266,7 +266,7 @@ test("a call completed in another view refreshes the overview's stale command st
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  const controls = page.getByRole("dialog").locator("smplwise-access-control-call-controls");
+  const controls = page.getByRole("dialog").locator("hikvision-intercom-call-controls");
   await expect(controls.getByRole("button", { name: "Answer signal" })).toBeEnabled();
   await page.evaluate(() => {
     const base = window.demoHass.callWS.bind(window.demoHass);

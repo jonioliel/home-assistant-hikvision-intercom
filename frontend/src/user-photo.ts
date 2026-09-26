@@ -134,7 +134,7 @@ export class UserPhoto extends LitElement {
   private async load(key: string) {
     try {
       const result = await this.requests.run<{ photo: string | null }>(
-        { type: "smplwise_access_control/users/photo_get", user_id: this.userId },
+        { type: "hikvision_intercom/users/photo_get", user_id: this.userId },
         10000,
       );
       if (

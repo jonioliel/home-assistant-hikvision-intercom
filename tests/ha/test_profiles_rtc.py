@@ -8,8 +8,8 @@ import pytest
 from aiohttp import web
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.media_settings import DEFAULTS
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.media_settings import DEFAULTS
 
 from .test_websocket import request
 

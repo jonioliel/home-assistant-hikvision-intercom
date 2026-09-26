@@ -136,7 +136,7 @@ export class StationTechnical extends LitElement {
     const identity = this.identity;
     try {
       const result = await this.requests.run<Report>(
-        { type: "smplwise_access_control/stations/technical_get", station_id: this.station?.id },
+        { type: "hikvision_intercom/stations/technical_get", station_id: this.station?.id },
         80000,
       );
       if (identity !== this.identity) return;
@@ -165,7 +165,7 @@ export class StationTechnical extends LitElement {
     try {
       const updated = await this.requests.run<Door>(
         {
-          type: "smplwise_access_control/stations/technical_update",
+          type: "hikvision_intercom/stations/technical_update",
           station_id: this.station?.id,
           door: door.door,
           expected: door.values,
@@ -200,7 +200,7 @@ export class StationTechnical extends LitElement {
     try {
       await this.requests.run(
         {
-          type: "smplwise_access_control/stations/technical_relays",
+          type: "hikvision_intercom/stations/technical_relays",
           station_id: this.station?.id,
           expected: this.report.relay_selection,
           locks: this.relays,

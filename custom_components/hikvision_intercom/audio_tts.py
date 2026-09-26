@@ -157,7 +157,7 @@ class TtsPlayback:
         ):
             self.connection.send_event(
                 self.subscription,
-                {"format": "smplwise_access_control.tts", **payload},
+                {"format": "hikvision_intercom.tts", **payload},
             )
 
     @callback
@@ -245,7 +245,7 @@ class TtsPlayback:
                     self.connection.send_event(
                         self.subscription,
                         {
-                            "format": "smplwise_access_control.tts",
+                            "format": "hikvision_intercom.tts",
                             "state": "closed",
                             "reason": outcome,
                         },

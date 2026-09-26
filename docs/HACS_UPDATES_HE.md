@@ -1,12 +1,11 @@
 # עדכוני WisKey ב־Home Assistant
 
-WisKey מתפרסמת כ־GitHub Release עם תג גרסה סמנטי לאחר שכל בדיקות השחרור עברו. HACS מספקת ישות עדכון למאגר ומציגה גרסאות חדשות במסך **הגדרות → עדכונים**. אין צורך ברענון ידני לשם זיהוי תקופתי. [תיעוד העדכונים של HACS](https://hacs.xyz/docs/use/update/).
+WisKey מתפרסמת כ־GitHub Release עם תג גרסה סמנטי לאחר בדיקות השחרור. HACS מציגה גרסאות חדשות בישות העדכון של המאגר; זיהוי תקופתי אינו דורש רענון ידני. [תיעוד HACS](https://www.hacs.xyz/docs/use/repositories/dashboard/).
 
-> **חריג מעבר מזהה בגרסה `v2.0.0-rc.1`:** התקנה קיימת של `hikvision_intercom` אינה יכולה לעדכן לגרסה זו דרך כפתור Update/Install ב־HACS. HACS עדיין מחפש `custom_components/hikvision_intercom/manifest.json`, בעוד שבמהדורה החדשה התיקייה נקראת `smplwise_access_control`. הודעת `No manifest.json file found` במקרה הזה אינה בעיית רענון מידע או גרסה חסרה. אין לחזור על העדכון; פעל לפי [מסלול המעבר והרישום מחדש ב־HACS](HACS_DOMAIN_MIGRATION_HE.md) לאחר תרגול על עותק וגיבוי מלא. ההוראות להלן חלות על עדכונים רגילים **בתוך אותו domain**.
-
+**למי שנתקל בשגיאת RC1:** גרסת `v2.0.0-rc.1` שינתה את תיקיית האינטגרציה ו־HACS התקינה עדיין חיפשה את `custom_components/hikvision_intercom/manifest.json`. גרסת `v2.0.0-rc.2` מחזירה את התיקייה וה־domain הישן. לאחר פרסומה בחר אותה ב־HACS והפעל מחדש את HA. אין למחוק את האינטגרציה מתוך ״מכשירים ושירותים״, ואין צורך להעביר קובצי `.storage`. [הוראות התאוששות](HACS_DOMAIN_MIGRATION_HE.md).
 ## הגדרה חד־פעמית לגרסאות הנוכחיות
 
-1. ודא שהמאגר `jonioliel/home-assistant-hikvision-intercom` מותקן ב־HACS. לאחר מעבר ה־domain והרישום מחדש, שם האינטגרציה ב־HACS הוא **smplwise access control**. אם ההתקנה עדיין תחת `hikvision_intercom`, עצור כאן ופעל לפי מדריך המעבר המקושר למעלה.
+1. ודא שהמאגר `jonioliel/home-assistant-hikvision-intercom` מותקן ב־HACS. שם האינטגרציה המוצג הוא **smplwise access control**, והמזהה הטכני נשאר `hikvision_intercom`.
 2. עבור אל **הגדרות → מכשירים ושירותים → HACS**, ופתח את מכשיר המאגר. אתר את ישות **Pre-release / גרסאות קדם**. אם היא מושבתת, הפעל אותה בהגדרות הישות, ואז העבר את המתג למצב פעיל.
 3. ודא שגם ישות ה־**Update / עדכון** של אותו מאגר מופעלת. אם בחרת בעבר לדלג על הגרסה, בטל את הדילוג במסך העדכון.
 4. השאר את HACS פועלת. לאחר בדיקת המאגר הבאה, גרסה חדשה תופיע ב־HA ותוכל להתקין אותה משם. לאחר ההתקנה יש לאתחל את Home Assistant כדי לטעון את הקוד החדש.

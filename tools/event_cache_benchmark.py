@@ -8,7 +8,7 @@ import time
 import tracemalloc
 from datetime import UTC, datetime
 
-from custom_components.smplwise_access_control.events import EventCache, normalize_event
+from custom_components.hikvision_intercom.events import EventCache, normalize_event
 
 
 def benchmark(events: int = 12000) -> dict[str, int | float]:

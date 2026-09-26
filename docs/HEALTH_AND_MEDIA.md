@@ -38,7 +38,7 @@ firmware advertises all three commands, but physical call acceptance remains pen
 
 Field results are operator attestations. Each station starts unverified. Select a result
 and save it after a witnessed test; changing a selection alone does not save. Reports
-persist in the private HA `.storage/smplwise_access_control.acceptance` store with an atomic
+persist in the private HA `.storage/hikvision_intercom.acceptance` store with an atomic
 save, revision check and timestamp. They do not send commands or store free-text secrets.
 An unavailable/corrupt result store does not replace prior results with empty success.
 Export is per station; the operator chooses the filename/location and retains its context.

@@ -7,7 +7,7 @@ for (const width of [390, 1280]) {
     await page.goto("/");
     await navigate(page, "Sync");
     await page.evaluate(() => {
-      const p = document.querySelector("smplwise-access-control-panel") as any;
+      const p = document.querySelector("hikvision-intercom-panel") as any;
       const data = structuredClone(p._data);
       for (const station of data.stations) station.last_error = null;
       for (const user of data.users)

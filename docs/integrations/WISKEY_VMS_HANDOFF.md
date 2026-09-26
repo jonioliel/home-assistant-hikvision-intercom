@@ -1,6 +1,6 @@
 # smplwise access control (WisKey) ↔ VMS integration handoff
 
-**Code reviewed:** smplwise access control 2.0.0-rc.1 (26 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
+**Code reviewed:** smplwise access control 2.0.0-rc.2 (26 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
 
 ## Instructions for Claude implementing the VMS client
 
@@ -14,7 +14,7 @@ Build a **server-side HA WebSocket adapter** for this existing integration. Do n
 6. Keep camera viewing and talkback as separate integrations. HA camera entities are the first video route; the panel's MSE/RTC and audio bridges are stateful implementation endpoints, not general RTSP URLs.
 7. Test with a non-admin account: allowed read, denied write, one controlled action on a test station, stale revision, disconnect/reconnect, token revocation, and a real event. Never use production PIN/card data in test fixtures.
 
-**Namespace migration:** version 2.0.0-rc.1 uses `smplwise_access_control/` and `/api/smplwise_access_control/...`. Existing VMS calls to `hikvision_intercom/` must be updated after the HA domain migration. During migration, do not run old and new writers against the same stations. The [operator migration guide](../DOMAIN_RENAME_MIGRATION_HE.md) covers HA config entries and rollback; this document covers the VMS client.
+**Namespace compatibility:** version 2.0.0-rc.2 retains `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
 
 ## Architecture decision
 
@@ -46,15 +46,15 @@ Connection flow (the token is a placeholder, never commit it):
 // server → auth_ok
 {"type":"auth_ok","ha_version":"..."}
 // then client → server, using a fresh integer id for each command
-{"id":1,"type":"smplwise_access_control/authorization/session"}
-{"id":2,"type":"smplwise_access_control/overview"}
+{"id":1,"type":"hikvision_intercom/authorization/session"}
+{"id":2,"type":"hikvision_intercom/overview"}
 ```
 
 HA command replies have the standard envelope `{"id":2,"type":"result","success":true,"result":{...}}`. Failed commands use `success:false` and an `error.code`; never treat a WebSocket acknowledgement as proof that a physical action happened. `overview.result.api` contains the current `version`, `min_client`, `capabilities`, and **the commands authorized for the connected HA user**. The panel contract is currently version `1`; include `"api_contract":1` on write commands. The [source-derived catalog of all 134 panel commands and their required top-level fields](WISKEY_VMS_PANEL_COMMANDS.json) accompanies this document. Nested object schemas, allowed enum values, workflow tokens, and responses still require the WisKey source (`websocket.py`, `audio_api.py`, `audio_tts.py`); the catalog is not a standalone OpenAPI specification.
 
 ## Existing operations the VMS can call now
 
-All messages below use the same authenticated HA WebSocket. The `smplwise_access_control/` prefix is shown in full once; append the paths in the table. An omitted field is different from an empty field: the current panel schemas require the fields listed in `COMMANDS` even when a value is empty.
+All messages below use the same authenticated HA WebSocket. The `hikvision_intercom/` prefix is shown in full once; append the paths in the table. An omitted field is different from an empty field: the current panel schemas require the fields listed in `COMMANDS` even when a value is empty.
 
 | VMS function | Current command paths | Notes |
 | --- | --- | --- |
@@ -77,9 +77,9 @@ All messages below use the same authenticated HA WebSocket. The `smplwise_access
 Examples of read-only requests:
 
 ```json
-{"id":3,"type":"smplwise_access_control/users/query","query":"","filters":{},"offset":0,"limit":100,"snapshot":""}
-{"id":4,"type":"smplwise_access_control/events/list","filters":{"limit":100}}
-{"id":5,"type":"smplwise_access_control/subscribe"}
+{"id":3,"type":"hikvision_intercom/users/query","query":"","filters":{},"offset":0,"limit":100,"snapshot":""}
+{"id":4,"type":"hikvision_intercom/events/list","filters":{"limit":100}}
+{"id":5,"type":"hikvision_intercom/subscribe"}
 ```
 
 `users/query` returns `records`, `total`, `offset`, `limit`, `next_offset`, `snapshot`, and `stale`. Continue with `next_offset`, passing the previous `snapshot`; restart pagination if `stale` is true. Event filters support `station_id`, `person`, `result` (`granted|denied|unknown`), `authentication` (`card|pin|unknown`), `door` (`1|2`), ISO-8601 `start`/`end`, `limit` (1–200), and `before` (the `next` cursor from the previous page). `events/list` returns `records`, `next`, `retention_days`, `capacity`, `storage_failed`, and per-station collection status. Save the last seen event ID in the VMS and deduplicate on reconnect; the cursor may expire as the bounded WisKey store prunes old events.
@@ -91,11 +91,11 @@ For `subscribe`, retain its command ID. On `{"type":"event","id":5,"event":{"kin
 After HA authentication, these requests show the command envelope. All IDs are examples; the VMS must allocate unique IDs per connection. The account's grants may still reject a command listed here.
 
 ```json
-{"id":10,"type":"smplwise_access_control/authorization/session"}
-{"id":11,"type":"smplwise_access_control/overview"}
-{"id":12,"type":"smplwise_access_control/users/get","user_id":"<opaque-user-id>"}
-{"id":13,"type":"smplwise_access_control/users/update","api_contract":1,"user_id":"<opaque-user-id>","revision":4,"data":{"phone":"050-123-4567"}}
-{"id":14,"type":"smplwise_access_control/stations/test_unlock","api_contract":1,"station_id":"<overview.stations[].id>","lock":1}
+{"id":10,"type":"hikvision_intercom/authorization/session"}
+{"id":11,"type":"hikvision_intercom/overview"}
+{"id":12,"type":"hikvision_intercom/users/get","user_id":"<opaque-user-id>"}
+{"id":13,"type":"hikvision_intercom/users/update","api_contract":1,"user_id":"<opaque-user-id>","revision":4,"data":{"phone":"050-123-4567"}}
+{"id":14,"type":"hikvision_intercom/stations/test_unlock","api_contract":1,"station_id":"<overview.stations[].id>","lock":1}
 ```
 
 The user revision in request 13 is illustrative; fetch the actual value from `users/get`. The `lock` value is the **physical index** from `station.integrated_locks[]`, not an array position. `stations/test_unlock` returns after the configured release attempt; its acknowledgement does not prove that the door moved. The VMS should show station online/sync state and retain WisKey audit attribution to the dedicated HA user.
@@ -112,7 +112,7 @@ For two-way speech, `audio/start` returns a subscription and later emits `ready`
 
 ## Video integration boundary
 
-WisKey registers HA `camera` entities and exposes their entity IDs in `overview.result.stations[].entities.camera`. The camera supports snapshots and, where the station provides it, HA's stream pipeline. Use the **HA camera API** and authenticated, proxied HLS for the first VMS viewer. Do not place intercom RTSP credentials in the VMS browser. WisKey's current `/api/smplwise_access_control/mse/{station_id}` and `/api/smplwise_access_control/rtc/{station_id}` WebSocket bridges are panel-specific, require authentication, and are tied to the global selected playback mode; they are not yet a stable third-party streaming contract. There is an independent microphone/talkback path through HA/ISAPI. A VMS that needs synchronized video, listen, talk, call-answer/hangup, and recording should get a dedicated media-session adapter with explicit lifecycle, codec negotiation, timeouts, and authorization.
+WisKey registers HA `camera` entities and exposes their entity IDs in `overview.result.stations[].entities.camera`. The camera supports snapshots and, where the station provides it, HA's stream pipeline. Use the **HA camera API** and authenticated, proxied HLS for the first VMS viewer. Do not place intercom RTSP credentials in the VMS browser. WisKey's current `/api/hikvision_intercom/mse/{station_id}` and `/api/hikvision_intercom/rtc/{station_id}` WebSocket bridges are panel-specific, require authentication, and are tied to the global selected playback mode; they are not yet a stable third-party streaming contract. There is an independent microphone/talkback path through HA/ISAPI. A VMS that needs synchronized video, listen, talk, call-answer/hangup, and recording should get a dedicated media-session adapter with explicit lifecycle, codec negotiation, timeouts, and authorization.
 
 ## Storage: authoritative data and limits
 
@@ -120,9 +120,9 @@ WisKey does **not** use a separate SQL database for its user and event records. 
 
 | Data | HA configuration path | Source |
 | --- | --- | --- |
-| Managed users, groups/profile definitions, phone numbers, photos, PIN/card secrets, assignments, sync metadata and admin audit | `.storage/smplwise_access_control.users` | `storage.py`, `access_runtime.py`, `access/repository.py` |
-| WisKey collected access/ring event cache and collection cursors | `.storage/smplwise_access_control.events` | `event_manager.py`, `events.py` |
-| Other settings, schedules, permissions and operations | separate `.storage/smplwise_access_control.*` files | `access_runtime.py` |
+| Managed users, groups/profile definitions, phone numbers, photos, PIN/card secrets, assignments, sync metadata and admin audit | `.storage/hikvision_intercom.users` | `storage.py`, `access_runtime.py`, `access/repository.py` |
+| WisKey collected access/ring event cache and collection cursors | `.storage/hikvision_intercom.events` | `event_manager.py`, `events.py` |
+| Other settings, schedules, permissions and operations | separate `.storage/hikvision_intercom.*` files | `access_runtime.py` |
 
 The event cache is **maximum 5,000 records or 30 days**, whichever is reached first. It is not an unlimited historical archive. User photos currently live inside the private user record, with a repository-wide photo-size cap. Stored PINs and full card numbers are private and are not returned by public user reads. The private Store uses restricted file permissions and atomic writes, not field-level encryption; protect HA backups and filesystem access accordingly.
 
@@ -140,10 +140,10 @@ Until then, the current authenticated WebSocket commands are suitable for a cont
 
 ## Source references
 
-- WisKey command registry and dispatch: `custom_components/smplwise_access_control/websocket.py`
-- WisKey panel contract: `custom_components/smplwise_access_control/api_contract.py`
-- WisKey authorization: `custom_components/smplwise_access_control/panel_permissions.py`
-- WisKey storage and retention: `custom_components/smplwise_access_control/storage.py`, `event_manager.py`, `events.py`
+- WisKey command registry and dispatch: `custom_components/hikvision_intercom/websocket.py`
+- WisKey panel contract: `custom_components/hikvision_intercom/api_contract.py`
+- WisKey authorization: `custom_components/hikvision_intercom/panel_permissions.py`
+- WisKey storage and retention: `custom_components/hikvision_intercom/storage.py`, `event_manager.py`, `events.py`
 - WisKey cameras and media: `camera.py`, `mse_api.py`, `rtc_api.py`, `audio_api.py`, `audio_tts.py`
 - [Home Assistant WebSocket API](https://developers.home-assistant.io/docs/api/websocket/)
 - [Home Assistant integration architecture](https://developers.home-assistant.io/docs/architecture_components/)

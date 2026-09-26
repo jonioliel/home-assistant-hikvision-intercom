@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 from test_profiles import PHOTO
 
-from custom_components.smplwise_access_control.access.repository import AccessRepository
+from custom_components.hikvision_intercom.access.repository import AccessRepository
 
 
 async def test_event_portrait_proven_owner_and_no_historic_guess():

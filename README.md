@@ -1,9 +1,8 @@
 # smplwise access control — WisKey interface for Home Assistant
 
-> **2.0.0-rc.1 changes the Home Assistant integration domain** from `hikvision_intercom` to `smplwise_access_control`. An existing HACS installation still looks for `custom_components/hikvision_intercom/manifest.json` and cannot download this version as an update. Do not retry an in-place HACS update. The [HACS recovery and migration procedure](docs/HACS_DOMAIN_MIGRATION_HE.md) explains how to rehearse the offline migration on a full HA configuration copy, then re-register the repository under the new domain. Do not install the release candidate over a live HA system until you have a verified full backup and a successful rehearsal. The VMS and automations must use the new service/WebSocket namespace after migration.
+**Corrective release [v2.0.0-rc.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.2):** the visible integration name is smplwise access control, while the technical Home Assistant domain, HACS package path, panel route, API namespace and private storage keys remain `hikvision_intercom`. Existing installations can update through HACS without deleting their configuration entries or migrating user data. Restart Home Assistant after installation. [HACS recovery instructions](docs/HACS_DOMAIN_MIGRATION_HE.md).
 
-Last stable release on the old domain: **[1.11.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v1.11.1)**. The `2.0.0-rc.1` migration release candidate is intended for a rehearsed upgrade. [Migration checklist](docs/manual-tests/SMPLWISE_DOMAIN_MIGRATION_TESTS_HE.html) and [VMS handoff](docs/integrations/WISKEY_VMS_HANDOFF.md).
-
+Do not select v2.0.0-rc.1 for an existing installation: that release renamed the package directory, so HACS reports a missing `custom_components/hikvision_intercom/manifest.json`. The corrective release restores the compatible package and retains WisKey's existing features. [VMS handoff](docs/integrations/WISKEY_VMS_HANDOFF.md) uses the retained API namespace.
 Product scope: **1–X intercoms**. Nine is neither a product target nor a release prerequisite. [Owner scope update and current acceptance](docs/SCALABLE_SCOPE_HE.md).
 Home Assistant access-control integration, distributed through HACS. The current device adapter supports the tested Hikvision DS-KV6124-E1 stations; other vendors, including Akuvox, require separate adapters and capability validation.
 The [branding and future-vendor compatibility note](docs/BRAND_AND_VENDOR_COMPATIBILITY_HE.md) explains which technical identifiers are retained.
@@ -108,7 +107,7 @@ or earlier requires restoring a matching backup.
 - A supervised mapping wizard: explicitly send a test release, then confirm that the intended
   lock released and returned. No lock is enabled by capability discovery alone.
 - Momentary release through the lock entity and the administrator-only
-  `smplwise_access_control.unlock_door` action. Unselected locks are rejected before network I/O.
+  `hikvision_intercom.unlock_door` action. Unselected locks are rejected before network I/O.
 - Shared polling with active/idle intervals, offline backoff and connection cleanup.
 - Diagnostics that exclude host addresses, credentials, serials and raw device responses.
 
@@ -220,7 +219,7 @@ Open **Sync** to see the translated reason below each failed assignment. After r
 Station/user references shown in the matrix match the pseudonyms in the report. The report
 excludes names, addresses, employee IDs, PINs, card numbers and raw ISAPI payloads.
 Home Assistant entry diagnostics include the same station-specific trace. Debug logging for
-`custom_components.smplwise_access_control.access.diagnostics` adds individual stages; failed stages
+`custom_components.hikvision_intercom.access.diagnostics` adds individual stages; failed stages
 also produce a warning, with repeated identical failures throttled for five minutes.
 
 A permanent user uses `Valid.enable=false`; the auxiliary dates do not impose an expiry.

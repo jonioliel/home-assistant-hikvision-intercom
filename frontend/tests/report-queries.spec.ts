@@ -16,7 +16,7 @@ async function prepare(page: import("@playwright/test").Page) {
         window.calls.push(message);
         const report = await original({
           ...message,
-          type: "smplwise_access_control/events/report",
+          type: "hikvision_intercom/events/report",
         });
         return {
           ...report,
@@ -49,7 +49,7 @@ test("saved report queries preserve applied membership filters and reject remove
   page,
 }) => {
   await prepare(page);
-  const events = page.locator("smplwise-access-control-events"),
+  const events = page.locator("hikvision-intercom-events"),
     saved = events.locator("wiskey-saved-reports");
   await events.getByLabel("Current group", { exact: true }).selectOption("staff");
   await events.getByLabel("Department · Current exact value").fill("0007");
@@ -90,7 +90,7 @@ test("saved report queries preserve applied membership filters and reject remove
   await reopened.getByRole("combobox").selectOption({ label: "Staff 0007" });
   await reopened.getByRole("button", { name: "Apply saved query" }).click();
   await expect(
-    page.locator("smplwise-access-control-events").getByLabel("Department · Current exact value"),
+    page.locator("hikvision-intercom-events").getByLabel("Department · Current exact value"),
   ).toHaveValue("0007");
 });
 
@@ -100,7 +100,7 @@ for (const width of [360, 1440]) {
   }) => {
     await page.setViewportSize({ width, height: 960 });
     await prepare(page);
-    const events = page.locator("smplwise-access-control-events");
+    const events = page.locator("hikvision-intercom-events");
     if (width === 360) await events.locator(".event-filters summary").click();
     await events.getByLabel("Current group", { exact: true }).selectOption("staff");
     await events.getByRole("button", { name: "Apply filters", exact: true }).click();
@@ -147,7 +147,7 @@ test("late full print response cannot restore a report after filters are reset",
       return base(message);
     };
   });
-  const events = page.locator("smplwise-access-control-events");
+  const events = page.locator("hikvision-intercom-events");
   await events.getByRole("button", { name: "Prepare full print report" }).click();
   await expect.poll(() => page.evaluate(() => typeof (window as any).finishPrint)).toBe("function");
   await events.getByRole("button", { name: "Clear search and filters" }).click();

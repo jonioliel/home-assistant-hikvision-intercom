@@ -28,7 +28,7 @@ async def inspect_history(
         client._session, client.settings, expected_identity=client._expected_identity
     )
     report: dict[str, Any] = {
-        "format": "smplwise_access_control.history_inspection",
+        "format": "hikvision_intercom.history_inspection",
         "schema": 1,
         "start": start.isoformat(),
         "end": end.isoformat(),

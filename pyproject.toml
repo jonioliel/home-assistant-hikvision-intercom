@@ -3,8 +3,8 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "home-assistant-smplwise-access-control"
-version = "2.0.0-rc.1"
+name = "home-assistant-hikvision-intercom"
+version = "2.0.0-rc.2"
 description = "smplwise access control for Home Assistant with Hikvision device support"
 requires-python = ">=3.12"
 dependencies = ["httpx==0.28.1", "defusedxml==0.7.1"]
@@ -13,7 +13,7 @@ dependencies = ["httpx==0.28.1", "defusedxml==0.7.1"]
 dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "pytest-cov>=6,<8", "ruff>=0.12,<1", "mypy>=1.15,<2", "types-defusedxml", "awesomeversion", "pyyaml", "tzdata"]
 
 [tool.setuptools.packages.find]
-include = ["custom_components.smplwise_access_control*", "tools*"]
+include = ["custom_components.hikvision_intercom*", "tools*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -34,7 +34,7 @@ strict = true
 follow_imports = "silent"
 explicit_package_bases = true
 # Protocol typing runs without HA; actual HA adapters are exercised on Linux in CI.
-files = ["custom_components/smplwise_access_control/appearance_settings.py", "custom_components/smplwise_access_control/ntp_settings.py", "custom_components/smplwise_access_control/profile_settings.py", "custom_components/smplwise_access_control/media_settings.py", "custom_components/smplwise_access_control/client", "custom_components/smplwise_access_control/access", "custom_components/smplwise_access_control/events.py", "custom_components/smplwise_access_control/event_diagnostics.py", "custom_components/smplwise_access_control/event_trace.py", "custom_components/smplwise_access_control/reporting.py", "custom_components/smplwise_access_control/clock.py", "custom_components/smplwise_access_control/hardening.py", "custom_components/smplwise_access_control/configuration.py", "custom_components/smplwise_access_control/models.py", "custom_components/smplwise_access_control/exceptions.py", "tools"]
+files = ["custom_components/hikvision_intercom/appearance_settings.py", "custom_components/hikvision_intercom/ntp_settings.py", "custom_components/hikvision_intercom/profile_settings.py", "custom_components/hikvision_intercom/media_settings.py", "custom_components/hikvision_intercom/client", "custom_components/hikvision_intercom/access", "custom_components/hikvision_intercom/events.py", "custom_components/hikvision_intercom/event_diagnostics.py", "custom_components/hikvision_intercom/event_trace.py", "custom_components/hikvision_intercom/reporting.py", "custom_components/hikvision_intercom/clock.py", "custom_components/hikvision_intercom/hardening.py", "custom_components/hikvision_intercom/configuration.py", "custom_components/hikvision_intercom/models.py", "custom_components/hikvision_intercom/exceptions.py", "tools"]
 
 [[tool.mypy.overrides]]
 module = ["homeassistant.*"]

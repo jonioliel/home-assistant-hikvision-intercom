@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>smplwise access control 2.0.0-rc.2 — בדיקות שדרוג HACS</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box}body{margin:0}main{max-width:980px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0}h2{font-size:1.2rem;margin:0 0 10px}
+    p{margin:.5em 0}.muted{color:#61757a}.card{background:white;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 4px 20px #173c3008}
+    .notice{border-inline-start:5px solid #c98311;background:#fff8e9}.pass{border-inline-start:5px solid #218663;background:#ebf8f2}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    code{direction:ltr;unicode-bidi:embed;background:#eaf0ee;border-radius:5px;padding:1px 5px}
+    button{border:0;background:#185d51;color:white;border-radius:9px;padding:10px 15px;cursor:pointer;font:inherit}
+    a{color:#176753}footer{color:#52696b;padding:10px 0 30px}
+  </style>
+</head>
+<body>
+<main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.2</p><h1>בדיקות שדרוג HACS ללא מחיקה</h1><p>המזהה הטכני נשאר <code>hikvision_intercom</code></p></header>
+  <section class="card pass"><h2>מה מאומת בבדיקות השחרור</h2><p>במאגר קיימת תיקייה אחת של אינטגרציה, <code>custom_components/hikvision_intercom</code>, ובה <code>manifest.json</code> עם אותו domain. בדיקות Python, Home Assistant, ממשק, בנייה ו־HACS/הַאספֶסט מתבצעות לפני פרסום התג. הן אינן מחליפות בדיקה על ההתקנה החיה שלך.</p></section>
+  <section class="card notice"><h2>לפני עדכון</h2><p>אל תבחר שוב ב־<code>v2.0.0-rc.1</code>. אל תמחק תחנות או את האינטגרציה מתוך ״מכשירים ושירותים״. שמור גיבוי HA מלא דרך מסך הגיבויים, וכתוב לעצמך כמה תחנות ומשתמשים מופיעים לפני העדכון. <a href="../HACS_DOMAIN_MIGRATION_HE.md">הסבר לשגיאה הישנה</a>.</p></section>
+  <section class="card"><h2>בדיקות בהתקנה שלך</h2>
+    <label><input type="checkbox" data-id="backup"> נוצר גיבוי HA מלא ועדכני לפני השדרוג.</label>
+    <label><input type="checkbox" data-id="baseline"> נרשמו מספר התחנות, המשתמשים והישויות לפני ההתקנה.</label>
+    <label><input type="checkbox" data-id="hacs"> ב־HACS נבחר <code>v2.0.0-rc.2</code>; ההורדה הסתיימה בלי שגיאת <code>manifest.json</code>.</label>
+    <label><input type="checkbox" data-id="restart"> Home Assistant הופעל מחדש; WisKey נטענת וללא שגיאת Setup.</label>
+    <label><input type="checkbox" data-id="stations"> אותן תחנות מופיעות, בשמות ובמיפוי הדלתות הקודמים, ללא כפילויות.</label>
+    <label><input type="checkbox" data-id="people"> משתמשים, כרטיסים, PIN, קבוצות והרשאות קיימים כפי שהיו; לא בוצע סנכרון כולל לצורך בדיקה זו.</label>
+    <label><input type="checkbox" data-id="events"> יומן האירועים, תוכניות הדלת, ההגדרות והתבניות הקבועות זמינים.</label>
+    <label><input type="checkbox" data-id="entities"> מזהי הישויות ואוטומציות HA קיימות ממשיכים לפעול ללא שינוי.</label>
+    <label><input type="checkbox" data-id="panel"> הממשק מציג WisKey; שם האינטגרציה הגלוי הוא smplwise access control; כל העיצובים הקודמים עדיין זמינים.</label>
+    <label><input type="checkbox" data-id="camera"> מצלמה אחת נפתחת; שמע ודיבור נבדקו רק אם ניתן לבצע זאת בבטחה מול התחנה.</label>
+    <label><input type="checkbox" data-id="vms"> אם VMS מחובר, פקודות <code>hikvision_intercom/</code> ממשיכות להחזיר נתונים לפי הרשאות החשבון.</label>
+  </section>
+  <section class="card"><h2>אם בדיקה נכשלת</h2><p>עצור לפני סנכרון גורף או שינוי הרשאות. רשום גרסה, שלב, שגיאה ושם תחנה, ושמור את הגיבוי. אין למחוק את האינטגרציה או לערוך ידנית קובצי <code>.storage</code>. <a href="../HACS_DOMAIN_MIGRATION_HE.md">מסלול התאוששות</a>.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <footer>הסימונים נשמרים בדפדפן זה בלבד. <a href="../integrations/WISKEY_VMS_HANDOFF.md">מסמך VMS</a> · <a href="../BRAND_AND_VENDOR_COMPATIBILITY_HE.md">מיתוג ותאימות</a>.</footer>
+</main>
+<script>
+  const prefix='smplwise-hacs-upgrade-rc2:';
+  for(const box of document.querySelectorAll('input[data-id]')){
+    box.checked=localStorage.getItem(prefix+box.dataset.id)==='true';
+    box.addEventListener('change',()=>localStorage.setItem(prefix+box.dataset.id,String(box.checked)));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const box of document.querySelectorAll('input[data-id]')){
+      box.checked=false;localStorage.removeItem(prefix+box.dataset.id);
+    }
+  });
+</script>
+</body>
+</html>

@@ -352,7 +352,7 @@ export const wiskeyV4Styles = css`
   :host([data-appearance^="wiskey-"]) .wk4-overview[data-dense="true"] .wk4-door-actions {
     padding-bottom: 7px;
   }
-  :host([data-appearance^="wiskey-"]) .wk4-door-image smplwise-access-control-camera {
+  :host([data-appearance^="wiskey-"]) .wk4-door-image hikvision-intercom-camera {
     display: block;
     width: 100%;
     height: 100%;
@@ -937,7 +937,7 @@ export const wiskeyV4Styles = css`
     :host([data-appearance^="wiskey-"])
       .camera-layout.wk4-camera-layout
       .camera-video
-      smplwise-access-control-camera {
+      hikvision-intercom-camera {
       max-height: 32dvh;
     }
     :host([data-appearance^="wiskey-"]) .wk4-camera-tts {

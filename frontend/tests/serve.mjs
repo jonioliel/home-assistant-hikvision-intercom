@@ -2,12 +2,9 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 const routes = new Map([
   [
-    "/smplwise_access_control_static/Heebo.ttf",
+    "/hikvision_intercom_static/Heebo.ttf",
     [
-      new URL(
-        "../../custom_components/smplwise_access_control/frontend/Heebo.ttf",
-        import.meta.url,
-      ),
+      new URL("../../custom_components/hikvision_intercom/frontend/Heebo.ttf", import.meta.url),
       "font/ttf",
     ],
   ],
@@ -15,7 +12,7 @@ const routes = new Map([
     "/audio-worklet.js",
     [
       new URL(
-        "../../custom_components/smplwise_access_control/frontend/audio-worklet.js",
+        "../../custom_components/hikvision_intercom/frontend/audio-worklet.js",
         import.meta.url,
       ),
       "text/javascript",
@@ -26,7 +23,7 @@ const routes = new Map([
   [
     "/panel.js",
     [
-      new URL("../../custom_components/smplwise_access_control/frontend/panel.js", import.meta.url),
+      new URL("../../custom_components/hikvision_intercom/frontend/panel.js", import.meta.url),
       "text/javascript",
     ],
   ],

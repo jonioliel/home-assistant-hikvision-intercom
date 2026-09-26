@@ -1,6 +1,6 @@
 import { navigate, openAppearance } from "./navigation";
 import { test, expect } from "@playwright/test";
-const preference = "smplwise-access-control:appearance:v1:demo-admin";
+const preference = "hikvision-intercom:appearance:v1:demo-admin";
 for (const [name, width, lang, dark] of [
   ["desktop-he", 1440, "he", false],
   ["desktop-en-dark", 1440, "en", true],
@@ -107,7 +107,7 @@ test("large counts fit a narrow HA panel inside a desktop browser", async ({ pag
   await page.goto("/");
   await expect(page.locator(".metric")).toHaveCount(4);
   await page.evaluate(() => {
-    (document.querySelector("smplwise-access-control-panel") as HTMLElement).style.width = "320px";
+    (document.querySelector("hikvision-intercom-panel") as HTMLElement).style.width = "320px";
     window.demoData.users = Array.from({ length: 20000 }, (_, i) => ({
       ...window.demoData.users[0],
       id: `synthetic-${i}`,
@@ -124,7 +124,7 @@ test("large counts fit a narrow HA panel inside a desktop browser", async ({ pag
   expect(await page.locator(".app-shell").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
     true,
   );
-  await page.locator("smplwise-access-control-panel").evaluate((el) => {
+  await page.locator("hikvision-intercom-panel").evaluate((el) => {
     (el as HTMLElement).style.width = "1200px";
   });
   await expect(page.locator(".metric bdi")).toHaveText(["8 / 9", "1", "20000", "180000"]);

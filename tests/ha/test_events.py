@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.smplwise_access_control.client.client import CallState
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.event_manager import get_events
-from custom_components.smplwise_access_control.exceptions import HikvisionConnectionError
+from custom_components.hikvision_intercom.client.client import CallState
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.event_manager import get_events
+from custom_components.hikvision_intercom.exceptions import HikvisionConnectionError
 
 from .test_websocket import request
 
@@ -121,7 +121,7 @@ async def test_stream_task_cancelled_and_session_closed_on_unload(hass, loaded_e
 
     with (
         patch(
-            "custom_components.smplwise_access_control.event_manager.create_event_session",
+            "custom_components.hikvision_intercom.event_manager.create_event_session",
             return_value=session,
         ),
         patch.object(monitor.client, "async_stream", stream),
@@ -154,7 +154,7 @@ async def test_history_failure_preserves_cursor_and_success_does_not_trigger(has
         patch.object(
             monitor.client, "async_history", side_effect=HikvisionConnectionError("offline")
         ),
-        patch("custom_components.smplwise_access_control.event_manager.asyncio.sleep", sleep),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", sleep),
     ):
         with pytest.raises(asyncio.CancelledError):
             await monitor._history()
@@ -162,7 +162,7 @@ async def test_history_failure_preserves_cursor_and_success_does_not_trigger(has
     row = {"major": 5, "minor": 181, "time": (datetime.now(UTC) - timedelta(minutes=1)).isoformat()}
     with (
         patch.object(monitor.client, "async_history", return_value=[row, row]),
-        patch("custom_components.smplwise_access_control.event_manager.asyncio.sleep", sleep),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", sleep),
     ):
         with pytest.raises(asyncio.CancelledError):
             await monitor._history()
@@ -225,12 +225,12 @@ async def test_history_before_adoption_is_not_named_from_an_older_central_user(h
     repo = runtime.access_manager.repository
     now = datetime.now(UTC)
     with patch(
-        "custom_components.smplwise_access_control.access.repository.utc_now",
+        "custom_components.hikvision_intercom.access.repository.utc_now",
         return_value=(now - timedelta(minutes=10)).isoformat(),
     ):
         user = await repo.async_create({"display_name": "Current resident", "employee_no": "00042"})
     with patch(
-        "custom_components.smplwise_access_control.access.repository.utc_now",
+        "custom_components.hikvision_intercom.access.repository.utc_now",
         return_value=(now - timedelta(minutes=1)).isoformat(),
     ):
         await repo.async_adopt(
@@ -278,9 +278,7 @@ async def test_event_session_constructed_during_unload_is_still_closed(hass, loa
         closing.set()
 
     with (
-        patch(
-            "custom_components.smplwise_access_control.event_manager.create_event_session", create
-        ),
+        patch("custom_components.hikvision_intercom.event_manager.create_event_session", create),
         patch.object(monitor, "_unsubscribe", unlisten),
     ):
         task = hass.async_create_background_task(
@@ -353,7 +351,7 @@ async def test_late_history_does_not_advance_cursor_after_runtime_starts_closing
 
     with (
         patch.object(monitor.client, "async_history", history),
-        patch("custom_components.smplwise_access_control.event_manager.asyncio.sleep", stop_sleep),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", stop_sleep),
     ):
         try:
             await monitor._history()
@@ -379,7 +377,7 @@ async def test_history_interrupted_between_rows_preserves_recovery_cursor(hass, 
     with (
         patch.object(monitor.client, "async_history", return_value=[row, row]),
         patch(
-            "custom_components.smplwise_access_control.event_manager.asyncio.sleep",
+            "custom_components.hikvision_intercom.event_manager.asyncio.sleep",
             stop_between_rows,
         ),
     ):
@@ -399,7 +397,7 @@ async def test_history_interrupted_between_rows_preserves_recovery_cursor(hass, 
 
     with (
         patch.object(monitor.client, "async_history", return_value=[row, row]),
-        patch("custom_components.smplwise_access_control.event_manager.asyncio.sleep", finish_page),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", finish_page),
     ):
         with pytest.raises(asyncio.CancelledError):
             await monitor._history()
@@ -421,11 +419,11 @@ async def test_late_stream_frame_is_discarded_and_session_closed(hass, loaded_en
 
     with (
         patch(
-            "custom_components.smplwise_access_control.event_manager.create_event_session",
+            "custom_components.hikvision_intercom.event_manager.create_event_session",
             return_value=session,
         ),
         patch.object(monitor.client, "async_stream", stream),
-        patch("custom_components.smplwise_access_control.event_manager.asyncio.sleep", stop_sleep),
+        patch("custom_components.hikvision_intercom.event_manager.asyncio.sleep", stop_sleep),
     ):
         try:
             await monitor._stream()

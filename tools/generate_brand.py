@@ -41,6 +41,6 @@ def icon_png() -> bytes:
 
 
 if __name__ == "__main__":
-    target = Path(__file__).resolve().parents[1] / "custom_components/smplwise_access_control/brand"
+    target = Path(__file__).resolve().parents[1] / "custom_components/hikvision_intercom/brand"
     target.mkdir(exist_ok=True)
     (target / "icon.png").write_bytes(icon_png())

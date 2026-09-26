@@ -8,8 +8,8 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.exceptions import HikvisionAuthError
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.exceptions import HikvisionAuthError
 
 from .conftest import DATA, PROFILE
 
@@ -17,7 +17,7 @@ from .conftest import DATA, PROFILE
 @pytest.fixture(autouse=True)
 def no_setup():
     with patch(
-        "custom_components.smplwise_access_control.async_setup_entry", AsyncMock(return_value=True)
+        "custom_components.hikvision_intercom.async_setup_entry", AsyncMock(return_value=True)
     ):
         yield
 
@@ -148,7 +148,7 @@ async def test_options(hass):
 
 
 async def test_failed_mapping_does_not_create_entry(hass, device_io):
-    from custom_components.smplwise_access_control.exceptions import HikvisionTimeoutError
+    from custom_components.hikvision_intercom.exceptions import HikvisionTimeoutError
 
     result = await start(hass)
     result = await hass.config_entries.flow.async_configure(
@@ -191,7 +191,7 @@ async def test_successful_reauth_preserves_mapping(hass, device_io):
     ],
 )
 async def test_connection_error_categories(hass, device_io, error_name, key):
-    from custom_components.smplwise_access_control import exceptions
+    from custom_components.hikvision_intercom import exceptions
 
     device_io["profile"].side_effect = getattr(exceptions, error_name)("private detail")
     result = await hass.config_entries.flow.async_init(
@@ -208,7 +208,7 @@ async def test_identity_change_between_discovery_and_unlock(hass, device_io):
         result["flow_id"], {"mode": "map_active_relay"}
     )
     with patch(
-        "custom_components.smplwise_access_control.client.client.HikvisionClient.async_device_info",
+        "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
         AsyncMock(return_value=("different", PROFILE.model, PROFILE.firmware, "different")),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -255,7 +255,7 @@ async def test_boolean_api_id_cannot_bypass_mapping_guard(hass, device_io):
 
 
 async def test_lost_mapping_ack_cannot_enable_lock(hass, device_io):
-    from custom_components.smplwise_access_control.config_flow import HikvisionConfigFlow
+    from custom_components.hikvision_intercom.config_flow import HikvisionConfigFlow
 
     flow = HikvisionConfigFlow()
     flow.hass = hass

@@ -46,7 +46,7 @@ test("event draft filters stay distinct from applied results and reset restores 
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Events", exact: true }).click();
-  const events = page.locator("smplwise-access-control-events");
+  const events = page.locator("hikvision-intercom-events");
   await events.getByRole("combobox", { name: "Result", exact: true }).selectOption("denied");
   await expect(events.locator(".filter-pending")).toBeVisible();
   await expect(events.locator(".audit-row")).toHaveCount(2);

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.smplwise_access_control.access.acceptance import Acceptance
-from custom_components.smplwise_access_control.access.models import AccessError
+from custom_components.hikvision_intercom.access.acceptance import Acceptance
+from custom_components.hikvision_intercom.access.models import AccessError
 
 
 async def test_roundtrip_and_revision_conflict():

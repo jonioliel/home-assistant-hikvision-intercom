@@ -7,17 +7,17 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from custom_components.smplwise_access_control.client.audio import (
+from custom_components.hikvision_intercom.client.audio import (
     CHANNEL,
     AudioError,
     AudioSession,
     validate_channel,
 )
-from custom_components.smplwise_access_control.client.client import (
+from custom_components.hikvision_intercom.client.client import (
     ConnectionSettings,
     HikvisionClient,
 )
-from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
+from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
 
 CONFIG = {
     "TwoWayAudioChannel": {"id": "1", "enabled": "false", "audioCompressionType": "G.711ulaw"}
@@ -166,9 +166,7 @@ async def test_send_enforces_size_burst_budget_and_mute(audio):
     audio.session_id = "owned"
     with pytest.raises(AudioError):
         audio.send(b"x" * 801)
-    with patch(
-        "custom_components.smplwise_access_control.client.audio.time.monotonic", return_value=5
-    ):
+    with patch("custom_components.hikvision_intercom.client.audio.time.monotonic", return_value=5):
         audio.send(b"x" * 800)
         audio.send(b"y" * 800)
         with pytest.raises(AudioError) as err:
@@ -309,7 +307,7 @@ async def test_slow_trickle_cannot_keep_an_incomplete_receive_packet_alive(audio
         )
     )
     audio.session_id = "owned"
-    with patch("custom_components.smplwise_access_control.client.audio.RECEIVE_TIMEOUT", 0.04):
+    with patch("custom_components.hikvision_intercom.client.audio.RECEIVE_TIMEOUT", 0.04):
         await asyncio.wait_for(audio._guard(audio._receive), 1)
     assert audio.failure == "audio_connection_lost"
     assert audio.incoming.empty()
@@ -327,7 +325,7 @@ async def test_blocked_upload_stops_without_replaying_or_draining_speech_on_clos
     audio.session_id = "owned"
     audio.control._request.side_effect = [CLOSE]
     audio.send(b"x" * 800)
-    with patch("custom_components.smplwise_access_control.client.audio.WRITE_TIMEOUT", 0.03):
+    with patch("custom_components.hikvision_intercom.client.audio.WRITE_TIMEOUT", 0.03):
         await asyncio.wait_for(audio._guard(audio._transmit), 1)
     assert audio.failure == "audio_connection_lost"
     assert writer.write.call_args.args == (b"x" * 160,)

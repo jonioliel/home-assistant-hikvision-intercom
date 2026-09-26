@@ -34,7 +34,7 @@ software compatibility and search coverage, not physical enforcement or a nine-s
 
 ## Portable draft import/export
 
-Export saved drafts from the library as JSON format `smplwise_access_control.schedule_drafts`,
+Export saved drafts from the library as JSON format `hikvision_intercom.schedule_drafts`,
 version 1. Only names, weekly windows and holiday exceptions are included. Database IDs,
 revisions, station configuration, users, credentials and baseline fingerprints/tokens are excluded.
 Unsaved editor changes are not exported. Keep exported names and attendance schedules private.

@@ -133,7 +133,7 @@ test("advertised WebRTC uses HA signaling and cleans up peer, tracks and subscri
   await expect(page.getByRole("dialog").locator(".player-status")).toContainText("RTC");
   const media = await page
     .getByRole("dialog")
-    .locator("smplwise-access-control-camera")
+    .locator("hikvision-intercom-camera")
     .evaluate((element) => {
       const root = element.shadowRoot!;
       const video = root.querySelector("video")!;
@@ -162,7 +162,7 @@ test("explicit listening unmutes a received RTC audio track and cleanup remutes 
   page,
 }) => {
   await rtc(page, "audio");
-  const camera = page.getByRole("dialog").locator("smplwise-access-control-camera");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
   await expect(page.getByRole("dialog").locator(".player-status")).toContainText("RTC");
   const active = await camera.evaluate(async (element: any) => {
     element.setPlaybackAudio(true);
@@ -202,7 +202,7 @@ test("mobile playback selects the WebKit media session and restores it after lis
     });
   });
   await rtc(page, "audio");
-  const camera = page.getByRole("dialog").locator("smplwise-access-control-camera");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
   await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("RTC");
   const session = await camera.evaluate((element: any) => {
     element.setPlaybackAudio(true);
@@ -436,7 +436,7 @@ test("selected add-on RTC uses signed bridge without native provider and cleans 
   page,
 }) => {
   let closed = false;
-  await page.routeWebSocket(/\/api\/smplwise_access_control\/rtc\//, (ws) => {
+  await page.routeWebSocket(/\/api\/hikvision_intercom\/rtc\//, (ws) => {
     ws.onClose(() => {
       closed = true;
     });
@@ -466,7 +466,7 @@ test("selected add-on RTC uses signed bridge without native provider and cleans 
 
 test("add-on RTC retries normal ICE once when TCP cannot connect", async ({ page }) => {
   let attempts = 0;
-  await page.routeWebSocket(/\/api\/smplwise_access_control\/rtc\//, (ws) => {
+  await page.routeWebSocket(/\/api\/hikvision_intercom\/rtc\//, (ws) => {
     const attempt = ++attempts;
     ws.onMessage((raw) => {
       const message = JSON.parse(String(raw));

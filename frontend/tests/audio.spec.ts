@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function setup(page: Page, appearance = "current") {
   await page.addInitScript(
-    (design) => localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", design),
+    (design) => localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", design),
     appearance,
   );
   await page.goto("/");
@@ -30,8 +30,7 @@ async function setup(page: Page, appearance = "current") {
       for (const callback of listeners.get("ready") ?? []) callback();
     };
     w.demoHass.connection.subscribeMessage = async (callback: any, message: any, options: any) => {
-      if (message.type !== "smplwise_access_control/audio/start")
-        return subscribe(callback, message);
+      if (message.type !== "hikvision_intercom/audio/start") return subscribe(callback, message);
       w.audio.subscriptionOptions = options;
       w.calls.push(message);
       w.audio.event = callback;
@@ -95,15 +94,13 @@ async function setup(page: Page, appearance = "current") {
     await page.locator(".access-door-camera").first().click();
   else if (appearance === "modern") await page.locator(".camera-wrap > button").first().click();
   else await page.getByRole("button", { name: "View camera", exact: true }).first().click();
-  return page.locator("smplwise-access-control-audio-controls");
+  return page.locator("hikvision-intercom-audio-controls");
 }
 
 test("explicit listen and real audio worklet transmit only while held", async ({ page }) => {
   const audio = await setup(page);
   await audio.evaluate((element: any) => {
-    const camera = element
-      .closest(".camera-layout")
-      .querySelector("smplwise-access-control-camera");
+    const camera = element.closest(".camera-layout").querySelector("hikvision-intercom-camera");
     const original = camera.setPlaybackAudio.bind(camera);
     camera.setPlaybackAudio = (enabled: boolean) => {
       original(enabled);
@@ -119,8 +116,7 @@ test("explicit listen and real audio worklet transmit only while held", async ({
   expect(await page.evaluate(() => (window as any).audio.microphones)).toBe(0);
   expect(
     await page.evaluate(
-      () =>
-        window.calls.filter((call) => call.type === "smplwise_access_control/audio/start").length,
+      () => window.calls.filter((call) => call.type === "hikvision_intercom/audio/start").length,
     ),
   ).toBe(0);
   const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
@@ -153,8 +149,8 @@ test("listen and talk controls switch camera-stream audio without native media c
 }) => {
   const audio = await setup(page);
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel") as any;
-    const camera = panel.shadowRoot.querySelector("dialog smplwise-access-control-camera");
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
+    const camera = panel.shadowRoot.querySelector("dialog hikvision-intercom-camera");
     window.audio.cameraPlayback = [];
     const original = camera.setPlaybackAudio.bind(camera);
     camera.setPlaybackAudio = (enabled: boolean) => {
@@ -215,8 +211,8 @@ for (const action of ["close", "background", "logout", "offline"]) {
       await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
     else
       await page.evaluate((action) => {
-        const panel = document.querySelector("smplwise-access-control-panel") as any;
-        const control = panel.shadowRoot.querySelector("smplwise-access-control-audio-controls");
+        const panel = document.querySelector("hikvision-intercom-panel") as any;
+        const control = panel.shadowRoot.querySelector("hikvision-intercom-audio-controls");
         if (action === "background") {
           Object.defineProperty(document, "hidden", { configurable: true, value: true });
           document.dispatchEvent(new Event("visibilitychange"));
@@ -264,7 +260,7 @@ test("Hebrew audio controls fit a mobile camera dialog", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "צפייה במצלמה", exact: true }).first().click();
-  const audio = page.locator("smplwise-access-control-audio-controls");
+  const audio = page.locator("hikvision-intercom-audio-controls");
   await expect(audio.getByRole("button", { name: "פתח האזנה", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= 390)).toBe(true);
 });
@@ -323,7 +319,7 @@ for (const operation of ["receive", "send", "mute"]) {
     await page.evaluate((operation) => {
       const base = window.demoHass.callWS.bind(window.demoHass);
       window.demoHass.callWS = async (message: any) => {
-        if (message.type === "smplwise_access_control/audio/" + operation)
+        if (message.type === "hikvision_intercom/audio/" + operation)
           return await new Promise((r) => ((window as any).audio.late = r));
         return base(message);
       };
@@ -382,7 +378,7 @@ test("audio cannot be started while HA is already disconnected", async ({ page }
   await audio.evaluate((node: any) => node.start());
   expect(
     await page.evaluate(
-      () => window.calls.filter((c) => c.type === "smplwise_access_control/audio/start").length,
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
     ),
   ).toBe(0);
 });
@@ -392,8 +388,8 @@ test("a delayed fallback audio session is released after selecting another stati
 }) => {
   const audio = await setup(page);
   await page.evaluate(() => {
-    const panel = document.querySelector("smplwise-access-control-panel") as any;
-    const camera = panel.shadowRoot.querySelector("dialog smplwise-access-control-camera");
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
+    const camera = panel.shadowRoot.querySelector("dialog hikvision-intercom-camera");
     camera.setPlaybackAudio = () => false;
     window.audio.delay = true;
   });
@@ -407,8 +403,7 @@ test("a delayed fallback audio session is released after selecting another stati
   await expect.poll(() => page.evaluate(() => window.audio.unsubscribed)).toBe(1);
   expect(
     await page.evaluate(
-      () =>
-        window.calls.filter((call) => call.type === "smplwise_access_control/audio/start").length,
+      () => window.calls.filter((call) => call.type === "hikvision_intercom/audio/start").length,
     ),
   ).toBe(1);
 });
@@ -430,7 +425,7 @@ test("reattaching idle audio restores connection listeners without starting a se
   await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
   expect(
     await page.evaluate(
-      () => window.calls.filter((c) => c.type === "smplwise_access_control/audio/start").length,
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
     ),
   ).toBe(0);
 });
@@ -568,7 +563,7 @@ for (const width of [390, 1440])
     const audio = await setup(page);
     await page.evaluate(() => {
       window.demoHass.language = "he";
-      document.querySelector("smplwise-access-control-panel")!.hass = { ...window.demoHass };
+      document.querySelector("hikvision-intercom-panel")!.hass = { ...window.demoHass };
     });
     await audio.getByRole("button", { name: "פתח האזנה", exact: true }).click();
     await audio.locator(".audio-options > summary").click();
@@ -709,9 +704,7 @@ for (const appearance of [
     });
     await expect
       .poll(() =>
-        page
-          .locator("smplwise-access-control-panel")
-          .evaluate((el: any) => el._data.api.capabilities),
+        page.locator("hikvision-intercom-panel").evaluate((el: any) => el._data.api.capabilities),
       )
       .toContain("panel_permissions");
     await audio.getByRole("button", { name: "Start listening", exact: true }).click();
@@ -740,7 +733,7 @@ test("audio transport exemption preserves management authorization and compatibi
   page,
 }) => {
   await setup(page);
-  const result = await page.locator("smplwise-access-control-panel").evaluate(async (node: any) => {
+  const result = await page.locator("hikvision-intercom-panel").evaluate(async (node: any) => {
     const policy = {
       version: 1,
       min_client: 0,
@@ -751,7 +744,7 @@ test("audio transport exemption preserves management authorization and compatibi
     const call = async (command: string) => {
       try {
         await node.protectedHass.callWS({
-          type: `smplwise_access_control/${command}`,
+          type: `hikvision_intercom/${command}`,
           token: "synthetic",
         });
         return "allowed";

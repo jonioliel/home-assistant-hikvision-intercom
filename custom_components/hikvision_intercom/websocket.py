@@ -658,7 +658,7 @@ async def _dispatch_inner(
                 }
             )
         return {
-            "format": "smplwise_access_control.support_bundle",
+            "format": "hikvision_intercom.support_bundle",
             "generated_at": datetime.now(UTC).isoformat(),
             "integration_version": VERSION,
             "home_assistant": {

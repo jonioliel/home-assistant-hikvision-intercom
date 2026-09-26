@@ -142,7 +142,7 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         "last_result": last_audio[1] if last_audio and last_audio[0] is runtime else None,
     }
     report["generated_at"] = datetime.now(UTC).isoformat()
-    report["format"] = "smplwise_access_control.compatibility"
+    report["format"] = "hikvision_intercom.compatibility"
     report["integration_version"] = VERSION
     report["evidence_scope"] = "software_observation_not_physical_acceptance"
     return report

@@ -5,16 +5,16 @@ for (const width of [390, 768, 1440]) {
   test(`call dock keeps actions below undistorted video at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() =>
-      localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", "modern"),
+      localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", "modern"),
     );
     await page.goto("/?lang=he");
     await page.locator(".camera-wrap > button").first().click();
     const dialog = page.getByRole("dialog");
-    const audio = dialog.locator("smplwise-access-control-audio-controls");
+    const audio = dialog.locator("hikvision-intercom-audio-controls");
     await expect(audio).toHaveAttribute("dock", "");
     await expect(audio.locator(".audio-options")).not.toHaveAttribute("open", "");
     await expect(dialog.getByRole("button", { name: "פקודת מענה", exact: true })).toBeVisible();
-    const video = await dialog.locator("smplwise-access-control-camera").boundingBox();
+    const video = await dialog.locator("hikvision-intercom-camera").boundingBox();
     const dock = await audio.locator(".session-buttons").boundingBox();
     expect(dock!.y).toBeGreaterThan(video!.y + video!.height);
     expect(video!.width / video!.height).toBeCloseTo(16 / 9, 1);
@@ -29,7 +29,7 @@ for (const width of [390, 768, 1440]) {
     ).toBeLessThanOrEqual(1);
     expect(
       await dialog
-        .locator("smplwise-access-control-camera")
+        .locator("hikvision-intercom-camera")
         .evaluate((el) => getComputedStyle(el).getPropertyValue("--camera-object-fit").trim()),
     ).toBe("contain");
     expect(
@@ -69,7 +69,7 @@ for (const design of ["current", "modern", "access-light", "access-dark"]) {
     test(`camera refresh is compact and read-only in ${design} at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.addInitScript(
-        (value) => localStorage.setItem("smplwise-access-control:appearance:v1:demo-admin", value),
+        (value) => localStorage.setItem("hikvision-intercom:appearance:v1:demo-admin", value),
         design,
       );
       await page.goto("/");
@@ -83,11 +83,11 @@ for (const design of ["current", "modern", "access-light", "access-dark"]) {
       const box = (await refresh.boundingBox())!;
       expect(box.width).toBeLessThanOrEqual(46);
       expect(box.height).toBeLessThanOrEqual(46);
-      const video = (await dialog.locator("smplwise-access-control-camera").boundingBox())!;
+      const video = (await dialog.locator("hikvision-intercom-camera").boundingBox())!;
       expect(box.y).toBeGreaterThanOrEqual(video.y + video.height);
       await expect(
         dialog
-          .locator("smplwise-access-control-audio-controls")
+          .locator("hikvision-intercom-audio-controls")
           .getByRole("button", { name: "Start listening", exact: true }),
       ).toBeInViewport();
       await expect(dialog.locator(".camera-door-actions button").first()).toBeInViewport();

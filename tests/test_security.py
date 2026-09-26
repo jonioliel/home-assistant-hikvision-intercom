@@ -4,21 +4,21 @@ from pathlib import Path
 import httpx
 import pytest
 
-from custom_components.smplwise_access_control.client.parser import parse_payload
-from custom_components.smplwise_access_control.client.probe import (
+from custom_components.hikvision_intercom.client.parser import parse_payload
+from custom_components.hikvision_intercom.client.probe import (
     ENDPOINTS,
     ProbeClient,
     ProbeEndpoint,
     ProbeLimits,
     validate_host,
 )
-from custom_components.smplwise_access_control.client.redaction import (
+from custom_components.hikvision_intercom.client.redaction import (
     REDACTED,
     safe_headers,
     safe_namespaces,
     sanitize,
 )
-from custom_components.smplwise_access_control.exceptions import HikvisionValidationError
+from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "synthetic"
 

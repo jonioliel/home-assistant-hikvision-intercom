@@ -25,9 +25,7 @@ test("administrator can configure HA user permissions responsively", async ({ pa
   await page.getByRole("button", { name: "שמירת הרשאות" }).click();
   await expect(page.getByText("ההרשאות נשמרו והוחלו מיד.")).toBeVisible();
   const update = await page.evaluate(() =>
-    window.calls.find(
-      (call) => call.type === "smplwise_access_control/authorization/settings_update",
-    ),
+    window.calls.find((call) => call.type === "hikvision_intercom/authorization/settings_update"),
   );
   expect(update.users["reader-user"].enabled).toBe(true);
   expect(update.users["reader-user"].areas.users).toBe("manage");

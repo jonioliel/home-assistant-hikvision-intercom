@@ -496,7 +496,7 @@ export class IntercomAudioControls extends LitElement {
             this.stop("audio_unsupported");
           }
         },
-        { type: "smplwise_access_control/audio/start", station_id: this.activeStationId },
+        { type: "hikvision_intercom/audio/start", station_id: this.activeStationId },
         {
           resubscribe: false,
           preCheck: () =>
@@ -559,7 +559,7 @@ export class IntercomAudioControls extends LitElement {
     while (this.valid(epoch) && this.token) {
       try {
         const result = await this.request<{ data: string }>({
-          type: "smplwise_access_control/audio/receive",
+          type: "hikvision_intercom/audio/receive",
           token: this.token,
         });
         if (!this.valid(epoch)) return;
@@ -717,7 +717,7 @@ export class IntercomAudioControls extends LitElement {
     try {
       const data = btoa(String.fromCharCode(...packet));
       const result = await this.request<{ sequence: number }>({
-        type: "smplwise_access_control/audio/send",
+        type: "hikvision_intercom/audio/send",
         token: this.token,
         sequence: this.sequence,
         data,
@@ -766,7 +766,7 @@ export class IntercomAudioControls extends LitElement {
         restoreCamera();
       };
       if (this.token) {
-        void this.request({ type: "smplwise_access_control/audio/mute", token: this.token })
+        void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
           .then(() => {
             if (this.valid(epoch) && this._diagnosticsOpen) void this.refreshDiagnostics();
           })
@@ -777,7 +777,7 @@ export class IntercomAudioControls extends LitElement {
         restoreCamera();
       }
     } else if (this.token) {
-      void this.request({ type: "smplwise_access_control/audio/mute", token: this.token })
+      void this.request({ type: "hikvision_intercom/audio/mute", token: this.token })
         .then(() => {
           if (this.valid(epoch) && this._diagnosticsOpen) void this.refreshDiagnostics();
         })
@@ -823,7 +823,7 @@ export class IntercomAudioControls extends LitElement {
     this.lastDiagnosticPoll = performance.now();
     try {
       const result = await this.request<Record<string, unknown>>({
-        type: "smplwise_access_control/audio/diagnostics",
+        type: "hikvision_intercom/audio/diagnostics",
         token: this.token,
       });
       if (!this.valid(epoch)) return;
@@ -872,7 +872,7 @@ export class IntercomAudioControls extends LitElement {
     downloadText(
       JSON.stringify(
         {
-          format: "smplwise_access_control.audio_diagnostics",
+          format: "hikvision_intercom.audio_diagnostics",
           schema: 1,
           generated_at: new Date().toISOString(),
           started_at: this.startedAt,
@@ -1066,4 +1066,4 @@ export class IntercomAudioControls extends LitElement {
     </section>`;
   }
 }
-customElements.define("smplwise-access-control-audio-controls", IntercomAudioControls);
+customElements.define("hikvision-intercom-audio-controls", IntercomAudioControls);

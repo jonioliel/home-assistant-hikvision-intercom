@@ -8,11 +8,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from custom_components.smplwise_access_control.access.models import AccessError
-from custom_components.smplwise_access_control.access.schedule_journal import ScheduleJournal
-from custom_components.smplwise_access_control.access.schedule_operations import ScheduleOperations
-from custom_components.smplwise_access_control.const import DOMAIN
-from custom_components.smplwise_access_control.storage import AccessStore
+from custom_components.hikvision_intercom.access.models import AccessError
+from custom_components.hikvision_intercom.access.schedule_journal import ScheduleJournal
+from custom_components.hikvision_intercom.access.schedule_operations import ScheduleOperations
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.storage import AccessStore
 
 from .test_schedule_plans import BINDINGS
 from .test_schedule_plans import inspection as base_inspection
@@ -32,7 +32,7 @@ def inspection():
 async def proposal(client, station):
     created = (await request(client, "schedules/create", data=draft()))["result"]
     with patch(
-        "custom_components.smplwise_access_control.schedule_plan_api.inspect_plan",
+        "custom_components.hikvision_intercom.schedule_plan_api.inspect_plan",
         AsyncMock(return_value=inspection()),
     ):
         preview = (
@@ -51,7 +51,7 @@ async def proposal(client, station):
 
 async def declare(client, saved):
     with patch(
-        "custom_components.smplwise_access_control.schedule_operations_api.inspect_plan",
+        "custom_components.hikvision_intercom.schedule_operations_api.inspect_plan",
         AsyncMock(return_value=inspection()),
     ):
         review = (
@@ -69,7 +69,7 @@ async def declare(client, saved):
 
 async def check(hass, client, job):
     with patch(
-        "custom_components.smplwise_access_control.schedule_operations_api.inspect_plan",
+        "custom_components.hikvision_intercom.schedule_operations_api.inspect_plan",
         AsyncMock(return_value=inspection()),
     ):
         result = await request(
@@ -161,7 +161,7 @@ async def test_changed_source_never_reads_station_or_prepares_journal(
         data={**draft(), "name": "Changed"},
     )
     with patch(
-        "custom_components.smplwise_access_control.schedule_operations_api.inspect_plan",
+        "custom_components.hikvision_intercom.schedule_operations_api.inspect_plan",
         AsyncMock(),
     ) as read:
         await request(client, "schedules/operations_check", job_id=job["id"], revision=1)

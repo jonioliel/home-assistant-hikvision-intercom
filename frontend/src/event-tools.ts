@@ -185,7 +185,7 @@ export class IntercomEventTools extends LitElement {
       const result = await boundedRequest(
         () =>
           hass.callWS<Trace | Inspection>({
-            type: "smplwise_access_control/events/" + action,
+            type: "hikvision_intercom/events/" + action,
             station_id: station,
             ...data,
           }),
@@ -317,4 +317,4 @@ export class IntercomEventTools extends LitElement {
     </details>`;
   }
 }
-customElements.define("smplwise-access-control-event-tools", IntercomEventTools);
+customElements.define("hikvision-intercom-event-tools", IntercomEventTools);

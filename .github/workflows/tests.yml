@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -e ".[dev]"
-      - run: python -m pytest --cov=custom_components.smplwise_access_control --cov=tools --cov-report=term-missing
+      - run: python -m pytest --cov=custom_components.hikvision_intercom --cov=tools --cov-report=term-missing
       - run: python -m ruff check .
       - run: python -m ruff format --check .
       - run: python -m mypy
@@ -32,7 +32,7 @@ jobs:
           python-version: "3.14"
           cache: pip
       - run: python -m pip install -r requirements-ha-test.txt
-      - run: python -m pytest tests/ha --cov=custom_components.smplwise_access_control --cov-report=term-missing
+      - run: python -m pytest tests/ha --cov=custom_components.hikvision_intercom --cov-report=term-missing
 
   frontend:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
       - run: pnpm --dir frontend run check
       - run: pnpm --dir frontend run format:check
       - run: pnpm --dir frontend run build
-      - run: git diff --exit-code -- custom_components/smplwise_access_control/frontend
+      - run: git diff --exit-code -- custom_components/hikvision_intercom/frontend
       # Playwright downloads its own Chromium. The runner's unrelated Chrome APT
       # index can be mid-publication and fail Ubuntu dependency installation.
       - name: Remove unused Chrome APT source from the ephemeral runner

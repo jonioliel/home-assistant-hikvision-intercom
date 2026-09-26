@@ -1,5 +1,5 @@
 {
-  "domain": "smplwise_access_control",
+  "domain": "hikvision_intercom",
   "name": "smplwise access control",
   "after_dependencies": [
     "tts"
@@ -21,5 +21,5 @@
     "defusedxml==0.7.1",
     "httpx==0.28.1"
   ],
-  "version": "2.0.0-rc.1"
+  "version": "2.0.0-rc.2"
 }

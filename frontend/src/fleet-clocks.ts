@@ -126,4 +126,4 @@ export class FleetClocks extends LitElement {
     </details>`;
   }
 }
-customElements.define("smplwise-access-control-fleet-clocks", FleetClocks);
+customElements.define("hikvision-intercom-fleet-clocks", FleetClocks);
