@@ -4,6 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.4] - 2026-09-27
+
+- Display saved quick TTS announcements as full-width, vertically stacked buttons in the camera dialog, with complete text and no horizontal scrolling in desktop and mobile layouts.
+- Keep the existing selected-station send action and add responsive browser regression coverage plus a focused Hebrew visual checklist.
+
 ## [2.0.0-rc.3] - 2026-09-27
 
 - Prevent the previously selected layout from appearing during initial load: restore a saved personal appearance on the first render and wait for the first overview before mounting the full interface for a shared default.

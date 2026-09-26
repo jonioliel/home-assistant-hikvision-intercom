@@ -1,6 +1,6 @@
 # smplwise access control — WisKey interface for Home Assistant
 
-**Current release [v2.0.0-rc.3](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.3)** removes the initial flash of the previous layout while retaining the `hikvision_intercom` HACS path and domain. Update through HACS and restart Home Assistant. [Appearance acceptance checks](docs/manual-tests/WISKEY_2.0.0_RC3_APPEARANCE_TESTS_HE.html).
+**Current release [v2.0.0-rc.4](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.4)** displays saved quick TTS announcements in full, one below another, without horizontal scrolling in the camera dialog. The `hikvision_intercom` HACS path and domain remain unchanged. Update through HACS and restart Home Assistant. [Camera TTS layout checks](docs/manual-tests/WISKEY_2.0.0_RC4_TTS_LAYOUT_TESTS_HE.html).
 
 **Corrective release [v2.0.0-rc.2](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.2):** the visible integration name is smplwise access control, while the technical Home Assistant domain, HACS package path, panel route, API namespace and private storage keys remain `hikvision_intercom`. Existing installations can update through HACS without deleting their configuration entries or migrating user data. Restart Home Assistant after installation. [HACS recovery instructions](docs/HACS_DOMAIN_MIGRATION_HE.md).
 
