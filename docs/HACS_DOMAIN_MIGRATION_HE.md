@@ -11,6 +11,7 @@
 ## לפני שינוי בהתקנה החיה
 
 1. צור גיבוי מלא **וניתן לשחזור** של תצורת Home Assistant, כולל .storage, custom_components ונתוני HACS. שמור עותק מחוץ למערכת. הגיבוי מכיל סיסמאות, PIN ומספרי כרטיס; אין לשתף אותו בקישור ציבורי.
+   **אין צורך ב־Samba:** ב־Home Assistant פתח **הגדרות ← מערכת ← גיבויים**. אם אין גיבוי מלא עדכני, בחר **גבה כעת ← גיבוי ידני** וצור גיבוי מלא. לאחר מכן בחר **הצג את כל הגיבויים ← תפריט שלוש הנקודות ← הורדת גיבוי**. הקובץ יישמר בתיקיית ההורדות במחשב; הורדה דרך ממשק HA מפענחת אותו בזמן ההורדה. שמור את הקובץ במקום פרטי ואל תעלה אותו ל־GitHub או לצ׳אט. ראה [הוראות הגיבוי הרשמיות של Home Assistant](https://www.home-assistant.io/common-tasks/general/#downloading-your-local-backups).
 2. חלץ עותק מלא של התצורה בסביבת בדיקה נפרדת. השג את קוד [תג v2.0.0-rc.1](https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.1); הוא כולל את custom_components/smplwise_access_control ואת tools/migrate_domain_offline.py.
 3. הרץ בדיקה יבשה על **העותק**, בעזרת Python 3.12 ומעלה. היא מציגה מונים בלבד ואינה משנה קבצים:
 
