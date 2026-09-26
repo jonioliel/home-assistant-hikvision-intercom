@@ -35,6 +35,33 @@ test("existing default; design persists per user and ignores invalid saved value
   await page.reload();
   await expect(panel(page)).toHaveAttribute("data-appearance", "current");
 });
+test("shared design waits for its first overview before mounting the app shell", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".app-shell")).toBeVisible();
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS;
+    window.demoData.appearance_settings.default = "wiskey-dark";
+    let resolveOverview: ((value: unknown) => void) | undefined;
+    (window as any).releaseOverview = () => resolveOverview?.(structuredClone(window.demoData));
+    window.demoHass.callWS = function (message) {
+      if (message.type.endsWith("overview"))
+        return new Promise((resolve) => {
+          resolveOverview = resolve;
+        });
+      return original.call(this, message);
+    };
+    const element = document.querySelector("hikvision-intercom-panel")!;
+    element.remove();
+    document.body.append(element);
+  });
+  await expect(page.locator(".app-shell")).toHaveCount(0);
+  await expect(page.getByText("Loading…", { exact: true })).toBeVisible();
+  await page.evaluate(() => (window as any).releaseOverview());
+  await expect(panel(page)).toHaveAttribute("data-appearance", "wiskey-dark");
+  await expect(page.locator(".app-shell")).toBeVisible();
+});
 test("cancel and Escape keep design and restore focus", async ({ page }) => {
   await page.goto("/");
   await openAppearance(page);

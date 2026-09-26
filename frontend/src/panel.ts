@@ -319,7 +319,7 @@ export class IntercomManagerPanel extends LitElement {
   private _stationTabs: Record<string, string> = {};
   private _deviceFocus = "";
   private syncAppearance() {
-    const user = this.authorized ? this.hass?.user?.id : undefined;
+    const user = this.hass?.user?.id;
     if (user !== this._appearanceUser) {
       this._appearanceUser = user;
       this._appearanceOverride = appearanceOverride(user);
@@ -4643,6 +4643,18 @@ export class IntercomManagerPanel extends LitElement {
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
         <h2>${this.t("access_not_granted")}</h2>
         <p>${this.t("access_not_granted_hint")}</p>
+      </div>`;
+    // The shared appearance arrives with the first overview. Do not mount the
+    // full shell in the old design while that response is still pending.
+    if (!this._data)
+      return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
+        <p class="loader">${this.t(this._refreshFailed ? "panel_load_failed" : "loading")}</p>
+        ${
+          this._refreshFailed || !this._haConnected
+            ? html`<p>${this.t("panel_retry_hint")}</p>
+                <button @click=${() => void this.refresh()}>${this.t("refresh")}</button>`
+            : nothing
+        }
       </div>`;
     return html`<div class="app-shell" data-view=${this._tab} dir=${he ? "rtl" : "ltr"}>
       <header>

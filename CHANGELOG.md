@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.3] - 2026-09-27
+
+- Prevent the previously selected layout from appearing during initial load: restore a saved personal appearance on the first render and wait for the first overview before mounting the full interface for a shared default.
+- Keep an explicit loading and retry view while the first overview is pending or fails, without changing the HACS package path, integration domain, permissions, or station controls.
+- Add a slow-overview browser regression and a focused Hebrew visual acceptance checklist.
+
 ## [2.0.0-rc.2] - 2026-09-26
 
 - Restore the existing `hikvision_intercom` package, Home Assistant domain, API/panel routes and private storage namespace while keeping **smplwise access control** as the visible integration and HACS name.

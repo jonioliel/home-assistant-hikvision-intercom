@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.3 — בדיקת טעינת העיצוב</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box}body{margin:0}main{max-width:840px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0}h2{font-size:1.15rem;margin:0 0 10px}
+    p{margin:.5em 0}.card{background:#fff;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    button{border:0;background:#185d51;color:#fff;border-radius:9px;padding:10px 15px;cursor:pointer;font:inherit}
+    .muted{color:#52696b}a{color:#176753}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.3</p><h1>בדיקת טעינת העיצוב</h1><p>בדיקה קצרה לאחר עדכון HACS והפעלה מחדש של Home Assistant</p></header>
+  <section class="card"><h2>מה כבר נבדק אוטומטית</h2><p>בדיקת דפדפן משהה את קבלת מסך הבית ומוודאת שהממשק המלא לא מוצג בעיצוב הישן לפני שהעיצוב המשותף ידוע. בדיקות קיימות מאמתות שמירת עיצוב אישי, מעבר בין מסכים והתאוששות מכשל טעינה.</p></section>
+  <section class="card"><h2>בדיקות קצרות אצלך</h2>
+    <label><input type="checkbox" data-id="upgrade"> ב־HACS מותקנת v2.0.0-rc.3, ו־Home Assistant הופעל מחדש.</label>
+    <label><input type="checkbox" data-id="shared"> כשהעיצוב החדש מוגדר כברירת מחדל לכולם, רענון הדף פעמיים מציג לכל היותר מסך טעינה קצר ואז את העיצוב הנבחר; הממשק הישן אינו מופיע לרגע.</label>
+    <label><input type="checkbox" data-id="personal"> אם בחרת עיצוב אישי למשתמש, רענון הדף מציג מיד את הבחירה האישית בלי הבהוב של עיצוב אחר.</label>
+    <label><input type="checkbox" data-id="navigation"> מעבר בין מרכז הכניסה, אנשים, פעילויות וניהול אינו משנה את העיצוב או מסתיר פעולות קיימות.</label>
+    <label><input type="checkbox" data-id="mobile"> בנייד: רענון הדף ובחירת עיצוב מראים אותה התנהגות, ללא מסך ישן או גלילה רוחבית חדשה.</label>
+  </section>
+  <section class="card"><h2>אם עדיין יש הבהוב</h2><p>כתוב איזה עיצוב נבחר, האם הוא ברירת מחדל לכל המשתמשים או בחירה אישית, ובאיזה דפדפן ומכשיר. סרטון מסך קצר של הרענון יעזור לאתר את הרגע המדויק. אין צורך לבצע סנכרון משתמשים או לשנות הרשאות לצורך בדיקה זו.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן זה בלבד. <a href="SMPLWISE_HACS_UPGRADE_TESTS_HE.html">בדיקות השדרוג המלאות מהגרסה הקודמת</a>.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.3-appearance-tests';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

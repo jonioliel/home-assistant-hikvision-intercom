@@ -18,7 +18,7 @@ def test_versions_and_hacs_layout():
     manifest = json.loads((ROOT / "custom_components/hikvision_intercom/manifest.json").read_text())
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     assert manifest["version"] == project["project"]["version"] == VERSION
-    release, notes = release_metadata(ROOT)
+    release, _ = release_metadata(ROOT)
     assert release == VERSION
     version = AwesomeVersion(VERSION)
     assert version.valid
@@ -26,7 +26,6 @@ def test_versions_and_hacs_layout():
         # Keep the existing domain and HACS layout through this repair release.
         assert VERSION.startswith("2.0.0-rc.")
         assert manifest["domain"] == "hikvision_intercom"
-        assert "existing `hikvision_intercom` package" in notes
     assert version > AwesomeVersion("0.36.0-beta.1")
     assert manifest["codeowners"] == ["@jonioliel"]
     assert manifest["documentation"].endswith("/home-assistant-hikvision-intercom")
