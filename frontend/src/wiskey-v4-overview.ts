@@ -146,7 +146,7 @@ export function wiskeyOverview(o: WiskeyOverviewOptions) {
                     ?disabled=${!s.entities.camera}
                     @click=${() => o.open(s)}
                   >
-                    ${icon("camera")}<span>${o.t("camera")}</span>
+                    <span class="wk4-open-camera-label">${icon("camera")}${o.t("camera")}</span>
                   </button>
                 </div>
                 <div class="wk4-door-info">

@@ -79,6 +79,41 @@ for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
   }
 }
 
+test("entry-center cards play muted live video and the image opens the camera", async ({
+  page,
+}) => {
+  await start(page, "wiskey-light", 1440);
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = (message) =>
+      message.type === "camera/stream" ? new Promise(() => {}) : original(message);
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      transport: "hls",
+      revision: window.demoData.media_settings.revision + 1,
+    };
+    window.demoNotify();
+  });
+  const card = page.locator(".wk4-door").first();
+  const preview = card.locator("hikvision-intercom-camera");
+  await expect(preview).toHaveJSProperty("preview", true);
+  await expect(preview).toHaveJSProperty("live", true);
+  await expect(preview.locator("video")).toHaveJSProperty("muted", true);
+  await expect(preview.locator(".player-status, .playback-export")).toHaveCount(0);
+
+  await card.locator(".wk4-door-image").click({ position: { x: 100, y: 40 } });
+  await expect(page.locator(".camera-dialog")).toBeVisible();
+  await expect(preview).toHaveJSProperty("live", false);
+  await expect(page.locator(".camera-dialog hikvision-intercom-camera video")).toHaveJSProperty(
+    "muted",
+    true,
+  );
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".camera-dialog")).toHaveCount(0);
+  await expect(preview).toHaveJSProperty("live", true);
+});
+
 test("V4 is opt-in alongside all four earlier choices", async ({ page }) => {
   await start(page, "wiskey-light", 1440);
   await page.locator(".nav").getByRole("button", { name: "ניהול", exact: true }).click();

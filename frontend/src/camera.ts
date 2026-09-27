@@ -1,5 +1,5 @@
 import { PlaybackWatchdog } from "./playback-watchdog";
-import { LitElement, html, css, type PropertyValues } from "lit";
+import { LitElement, html, css, nothing, type PropertyValues } from "lit";
 import Hls from "hls.js";
 import { CameraMSE } from "./camera-mse";
 import { DEFAULT_MEDIA, type MediaPolicy } from "./media-settings";
@@ -16,6 +16,7 @@ export class IntercomCamera extends LitElement {
     stationId: { type: String },
     media: { attribute: false },
     live: { type: Boolean },
+    preview: { type: Boolean },
     label: { type: String },
     _tick: { state: true },
     _visible: { state: true },
@@ -68,6 +69,7 @@ export class IntercomCamera extends LitElement {
   private previousAudioSessionType?: string;
   private playbackLimiter?: DynamicsCompressorNode;
   live = false;
+  preview = false;
   label = "";
   private _tick = 0;
   private _visible = false;
@@ -300,6 +302,7 @@ export class IntercomCamera extends LitElement {
   }
   /** Enable camera-stream audio only after an explicit user gesture. */
   setPlaybackAudio(enabled: boolean) {
+    if (this.preview && enabled) return false;
     this.audioEnabled = enabled;
     this.setPlaybackSession(enabled);
     const video = this.renderRoot.querySelector("video");
@@ -628,43 +631,49 @@ export class IntercomCamera extends LitElement {
     if (this.live && !this._networkOnline) return html`<p>${this.t("player_network_offline")}</p>`;
     if (this.live && !this._haConnected) return html`<p>${this.t("player_ha_disconnected")}</p>`;
     if (this.live && this._failed)
-      return html`<div class="player-error" role="status">
-        <p>${this.t("player_failed")}</p>
-        <small>${this.t("player_reason_" + this._fallbackReason)}</small>
-        <div class="actions">
-          <button
-            @click=${() => {
-              this.stop();
-              this._failed = false;
-              this.recoveries = 0;
-              void this.start();
-            }}
-          >
-            ${this.t("player_retry")}</button
-          >${this.exportButton()}
-        </div>
-      </div>`;
+      return this.preview
+        ? html`<p role="status">${this.t("player_failed")}</p>`
+        : html`<div class="player-error" role="status">
+            <p>${this.t("player_failed")}</p>
+            <small>${this.t("player_reason_" + this._fallbackReason)}</small>
+            <div class="actions">
+              <button
+                @click=${() => {
+                  this.stop();
+                  this._failed = false;
+                  this.recoveries = 0;
+                  void this.start();
+                }}
+              >
+                ${this.t("player_retry")}</button
+              >${this.exportButton()}
+            </div>
+          </div>`;
     if (!this.entity || !this._visible || this._failed) return html`<p>${this.label}</p>`;
     if (this.live)
       return html`<video
           autoplay
-          .muted=${!this.audioEnabled}
+          .muted=${this.preview || !this.audioEnabled}
           playsinline
           aria-label=${this.label}
           @loadeddata=${() => this.loaded()}
           @error=${() => this.failPlayer("media_failed")}
         ></video
-        ><span class="player-status" role="status"
-          >${
-            this._mode === "player_mse"
-              ? "MSE"
-              : this._mode === "player_webrtc"
-                ? "RTC"
-                : this._mode === "player_hls"
-                  ? "HLS"
-                  : this.t(this._mode)
-          }</span
-        >${this.exportButton()}`;
+        >${
+          this.preview
+            ? nothing
+            : html`<span class="player-status" role="status"
+                  >${
+                    this._mode === "player_mse"
+                      ? "MSE"
+                      : this._mode === "player_webrtc"
+                        ? "RTC"
+                        : this._mode === "player_hls"
+                          ? "HLS"
+                          : this.t(this._mode)
+                  }</span
+                >${this.exportButton()}`
+        }`;
     const picture = this.hass?.states[this.entity]?.attributes.entity_picture;
     let source = "";
     try {
