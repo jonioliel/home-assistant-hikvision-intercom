@@ -4,6 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.9] - 2026-09-28
+
+- Add a fleet overview to station health with connected and attention counts, a one-click attention filter, and clear per-station reasons for disconnection, pending synchronization, recorded sync errors, or clock deviation. It uses existing cached reports and current connection state without extra device commands.
+- Preserve the rc.7 entry-dashboard preference for muted live video or refreshing still images, and the rc.8 temporary-access improvements.
+
 ## [2.0.0-rc.8] - 2026-09-28
 
 - Classify people as staff, visitors or contractors without changing the device-level Hikvision user type. Temporary categories require a bounded validity window and a named responsible person, validated on the server as well as in the creation form.
