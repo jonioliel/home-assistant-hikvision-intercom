@@ -177,11 +177,11 @@ export class MediaSettingsPanel extends LitElement {
     this.error = "";
     this.notice = "";
     try {
-      const result = await this.requests.run<{ server: string; version: string }>(
+      const result = await this.requests.run<{ source: string; server: string; version: string }>(
         { type: "hikvision_intercom/media/provider_check" },
         10000,
       );
-      this.server = `${result.server} · go2rtc ${result.version}`;
+      this.server = `${result.source === "home_assistant" ? this.t("system_infrastructure") : result.server} · go2rtc ${result.version}`;
       this.notice = "media_provider_ready";
     } catch {
       this.error = "media_provider_failed";

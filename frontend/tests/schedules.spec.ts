@@ -15,7 +15,7 @@ test("schedule draft persists through navigation and editing without sync", asyn
   await editor(page);
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
-    page.getByText("Draft saved in Home Assistant. Station permissions were not changed."),
+    page.getByText("Draft saved in system infrastructure. Station permissions were not changed."),
   ).toBeVisible();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
   await navigate(page, "Access schedules");
@@ -123,9 +123,7 @@ test("Hebrew mobile schedules support end of day without horizontal overflow", a
   await monday.getByRole("button", { name: "הוספת חלון" }).click();
   await monday.getByLabel("סיום", { exact: true }).fill("24:00");
   await page.getByRole("button", { name: "שמירת טיוטה", exact: true }).click();
-  await expect(
-    page.getByText("הטיוטה נשמרה ב־Home Assistant. הרשאות התחנות לא השתנו."),
-  ).toBeVisible();
+  await expect(page.getByText("הטיוטה נשמרה בתשתית המערכת. הרשאות התחנות לא השתנו.")).toBeVisible();
   const overflow = await page
     .locator("hikvision-intercom-schedules")
     .evaluate((e) => e.scrollWidth > e.clientWidth);

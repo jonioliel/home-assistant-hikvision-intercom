@@ -17,8 +17,8 @@ test("delegated viewer sees only granted screens and no door controls", async ({
 test("administrator can configure HA user permissions responsively", async ({ page }) => {
   await page.goto("/?lang=he");
   await page.getByRole("button", { name: "כלי ניהול" }).click();
-  await page.getByRole("button", { name: /הרשאות משתמשי HA/ }).click();
-  await expect(page.getByRole("heading", { name: "הרשאות משתמשי Home Assistant" })).toBeVisible();
+  await page.getByRole("button", { name: /הרשאות משתמשי תשתית המערכת/ }).click();
+  await expect(page.getByRole("heading", { name: "הרשאות משתמשי תשתית המערכת" })).toBeVisible();
   const reception = page.locator("wiskey-access-control article").filter({ hasText: "Reception" });
   await reception.getByRole("checkbox").check();
   await reception.getByLabel("משתמשים").selectOption("manage");

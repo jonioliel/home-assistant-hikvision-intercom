@@ -18,7 +18,7 @@ test("typed announcement uses configured HA TTS and only the selected intercom",
   const tts = await openTts(page);
   await tts.getByRole("textbox").fill("Please come to reception");
   await tts.getByRole("button", { name: "Speak at station", exact: true }).click();
-  await expect(tts).toContainText("Generating speech in Home Assistant");
+  await expect(tts).toContainText("Generating speech in system infrastructure");
   await expect(tts).toContainText("Speaking at the selected station");
   await expect(tts).toContainText("The announcement was sent to the selected station");
   const result = await page.evaluate(() => {
@@ -123,7 +123,7 @@ test("composer reports missing HA engines and keeps transmission disabled", asyn
   });
   await page.getByRole("button", { name: "View camera", exact: true }).first().click();
   const tts = page.locator("wiskey-intercom-tts");
-  await expect(tts.getByRole("alert")).toContainText("No Home Assistant TTS engine");
+  await expect(tts.getByRole("alert")).toContainText("No system infrastructure TTS engine");
   await expect(tts.getByRole("button", { name: "Speak at station" })).toBeDisabled();
 });
 

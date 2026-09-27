@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.6 — בדיקת מינוח תשתית המערכת</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box}body{margin:0}main{max-width:840px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0}h2{font-size:1.15rem;margin:0 0 10px}
+    p{margin:.5em 0}.card{background:#fff;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    button{border:0;background:#185d51;color:#fff;border-radius:9px;padding:10px 15px;cursor:pointer;font:inherit}
+    .muted{color:#52696b}a{color:#176753}
+    @media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.6</p><h1>מינוח אחיד בממשק</h1><p>בדיקה קצרה לאחר עדכון והפעלה מחדש של תשתית המערכת.</p></header>
+  <section class="card"><h2>מה נבדק אוטומטית</h2><p>נבנה ממשק מעודכן, אומתו קובצי התרגום, ובדיקות הדפדפן כיסו הרשאות, שעונים, מצלמות, שמע, TTS, תוכניות שעות והודעות ניתוק. המזהים הטכניים נשארו ללא שינוי.</p></section>
+  <section class="card"><h2>בדיקות קצרות אצלך</h2>
+    <label><input type="checkbox" data-id="upgrade"> הגרסה המותקנת היא v2.0.0-rc.6, והממשק נטען כרגיל.</label>
+    <label><input type="checkbox" data-id="management"> בכלי הניהול, מסכי הרשאות המשתמשים, שעונים, תזמונים והגדרות המדיה משתמשים במונח ״תשתית המערכת״.</label>
+    <label><input type="checkbox" data-id="camera"> חלון המצלמה, הווידאו, השמע וההודעות הקוליות ממשיכים לפעול כבעבר; כיתובי המצב והאבחון מציגים את המונח החדש.</label>
+    <label><input type="checkbox" data-id="errors"> הודעות שגיאה ותיקון שקשורות ל־WisKey מציגות את המונח החדש, ללא קיצור פנימי גלוי.</label>
+    <label><input type="checkbox" data-id="english"> אם אתה משתמש גם בממשק באנגלית, בדוק שמופיע “System infrastructure” ושאפשר עדיין להגיע להגדרות התחנות.</label>
+  </section>
+  <section class="card"><h2>אם משהו אינו תואם</h2><p>שלח את שם המסך והנוסח המדויק שמוצג. אין צורך לשלוח סיסמאות או פרטי גישה. מסכי התשתית הכלליים שמחוץ ל־WisKey עשויים להשתמש במיתוג עצמאי.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן זה בלבד. <a href="WISKEY_2.0.0_RC5_LIVE_ENTRY_TESTS_HE.html">בדיקות וידאו חי מהגרסה הקודמת</a>.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.6-terminology';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

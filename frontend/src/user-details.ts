@@ -62,8 +62,8 @@ const copy = {
     "אינטגרציית WhatsApp אישרה את השליחה. מסירה לנמען אינה מאומתת כאן.",
   ],
   whatsapp_unavailable: [
-    "Configure and connect the WhatsApp integration in Home Assistant.",
-    "יש להגדיר ולחבר את אינטגרציית WhatsApp ב־Home Assistant.",
+    "Configure and connect the WhatsApp integration in the system infrastructure.",
+    "יש להגדיר ולחבר את אינטגרציית WhatsApp בתשתית המערכת.",
   ],
   whatsapp_invalid_phone: [
     "Enter a valid Israeli mobile or an international number beginning with +.",

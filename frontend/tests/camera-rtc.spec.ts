@@ -392,7 +392,7 @@ test("HA reconnect tears down old RTC and negotiates a fresh visible video sessi
     for (const callback of window.rtcConnectionListeners.get("disconnected")) callback();
   });
   await expect(page.getByRole("dialog")).toContainText(
-    "Video paused until Home Assistant reconnects",
+    "Video paused until system infrastructure reconnects",
   );
   expect(await page.evaluate(() => window.rtcClosed)).toBe(1);
   expect(await page.evaluate(() => window.rtcUnsubscribed)).toBe(1);
