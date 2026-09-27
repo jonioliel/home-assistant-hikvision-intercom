@@ -2103,7 +2103,7 @@ export class IntercomManagerPanel extends LitElement {
       .onRefreshState=${dock ? this.setCameraRefreshEnabled : undefined}
     ></hikvision-intercom-call-controls>`;
   }
-  private camera(station: Station, live = false) {
+  private camera(station: Station, live = false, preview = false) {
     return html`<hikvision-intercom-camera
       .stationId=${station.id}
       .media=${this._data?.media_settings}
@@ -2111,6 +2111,7 @@ export class IntercomManagerPanel extends LitElement {
       .entity=${station.entities.camera ?? ""}
       .version=${this._data?.version ?? ""}
       .live=${live}
+      .preview=${preview}
       .label=${station.entities.camera ? `${this.t("camera")} · ${station.name}` : this.t("no_camera")}
     ></hikvision-intercom-camera>`;
   }
@@ -2441,7 +2442,7 @@ export class IntercomManagerPanel extends LitElement {
         language: this.hass?.language ?? "en",
         t: (key) => this.t(key),
         date: (value) => this.dateText(value),
-        camera: (station) => this.camera(station),
+        camera: (station) => this.camera(station, !this._dialog, true),
         release: (station) => this.releaseButton(station, true, true),
         feedback: (station) => this.releaseFeedback(station),
         search: (value) => {

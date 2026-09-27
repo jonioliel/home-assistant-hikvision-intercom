@@ -98,7 +98,7 @@ const en = {
   wall_auto: "Automatic",
   wall_fullscreen: "Fullscreen",
   wall_fullscreen_unavailable: "Fullscreen is unavailable in this browser.",
-  wall_preview_hint: "Camera previews · select a camera for live video",
+  wall_preview_hint: "Live muted video · select a camera to open controls",
   wall_previous: "Previous",
   wall_next: "Next",
 
@@ -1966,7 +1966,7 @@ const he: Record<keyof typeof en, string> = {
   wall_auto: "אוטומטי",
   wall_fullscreen: "מסך מלא",
   wall_fullscreen_unavailable: "מסך מלא אינו זמין בדפדפן זה.",
-  wall_preview_hint: "תמונות מקדימות · פתח מצלמה לצפייה בווידאו",
+  wall_preview_hint: "וידאו חי ללא שמע · לחצו על התמונה לפתיחת המצלמה",
   wall_previous: "הקודם",
   wall_next: "הבא",
 

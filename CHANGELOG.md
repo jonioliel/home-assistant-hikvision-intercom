@@ -6,6 +6,12 @@ Semantic Versioning is used throughout the project.
 
 - Document the HA add-on connection path, WisKey command/permission boundary, complete VMS screen-parity map and media integration limits for SMPLWISE VMS.
 
+## [2.0.0-rc.5] - 2026-09-27
+
+- Play muted live video, using the saved HLS/RTC/MSE transport, in visible WisKey 04 entry-center station cards instead of periodically refreshed still images. Suspend the card streams when a dialog opens, the page is hidden, or the cards leave the viewport; the full camera dialog retains its explicit audio controls.
+- Make the full camera image a keyboard-accessible button that opens the corresponding station, with the existing camera badge retained. Hide player diagnostics from compact previews and keep the video aspect ratio intact.
+- Add browser coverage for muted playback, image-click navigation, stream suspension and resumption, alongside a focused Hebrew live-system checklist. No station configuration or access permissions change.
+
 ## [2.0.0-rc.4] - 2026-09-27
 
 - Display saved quick TTS announcements as full-width, vertically stacked buttons in the camera dialog, with complete text and no horizontal scrolling in desktop and mobile layouts.

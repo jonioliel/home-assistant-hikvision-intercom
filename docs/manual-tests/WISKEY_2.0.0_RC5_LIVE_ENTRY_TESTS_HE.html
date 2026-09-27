@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.5 — בדיקת וידאו חי במרכז הכניסה</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#17242c;background:#f3f7f6}
+    *{box-sizing:border-box}body{margin:0}main{max-width:840px;margin:auto;padding:24px}
+    header{background:#132b30;color:#fff;border-radius:20px;padding:28px;margin-bottom:20px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);margin:.1em 0}h2{font-size:1.15rem;margin:0 0 10px}
+    p{margin:.5em 0}.card{background:#fff;border:1px solid #dce7e3;border-radius:16px;padding:20px;margin:14px 0}
+    label{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e1e9e6;border-radius:10px;margin:8px 0;cursor:pointer}
+    input{inline-size:20px;block-size:20px;accent-color:#198b66;flex:none;margin-top:2px}
+    button{border:0;background:#185d51;color:#fff;border-radius:9px;padding:10px 15px;cursor:pointer;font:inherit}
+    .muted{color:#52696b}a{color:#176753}
+    @media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.5</p><h1>וידאו חי במרכז הכניסה</h1><p>בדיקה קצרה במערכת החיה אחרי עדכון HACS והפעלה מחדש של Home Assistant</p></header>
+  <section class="card"><h2>מה נבדק אוטומטית</h2><p>בדיקות דפדפן אימתו שנגן חי בכרטיס נשאר מושתק, שכל שטח התמונה פותח את המצלמה, ושהכרטיסים משהים את הווידאו כאשר חלון המצלמה פתוח. עברו גם בדיקות ממשק של 4, 6, 9 ו־12 תחנות ובדיקות מצלמה ושמע. בדיקות אלו אינן מאמתות תנועה או עומס ברשת ובתחנות שלך.</p></section>
+  <section class="card"><h2>בדיקות אצלך</h2>
+    <label><input type="checkbox" data-id="upgrade"> ב־HACS מותקנת v2.0.0-rc.5 ו־Home Assistant הופעל מחדש.</label>
+    <label><input type="checkbox" data-id="motion"> במרכז הכניסה: מול תחנה שמול מקום שיש בו תנועה, רואים וידאו משתנה בכרטיס בלי לפתוח את המצלמה. בדוק לפחות שתי תחנות.</label>
+    <label><input type="checkbox" data-id="silent"> בזמן הצפייה בכרטיסים לא נשמע קול, והמיקרופון אינו נפתח. שמע מופעל רק בפעולה מפורשת בחלון המצלמה המלא.</label>
+    <label><input type="checkbox" data-id="image"> לחץ באמצע התמונה, רחוק מתג המצלמה. נפתח חלון המצלמה של התחנה הנכונה; סגור אותו וודא שהווידאו החי בכרטיס חוזר.</label>
+    <label><input type="checkbox" data-id="fleet"> כשמוצגות 8–12 תחנות, המתן כמה דקות ובדוק שהתנועה ממשיכה, שאין קיפאון ממושך, ושהמסך והתחנות מגיבים כרגיל.</label>
+    <label><input type="checkbox" data-id="mobile"> בנייד: הכרטיסים המתאימים למסך מציגים וידאו מושתק, ולחיצה על התמונה פותחת את אותה מצלמה ללא גלילה אופקית.</label>
+    <label><input type="checkbox" data-id="offline"> תחנה מנותקת מציגה מצב מנותק ולא תמונה ישנה שמתחזה לווידאו חי.</label>
+  </section>
+  <section class="card"><h2>אם יש בעיה</h2><p>ציין את שם התחנה, מספר הכרטיסים המוצגים, מחשב או נייד, מצב המדיה שנבחר בניהול (HLS/MSE/RTC), והאם חלון המצלמה המלא מנגן וידאו. אם התנועה נעצרת, ציין בערך אחרי כמה זמן. אין צורך לשלוח סיסמאות או כתובות RTSP.</p><button id="reset">נקה סימוני בדיקה</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן זה בלבד. <a href="WISKEY_2.0.0_RC4_TTS_LAYOUT_TESTS_HE.html">בדיקות TTS מהגרסה הקודמת</a>.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.5-live-entry';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

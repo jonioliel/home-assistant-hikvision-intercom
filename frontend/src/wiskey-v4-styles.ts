@@ -360,6 +360,20 @@ export const wiskeyV4Styles = css`
   }
   :host([data-appearance^="wiskey-"]) .wk4-open-camera {
     position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  :host([data-appearance^="wiskey-"]) .wk4-open-camera:focus-visible {
+    outline: 2px solid var(--wk4-accent);
+    outline-offset: -2px;
+  }
+  :host([data-appearance^="wiskey-"]) .wk4-open-camera-label {
+    position: absolute;
     inset-inline-end: 8px;
     inset-block-end: 8px;
     display: inline-flex;
@@ -369,8 +383,10 @@ export const wiskeyV4Styles = css`
     padding: 3px 6px;
     background: #122e2bdd;
     border: 1px solid #ffffff4d;
+    border-radius: 7px;
     color: #fff;
     font-size: 11px;
+    pointer-events: none;
   }
   :host([data-appearance^="wiskey-"]) .wk4-open-camera .ui-icon {
     width: 14px;
