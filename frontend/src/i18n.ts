@@ -14,6 +14,10 @@ const en = {
   event_quick_denied: "Denied entries",
   event_quick_pin_limit: "PIN attempt limit",
   event_quick_door_open: "Door not closed",
+  event_anomaly_digest: "Observed access anomalies",
+  event_anomaly_stations: "Stations with the most recorded anomalies",
+  event_anomaly_scope:
+    "Counts reflect retained events matching this report only. Select a count or station to inspect its records.",
   health_timeline: "Station health history",
   health_samples: "Online samples",
   health_observational: "Observed samples, not continuous availability",
@@ -1959,6 +1963,10 @@ const he: Record<keyof typeof en, string> = {
   event_quick_denied: "כניסות שנדחו",
   event_quick_pin_limit: "חריגה מניסיונות PIN",
   event_quick_door_open: "דלת שלא נסגרה",
+  event_anomaly_digest: "חריגות כניסה שנקלטו",
+  event_anomaly_stations: "תחנות עם הכי הרבה חריגות שנרשמו",
+  event_anomaly_scope:
+    "הספירה כוללת רק אירועים שמורים התואמים לדוח הזה. לחיצה על מספר או תחנה מציגה את הרשומות שלה.",
   health_timeline: "היסטוריית בריאות התחנה",
   health_samples: "דגימות זמינות",
   health_observational: "דגימות נצפות, לא זמינות רציפה",

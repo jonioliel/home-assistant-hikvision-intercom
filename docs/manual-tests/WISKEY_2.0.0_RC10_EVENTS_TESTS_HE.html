@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.10 — בדיקות חקירת אירועים</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}
+    *{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:auto;padding:24px}
+    header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}
+    p{margin:.4em 0}.card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}
+    button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+    .muted{color:#526b62}.warning{border-inline-start:4px solid #c78a22;padding-inline-start:12px}
+    a{color:#155d46}@media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.10</p><h1>בדיקות קצרות: דוח חריגות</h1><p>בדיקות הדוח, הסינון והדפדוף עברו אוטומטית. נותר לוודא שהנתונים תואמים לאירועים בתחנות שלך.</p></header>
+  <section class="card"><h2>לאחר העדכון</h2>
+    <label><input type="checkbox" data-id="upgrade"> לאחר עדכון דרך HACS והפעלה מחדש של תשתית המערכת מוצגת גרסת 2.0.0-rc.10, והתחנות, המשתמשים וההרשאות ממשיכים לפעול.</label>
+    <label><input type="checkbox" data-id="report"> במסך אירועים לחץ ״הפקת דוח״. תחת ״חריגות כניסה שנקלטו״ מופיעים בנפרד דחיית כניסה, מגבלת ניסיונות PIN, פתיחה חריגה ודלת שלא נסגרה.</label>
+    <label><input type="checkbox" data-id="counts"> בדוק אירוע חריג מוכר ביומן: הספירה בדוח תואמת לרשומות השמורות, ופירוק התחנות מציג את שם התחנה הנכון.</label>
+    <label><input type="checkbox" data-id="drill"> לחץ על חריגה עם ספירה שאינה אפס. הרשימה נפתחת עם מסנן סוג האירוע המתאים. אם השתמשת מראש בסינון תחנה או זמן, הוא נשמר.</label>
+    <label><input type="checkbox" data-id="mobile"> במכשיר נייד דוח החריגות ופקדי המעבר לרשומות מוצגים ללא גלילה אופקית של המסך.</label>
+  </section>
+  <section class="card"><h2>בדיקות קודמות שעדיין ממתינות לך</h2>
+    <p class="muted">בדיקת <a href="WISKEY_2.0.0_RC9_FLEET_HEALTH_TESTS_HE.html">בריאות הצי והבחירה בין וידאו לתמונות</a>, ובדיקת <a href="WISKEY_2.0.0_RC8_TEMP_ACCESS_TESTS_HE.html">גישה זמנית</a> נשמרו במסמכים הקודמים.</p>
+  </section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם סעיף נכשל, שלח את המסך, הפעולה, התוצאה שציפית לה ומה שהתרחש. אין צורך לשלוח PIN, מספר כרטיס או סיסמה.</p><button id="reset">נקה סימונים</button></section>
+  <p class="muted warning">הדוח מונה רק אירועים שנקלטו ונשמרו. הוא אינו קובע שאירועים שלא מופיעים לא התרחשו.</p>
+  <p class="muted">הסימונים נשמרים בדפדפן הזה בלבד.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.10-events';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

@@ -26,6 +26,39 @@ def test_reports_do_not_count_unlock_as_second_authentication():
     assert report["methods"] == {"pin": 2}
     assert report["by_station"][0]["records"] == 3
     assert report["day_timezone"] == "UTC"
+    assert report["anomalies"]["access_denied"] == 1
+    assert report["anomalies"]["attempt_limit"] == 0
+
+
+def test_anomaly_digest_counts_observed_types_without_inferring_missing_events():
+    rows = [
+        normalized(payload(150)),
+        normalized(payload(148)),
+        normalized(payload(216)),
+        normalized(payload(92)),
+        normalized(payload(214)),
+    ]
+    rows[1]["station_id"] = "b"
+    rows[2]["station_id"] = "b"
+    rows[3]["station_id"] = "b"
+    report = event_report(rows, NOW)
+    assert report["anomalies"] == {
+        "access_denied": 1,
+        "attempt_limit": 1,
+        "unlock_exception": 1,
+        "door_not_closed": 1,
+    }
+    assert report["anomaly_by_station"][0] == {
+        "station_id": "b",
+        "total": 3,
+        "counts": {
+            "access_denied": 0,
+            "attempt_limit": 1,
+            "unlock_exception": 1,
+            "door_not_closed": 1,
+        },
+    }
+    assert sum(row["total"] for row in report["anomaly_by_station"]) == 4
 
 
 def test_report_utc_days_and_empty_counts_are_explicit():

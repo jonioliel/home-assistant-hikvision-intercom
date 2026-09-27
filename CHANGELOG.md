@@ -4,6 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.10] - 2026-09-28
+
+- Add an observed anomaly digest to event activity reports. Count access denials, PIN attempt limits, exceptional unlocks and doors not closed separately from authentication totals, with a ranked station breakdown.
+- Drill into an anomaly type or station using the existing server-side event filters while retaining the report's applied criteria. Counts include only retained events matching the report; no missing activity is inferred.
+
 ## [2.0.0-rc.9] - 2026-09-28
 
 - Add a fleet overview to station health with connected and attention counts, a one-click attention filter, and clear per-station reasons for disconnection, pending synchronization, recorded sync errors, or clock deviation. It uses existing cached reports and current connection state without extra device commands.

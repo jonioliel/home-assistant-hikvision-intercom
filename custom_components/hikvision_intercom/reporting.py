@@ -11,6 +11,8 @@ from .clock import UTC_ZONE, localize
 from .events import timestamp
 from .exceptions import HikvisionValidationError
 
+ANOMALY_TYPES = ("access_denied", "attempt_limit", "unlock_exception", "door_not_closed")
+
 
 def audience_filter(
     filters: dict[str, Any],
@@ -70,6 +72,8 @@ def event_report(
     by_day: dict[str, Counter[str]] = {}
     totals: Counter[str] = Counter()
     methods: Counter[str] = Counter()
+    anomalies: Counter[str] = Counter()
+    anomaly_stations: dict[str, Counter[str]] = {}
     times = []
     for row in rows:
         when = timestamp(row["timestamp"])
@@ -77,6 +81,9 @@ def event_report(
             continue
         times.append(when)
         station = by_station.setdefault(row["station_id"], Counter())
+        if row["event_type"] in ANOMALY_TYPES:
+            anomalies[row["event_type"]] += 1
+            anomaly_stations.setdefault(row["station_id"], Counter())[row["event_type"]] += 1
         zone = (zones or {}).get(row["station_id"], UTC_ZONE)
         day = by_day.setdefault(localize(when, zone).date().isoformat(), Counter())
         # Opening records can accompany credential-authentication events. Keep them
@@ -106,6 +113,17 @@ def event_report(
         "newest": max(times).isoformat() if times else None,
         "totals": counts(totals),
         "methods": dict(sorted(methods.items())),
+        "anomalies": {kind: anomalies[kind] for kind in ANOMALY_TYPES},
+        "anomaly_by_station": [
+            {
+                "station_id": station_id,
+                "total": sum(counter.values()),
+                "counts": {kind: counter[kind] for kind in ANOMALY_TYPES},
+            }
+            for station_id, counter in sorted(
+                anomaly_stations.items(), key=lambda item: (-sum(item[1].values()), item[0])
+            )
+        ],
         "by_station": [
             {"station_id": key, **counts(counter)} for key, counter in sorted(by_station.items())
         ],

@@ -45,6 +45,8 @@ interface ActivityReport {
   newest: string | null;
   totals: Counts;
   methods: Record<string, number>;
+  anomalies?: Record<string, number>;
+  anomaly_by_station?: { station_id: string; total: number; counts: Record<string, number> }[];
   by_station: (Counts & { station_id: string })[];
   by_day: (Counts & { day: string })[];
   storage_failed: boolean;
@@ -85,6 +87,27 @@ export class IntercomEvents extends LitElement {
         background: var(--surface);
         border: 1px solid var(--divider-color, #dce5e6);
         border-radius: 12px;
+      }
+      .anomaly-digest {
+        margin-block: 18px;
+        padding: 16px;
+        border: 1px solid var(--divider-color, #dce5e6);
+        border-radius: 12px;
+      }
+      .anomaly-digest h4 {
+        margin: 0 0 10px;
+      }
+      .anomaly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+        gap: 8px;
+      }
+      .anomaly-grid button {
+        text-align: start;
+      }
+      .anomaly-grid strong {
+        display: block;
+        font-size: 1.4em;
       }
       :host([v4]) .event-filters {
         padding: 10px 14px;
@@ -683,6 +706,41 @@ export class IntercomEvents extends LitElement {
         ${report.totals.recovered}
       </p>
       <p class="field-note">${this.t("report_scope")}</p>
+      ${
+        report.anomalies
+          ? html`<section class="anomaly-digest" aria-label=${this.t("event_anomaly_digest")}>
+              <h4>${this.t("event_anomaly_digest")}</h4>
+              <div class="anomaly-grid">
+                ${["access_denied", "attempt_limit", "unlock_exception", "door_not_closed"].map(
+                  (kind) =>
+                    html`<button
+                      ?disabled=${!report.anomalies?.[kind]}
+                      @click=${() => this.loadQuery({ ...this._filters, event_type: kind })}
+                    >
+                      <strong>${report.anomalies?.[kind] ?? 0}</strong>${this.t(kind)}
+                    </button>`,
+                )}
+              </div>
+              ${
+                report.anomaly_by_station?.length
+                  ? html`<p>${this.t("event_anomaly_stations")}</p>
+                      <div class="toolbar">
+                        ${report.anomaly_by_station.slice(0, 5).map((row) => {
+                          const station = this.stations.find((item) => item.id === row.station_id);
+                          return html`<button
+                            ?disabled=${!station}
+                            @click=${() => this.loadQuery({ ...this._filters, station_id: row.station_id })}
+                          >
+                            ${station?.name ?? this.t("removed_station")} · ${row.total}
+                          </button>`;
+                        })}
+                      </div>`
+                  : nothing
+              }
+              <p class="sub">${this.t("event_anomaly_scope")}</p>
+            </section>`
+          : nothing
+      }
       ${report.membership_basis ? html`<p>${this.t("report_current_membership")}</p>` : nothing}
       ${report.storage_failed ? html`<p class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
       ${Object.entries(report.stations)
