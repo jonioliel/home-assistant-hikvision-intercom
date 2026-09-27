@@ -639,11 +639,11 @@ export class IntercomCamera extends LitElement {
             <div class="actions">
               <button
                 @click=${() => {
-              this.stop();
-              this._failed = false;
-              this.recoveries = 0;
-              void this.start();
-            }}
+                  this.stop();
+                  this._failed = false;
+                  this.recoveries = 0;
+                  void this.start();
+                }}
               >
                 ${this.t("player_retry")}</button
               >${this.exportButton()}
@@ -664,14 +664,14 @@ export class IntercomCamera extends LitElement {
             ? nothing
             : html`<span class="player-status" role="status"
                   >${
-            this._mode === "player_mse"
-              ? "MSE"
-              : this._mode === "player_webrtc"
-                ? "RTC"
-                : this._mode === "player_hls"
-                  ? "HLS"
-                  : this.t(this._mode)
-          }</span
+                    this._mode === "player_mse"
+                      ? "MSE"
+                      : this._mode === "player_webrtc"
+                        ? "RTC"
+                        : this._mode === "player_hls"
+                          ? "HLS"
+                          : this.t(this._mode)
+                  }</span
                 >${this.exportButton()}`
         }`;
     const picture = this.hass?.states[this.entity]?.attributes.entity_picture;
