@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.12 — בדיקות מסלולי מדיה</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}*{box-sizing:border-box}
+    body{margin:0}main{max-width:900px;margin:auto;padding:24px}header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}p{margin:.4em 0}
+    .card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}.muted{color:#526b62}
+    a{color:#155d46}button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+    @media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.12</p><h1>בדיקות קצרות: מסלולי המדיה</h1><p>בדיקות תעבורת השמע, מחזור חיי המיקרופון ופירוש המונים בוצעו אוטומטית. נותר לאמת את התוצאה בציוד ובדפדפנים שלך.</p></header>
+  <section class="card"><h2>בדיקת האבחון</h2>
+    <label><input type="checkbox" data-id="upgrade"> לאחר עדכון HACS והפעלה מחדש, מוצגת גרסה 2.0.0-rc.12.</label>
+    <label><input type="checkbox" data-id="readonly"> פתח מצלמה ← הגדרות שמע ואבחון ← אבחון שמע ← ״בדוק מסלולי מדיה״. בלי לפתוח האזנה או דיבור, מוצגת ראיית וידאו כשהתמונה פועלת, והשמע מצוין כטרם נבדק. הבדיקה עצמה אינה פותחת מיקרופון או משמיעה קול.</label>
+    <label><input type="checkbox" data-id="listen"> פתח האזנה ובדוק שוב. ב־MSE אמורה להופיע רצועת שמע אם היא קיימת; ב־RTC תופיע תעבורה אם התקבלה. ודא בנפרד שאתה שומע בפועל, במחשב ובנייד שבהם אתה משתמש.</label>
+    <label><input type="checkbox" data-id="talk"> רק כשאפשר לבדוק ליד התחנה: פתח דיבור, אמור משפט קצר ולחץ ״בדוק מסלולי מדיה״ בזמן הדיבור. בדוק בנפרד שהמשפט נשמע ברמקול התחנה. בנתוני האבחון ייתכן שיוצגו בתי מיקרופון שנכתבו לתחנה; הם אינם תחליף לבדיקת שמיעה.</label>
+    <label><input type="checkbox" data-id="export"> הורד קובץ אבחון לאחר בדיקת המסלולים. מופיע media_paths_sample עם זמן דגימה, ללא הקלטת שמע או קוד גישה. סגירת החלון והחלפת תחנה אינן מציגות תוצאות של התחנה הקודמת.</label>
+  </section>
+  <section class="card"><h2>העדפת מרכז הכניסה שנכנסה בסבב</h2>
+    <label><input type="checkbox" data-id="entry-mode"> בהגדרות המדיה בחר ״תמונה מתרעננת״: התמונות מתעדכנות כשהן מוצגות, ואין זרמי וידאו בכרטיסים. לחיצה על התמונה פותחת מצלמה חיה. החזר ל״וידאו חי״: כרטיסי המרכז מנגנים ללא קול. הבחירה נשמרת אחרי רענון.</label>
+  </section>
+  <section class="card"><h2>בדיקות הסבבים הקודמים שטרם דיווחת עליהן</h2>
+    <p><a href="WISKEY_2.0.0_RC8_TEMP_ACCESS_TESTS_HE.html">גישה זמנית, אורחים וקבלנים</a> · <a href="WISKEY_2.0.0_RC9_FLEET_HEALTH_TESTS_HE.html">בריאות תחנות</a> · <a href="WISKEY_2.0.0_RC10_EVENTS_TESTS_HE.html">חקירת אירועים</a> · <a href="WISKEY_2.0.0_RC11_OPERATOR_TESTS_HE.html">הרשאות מפעילים</a></p>
+    <p class="muted">אין צורך לחזור על בדיקה שכבר אישרת באותו ציוד ובאותו מסלול, אלא אם השתנה משהו או נמצאה תקלה.</p>
+  </section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם סעיף נכשל, ציין את התחנה, המכשיר, הדפדפן, הפעולה והתוצאה. לצורך שמע אפשר לצרף את קובץ האבחון; אין צורך לשלוח סיסמה, PIN או מספר כרטיס.</p><button id="reset">נקה סימונים</button></section>
+</main><script>
+  const key='wiskey-2.0.0-rc.12-media';
+  for(const input of document.querySelectorAll('input[data-id]')){input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'))}
+  document.getElementById('reset').addEventListener('click',()=>{for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}});
+</script></body></html>

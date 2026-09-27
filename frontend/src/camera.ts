@@ -542,49 +542,47 @@ export class IntercomCamera extends LitElement {
       this.watchProgress();
     }
   }
-  private async exportPlayback() {
-    if (!this.hass?.user?.is_admin) return;
+  async diagnostics(): Promise<Record<string, unknown> | null> {
+    if (!this.hass?.user?.is_admin) return null;
     const generation = this.generation;
     const rtc = this.rtc ? await this.rtc.diagnostics() : (this.previousRTC ?? null);
-    if (generation !== this.generation || !this.isConnected || !this.hass?.user?.is_admin) return;
+    if (generation !== this.generation || !this.isConnected || !this.hass?.user?.is_admin)
+      return null;
     const video = this.renderRoot.querySelector("video");
-    downloadText(
-      JSON.stringify(
-        {
-          format: "hikvision_intercom.playback",
-          schema: 1,
-          integration_version: this.version,
-          generated_at: new Date().toISOString(),
-          started_at: this.startedAt,
-          first_frame_at: this.firstFrameAt,
-          stall_recoveries: this.recoveries,
-          progress: this.watchdog?.summary() ?? this.previousProgress ?? null,
-          mode: this._mode,
-          failed: this._failed,
-          fallback_reason: this._fallbackReason || null,
-          document_visible: this._documentVisible,
-          browser_online: this._networkOnline,
-          width: video?.videoWidth ?? 0,
-          height: video?.videoHeight ?? 0,
-          camera_audio_enabled: this.audioEnabled,
-          media_element_muted: video?.muted ?? true,
-          playback_amplified: !!this.playbackGain,
-          playback_gain: this.playbackGain?.gain.value ?? 1,
-          playback_audio_context: this.playbackContext?.state ?? null,
-          playback_capture_stream: this.playbackUsesCapturedStream,
-          rtc,
-          mse: this.mse?.summary() ?? this.previousMSE ?? null,
-          selected_transport: (this.media ?? DEFAULT_MEDIA).transport,
-          selected_webrtc_mode: (this.media ?? DEFAULT_MEDIA).webrtc_mode,
-          fallback_allowed: (this.media ?? DEFAULT_MEDIA).fallback_hls,
-          active_transport: this.activeTransport,
-        },
-        null,
-        2,
-      ),
-      "hikvision-playback.json",
-      "application/json",
-    );
+    return {
+      format: "hikvision_intercom.playback",
+      schema: 1,
+      integration_version: this.version,
+      generated_at: new Date().toISOString(),
+      started_at: this.startedAt,
+      first_frame_at: this.firstFrameAt,
+      stall_recoveries: this.recoveries,
+      progress: this.watchdog?.summary() ?? this.previousProgress ?? null,
+      mode: this._mode,
+      failed: this._failed,
+      fallback_reason: this._fallbackReason || null,
+      document_visible: this._documentVisible,
+      browser_online: this._networkOnline,
+      width: video?.videoWidth ?? 0,
+      height: video?.videoHeight ?? 0,
+      camera_audio_enabled: this.audioEnabled,
+      media_element_muted: video?.muted ?? true,
+      playback_amplified: !!this.playbackGain,
+      playback_gain: this.playbackGain?.gain.value ?? 1,
+      playback_audio_context: this.playbackContext?.state ?? null,
+      playback_capture_stream: this.playbackUsesCapturedStream,
+      rtc,
+      mse: this.mse?.summary() ?? this.previousMSE ?? null,
+      selected_transport: (this.media ?? DEFAULT_MEDIA).transport,
+      selected_webrtc_mode: (this.media ?? DEFAULT_MEDIA).webrtc_mode,
+      fallback_allowed: (this.media ?? DEFAULT_MEDIA).fallback_hls,
+      active_transport: this.activeTransport,
+    };
+  }
+  private async exportPlayback() {
+    const report = await this.diagnostics();
+    if (!report) return;
+    downloadText(JSON.stringify(report, null, 2), "hikvision-playback.json", "application/json");
   }
   private exportButton() {
     return html`<button class="playback-export" @click=${() => this.exportPlayback()}>
