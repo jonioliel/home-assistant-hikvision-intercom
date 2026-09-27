@@ -208,6 +208,8 @@ def test_cache_dedupe_persistence_bounds_and_filters():
         == 1
     )
     assert not cache.query({"station_id": "other"}, NOW)["records"]
+    assert len(cache.query({"event_type": "access_denied"}, NOW)["records"]) == 1
+    assert not cache.query({"event_type": "attempt_limit"}, NOW)["records"]
 
 
 @pytest.mark.parametrize(
@@ -220,6 +222,7 @@ def test_cache_dedupe_persistence_bounds_and_filters():
         {"start": "bad"},
         {"before": "missing"},
         {"result": "invented"},
+        {"event_type": "invented"},
     ],
 )
 def test_query_rejects_invalid_filters(filters):

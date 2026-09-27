@@ -15,6 +15,7 @@ export function checkedReportQuery(value: unknown): ReportQuery {
     "person",
     "result",
     "authentication",
+    "event_type",
     "door",
     "start",
     "end",
@@ -43,7 +44,7 @@ export function checkedReportQuery(value: unknown): ReportQuery {
         )
           throw Error();
     } else if (key === "door") {
-      if (raw !== 1) throw Error();
+      if (![1, 2].includes(raw as number)) throw Error();
     } else if (typeof raw !== "string" || !raw || raw.length > 128 || /[\x00-\x1f]/.test(raw))
       throw Error();
     else if (
@@ -53,6 +54,24 @@ export function checkedReportQuery(value: unknown): ReportQuery {
       throw Error();
     else if (key === "result" && !["granted", "denied", "unknown"].includes(raw)) throw Error();
     else if (key === "authentication" && !["card", "pin", "unknown"].includes(raw)) throw Error();
+    else if (
+      key === "event_type" &&
+      ![
+        "access_granted",
+        "access_denied",
+        "door_unlocked",
+        "door_locked",
+        "contact_open",
+        "contact_closed",
+        "unlock_exception",
+        "attempt_limit",
+        "unlock_record",
+        "door_not_opened",
+        "door_not_closed",
+        "unknown",
+      ].includes(raw)
+    )
+      throw Error();
   }
   if (v.start && v.end && Date.parse(String(v.start)) >= Date.parse(String(v.end))) throw Error();
   return structuredClone(v);

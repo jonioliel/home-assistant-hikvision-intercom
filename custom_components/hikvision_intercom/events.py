@@ -311,6 +311,7 @@ class EventCache:
             "person",
             "result",
             "authentication",
+            "event_type",
             "door",
             "start",
             "end",
@@ -325,6 +326,7 @@ class EventCache:
         for field, values in (
             ("result", {"granted", "denied", "unknown"}),
             ("authentication", {"card", "pin", "unknown"}),
+            ("event_type", set(EVENT_TYPES)),
         ):
             if field in filters and (
                 not isinstance(filters[field], str) or filters[field] not in values
@@ -360,7 +362,7 @@ class EventCache:
                 continue
             if any(
                 field in filters and row[field] != filters[field]
-                for field in ("station_id", "result", "authentication", "door")
+                for field in ("station_id", "result", "authentication", "event_type", "door")
             ):
                 continue
             if (

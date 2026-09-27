@@ -24,6 +24,43 @@ const emptyPolicy = (): Policy => ({
   enabled: false,
   areas: { overview: "none", users: "none", events: "none", stations: "none", management: "none" },
 });
+const rolePresets: Record<string, Record<Area, Level>> = {
+  reception: {
+    overview: "manage",
+    users: "view",
+    events: "view",
+    stations: "none",
+    management: "none",
+  },
+  security: {
+    overview: "manage",
+    users: "view",
+    events: "manage",
+    stations: "view",
+    management: "none",
+  },
+  personnel: {
+    overview: "view",
+    users: "manage",
+    events: "view",
+    stations: "none",
+    management: "none",
+  },
+  maintenance: {
+    overview: "view",
+    users: "none",
+    events: "view",
+    stations: "manage",
+    management: "none",
+  },
+  auditor: {
+    overview: "view",
+    users: "view",
+    events: "view",
+    stations: "view",
+    management: "view",
+  },
+};
 
 export class WiskeyAccessControl extends LitElement {
   static properties = {
@@ -99,6 +136,12 @@ export class WiskeyAccessControl extends LitElement {
     policy.areas[area] = level;
     policy.enabled = Object.values(policy.areas).some((value) => value !== "none");
     this._draft = { ...this._draft, [id]: policy };
+    this._saved = false;
+  }
+  private applyPreset(id: string, preset: string) {
+    const levels = rolePresets[preset];
+    if (!levels) return;
+    this._draft = { ...this._draft, [id]: { enabled: true, areas: { ...levels } } };
     this._saved = false;
   }
   private async save() {
@@ -319,20 +362,36 @@ export class WiskeyAccessControl extends LitElement {
               </div>
               ${
                 !user.admin
-                  ? html`<div class="areas">
-                      ${areas.map(
-                        (area) =>
-                          html`<label
-                            >${this.areaLabel(area)}<select
-                              .value=${policy.areas[area]}
-                              ?disabled=${this._busy || !user.active || !policy.enabled}
-                              @change=${(event: Event) => this.changeLevel(user.id, area, (event.target as HTMLSelectElement).value as Level)}
-                            >
-                              ${(["none", "view", "manage"] as Level[]).map((level) => html`<option value=${level}>${this.levelLabel(level)}</option>`)}
-                            </select></label
-                          >`,
-                      )}
-                    </div>`
+                  ? html`<label class="hint"
+                        >${this.text("Role template", "תבנית תפקיד")}
+                        <select
+                          aria-label=${this.text("Role template for ", "תבנית תפקיד עבור ") + (user.name || user.id)}
+                          ?disabled=${this._busy || !user.active}
+                          .value=${Object.entries(rolePresets).find(([, levels]) => JSON.stringify(levels) === JSON.stringify(policy.areas))?.[0] ?? "custom"}
+                          @change=${(event: Event) => this.applyPreset(user.id, (event.target as HTMLSelectElement).value)}
+                        >
+                          <option value="custom">${this.text("Custom", "מותאם אישית")}</option>
+                          <option value="reception">${this.text("Reception", "קבלה")}</option>
+                          <option value="security">${this.text("Security", "אבטחה")}</option>
+                          <option value="personnel">${this.text("Personnel", "כוח אדם")}</option>
+                          <option value="maintenance">${this.text("Maintenance", "תחזוקה")}</option>
+                          <option value="auditor">${this.text("Auditor", "מבקר")}</option>
+                        </select></label
+                      >
+                      <div class="areas">
+                        ${areas.map(
+                          (area) =>
+                            html`<label
+                              >${this.areaLabel(area)}<select
+                                .value=${policy.areas[area]}
+                                ?disabled=${this._busy || !user.active || !policy.enabled}
+                                @change=${(event: Event) => this.changeLevel(user.id, area, (event.target as HTMLSelectElement).value as Level)}
+                              >
+                                ${(["none", "view", "manage"] as Level[]).map((level) => html`<option value=${level}>${this.levelLabel(level)}</option>`)}
+                              </select></label
+                            >`,
+                        )}
+                      </div>`
                   : nothing
               }
             </article>`;

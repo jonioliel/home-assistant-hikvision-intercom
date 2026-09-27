@@ -196,6 +196,8 @@ export class IntercomManagerPanel extends LitElement {
     _onboarding: { state: true },
     _pinStatus: { state: true },
     _pinChecking: { state: true },
+    _guestStep: { state: true },
+    _guestPinVisible: { state: true },
   };
   hass?: Hass;
   private contractSource?: Hass;
@@ -448,6 +450,8 @@ export class IntercomManagerPanel extends LitElement {
   private _pinChecking = false;
   private _pinCheckTimer?: ReturnType<typeof setTimeout>;
   private _pinCheckSequence = 0;
+  private _guestStep = 1;
+  private _guestPinVisible = false;
   private _validityInputZone: DisplayZone = UTC_ZONE;
   private _importRows: Inventory[] = [];
   private _importStation = "";
@@ -994,7 +998,7 @@ export class IntercomManagerPanel extends LitElement {
     }
   }
   private refreshValidityZone() {
-    if (this._dialog !== "editor" || !this._draft) return;
+    if (!["editor", "guest"].includes(this._dialog) || !this._draft) return;
     if (
       this._validityStation &&
       this._validityStation !== "__utc__" &&
@@ -1140,6 +1144,64 @@ export class IntercomManagerPanel extends LitElement {
     this._editorBaseline = JSON.stringify(this._draft);
     this._error = "";
     this._dialog = "editor";
+  }
+  private createGuest() {
+    this.edit();
+    if (!this._draft) return;
+    this._draft.timed = true;
+    this._validityStation = "";
+    this._validityInputZone = structuredClone(this.validityZone());
+    const start = new Date();
+    start.setMinutes(start.getMinutes() + 5);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    this._draft.valid_from = start.toISOString();
+    this._draft.valid_until = end.toISOString();
+    this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
+    this._guestStep = 1;
+    this._guestPinVisible = false;
+    this._dialog = "guest";
+  }
+  private guestHasCredential() {
+    return !!this._draft?.pin || !!this._draft?.cards.some((card) => card.enabled && card.card_no);
+  }
+  private guestToggleLock(stationId: string, physicalIndex: number, enabled: boolean) {
+    const assignment = this._draft?.assignments[stationId];
+    if (!assignment) return;
+    const selected = enabled
+      ? [...assignment.allowed_locks, physicalIndex]
+      : assignment.allowed_locks.filter((item) => item !== physicalIndex);
+    if (selected.length) {
+      assignment.allowed_locks = selected;
+      this.requestUpdate();
+    } else this.setPersonalPermission(stationId, "deny");
+  }
+  private guestNext() {
+    const draft = this._draft;
+    if (!draft) return;
+    try {
+      this.readValidity();
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+      return;
+    }
+    if (!draft.display_name.trim() || draft.display_name.length > 32) {
+      this._error = this.t("guest_name_required");
+    } else if (
+      !draft.valid_from ||
+      !draft.valid_until ||
+      Date.parse(draft.valid_until) <= Date.now() ||
+      Date.parse(draft.valid_from) >= Date.parse(draft.valid_until)
+    ) {
+      this._error = this.t("invalid_validity");
+    } else if (!this.guestHasCredential()) {
+      this._error = this.t("guest_credential_required");
+    } else if (draft.pin && (draft.pin !== draft.confirm_pin || this._pinStatus === "in_use")) {
+      this._error = this.t(draft.pin !== draft.confirm_pin ? "pin_mismatch" : "pin_conflict");
+    } else {
+      this._error = "";
+      this._guestStep = 2;
+    }
   }
   private patchDraft(key: string, newValue: unknown) {
     if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
@@ -1319,6 +1381,16 @@ export class IntercomManagerPanel extends LitElement {
     const sync_now = (event.submitter as HTMLButtonElement | null)?.value === "sync";
     const draft = this._draft;
     if (!draft || this._busy) return;
+    if (this._dialog === "guest") {
+      if (
+        this._guestStep !== 2 ||
+        !this.guestHasCredential() ||
+        !Object.values(draft.assignments).some((assignment) => assignment.enabled)
+      ) {
+        this._error = this.t("guest_door_required");
+        return;
+      }
+    }
     try {
       if (draft.timed) this.readValidity();
     } catch (e) {
@@ -2442,7 +2514,12 @@ export class IntercomManagerPanel extends LitElement {
         language: this.hass?.language ?? "en",
         t: (key) => this.t(key),
         date: (value) => this.dateText(value),
-        camera: (station) => this.camera(station, !this._dialog, true),
+        camera: (station) =>
+          this.camera(
+            station,
+            !this._dialog && this._data?.media_settings?.overview_preview_mode !== "snapshot",
+            true,
+          ),
         release: (station) => this.releaseButton(station, true, true),
         feedback: (station) => this.releaseFeedback(station),
         search: (value) => {
@@ -2471,6 +2548,7 @@ export class IntercomManagerPanel extends LitElement {
         addUser: () => this.edit(),
         sync: () => this.navigate("sync"),
         cameraWall: () => this.navigate("camera_wall"),
+        snapshotPreview: this._data.media_settings?.overview_preview_mode === "snapshot",
       });
     if (this._accessMode && this._data)
       return accessOverview({
@@ -2791,6 +2869,12 @@ export class IntercomManagerPanel extends LitElement {
             ?disabled=${this._busy || !this.canManage("users")}
           >
             + ${this.t("add_user")}
+          </button>
+          <button
+            @click=${() => this.createGuest()}
+            ?disabled=${this._busy || !this.canManage("users")}
+          >
+            + ${this.t("guest_create")}
           </button>
         </div>
         <div class="toolbar users-tools">
@@ -4233,6 +4317,191 @@ export class IntercomManagerPanel extends LitElement {
         </fieldset>
       </form>`;
   }
+  private guestBody() {
+    const draft = this._draft!;
+    const stations = (this._data?.stations ?? []).filter((station) => station.lock_enabled);
+    return html`<form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
+      <p class="field-note">${this.t("guest_intro")}</p>
+      <p class="field-note">${this.t("guest_step").replace("{step}", String(this._guestStep))}</p>
+      ${
+        this._guestStep === 1
+          ? html` <div class="fields">
+                <label
+                  >${this.t("name")}<input
+                    required
+                    maxlength="32"
+                    .value=${draft.display_name}
+                    @input=${(event: Event) => this.patchDraft("display_name", value(event))}
+                /></label>
+                <label
+                  >${this.t("phone")}<input
+                    type="tel"
+                    autocomplete="tel"
+                    dir="ltr"
+                    maxlength="32"
+                    placeholder="05X-xxx-xxxx"
+                    .value=${draft.phone ?? ""}
+                    @input=${(event: Event) => this.patchDraft("phone", mobileDisplay(value(event)))}
+                /></label>
+              </div>
+              <fieldset>
+                <legend>${this.t("guest_window")}</legend>
+                <p class="field-note">${this.t("guest_window_hint")}</p>
+                <label
+                  >${this.t("clock_validity_basis")}<select
+                    @change=${(event: Event) => this.changeValidityZone(value(event))}
+                  >
+                    <option value="" ?selected=${this._validityStation === ""}>
+                      ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
+                    </option>
+                    <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
+                      UTC
+                    </option>
+                    ${stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
+                  </select></label
+                >
+                <div class="fields">
+                  <label
+                    >${this.t("valid_from")}<input
+                      type="datetime-local"
+                      required
+                      .value=${live(this._validityFrom)}
+                      @input=${(event: Event) => {
+                        this._validityFrom = value(event);
+                      }}
+                  /></label>
+                  <label
+                    >${this.t("valid_until")}<input
+                      type="datetime-local"
+                      required
+                      .value=${live(this._validityUntil)}
+                      @input=${(event: Event) => {
+                        this._validityUntil = value(event);
+                      }}
+                  /></label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>${this.t("guest_credential")}</legend>
+                <p class="field-note">${this.t("guest_credential_hint")}</p>
+                <div class="fields">
+                  <label
+                    >${this.t("pin")}<input
+                      type=${this._guestPinVisible ? "text" : "password"}
+                      inputmode="numeric"
+                      autocomplete="new-password"
+                      pattern="[0-9]*"
+                      maxlength="128"
+                      .value=${live(draft.pin ?? "")}
+                      @input=${(event: Event) => this.changePin(value(event))}
+                  /></label>
+                  <label
+                    >${this.t("confirm_pin")}<input
+                      type=${this._guestPinVisible ? "text" : "password"}
+                      inputmode="numeric"
+                      autocomplete="new-password"
+                      pattern="[0-9]*"
+                      maxlength="128"
+                      .value=${live(draft.confirm_pin)}
+                      @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
+                  /></label>
+                </div>
+                <div class="row actions">
+                  <button
+                    type="button"
+                    @click=${() => this.generatePin()}
+                    ?disabled=${this._busy || this._pinChecking}
+                  >
+                    ${this.t("generate_unique_pin")}
+                  </button>
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      .checked=${this._guestPinVisible}
+                      @change=${(event: Event) => {
+                        this._guestPinVisible = checked(event);
+                      }}
+                    />${this.t("guest_show_pin")}</label
+                  >
+                </div>
+                ${this._pinStatus === "in_use" ? html`<p class="notice error" role="alert">${this.t("pin_conflict")}</p>` : nothing}
+                <label
+                  >${this.t("card_number")}<input
+                    dir="ltr"
+                    maxlength="32"
+                    pattern="[A-Za-z0-9_-]*"
+                    autocomplete="off"
+                    .value=${draft.cards[0]?.card_no ?? ""}
+                    @input=${(event: Event) => {
+                      const card = value(event);
+                      draft.cards = card
+                        ? [{ label: "", card_no: card, card_type: "normalCard", enabled: true }]
+                        : [];
+                      this.requestUpdate();
+                    }}
+                /></label>
+              </fieldset>`
+          : html` <fieldset>
+                <legend>${this.t("guest_doors")}</legend>
+                <p class="field-note">${this.t("guest_doors_hint")}</p>
+                <div class="assignment-list">
+                  ${stations.map(
+                    (station) =>
+                      html`<div class="assignment">
+                        <label class="check"
+                          ><input
+                            type="checkbox"
+                            .checked=${!!draft.assignments[station.id]?.enabled}
+                            @change=${(event: Event) => this.setPersonalPermission(station.id, checked(event) ? "allow" : "deny")}
+                          /><strong>${station.name}</strong></label
+                        >
+                        ${
+                          draft.assignments[station.id]?.enabled &&
+                          station.integrated_locks.length > 1
+                            ? html`<div class="row">
+                                ${station.integrated_locks.map(
+                                  (lock) =>
+                                    html`<label class="check"
+                                      ><input
+                                        type="checkbox"
+                                        .checked=${draft.assignments[station.id].allowed_locks.includes(lock.physical_index)}
+                                        @change=${(event: Event) =>
+                                          this.guestToggleLock(
+                                            station.id,
+                                            lock.physical_index,
+                                            checked(event),
+                                          )}
+                                      />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label
+                                    >`,
+                                )}
+                              </div>`
+                            : nothing
+                        }
+                      </div>`,
+                  )}
+                </div>
+              </fieldset>
+              <div class="box">
+                <strong>${this.t("guest_review")}</strong>
+                <p>
+                  ${draft.display_name} · ${this.dateText(draft.valid_from)} —
+                  ${this.dateText(draft.valid_until)}
+                </p>
+                <p>${this.t("guest_credential")}: ${draft.pin ? this.t("pin") : this.t("cards")}</p>
+                <p>
+                  ${this.t("selected_stations")}:
+                  ${
+                    stations
+                      .filter((station) => draft.assignments[station.id]?.enabled)
+                      .map((station) => station.name)
+                      .join(", ") || "—"
+                  }
+                </p>
+                <p class="field-note">${this.t("guest_sync_hint")}</p>
+              </div>`
+      }
+    </form>`;
+  }
   private importBody() {
     return html`<p class="field-note">${this.t("import_hint")}</p>
       <div class="toolbar">
@@ -4571,15 +4840,17 @@ export class IntercomManagerPanel extends LitElement {
         ? this.t("capture_card")
         : this._dialog === "editor"
           ? this.t(this._draft?.id ? "edit_user" : "add_user")
-          : this._dialog === "csv"
-            ? this.t("csv_import")
-            : this._dialog === "import"
-              ? this.t("import_title")
-              : ["camera", "station_activity"].includes(this._dialog)
-                ? cameraStation?.name
-                : this.t("review");
+          : this._dialog === "guest"
+            ? this.t("guest_create")
+            : this._dialog === "csv"
+              ? this.t("csv_import")
+              : this._dialog === "import"
+                ? this.t("import_title")
+                : ["camera", "station_activity"].includes(this._dialog)
+                  ? cameraStation?.name
+                  : this.t("review");
     return html`<dialog
-      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : this._dialog === "editor" ? "editor-dialog" : ""}
+      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : ["editor", "guest"].includes(this._dialog) ? "editor-dialog" : ""}
       aria-label=${title ?? ""}
       @cancel=${(event: Event) => {
         event.preventDefault();
@@ -4608,28 +4879,69 @@ export class IntercomManagerPanel extends LitElement {
               ? this.csvBody()
               : this._dialog === "editor"
                 ? this.editorBody()
-                : this._dialog === "import"
-                  ? this.importBody()
-                  : this._dialog === "review"
-                    ? this.reviewBody()
-                    : this._dialog === "station_activity" && cameraStation
-                      ? html`${this.lastAccess(cameraStation)}
-                          <p>${this.t("pending_users")}: ${cameraStation.pending_user_count}</p>
-                          ${this.badge(cameraStation.sync_state)}${this.callControls(cameraStation, true)}<button
-                            @click=${() => {
-                              this._deviceFocus = cameraStation.id;
-                              this.close();
-                              this.navigate("devices");
-                            }}
-                          >
-                            ${this.t("station_details")}
-                          </button>`
-                      : cameraStation
-                        ? this.cameraBody(cameraStation)
-                        : nothing
+                : this._dialog === "guest"
+                  ? this.guestBody()
+                  : this._dialog === "import"
+                    ? this.importBody()
+                    : this._dialog === "review"
+                      ? this.reviewBody()
+                      : this._dialog === "station_activity" && cameraStation
+                        ? html`${this.lastAccess(cameraStation)}
+                            <p>${this.t("pending_users")}: ${cameraStation.pending_user_count}</p>
+                            ${this.badge(cameraStation.sync_state)}${this.callControls(cameraStation, true)}<button
+                              @click=${() => {
+                                this._deviceFocus = cameraStation.id;
+                                this.close();
+                                this.navigate("devices");
+                              }}
+                            >
+                              ${this.t("station_details")}
+                            </button>`
+                        : cameraStation
+                          ? this.cameraBody(cameraStation)
+                          : nothing
         }
       </div>
-      <div class="dialog-foot" ?hidden=${this._dialog === "camera"}>
+      ${
+        this._dialog === "guest"
+          ? html`<div class="dialog-foot">
+              <button type="button" @click=${() => this.close()} ?disabled=${this._busy}>
+                ${this.t("cancel")}
+              </button>
+              ${
+                this._guestStep === 1
+                  ? html`<button
+                      type="button"
+                      class="primary"
+                      @click=${() => this.guestNext()}
+                      ?disabled=${this._busy || this._pinChecking}
+                    >
+                      ${this.t("guest_next")}
+                    </button>`
+                  : html` <button
+                        type="button"
+                        @click=${() => {
+                          this._error = "";
+                          this._guestStep = 1;
+                        }}
+                        ?disabled=${this._busy}
+                      >
+                        ${this.t("guest_back")}
+                      </button>
+                      <button
+                        class="primary"
+                        type="submit"
+                        form="user-form"
+                        value="sync"
+                        ?disabled=${this._busy || this._pinStatus === "in_use"}
+                      >
+                        ${this.t(this._busy ? "wait" : "guest_save_sync")}
+                      </button>`
+              }
+            </div>`
+          : nothing
+      }
+      <div class="dialog-foot" ?hidden=${this._dialog === "camera" || this._dialog === "guest"}>
         ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;

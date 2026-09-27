@@ -9,6 +9,30 @@ async function setup(page, path = "/") {
     const results = {};
     let revision = 0;
     window.demoHass.callWS = async (message) => {
+      if (message.type.endsWith("/health/history")) {
+        window.calls.push(message);
+        return {
+          station_id: message.station_id,
+          period_days: 7,
+          storage_failed: false,
+          records: [
+            {
+              at: "2026-09-09T11:55:00Z",
+              online: true,
+              poll_ms: 38,
+              sync: "synced",
+              events: "connected",
+            },
+            {
+              at: "2026-09-09T12:00:00Z",
+              online: false,
+              poll_ms: null,
+              sync: "offline",
+              events: "retrying",
+            },
+          ],
+        };
+      }
       if (message.type.includes("/health/")) {
         window.calls.push(message);
         return {
@@ -91,6 +115,21 @@ async function setup(page, path = "/") {
     };
   });
 }
+
+test("station health displays sampled history without issuing a device refresh", async ({
+  page,
+}) => {
+  await setup(page);
+  await navigate(page, "Health & field tests");
+  const health = page.locator("hikvision-intercom-health");
+  await expect(health.locator(".health-timeline").first().locator("span")).toHaveCount(2);
+  await expect(health.locator(".health-history").first()).toContainText("Online samples: 1/2");
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((call) => call.type.endsWith("health/refresh")).length,
+    ),
+  ).toBe(0);
+});
 
 test("health shows queue reasons and refreshes selected stations only", async ({ page }) => {
   await setup(page);

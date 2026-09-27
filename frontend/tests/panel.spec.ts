@@ -264,7 +264,7 @@ test("audit filters render historical records with masked credentials", async ({
   await view.getByLabel("Result", { exact: true }).selectOption("denied");
   await view.getByRole("button", { name: "Apply filters" }).click();
   await expect(view.locator("article")).toHaveCount(1);
-  await expect(view.getByText("Authentication rejected", { exact: true })).toBeVisible();
+  await expect(view.getByRole("heading", { name: "Authentication rejected" })).toBeVisible();
   expect(
     await page.evaluate(
       () => window.calls.filter((c) => c.type.endsWith("events/list")).at(-1).filters.result,

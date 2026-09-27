@@ -35,6 +35,45 @@ test("desktop filters remain open and report only applied criteria", async ({ pa
   await expect(events.locator(".audit-row")).toHaveCount(2);
 });
 
+test("investigation shortcuts apply server-side event filters", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  const events = page.locator("hikvision-intercom-events");
+  await events.getByRole("button", { name: "PIN attempt limit" }).click();
+  await expect(events.locator(".event-filters summary")).toContainText("Applied: 1");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.calls.filter((call) => call.type.endsWith("events/list")).at(-1)?.filters
+            .event_type,
+      ),
+    )
+    .toBe("attempt_limit");
+  await events.getByRole("button", { name: "Denied entries" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.calls.filter((call) => call.type.endsWith("events/list")).at(-1)?.filters.result,
+      ),
+    )
+    .toBe("denied");
+  if (!(await events.getByLabel("Event type", { exact: true }).isVisible()))
+    await events.locator(".event-filters summary").click();
+  await events.getByLabel("Event type", { exact: true }).selectOption("door_not_closed");
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          window.calls.filter((call) => call.type.endsWith("events/list")).at(-1)?.filters
+            .event_type,
+      ),
+    )
+    .toBe("door_not_closed");
+});
+
 test("filter disclosure preserves an unapplied draft through a list refresh", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

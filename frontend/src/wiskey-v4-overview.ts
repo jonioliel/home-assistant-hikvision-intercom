@@ -35,6 +35,7 @@ export interface WiskeyOverviewOptions {
   addUser: () => void;
   sync: () => void;
   cameraWall: () => void;
+  snapshotPreview: boolean;
 }
 
 /** WisKey 04 overview: real HA data and the established command callbacks. */
@@ -186,7 +187,7 @@ export function wiskeyOverview(o: WiskeyOverviewOptions) {
         </div>
         ${!matches.length ? html`<p class="empty">${o.t(all.length ? "no_results" : "no_stations")}</p>` : nothing}
         <div class="wk4-grid-foot">
-          <span>${o.t("wall_preview_hint")}</span>
+          <span>${o.t(o.snapshotPreview ? "wall_snapshot_hint" : "wall_preview_hint")}</span>
           ${
             pages > 1
               ? html`<div class="wk4-pager">

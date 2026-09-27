@@ -949,6 +949,18 @@ export class IntercomEvents extends LitElement {
           ${this.t("refresh")}
         </button>
       </div>
+      <div class="toolbar" aria-label=${this.t("event_investigation_quick")}>
+        <span>${this.t("event_investigation_quick")}</span>
+        <button @click=${() => this.loadQuery({ result: "denied" })}>
+          ${this.t("event_quick_denied")}
+        </button>
+        <button @click=${() => this.loadQuery({ event_type: "attempt_limit" })}>
+          ${this.t("event_quick_pin_limit")}
+        </button>
+        <button @click=${() => this.loadQuery({ event_type: "door_not_closed" })}>
+          ${this.t("event_quick_door_open")}
+        </button>
+      </div>
       <details
         class="filter-panel event-filters"
         .open=${this._filtersOpen}
@@ -1003,6 +1015,12 @@ export class IntercomEvents extends LitElement {
             >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
               <option value="">${this.t("all")}</option>
               ${["granted", "denied", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("event_type")}<select name="event_type" aria-label=${this.t("event_type")}>
+              <option value="">${this.t("all")}</option>
+              ${["access_granted", "access_denied", "attempt_limit", "unlock_exception", "door_not_closed", "door_not_opened", "contact_open", "contact_closed", "door_unlocked", "door_locked", "unlock_record", "unknown"].map((kind) => html`<option value=${kind}>${this.t(kind)}</option>`)}
             </select></label
           >
           <label

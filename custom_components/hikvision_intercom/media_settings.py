@@ -16,6 +16,7 @@ DEFAULTS = {
     "webrtc_mode": "rtc",
     "fallback_hls": True,
     "go2rtc_url": "",
+    "overview_preview_mode": "live",
     "talk_mode": "ptt",
     "tts_engine_id": "",
     "tts_language": "",
@@ -36,6 +37,8 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
     if values["transport"] not in ("hls", "webrtc") or values["webrtc_mode"] not in ("rtc", "mse"):
         raise AccessError("invalid_fields")
     if values["talk_mode"] not in ("ptt", "toggle"):
+        raise AccessError("invalid_fields")
+    if values["overview_preview_mode"] not in ("live", "snapshot"):
         raise AccessError("invalid_fields")
     if type(values["fallback_hls"]) is not bool:
         raise AccessError("invalid_fields")

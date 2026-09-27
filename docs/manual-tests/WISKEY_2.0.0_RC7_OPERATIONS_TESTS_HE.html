@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.7 — בדיקות ממוקדות לאחר עדכון</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}
+    *{box-sizing:border-box}body{margin:0}main{max-width:920px;margin:auto;padding:24px}
+    header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}
+    p{margin:.4em 0}.card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}
+    button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+    .muted{color:#526b62}.warning{border-inline-start:4px solid #c78a22;padding-inline-start:12px}
+    a{color:#155d46}@media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.7</p><h1>בדיקות קצרות להתקנה החיה</h1><p>רק בדיקות שתלויות בדפדפן, בקצב הרשת או בתחנות שלך. בדיקות הקוד והמסכים מבוצעות אוטומטית.</p></header>
+  <section class="card"><h2>תצוגת מרכז הכניסה — חובה לגרסה זו</h2>
+    <label><input type="checkbox" data-id="upgrade"> לאחר עדכון והפעלת תשתית המערכת מחדש, WisKey מציג גרסה 2.0.0-rc.7 ותחנות קיימות נשארות זמינות.</label>
+    <label><input type="checkbox" data-id="live"> בהגדרות ← וידאו, שמע והודעות קוליות בחר ״וידאו חי״. במרכז הכניסה רואים וידאו חי שקט, ללא שמע אוטומטי.</label>
+    <label><input type="checkbox" data-id="snapshot"> בחר ״תמונה מתרעננת״. התמונה מתחלפת בערך כל 10 שניות כשהכרטיס גלוי, בלי ניגון רציף. בחיבור אטי בדוק שהמסך נוח יותר לשימוש.</label>
+    <label><input type="checkbox" data-id="open"> לחץ על גוף התמונה בשני המצבים: חלון המצלמה החיה נפתח, ופתיחת השמע עדיין דורשת פעולה מפורשת.</label>
+    <label><input type="checkbox" data-id="reload"> רענן את הדפדפן: ההעדפה שנבחרה נשמרת. החזר את המצב הרצוי לשימוש קבוע.</label>
+  </section>
+  <section class="card"><h2>גישה זמנית — רק עם משתמש בדיקה</h2>
+    <p class="warning">בחר אדם וקוד בדיקה, דלת מתאימה וטווח קצר. מחוץ לטווח הזמן התחנה צריכה לדחות את הגישה; בדיקת UI או סטטוס ״מסונכרן״ לבדם אינם הוכחה לכך.</p>
+    <label><input type="checkbox" data-id="guest"> באנשים פתח ״הקמת גישה זמנית״, קבע התחלה וסיום, PIN או כרטיס, ודלת אחת. ודא שבסקירה מופיעים אותם תוקף ודלתות.</label>
+    <label><input type="checkbox" data-id="sync"> לאחר יצירה וסנכרון, ודא שבמסך הסנכרון התחנה שנבחרה מסונכרנת. אם אינה מסונכרנת, אל תנסה להסיק שההרשאה הופצה.</label>
+    <label><input type="checkbox" data-id="physical"> ליד התחנה, בדוק גישה בתוך הטווח ודחייה מחוצה לו. בסיום הסר או השבת את משתמש הבדיקה.</label>
+  </section>
+  <section class="card"><h2>תצפית וחקירה</h2>
+    <label><input type="checkbox" data-id="health"> בבריאות תחנה בדוק שהיסטוריית הזמינות מופיעה. לאחר ניתוק/חיבור אמיתי, ודא שמעבר המצב נרשם; אין צורך לנתק תחנה רק לצורך הבדיקה.</label>
+    <label><input type="checkbox" data-id="events"> באירועים הפעל קיצור דחיות או סנן לפי סוג אירוע. התוצאות מתאימות לתחנה ולסוג שנבחר, וייצוא/דוח משתמשים באותו סינון.</label>
+    <label><input type="checkbox" data-id="permissions"> אם יש משתמש מפעיל שאינו מנהל, בחר לו תבנית הרשאה ובדוק בחשבון שלו שהוא רואה רק את האזורים שנשמרו. אל תשתמש בתבנית כתחליף להגבלה לפי תחנה: יכולת זו עדיין בפיתוח.</label>
+  </section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם סעיף נכשל, שלח את שם התחנה, שם המסך, מה ציפית ומה קרה בפועל. לצילום בעיית שמע ציין מחשב/נייד ודפדפן. אין צורך לשלוח PIN, מספר כרטיס או סיסמה.</p><button id="reset">נקה סימונים</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן הזה בלבד. פירוט הסבב והמשימות שנותרו ב<a href="../OPERATIONS_SPRINT_2_0_RC7_HE.md">מסמך ההתקדמות</a>.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.7-operations';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>
