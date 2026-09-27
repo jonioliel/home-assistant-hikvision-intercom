@@ -210,7 +210,7 @@ export class WiskeyAccessControl extends LitElement {
   }
   private invalidatePreview(id: string) {
     this.previewGeneration++;
-    if (this._previewBusy === id) this._previewBusy = "";
+    this._previewBusy = "";
     if (this._previews[id]) {
       const next = { ...this._previews };
       delete next[id];
