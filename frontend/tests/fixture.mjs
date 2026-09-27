@@ -376,6 +376,28 @@ const fake = {
           { id: "reader-user", name: "Reception", active: true, admin: false, owner: false },
         ],
       };
+    if (command === "authorization/preview") {
+      const policy = message.policy;
+      const has = (area, manage = false) =>
+        policy.enabled &&
+        (policy.areas[area] === "manage" || (!manage && policy.areas[area] === "view"));
+      return {
+        enabled: policy.enabled,
+        actions: {
+          door_unlock: has("overview", true) || has("stations", true),
+          station_view: has("stations"),
+          station_settings: has("stations", true),
+          people_view: has("users"),
+          people_edit: has("users", true),
+          people_export: has("users"),
+          whatsapp_send: has("users", true),
+          events_view: has("events"),
+          events_export: has("events"),
+          event_capture: has("events", true),
+          system_settings: has("management", true),
+        },
+      };
+    }
     if (command === "authorization/settings_update")
       return {
         revision: message.revision + 1,

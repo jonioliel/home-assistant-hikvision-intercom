@@ -10,6 +10,7 @@ from custom_components.hikvision_intercom.panel_permissions import (
     AREAS,
     PanelPermissions,
     area_allowed,
+    preview_policy,
     requirements,
 )
 
@@ -105,3 +106,15 @@ def test_background_operations_have_explicit_scoped_permissions():
     assert requirements("operations/query") == (("management", "view"),)
     assert requirements("sync/user") == (("users", "manage"),)
     assert requirements("sync/station") == (("stations", "manage"),)
+
+
+def test_preview_uses_server_command_rules_and_is_not_a_save():
+    reception = preview_policy(policy(overview="manage", users="view", events="view"))
+    assert reception["actions"]["door_unlock"] is True
+    assert reception["actions"]["people_edit"] is False
+    assert reception["actions"]["people_export"] is True
+    assert reception["actions"]["station_settings"] is False
+    disabled = preview_policy(policy(enabled=False, overview="manage", users="manage"))
+    assert all(not allowed for allowed in disabled["actions"].values())
+    with pytest.raises(AccessError, match="invalid_fields"):
+        preview_policy({"enabled": True, "areas": {"users": "manage"}})

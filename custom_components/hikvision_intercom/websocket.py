@@ -37,7 +37,7 @@ from .hardening import AdminLimiter
 from .health_api import dispatch_health
 from .issues import issue
 from .log_filter import install_filter
-from .panel_permissions import PanelPermissions, command_allowed
+from .panel_permissions import PanelPermissions, command_allowed, preview_policy
 from .schedule_operations_api import dispatch_operations
 from .schedule_plan_api import dispatch_plans
 
@@ -71,6 +71,7 @@ COMMANDS = {
     "appearance/settings_update": {"revision": int, "default": str},
     "authorization/session": {},
     "authorization/settings_get": {},
+    "authorization/preview": {"policy": dict},
     "authorization/settings_update": {"revision": int, "users": dict},
     "whatsapp/status": {},
     "whatsapp/templates_get": {},
@@ -417,6 +418,8 @@ async def _dispatch_inner(
             if result["is_admin"]:
                 result["areas"] = {area: "manage" for area in result["areas"]}
         return result
+    if command == "authorization/preview":
+        return preview_policy(msg["policy"])
     if command in {"authorization/settings_get", "authorization/settings_update"}:
         permissions = hass.data[DOMAIN].get("panel_permissions")
         if not isinstance(permissions, PanelPermissions):

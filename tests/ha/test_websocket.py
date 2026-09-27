@@ -16,6 +16,7 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
     administrator_only = {
         "authorization/session",
         "authorization/settings_get",
+        "authorization/preview",
         "authorization/settings_update",
         "appearance/settings_update",
     }
@@ -103,6 +104,29 @@ async def test_reader_session_is_safe_and_delegated_access_is_scoped(
     assert (await request(reader, "users/list"))["success"]
     denied = await request(reader, "users/create", data={"display_name": "Blocked"})
     assert not denied["success"] and denied["error"]["code"] == "unauthorized"
+
+
+async def test_admin_can_preview_unsaved_operator_permissions_without_granting_them(
+    hass, loaded_entry, hass_ws_client, hass_read_only_access_token
+):
+    admin = await hass_ws_client(hass)
+    policy = {
+        "enabled": True,
+        "areas": {
+            "overview": "view",
+            "users": "manage",
+            "events": "none",
+            "stations": "none",
+            "management": "none",
+        },
+    }
+    preview = await request(admin, "authorization/preview", policy=policy)
+    assert preview["success"]
+    assert preview["result"]["actions"]["people_edit"] is True
+    assert preview["result"]["actions"]["door_unlock"] is False
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    session = await request(reader, "authorization/session")
+    assert session["success"] and session["result"]["allowed"] is False
 
 
 async def test_permission_revocation_closes_reader_subscription(
