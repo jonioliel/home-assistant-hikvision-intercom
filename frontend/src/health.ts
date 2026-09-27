@@ -72,6 +72,26 @@ interface StationHealthHistory {
   records: { at: string; online: boolean; poll_ms: number | null; sync: string; events: string }[];
 }
 
+function stationAttention(station: Station, report?: Health): string[] {
+  const reasons: string[] = [];
+  if (!station.online) reasons.push("health_triage_offline");
+  if (report?.access?.queue_depth && report.access.queue_depth > 0)
+    reasons.push("health_triage_pending");
+  if (
+    report?.access?.last_error ||
+    Object.values(report?.access?.errors ?? {}).some((count) => count > 0)
+  )
+    reasons.push("health_triage_sync_error");
+  if (
+    report?.clock?.status === "ready" &&
+    ["ahead", "behind", "repeated_ahead", "repeated_behind"].includes(
+      report.clock.drift_state ?? "",
+    )
+  )
+    reasons.push("health_triage_clock");
+  return reasons;
+}
+
 export class IntercomHealth extends LitElement {
   static styles = [
     styles,
@@ -124,6 +144,21 @@ export class IntercomHealth extends LitElement {
       .health-timeline span[data-online="true"] {
         background: #438b68;
       }
+      .health-triage {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-block: 16px;
+      }
+      .health-triage .badge {
+        padding: 8px 12px;
+      }
+      .health-attention {
+        margin-block: 10px;
+        color: var(--error-color, #b34a50);
+        font-weight: 600;
+      }
     `,
   ];
   static properties = {
@@ -148,6 +183,7 @@ export class IntercomHealth extends LitElement {
     _haConnected: { state: true },
     _bundleBusy: { state: true },
     _bundleError: { state: true },
+    _attentionOnly: { state: true },
   };
   hass?: Hass;
   callBusy: ReadonlySet<string> = new Set();
@@ -177,6 +213,7 @@ export class IntercomHealth extends LitElement {
   private _haConnected = true;
   private _bundleBusy = false;
   private _bundleError = "";
+  private _attentionOnly = false;
   private haDisconnected = () => {
     this._haConnected = false;
     for (const id of this.fieldWrites) this.uncertainField(id);
@@ -250,6 +287,7 @@ export class IntercomHealth extends LitElement {
     this._readiness = undefined;
     this._operationalBusy = "";
     this._operationalError = "";
+    if (this._attentionOnly) this._attentionOnly = false;
   }
   private valid(epoch: number) {
     return (
@@ -505,6 +543,7 @@ export class IntercomHealth extends LitElement {
   }
   private card(station: Station) {
     const report = this._reports[station.id];
+    const attention = stationAttention(station, report);
     const delays = report?.events?.telemetry?.stream_arrival_delay;
     const history = this._history[station.id];
     const recent = history?.records.slice(-48) ?? [];
@@ -528,6 +567,7 @@ export class IntercomHealth extends LitElement {
         >
         <span class="badge">${this.t(station.online ? "online" : "offline")}</span>
       </div>
+      ${attention.length ? html`<p class="health-attention">${attention.map((reason) => this.t(reason)).join(" · ")}</p>` : nothing}
       <p>${report?.model ?? station.model ?? ""} · ${report?.firmware ?? station.firmware ?? ""}</p>
       <p>
         ${this.t("health_stream")}:
@@ -649,10 +689,31 @@ export class IntercomHealth extends LitElement {
   }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
+    const attention = this.stations.filter(
+      (station) => stationAttention(station, this._reports[station.id]).length,
+    );
+    const visibleStations = this._attentionOnly ? attention : this.stations;
     return html`<section>
       <h2>${this.t("health")}</h2>
       <p>${this.t("health_cached")}</p>
       <p>${this.t("health_scope")}</p>
+      <div class="health-triage" aria-label=${this.t("health_triage_title")}>
+        <strong>${this.t("health_triage_title")}</strong>
+        <span class="badge">${this.t("health_triage_stations")}: ${this.stations.length}</span>
+        <span class="badge"
+          >${this.t("health_triage_online")}:
+          ${this.stations.filter((station) => station.online).length}</span
+        >
+        <span class="badge">${this.t("health_triage_attention")}: ${attention.length}</span>
+        <label
+          ><input
+            type="checkbox"
+            .checked=${this._attentionOnly}
+            @change=${(event: Event) => (this._attentionOnly = (event.target as HTMLInputElement).checked)}
+          />${this.t("health_triage_filter")}</label
+        >
+        <small>${this.t("health_triage_scope")}</small>
+      </div>
       ${!this._haConnected ? html`<p class="notice error" role="alert">${this.t("health_disconnected")}</p>` : nothing}
       <div class="toolbar">
         <button
@@ -735,7 +796,8 @@ export class IntercomHealth extends LitElement {
         .stations=${this.stations}
         .reports=${this._reports}
       ></hikvision-intercom-fleet-clocks>
-      <div class="health-grid">${this.stations.map((station) => this.card(station))}</div>
+      <div class="health-grid">${visibleStations.map((station) => this.card(station))}</div>
+      ${this._attentionOnly && !visibleStations.length ? html`<p>${this.t("health_triage_empty")}</p>` : nothing}
     </section>`;
   }
 }

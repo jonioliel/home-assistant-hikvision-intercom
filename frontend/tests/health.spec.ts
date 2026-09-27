@@ -131,6 +131,30 @@ test("station health displays sampled history without issuing a device refresh",
   ).toBe(0);
 });
 
+test("fleet overview filters cached attention without refreshing devices", async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const previous = window.demoHass.callWS;
+    window.demoHass.callWS = async (message) => {
+      const result = await previous(message);
+      if (message.type.endsWith("health/get"))
+        return { ...result, access: { queue_depth: 0, errors: {} } };
+      return result;
+    };
+  });
+  await navigate(page, "Health & field tests");
+  const health = page.locator("hikvision-intercom-health");
+  await expect(health.locator(".health-card")).toHaveCount(9);
+  await expect(health.getByText("Fleet overview")).toBeVisible();
+  await health.getByRole("checkbox", { name: "Show only stations needing attention" }).check();
+  await expect.poll(() => health.locator(".health-card").count()).toBeLessThan(9);
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((call) => call.type.endsWith("health/refresh")).length,
+    ),
+  ).toBe(0);
+});
+
 test("health shows queue reasons and refreshes selected stations only", async ({ page }) => {
   await setup(page);
   await navigate(page, "Health & field tests");
