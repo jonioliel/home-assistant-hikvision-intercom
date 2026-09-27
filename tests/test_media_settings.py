@@ -82,6 +82,8 @@ def test_corrupt_settings_not_silently_reset(data):
         {**DEFAULTS, "transport": "auto"},
         {**DEFAULTS, "webrtc_mode": "hls"},
         {**DEFAULTS, "fallback_hls": 1},
+        {**DEFAULTS, "overview_preview_mode": "automatic"},
+        {**DEFAULTS, "overview_preview_mode": None},
         {**DEFAULTS, "extra": True},
     ],
 )
@@ -152,3 +154,15 @@ async def test_partial_core_update_is_rejected():
     store = MediaSettings(AsyncMock(), Mock())
     with pytest.raises(AccessError, match="invalid_fields"):
         await store.update(0, {"transport": "hls"})
+
+
+async def test_overview_preview_mode_defaults_to_live_and_survives_older_client():
+    save = AsyncMock()
+    store = MediaSettings(save, Mock())
+    legacy = {key: value for key, value in DEFAULTS.items() if key != "overview_preview_mode"}
+    store.load({"schema": 1, "revision": 2, "values": legacy})
+    assert store.public()["overview_preview_mode"] == "live"
+    updated = await store.update(2, {**DEFAULTS, "overview_preview_mode": "snapshot"})
+    assert updated["overview_preview_mode"] == "snapshot"
+    await store.update(3, legacy)
+    assert store.public()["overview_preview_mode"] == "snapshot"

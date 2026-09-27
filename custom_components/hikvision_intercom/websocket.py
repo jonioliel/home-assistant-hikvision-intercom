@@ -149,6 +149,7 @@ COMMANDS = {
     "audit/export": {"filters": dict},
     "stations/permission_audit": {"station_id": str},
     "health/get": {"station_id": str},
+    "health/history": {"station_id": str},
     "health/refresh": {"station_id": str},
     "support/bundle": {},
     "fleet/inventory_export": {"format": str},

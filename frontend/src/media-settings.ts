@@ -11,6 +11,7 @@ export interface MediaPolicy {
   webrtc_mode: "rtc" | "mse";
   fallback_hls: boolean;
   go2rtc_url: string;
+  overview_preview_mode?: "live" | "snapshot";
   tts_engine_id?: string;
   tts_language?: string;
   tts_phrases?: string[];
@@ -22,6 +23,7 @@ export const DEFAULT_MEDIA: MediaPolicy = {
   webrtc_mode: "rtc",
   fallback_hls: true,
   go2rtc_url: "",
+  overview_preview_mode: "live",
   tts_engine_id: "",
   tts_language: "",
   tts_phrases: [],
@@ -232,6 +234,19 @@ export class MediaSettingsPanel extends LitElement {
           </select></label
         >
         <p>${this.t("audio_toggle_hint")}</p>
+        <label
+          >${this.t("overview_preview_mode")}<select
+            aria-label=${this.t("overview_preview_mode")}
+            .value=${draft.overview_preview_mode ?? "live"}
+            ?disabled=${this.busy}
+            @change=${(e: Event) =>
+              this.change("overview_preview_mode", (e.target as HTMLSelectElement).value)}
+          >
+            <option value="live">${this.t("overview_preview_live")}</option>
+            <option value="snapshot">${this.t("overview_preview_snapshot")}</option>
+          </select></label
+        >
+        <p class="sub">${this.t("overview_preview_hint")}</p>
         <label
           >${this.t("media_transport")}<select
             aria-label=${this.t("media_transport")}

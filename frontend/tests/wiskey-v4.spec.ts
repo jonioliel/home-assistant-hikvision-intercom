@@ -114,6 +114,41 @@ test("entry-center cards play muted live video and the image opens the camera", 
   await expect(preview).toHaveJSProperty("live", true);
 });
 
+test("global still-image mode avoids preview streams but opens live video on image click", async ({
+  page,
+}) => {
+  await start(page, "wiskey-light", 1440);
+  await page.evaluate(() => {
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      overview_preview_mode: "snapshot",
+      transport: "hls",
+      revision: window.demoData.media_settings.revision + 1,
+    };
+    window.calls.length = 0;
+    window.demoNotify();
+  });
+  const card = page.locator(".wk4-door").first();
+  const preview = card.locator("hikvision-intercom-camera");
+  await expect(preview).toHaveJSProperty("preview", true);
+  await expect(preview).toHaveJSProperty("live", false);
+  await expect(preview.locator("video")).toHaveCount(0);
+  await expect(preview.locator("img")).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+  ).toBe(0);
+  await card.locator(".wk4-door-image").click({ position: { x: 100, y: 40 } });
+  await expect(page.locator(".camera-dialog hikvision-intercom-camera")).toHaveJSProperty(
+    "live",
+    true,
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+    )
+    .toBeGreaterThan(0);
+});
+
 test("V4 is opt-in alongside all four earlier choices", async ({ page }) => {
   await start(page, "wiskey-light", 1440);
   await page.locator(".nav").getByRole("button", { name: "ניהול", exact: true }).click();

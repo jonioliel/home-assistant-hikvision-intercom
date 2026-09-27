@@ -140,7 +140,11 @@ test("disconnect stops queued health reads and reconnect requests cached data on
   await expect(health.locator(".health-card").last()).toContainText("current snapshot");
   await expect(health).not.toContainText("from previous connection");
   expect(
-    await page.evaluate(() => window.healthRequests.every((c) => c.type.endsWith("health/get"))),
+    await page.evaluate(() =>
+      window.healthRequests.every(
+        (c) => c.type.endsWith("health/get") || c.type.endsWith("health/history"),
+      ),
+    ),
   ).toBe(true);
   expect(
     await page.evaluate(() =>

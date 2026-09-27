@@ -4,6 +4,13 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.7] - 2026-09-27
+
+- Add a fleet-wide entry-dashboard camera preference: muted live video (the existing default) or a still image refreshed every ten seconds while visible. Selecting a still never starts a card stream; selecting the image still opens the full live camera and controls. Existing saved media policies retain the live default.
+- Add a guided temporary-access creation flow that requires a bounded validity period, a PIN or card, and at least one authorized door before saving through the existing user synchronization path.
+- Record a bounded seven-day health timeline for each station, including online transitions, poll latency, synchronization and event-stream state. Show those observations alongside the existing station diagnostics without sending device commands.
+- Add event-type filters and quick investigations for denied entries, PIN attempt limits and doors left open; preserve these filters in saved report queries.
+- Add administrator role templates using the existing server-enforced area permissions, plus read-only media capability and audio-channel evidence in station health. Per-station and per-field operator restrictions and a physical media self-test remain follow-up work.
 - Document the HA add-on connection path, WisKey command/permission boundary, complete VMS screen-parity map and media integration limits for SMPLWISE VMS.
 
 ## [2.0.0-rc.6] - 2026-09-27

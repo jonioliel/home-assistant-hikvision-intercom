@@ -21,16 +21,20 @@ test("event portrait uses the server owner reference and unknown events get none
       if (message.type.endsWith("users/photo_get"))
         return { photo: canvas.toDataURL("image/jpeg") };
       const result = await base(message);
-      if (message.type.endsWith("events/list"))
+      if (message.type.endsWith("events/list")) {
         result.records = result.records.map((row, i) => ({
           ...row,
           portrait: i === 0 ? { user_id: "verified-owner", revision: 1 } : null,
         }));
+      }
       return result;
     };
+    document.querySelector("hikvision-intercom-panel").hass = { ...window.demoHass };
   });
   await navigate(page, "Events");
+  await page.locator("hikvision-intercom-events").getByRole("button", { name: "Refresh" }).click();
   const rows = page.locator(".audit-row");
+  await rows.first().scrollIntoViewIfNeeded();
   await expect(rows.first().locator("hikvision-user-photo img")).toBeVisible();
   await expect(rows.nth(1).locator("hikvision-user-photo")).toHaveCount(0);
   await expect(rows.first().locator("hikvision-user-photo")).toHaveAttribute(

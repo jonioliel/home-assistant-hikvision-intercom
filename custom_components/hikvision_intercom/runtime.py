@@ -260,8 +260,24 @@ async def async_setup_runtime(hass: HomeAssistant, entry: IntercomConfigEntry) -
             if online and not was_online:
                 manager.request(entry.entry_id)
             was_online = online
+            history = hass.data[DOMAIN].get("fleet_health")
+            if history is not None:
+                station = manager.stations.get(entry.entry_id)
+                if history.record(
+                    entry.entry_id,
+                    online=online,
+                    poll_ms=coordinator.last_poll_ms,
+                    sync=station.status if station else "unknown",
+                    events=runtime.events.status().get("stream", "unknown")
+                    if runtime.events
+                    else "unknown",
+                ):
+                    hass.async_create_background_task(
+                        history.async_flush(), "WisKey fleet-health save", eager_start=False
+                    )
 
         entry.async_on_unload(coordinator.async_add_listener(recovered))
+        recovered()
     except BaseException as err:
         await manager.async_detach(entry.entry_id)
         await coordinator.async_shutdown()

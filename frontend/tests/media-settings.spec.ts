@@ -34,13 +34,18 @@ test("global options save, reload, broadcast and conflicts", async ({ page }) =>
   await page.goto("/");
   await navigate(page, "Video, audio and announcements");
   const form = page.locator("hikvision-media-settings");
+  await form.getByLabel("Entry dashboard camera previews").selectOption("snapshot");
   await form.getByLabel("WebRTC / go2rtc player mode", { exact: true }).selectOption("mse");
   await form.getByLabel("Allow automatic HLS fallback if the selected mode fails").uncheck();
   await form.getByRole("button", { name: "Save global settings" }).click();
   await expect(form).toContainText("Saved globally");
   expect(await page.evaluate(() => window.demoData.media_settings.webrtc_mode)).toBe("mse");
+  expect(await page.evaluate(() => window.demoData.media_settings.overview_preview_mode)).toBe(
+    "snapshot",
+  );
   await navigate(page, "Video, audio and announcements");
   await expect(form.getByLabel("WebRTC / go2rtc player mode", { exact: true })).toHaveValue("mse");
+  await expect(form.getByLabel("Entry dashboard camera previews")).toHaveValue("snapshot");
   await page.evaluate(() => {
     window.demoData.media_settings.revision++;
     window.demoNotify();

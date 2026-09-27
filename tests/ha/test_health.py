@@ -32,6 +32,20 @@ async def test_health_snapshot_is_private_and_does_not_touch_device(
     device_io["unlock"].assert_not_called()
 
 
+async def test_health_history_reads_cached_station_samples_without_device_io(
+    hass, loaded_entry, hass_ws_client, device_io
+):
+    client = await hass_ws_client(hass)
+    station = loaded_entry.entry_id
+    result = await request(client, "health/history", station_id=station)
+    assert result["success"]
+    assert result["result"]["station_id"] == station
+    assert result["result"]["period_days"] == 7
+    assert result["result"]["records"]
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
 async def test_support_bundle_is_cached_pseudonymous_and_does_not_touch_device(
     hass, loaded_entry, hass_ws_client, device_io
 ):

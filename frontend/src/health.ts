@@ -34,10 +34,17 @@ interface Health {
     };
   };
   media?: {
+    checked_at?: string;
     call_commands?: string[];
     audio_channels?: { id: number; enabled: boolean | null; codec: string }[];
     errors?: Record<string, string>;
   } | null;
+  camera?: { snapshot: boolean; stream: boolean };
+  audio?: {
+    active: boolean;
+    source: string | null;
+    last_result: { acknowledged?: boolean | null; physical_result?: string } | null;
+  };
 }
 interface Acceptance {
   revision: number;
@@ -57,6 +64,12 @@ interface FleetExport {
   filename: string;
   mime_type: string;
   content: string;
+}
+interface StationHealthHistory {
+  station_id: string;
+  period_days: number;
+  storage_failed: boolean;
+  records: { at: string; online: boolean; poll_ms: number | null; sync: string; events: string }[];
 }
 
 export class IntercomHealth extends LitElement {
@@ -96,6 +109,21 @@ export class IntercomHealth extends LitElement {
       .field-tests form {
         margin-block: 16px;
       }
+      .health-timeline {
+        display: flex;
+        gap: 2px;
+        min-height: 28px;
+        align-items: stretch;
+      }
+      .health-timeline span {
+        flex: 1;
+        min-width: 2px;
+        border-radius: 3px;
+        background: #b34a50;
+      }
+      .health-timeline span[data-online="true"] {
+        background: #438b68;
+      }
     `,
   ];
   static properties = {
@@ -111,6 +139,7 @@ export class IntercomHealth extends LitElement {
     _operationalBusy: { state: true },
     _operationalError: { state: true },
     _reports: { state: true },
+    _history: { state: true },
     _busy: { state: true },
     _errors: { state: true },
     _fieldErrors: { state: true },
@@ -132,6 +161,7 @@ export class IntercomHealth extends LitElement {
   private _operationalBusy = "";
   private _operationalError = "";
   private _reports: Record<string, Health> = {};
+  private _history: Record<string, StationHealthHistory> = {};
   private _busy = new Set<string>();
   private _errors: Record<string, string> = {};
   private _fieldErrors: Record<string, string> = {};
@@ -209,6 +239,7 @@ export class IntercomHealth extends LitElement {
     this.cancelPending();
     // Avoid an update loop after role loss.
     if (Object.keys(this._reports).length) this._reports = {};
+    if (Object.keys(this._history).length) this._history = {};
     if (this._callDetails.size) this._callDetails = new Set();
     if (Object.keys(this._acceptance).length) this._acceptance = {};
     if (Object.keys(this._errors).length) this._errors = {};
@@ -270,6 +301,26 @@ export class IntercomHealth extends LitElement {
       ) {
         this._reports = { ...this._reports, [id]: report };
         this._errors = { ...this._errors, [id]: "" };
+        // Older installations do not publish history; retain their live health card.
+        try {
+          const history = await boundedRequest(
+            () =>
+              hass.callWS<StationHealthHistory>({
+                type: "hikvision_intercom/health/history",
+                station_id: id,
+              }),
+            20000,
+            controller.signal,
+          );
+          if (
+            this.valid(epoch) &&
+            hass.connection === this.hass?.connection &&
+            history.station_id === id
+          )
+            this._history = { ...this._history, [id]: history };
+        } catch {
+          /* Health history is optional on older servers. */
+        }
       }
     } catch {
       if (this.valid(epoch)) this._errors = { ...this._errors, [id]: this.t("health_read_failed") };
@@ -455,6 +506,9 @@ export class IntercomHealth extends LitElement {
   private card(station: Station) {
     const report = this._reports[station.id];
     const delays = report?.events?.telemetry?.stream_arrival_delay;
+    const history = this._history[station.id];
+    const recent = history?.records.slice(-48) ?? [];
+    const onlineCount = recent.filter((sample) => sample.online).length;
     return html`<article class="card health-card">
       <div class="toolbar">
         <label
@@ -494,6 +548,45 @@ export class IntercomHealth extends LitElement {
       ${report?.clock?.status === "ready" && ["ahead", "behind", "repeated_ahead", "repeated_behind"].includes(report.clock.drift_state ?? "") ? html`<p class="notice error">${this.t("health_clock_warning")}</p>` : nothing}
       <p>${this.t("health_delay")}: ${delays?.median ?? "—"} / ${delays?.p95 ?? "—"}</p>
       <p class="sub">${this.t("event_clock_hint")}</p>
+      ${
+        report
+          ? html`<details class="media-path-evidence">
+              <summary>${this.t("health_media_path")}</summary>
+              <p>
+                ${this.t("health_video_path")}:
+                ${report.camera?.stream ? this.t("health_capability_advertised") : report.camera ? this.t("health_capability_missing") : this.t("not_verified")}
+              </p>
+              <p>
+                ${this.t("health_incoming_path")}:
+                ${report.media?.audio_channels?.length ? report.media.audio_channels.map((channel) => `${channel.codec} · ${channel.enabled === null ? this.t("not_verified") : this.t(channel.enabled ? "configured" : "not_configured")}`).join(", ") : this.t("not_verified")}
+              </p>
+              <p>
+                ${this.t("health_outgoing_path")}:
+                ${report.audio?.active ? this.t("health_audio_session_active") : report.audio?.last_result ? this.t("health_last_audio_result") : this.t("not_verified")}
+              </p>
+              <p class="field-note">${this.t("health_media_limit")}</p>
+            </details>`
+          : nothing
+      }
+      ${
+        history
+          ? html`<div class="health-history">
+              <strong>${this.t("health_timeline")}</strong>
+              <p class="sub">
+                ${this.t("health_samples")}: ${onlineCount}/${recent.length} ·
+                ${this.t("health_observational")}
+              </p>
+              <div
+                class="health-timeline"
+                role="img"
+                aria-label=${`${this.t("health_samples")}: ${onlineCount}/${recent.length}`}
+              >
+                ${recent.map((sample) => html`<span data-online=${sample.online ? "true" : "false"} title=${`${sample.at} · ${this.t(sample.online ? "online" : "offline")} · ${sample.poll_ms ?? "—"} ms · ${sample.sync}`}></span>`)}
+              </div>
+              ${history.storage_failed ? html`<p class="notice error">${this.t("health_history_save_failed")}</p>` : nothing}
+            </div>`
+          : nothing
+      }
       <div class="toolbar">
         <button
           ?disabled=${!this._haConnected || this._busy.has(station.id)}

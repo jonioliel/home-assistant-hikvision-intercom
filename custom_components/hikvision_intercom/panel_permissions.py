@@ -210,6 +210,7 @@ _READ_STATIONS = {
     "stations/technical_program_list",
     "stations/technical_hold_get",
     "health/get",
+    "health/history",
     "acceptance/get",
     "media/call",
     "sync/status",

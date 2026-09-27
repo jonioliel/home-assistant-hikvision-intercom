@@ -51,4 +51,4 @@ http
       res.end();
     }
   })
-  .listen(8765, "127.0.0.1");
+  .listen(Number(process.env.WISKEY_TEST_PORT || 8765), "127.0.0.1");

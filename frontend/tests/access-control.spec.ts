@@ -30,3 +30,24 @@ test("administrator can configure HA user permissions responsively", async ({ pa
   expect(update.users["reader-user"].enabled).toBe(true);
   expect(update.users["reader-user"].areas.users).toBe("manage");
 });
+
+test("role template applies only the existing server-enforced area grants", async ({ page }) => {
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "כלי ניהול" }).click();
+  await page.getByRole("button", { name: /הרשאות משתמשי תשתית המערכת/ }).click();
+  const reception = page.locator("wiskey-access-control article").filter({ hasText: "Reception" });
+  await reception.getByLabel("תבנית תפקיד עבור Reception").selectOption("reception");
+  await expect(reception.getByLabel("סקירה ושליטה בדלתות")).toHaveValue("manage");
+  await expect(reception.getByLabel("כלי ניהול")).toHaveValue("none");
+  await page.getByRole("button", { name: "שמירת הרשאות" }).click();
+  const update = await page.evaluate(() =>
+    window.calls.find((call) => call.type === "hikvision_intercom/authorization/settings_update"),
+  );
+  expect(update.users["reader-user"].areas).toEqual({
+    overview: "manage",
+    users: "view",
+    events: "view",
+    stations: "none",
+    management: "none",
+  });
+});

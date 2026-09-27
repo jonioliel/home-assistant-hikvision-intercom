@@ -204,6 +204,19 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "acceptance_storage_corrupt", active=False)
         hass.data[DOMAIN]["acceptance"] = acceptance
 
+    from .fleet_health import FleetHealth
+
+    fleet_store = AccessStore(hass, key=f"{DOMAIN}.fleet_health")
+    fleet_health = FleetHealth(fleet_store.async_save)
+    try:
+        fleet_health.load(await fleet_store.async_load())
+    except AccessError:
+        issue(hass, "fleet_health_storage_corrupt", active=True)
+        hass.data[DOMAIN]["fleet_health"] = None
+    else:
+        issue(hass, "fleet_health_storage_corrupt", active=False)
+        hass.data[DOMAIN]["fleet_health"] = fleet_health
+
     baseline_store = AccessStore(hass, key=f"{DOMAIN}.schedule_baselines")
     baselines = ScheduleBaselines(baseline_store.async_save)
     try:
@@ -272,6 +285,8 @@ async def async_setup_access(hass: HomeAssistant) -> None:
 
     async def stop(_event: Event) -> None:
         stop_program_timer()
+        if hass.data[DOMAIN].get("fleet_health") is not None:
+            await fleet_health.async_flush()
         await queue.close()
         await manager.async_close()
 

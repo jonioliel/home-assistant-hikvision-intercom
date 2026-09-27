@@ -25,6 +25,11 @@ async def dispatch_health(hass: HomeAssistant, command: str, msg: dict[str, Any]
         raise AccessError("station_unloaded")
     runtime = getattr(entry, "runtime_data", None)
     data = hass.data[DOMAIN]
+    if command == "health/history":
+        history = data.get("fleet_health")
+        if history is None:
+            raise AccessError("health_history_unavailable")
+        return history.public(station.id)
     if command.startswith("acceptance/"):
         acceptance = data.get("acceptance")
         if not isinstance(acceptance, Acceptance):

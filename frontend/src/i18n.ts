@@ -1,4 +1,46 @@
 const en = {
+  health_media_path: "Media path evidence",
+  health_video_path: "Video",
+  health_incoming_path: "Station audio channel",
+  health_outgoing_path: "Talkback session",
+  health_capability_advertised: "Stream capability advertised",
+  health_capability_missing: "Stream capability not advertised",
+  health_audio_session_active: "Session active",
+  health_last_audio_result: "Previous transfer recorded",
+  health_media_limit:
+    "Capability and command evidence cannot prove that audio was heard or video rendered. Open the camera for an operator check.",
+  event_type: "Event type",
+  event_investigation_quick: "Investigate",
+  event_quick_denied: "Denied entries",
+  event_quick_pin_limit: "PIN attempt limit",
+  event_quick_door_open: "Door not closed",
+  health_timeline: "Station health history",
+  health_samples: "Online samples",
+  health_observational: "Observed samples, not continuous availability",
+  health_history_save_failed: "Health history could not be saved.",
+  guest_create: "Create temporary access",
+  guest_intro:
+    "Create one temporary person with a defined access window. Existing user synchronization and expiry rules apply.",
+  guest_step: "Step {step} of 2",
+  guest_name_required: "Enter the visitor's name.",
+  guest_window: "Access window",
+  guest_window_hint:
+    "The end time must be later than the start time. Access ends automatically at expiry.",
+  guest_credential: "Access method",
+  guest_credential_hint:
+    "Enter a card number, set a PIN, or generate a unique PIN. At least one method is required.",
+  guest_credential_required: "Add a PIN or card before continuing.",
+  guest_show_pin: "Show PIN",
+  guest_doors: "Permitted doors",
+  guest_doors_hint:
+    "Select only the doors this visitor may use. A station may require synchronization before access works.",
+  guest_door_required: "Select at least one permitted door.",
+  guest_review: "Review before creating",
+  guest_sync_hint:
+    "Saving queues synchronization to the selected stations. Check each station's sync status before the visitor arrives.",
+  guest_next: "Next: doors",
+  guest_back: "Back",
+  guest_save_sync: "Create and sync",
   system_infrastructure: "System infrastructure",
   identity_lifecycle: "Identity lifecycle",
   tools_identity_lifecycle:
@@ -100,6 +142,7 @@ const en = {
   wall_fullscreen: "Fullscreen",
   wall_fullscreen_unavailable: "Fullscreen is unavailable in this browser.",
   wall_preview_hint: "Live muted video · select a camera to open controls",
+  wall_snapshot_hint: "Refreshing still images · select a camera for live video and controls",
   wall_previous: "Previous",
   wall_next: "Next",
 
@@ -472,6 +515,11 @@ const en = {
   media_discover_failed:
     "Add-on DNS was not reachable. Enter the system infrastructure server address with port 1984, save and check the connection.",
   media_options: "Video, audio and announcements",
+  overview_preview_mode: "Entry dashboard camera previews",
+  overview_preview_live: "Live muted video",
+  overview_preview_snapshot: "Refreshing still images (less bandwidth)",
+  overview_preview_hint:
+    "Applies to the WisKey 04 entry dashboard. Still images refresh every 10 seconds while visible; opening a camera always starts the selected live player.",
   tools_media_options: "Global video, talk and announcement settings for WisKey.",
   media_scope:
     "Applies to every WisKey live player and intercom announcement. Other system infrastructure camera cards use their own player settings.",
@@ -1876,6 +1924,46 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  health_media_path: "ראיות למסלולי מדיה",
+  health_video_path: "וידאו",
+  health_incoming_path: "ערוץ שמע בתחנה",
+  health_outgoing_path: "ערוץ דיבור",
+  health_capability_advertised: "יכולת הזרמה מפורסמת",
+  health_capability_missing: "יכולת הזרמה אינה מפורסמת",
+  health_audio_session_active: "חיבור פעיל",
+  health_last_audio_result: "נרשמה העברה קודמת",
+  health_media_limit:
+    "יכולות ואישורי פקודה אינם מוכיחים שהשמע נשמע או שהווידאו הוצג. יש לפתוח מצלמה לבדיקה בידי מפעיל.",
+  event_type: "סוג אירוע",
+  event_investigation_quick: "חקירה מהירה",
+  event_quick_denied: "כניסות שנדחו",
+  event_quick_pin_limit: "חריגה מניסיונות PIN",
+  event_quick_door_open: "דלת שלא נסגרה",
+  health_timeline: "היסטוריית בריאות התחנה",
+  health_samples: "דגימות זמינות",
+  health_observational: "דגימות נצפות, לא זמינות רציפה",
+  health_history_save_failed: "לא ניתן לשמור את היסטוריית בריאות התחנה.",
+  guest_create: "הקמת גישה זמנית",
+  guest_intro: "יוצרים אדם אחד עם חלון גישה מוגדר. האכיפה והסנכרון מתבצעים במסלול המשתמשים הקיים.",
+  guest_step: "שלב {step} מתוך 2",
+  guest_name_required: "יש להזין את שם האורח.",
+  guest_window: "חלון הגישה",
+  guest_window_hint: "מועד הסיום חייב להיות אחרי ההתחלה. הגישה פוקעת אוטומטית בסיום.",
+  guest_credential: "אמצעי גישה",
+  guest_credential_hint:
+    "יש להזין מספר כרטיס, לבחור PIN או ליצור PIN ייחודי. נדרש אמצעי אחד לפחות.",
+  guest_credential_required: "יש להוסיף PIN או כרטיס לפני המשך התהליך.",
+  guest_show_pin: "הצגת PIN",
+  guest_doors: "דלתות מורשות",
+  guest_doors_hint:
+    "בחר רק את הדלתות שהאורח רשאי לפתוח. ייתכן שיידרש סנכרון בתחנה לפני שהגישה תפעל.",
+  guest_door_required: "יש לבחור לפחות דלת מורשית אחת.",
+  guest_review: "בדיקה לפני יצירה",
+  guest_sync_hint:
+    "השמירה שולחת את ההרשאות לסנכרון בתחנות שנבחרו. בדוק את מצב הסנכרון לפני הגעת האורח.",
+  guest_next: "המשך: דלתות",
+  guest_back: "חזרה",
+  guest_save_sync: "יצירה וסנכרון",
   system_infrastructure: "תשתית המערכת",
   identity_lifecycle: "מחזור חיי משתמשים",
   tools_identity_lifecycle:
@@ -1974,6 +2062,7 @@ const he: Record<keyof typeof en, string> = {
   wall_fullscreen: "מסך מלא",
   wall_fullscreen_unavailable: "מסך מלא אינו זמין בדפדפן זה.",
   wall_preview_hint: "וידאו חי ללא שמע · לחצו על התמונה לפתיחת המצלמה",
+  wall_snapshot_hint: "תמונות מתרעננות · לחצו על התמונה לפתיחת וידאו חי ושליטה",
   wall_previous: "הקודם",
   wall_next: "הבא",
 
@@ -2331,6 +2420,11 @@ const he: Record<keyof typeof en, string> = {
   media_discover_failed:
     "התוסף לא נגיש בשם הרשת שלו. הזן את כתובת שרת תשתית המערכת עם פורט 1984, שמור ובדוק חיבור.",
   media_options: "הגדרות וידאו, שמע והודעות קוליות",
+  overview_preview_mode: "תצוגת המצלמות במרכז הכניסה",
+  overview_preview_live: "וידאו חי ללא שמע",
+  overview_preview_snapshot: "תמונה מתרעננת (פחות תעבורה)",
+  overview_preview_hint:
+    "הבחירה חלה על מרכז הכניסה בעיצוב WisKey 04. תמונות מתרעננות כל 10 שניות כשהן גלויות; פתיחת מצלמה מפעילה תמיד את הנגן החי שנבחר.",
   tools_media_options: "הגדרות וידאו, דיבור והודעות קוליות לכל מערכת WisKey.",
   media_scope:
     "ההגדרות חלות על כל נגני WisKey ועל ההודעות הקוליות בכל התחנות. כרטיסי מצלמה אחרים בתשתית המערכת משתמשים בהגדרות הנגן שלהם.",
