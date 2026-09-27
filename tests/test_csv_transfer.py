@@ -203,6 +203,38 @@ async def test_export_has_no_credentials_and_roundtrip_is_noop(fleet):
     manager.repository._save.assert_not_called()
 
 
+async def test_temporary_access_category_and_responsibility_roundtrip(fleet):
+    manager, device, _ = fleet
+    user = await manager.async_create(
+        {
+            "employee_no": "1001",
+            "display_name": "Service contractor",
+            "access_category": "contractor",
+            "responsible_person": "Facilities",
+            "access_purpose": "Repair",
+            "valid_from": "2026-09-28T09:00:00+00:00",
+            "valid_until": "2026-09-28T12:00:00+00:00",
+            "assignments": {"a": {"enabled": True, "allowed_locks": [1]}},
+        },
+        sync_now=False,
+    )
+    report = manager.export_csv()
+    preview = manager.preview_csv(report["csv"], "upsert")
+    assert preview["counts"]["unchanged"] == 1 and not preview["errors"]
+    parsed = list(csv.DictReader(io.StringIO(report["csv"].removeprefix("\ufeff"))))
+    parsed[0]["access_purpose"] = "Inspection"
+    changed = content(
+        [[parsed[0]["employee_no"], parsed[0]["display_name"], "Inspection"]],
+        ("employee_no", "display_name", "access_purpose"),
+    )
+    update = manager.preview_csv(changed, "upsert")
+    assert update["rows"][0]["changed_fields"] == ["access_purpose"]
+    await manager.async_import_csv(changed, "upsert", review_token=update["review_token"])
+    assert manager.repository.get(user["id"]).access_purpose == "Inspection"
+    await drain(manager)
+    assert not device.writes
+
+
 @pytest.mark.parametrize(
     "raw,code",
     [

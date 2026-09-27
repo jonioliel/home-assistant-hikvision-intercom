@@ -43,6 +43,9 @@ export interface Person {
     bindings: Record<string, unknown>;
   } | null;
   phone?: string;
+  access_category?: "staff" | "visitor" | "contractor";
+  responsible_person?: string;
+  access_purpose?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
   permission_overrides?: Record<string, "allow" | "deny">;
@@ -277,6 +280,9 @@ export interface Draft {
     bindings: Record<string, unknown>;
   } | null;
   phone?: string;
+  access_category?: "staff" | "visitor" | "contractor";
+  responsible_person?: string;
+  access_purpose?: string;
   profile?: Record<string, string>;
   group_ids?: string[];
   permission_overrides?: Record<string, "allow" | "deny">;

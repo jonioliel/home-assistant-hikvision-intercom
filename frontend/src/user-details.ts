@@ -758,6 +758,22 @@ export class UserDetails extends LitElement {
                       <dt>${this.t("status")}</dt>
                       <dd>${this.t(p.active ? "active" : "inactive")}</dd>
                     </div>
+                    <div>
+                      <dt>${this.t("access_category")}</dt>
+                      <dd>${this.t(`access_category_${p.access_category ?? "staff"}`)}</dd>
+                    </div>
+                    ${
+                      p.access_category && p.access_category !== "staff"
+                        ? html`<div>
+                              <dt>${this.t("responsible_person")}</dt>
+                              <dd>${p.responsible_person || "—"}</dd>
+                            </div>
+                            <div>
+                              <dt>${this.t("access_purpose")}</dt>
+                              <dd>${p.access_purpose || "—"}</dd>
+                            </div>`
+                        : nothing
+                    }
                     ${this.policy?.fields
                       .filter((f) => f.enabled)
                       .map(

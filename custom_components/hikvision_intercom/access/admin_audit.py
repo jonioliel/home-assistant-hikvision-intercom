@@ -100,6 +100,9 @@ def changes(before: dict[str, Any] | None, after: dict[str, Any] | None) -> list
         "photo",
         "permission_overrides",
         "phone",
+        "access_category",
+        "responsible_person",
+        "access_purpose",
         "access_timing_draft",
     ):
         first[key] = (before or {}).get(key)
@@ -229,6 +232,9 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             "group_ids",
             "photo",
             "phone",
+            "access_category",
+            "responsible_person",
+            "access_purpose",
             "access_timing_draft",
             "access_timing_policy",
             "permission_overrides",
