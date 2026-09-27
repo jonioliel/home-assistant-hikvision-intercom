@@ -164,6 +164,9 @@ class ManagedUser:
     phone: str = ""
     access_timing_draft: dict[str, Any] | None = None
     access_timing_policy: dict[str, Any] | None = None
+    access_category: str = "staff"
+    responsible_person: str = ""
+    access_purpose: str = ""
 
     def private(self) -> dict[str, Any]:
         return {
@@ -171,6 +174,9 @@ class ManagedUser:
             "employee_no": self.employee_no,
             "display_name": self.display_name,
             "phone": self.phone,
+            "access_category": self.access_category,
+            "responsible_person": self.responsible_person,
+            "access_purpose": self.access_purpose,
             "access_timing_draft": deepcopy(self.access_timing_draft),
             "access_timing_policy": deepcopy(self.access_timing_policy),
             "active": self.active,
@@ -270,6 +276,23 @@ def build_user(
             data.get("valid_from", previous.valid_from if previous else None),
             data.get("valid_until", previous.valid_until if previous else None),
         )
+        category = data.get("access_category", previous.access_category if previous else "staff")
+        if not isinstance(category, str) or category not in {"staff", "visitor", "contractor"}:
+            raise AccessError("invalid_fields")
+        responsible = text_field(
+            data.get("responsible_person", previous.responsible_person if previous else ""),
+            64,
+            empty=True,
+        )
+        purpose = text_field(
+            data.get("access_purpose", previous.access_purpose if previous else ""),
+            128,
+            empty=True,
+        )
+        if category != "staff" and end is None:
+            raise AccessError("invalid_validity")
+        if category != "staff" and not responsible:
+            raise AccessError("guest_responsible_required")
         pin = data.get("pin", previous.pin.value if previous and previous.pin else None)
         if pin is not None and (not isinstance(pin, str) or not re.fullmatch(r"[0-9]{1,128}", pin)):
             raise AccessError("invalid_pin")
@@ -371,6 +394,9 @@ def build_user(
             access_timing_draft=timing_draft(
                 data.get("access_timing_draft", previous.access_timing_draft if previous else None)
             ),
+            access_category=category,
+            responsible_person=responsible,
+            access_purpose=purpose,
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

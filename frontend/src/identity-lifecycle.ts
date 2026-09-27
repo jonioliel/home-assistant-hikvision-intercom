@@ -10,6 +10,9 @@ interface LifecycleUser {
   display_name: string;
   employee_no: string;
   phone: string;
+  access_category?: "staff" | "visitor" | "contractor";
+  responsible_person?: string;
+  access_purpose?: string;
   active: boolean;
   valid_from: string | null;
   valid_until: string | null;
@@ -306,7 +309,8 @@ export class IdentityLifecycle extends LitElement {
         <strong>${user.display_name}</strong>
         <small class="sub"
           ><bdi>${user.employee_no}</bdi
-          >${user.phone ? html` · <bdi dir="ltr">${user.phone}</bdi>` : nothing}</small
+          >${user.phone ? html` · <bdi dir="ltr">${user.phone}</bdi>` : nothing}
+          ${user.access_category && user.access_category !== "staff" ? html` · ${this.t(`access_category_${user.access_category}`)} · ${this.t("responsible_person")}: ${user.responsible_person || "—"}` : nothing}</small
         >
       </div>
       ${extra}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.8 — בדיקות גישה זמנית</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}
+    *{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:auto;padding:24px}
+    header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}
+    p{margin:.4em 0}.card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}
+    button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+    .muted{color:#526b62}.warning{border-inline-start:4px solid #c78a22;padding-inline-start:12px}
+    a{color:#155d46}@media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.8</p><h1>בדיקות קצרות: אורחים וקבלנים</h1><p>הבדיקות האוטומטיות כבר עברו. כאן נשארו רק פעולות שדורשות את ההתקנה שלך או בדיקת דלת פיזית.</p></header>
+  <section class="card"><h2>התקנה ופרטי המשתמש</h2>
+    <label><input type="checkbox" data-id="upgrade"> לאחר עדכון והפעלת תשתית המערכת מחדש, מוצגת גרסה 2.0.0-rc.8 והמשתמשים הישנים נשארו ללא שינוי.</label>
+    <label><input type="checkbox" data-id="contractor"> באנשי המערכת פתח ״הקמת גישה זמנית״, בחר ״קבלן״ והזן אחראי גישה ומטרה. ודא שאי אפשר להמשיך בלי אחראי.</label>
+    <label><input type="checkbox" data-id="details"> לאחר יצירה, פתח את פרטי האדם: ״קבלן״, האחראי והמטרה מוצגים, וכן הדלתות וחלון התוקף שנבחרו.</label>
+    <label><input type="checkbox" data-id="lifecycle"> במחזור חיי משתמשים מופיעים הסיווג והאחראי ליד גישה שתוקפה עומד לפוג. שדות אלו נשמרים גם לאחר רענון הדפדפן.</label>
+    <label><input type="checkbox" data-id="csv"> אם משתמשים ב־CSV, בדוק שייצוא המשתמשים מכיל access_category, responsible_person ו־access_purpose. אין לשתף CSV שמכיל פרטים אישיים.</label>
+  </section>
+  <section class="card"><h2>אכיפה בתחנה — רק כשאתה ליד הדלת</h2>
+    <p class="warning">הסיווג והאחראי הם נתוני ניהול. הגישה עצמה עדיין נקבעת לפי הדלתות וחלון התוקף הקיימים. אין להסיק מסטטוס ״מסונכרן״ בלבד שהתחנה דחתה כניסה מחוץ לחלון.</p>
+    <label><input type="checkbox" data-id="physical"> עם משתמש בדיקה ודלת בטוחה, בדוק כניסה בתוך חלון התוקף ודחייה מחוצה לו. בסיום הסר או השבת את המשתמש.</label>
+  </section>
+  <section class="card"><h2>מסך מצלמות מרכז הכניסה מ־rc.7</h2>
+    <label><input type="checkbox" data-id="camera-mode"> בהגדרות המדיה בחר בין וידאו חי שקט לתמונה מתרעננת. ודא שהבחירה נשמרת לאחר רענון ושהתמונה עדיין פותחת מצלמה מלאה.</label>
+    <p class="muted">לשאר בדיקות rc.7 אפשר לחזור ל<a href="WISKEY_2.0.0_RC7_OPERATIONS_TESTS_HE.html">מסמך הסבב הקודם</a>.</p>
+  </section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם סעיף נכשל, שלח את המסך, הפעולה, התוצאה שציפית לה ומה שהתרחש. אין צורך לשלוח PIN, מספר כרטיס או סיסמה.</p><button id="reset">נקה סימונים</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן הזה בלבד.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.8-temporary-access';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

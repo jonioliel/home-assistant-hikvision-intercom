@@ -13,6 +13,11 @@ test("temporary access uses the existing user creation and synchronization path"
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("שם", { exact: true }).fill("אורח זמני");
   await dialog.getByRole("button", { name: "המשך: דלתות" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("אחראי");
+  await dialog.getByRole("combobox", { name: "סוג הגישה" }).selectOption("contractor");
+  await dialog.getByLabel("אחראי הגישה").fill("מנהל אחזקה");
+  await dialog.getByLabel("מטרת הכניסה").fill("תיקון מיזוג");
+  await dialog.getByRole("button", { name: "המשך: דלתות" }).click();
   await expect(dialog.getByRole("alert")).toContainText("PIN או כרטיס");
   await dialog.getByRole("button", { name: "יצירת PIN ייחודי אוטומטית" }).click();
   await dialog.getByRole("button", { name: "המשך: דלתות" }).click();
@@ -31,6 +36,9 @@ test("temporary access uses the existing user creation and synchronization path"
   );
   expect(call.sync_now).toBe(true);
   expect(call.data.display_name).toBe("אורח זמני");
+  expect(call.data.access_category).toBe("contractor");
+  expect(call.data.responsible_person).toBe("מנהל אחזקה");
+  expect(call.data.access_purpose).toBe("תיקון מיזוג");
   expect(Date.parse(call.data.valid_until)).toBeGreaterThan(Date.parse(call.data.valid_from));
   expect(call.data.pin).toBe("482615");
   expect(Object.values(call.data.door_permissions ?? {}).length).toBe(1);

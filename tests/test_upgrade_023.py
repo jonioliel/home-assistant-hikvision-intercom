@@ -42,6 +42,9 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
             group_ids=[],
             photo=None,
             phone="",
+            access_category="staff",
+            responsible_person="",
+            access_purpose="",
             access_timing_draft=None,
             access_timing_policy=None,
             permission_overrides={

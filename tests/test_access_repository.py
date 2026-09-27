@@ -54,6 +54,52 @@ async def test_private_roundtrip_and_masked_projection(repo):
     assert len(repo.users()) == 1
 
 
+async def test_temporary_access_metadata_survives_restart_and_requires_expiry(repo):
+    with pytest.raises(AccessError, match="invalid_validity"):
+        await person(repo, access_category="visitor", responsible_person="Reception")
+    with pytest.raises(AccessError, match="guest_responsible_required"):
+        await person(
+            repo,
+            access_category="contractor",
+            valid_from="2026-09-28T09:00:00+00:00",
+            valid_until="2026-09-28T12:00:00+00:00",
+        )
+    user = await person(
+        repo,
+        access_category="contractor",
+        responsible_person="Facilities",
+        access_purpose="Air-conditioning service",
+        valid_from="2026-09-28T09:00:00+00:00",
+        valid_until="2026-09-28T12:00:00+00:00",
+    )
+    saved = repo.snapshot()
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(saved)
+    current = restored.get(user.id)
+    assert current.access_category == "contractor"
+    assert current.responsible_person == "Facilities"
+    assert current.access_purpose == "Air-conditioning service"
+    assert restored.public()["users"][0]["access_category"] == "contractor"
+    with pytest.raises(AccessError, match="invalid_validity"):
+        await restored.async_update(
+            user.id,
+            {"valid_from": None, "valid_until": None},
+            expected_revision=current.revision,
+        )
+    assert restored.get(user.id).valid_until is not None
+
+
+async def test_existing_user_without_temporary_fields_loads_as_staff(repo):
+    user = await person(repo)
+    saved = repo.snapshot()
+    for field in ("access_category", "responsible_person", "access_purpose"):
+        saved["users"][user.id].pop(field)
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(saved)
+    assert restored.get(user.id).access_category == "staff"
+    assert restored.get(user.id).responsible_person == ""
+
+
 async def test_failed_persistence_does_not_publish_desired_state(repo):
     repo._save.side_effect = OSError("disk unavailable")
     with pytest.raises(OSError):

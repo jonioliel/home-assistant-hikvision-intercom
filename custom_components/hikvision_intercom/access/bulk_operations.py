@@ -75,7 +75,14 @@ def selection(request: dict[str, Any]) -> list[dict[str, Any]]:
 
 def changed_fields(before: ManagedUser, after: ManagedUser) -> list[str]:
     first, last = desired_fields(before), desired_fields(after)
-    for key in ("profile", "group_ids", "permission_overrides"):
+    for key in (
+        "profile",
+        "group_ids",
+        "permission_overrides",
+        "access_category",
+        "responsible_person",
+        "access_purpose",
+    ):
         first[key], last[key] = getattr(before, key), getattr(after, key)
     return sorted(key for key in first if first[key] != last[key])
 

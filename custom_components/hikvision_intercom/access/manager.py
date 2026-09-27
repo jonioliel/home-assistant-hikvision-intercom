@@ -538,7 +538,15 @@ class AccessManager:
                 if before != after:
                     validate_csv_targets(user, rules)
                 fields = [key for key in after if before.get(key) != after[key]]
-                for key in ("profile", "group_ids", "permission_overrides", "phone"):
+                for key in (
+                    "profile",
+                    "group_ids",
+                    "permission_overrides",
+                    "phone",
+                    "access_category",
+                    "responsible_person",
+                    "access_purpose",
+                ):
                     if getattr(previous, key, None) != getattr(user, key) and (
                         previous or getattr(user, key)
                     ):
@@ -651,7 +659,16 @@ class AccessManager:
         access_employees = {
             row["employee_no"]
             for row in preview["rows"]
-            if set(row["changed_fields"]) - {"profile", "group_ids", "permission_overrides"}
+            if set(row["changed_fields"])
+            - {
+                "profile",
+                "group_ids",
+                "permission_overrides",
+                "phone",
+                "access_category",
+                "responsible_person",
+                "access_purpose",
+            }
         }
         device_changes = {
             change["user_id"]

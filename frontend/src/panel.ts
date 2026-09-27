@@ -1112,6 +1112,9 @@ export class IntercomManagerPanel extends LitElement {
       : {
           employee_no: String(100000000 + (number[0] % 900000000)),
           display_name: "",
+          access_category: "staff",
+          responsible_person: "",
+          access_purpose: "",
           active: true,
           pin_configured: false,
           confirm_pin: "",
@@ -1149,6 +1152,7 @@ export class IntercomManagerPanel extends LitElement {
     this.edit();
     if (!this._draft) return;
     this._draft.timed = true;
+    this._draft.access_category = "visitor";
     this._validityStation = "";
     this._validityInputZone = structuredClone(this.validityZone());
     const start = new Date();
@@ -1187,6 +1191,8 @@ export class IntercomManagerPanel extends LitElement {
     }
     if (!draft.display_name.trim() || draft.display_name.length > 32) {
       this._error = this.t("guest_name_required");
+    } else if (!draft.responsible_person?.trim()) {
+      this._error = this.t("guest_responsible_required");
     } else if (
       !draft.valid_from ||
       !draft.valid_until ||
@@ -1427,6 +1433,9 @@ export class IntercomManagerPanel extends LitElement {
     const data: Record<string, unknown> = {
       employee_no: draft.employee_no,
       phone: draft.phone ?? "",
+      access_category: draft.access_category ?? "staff",
+      responsible_person: draft.responsible_person ?? "",
+      access_purpose: draft.access_purpose ?? "",
       ...(this._data?.api?.capabilities.includes("user_timing_draft")
         ? { access_timing_draft: draft.access_timing_draft ?? null }
         : {}),
@@ -3191,6 +3200,7 @@ export class IntercomManagerPanel extends LitElement {
                       <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
                         ${user.display_name}
                       </button>
+                      ${user.access_category && user.access_category !== "staff" ? html`<small class="sub">${this.t(`access_category_${user.access_category}`)}</small>` : nothing}
                     </div>
                   </td>
                   <td><bdi>${user.employee_no}</bdi></td>
@@ -3228,6 +3238,7 @@ export class IntercomManagerPanel extends LitElement {
                   <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
                     ${user.display_name}
                   </button>
+                  ${user.access_category && user.access_category !== "staff" ? html`<small class="sub"> · ${this.t(`access_category_${user.access_category}`)}</small>` : nothing}
                 </h3>
                 <span title=${this.t("user_sync_hint")}
                   >${this.badge(this.personStatus(user))}</span
@@ -3362,7 +3373,10 @@ export class IntercomManagerPanel extends LitElement {
                     <div>
                       <button class="user-detail-link" @click=${() => this.openPersonDetails(u)}>
                         ${u.display_name}</button
-                      ><small class="access-person-id"><bdi>${u.employee_no}</bdi></small>
+                      ><small class="access-person-id"
+                        ><bdi>${u.employee_no}</bdi
+                        >${u.access_category && u.access_category !== "staff" ? html` · ${this.t(`access_category_${u.access_category}`)}` : nothing}</small
+                      >
                     </div>
                   </div>
                 </td>
@@ -3895,6 +3909,50 @@ export class IntercomManagerPanel extends LitElement {
               >
             </p>
           </fieldset>
+          <fieldset class="editor-person">
+            <legend>${this.t("access_category")}</legend>
+            <div class="fields">
+              <label
+                >${this.t("access_category")}<select
+                  .value=${draft.access_category ?? "staff"}
+                  @change=${(event: Event) => {
+                    const category = value(event) as Draft["access_category"];
+                    this.patchDraft("access_category", category);
+                    if (category === "staff") {
+                      this.patchDraft("responsible_person", "");
+                      this.patchDraft("access_purpose", "");
+                    } else this.patchDraft("timed", true);
+                  }}
+                >
+                  <option value="staff">${this.t("access_category_staff")}</option>
+                  <option value="visitor">${this.t("access_category_visitor")}</option>
+                  <option value="contractor">${this.t("access_category_contractor")}</option>
+                </select></label
+              >
+              ${
+                draft.access_category && draft.access_category !== "staff"
+                  ? html`<label
+                      >${this.t("responsible_person")}<input
+                        required
+                        maxlength="64"
+                        .value=${draft.responsible_person ?? ""}
+                        @input=${(event: Event) => this.patchDraft("responsible_person", value(event))}
+                    /></label>`
+                  : nothing
+              }
+            </div>
+            ${
+              draft.access_category && draft.access_category !== "staff"
+                ? html`<label
+                      >${this.t("access_purpose")}<input
+                        maxlength="128"
+                        .value=${draft.access_purpose ?? ""}
+                        @input=${(event: Event) => this.patchDraft("access_purpose", value(event))}
+                    /></label>
+                    <p class="field-note">${this.t("temporary_access_note")}</p>`
+                : nothing
+            }
+          </fieldset>
           ${this.profileEditor()} ${this.editorActions()}
           <fieldset class="editor-validity">
             <legend>${icon("schedules")}${this.t("validity")}</legend>
@@ -4343,6 +4401,28 @@ export class IntercomManagerPanel extends LitElement {
                     .value=${draft.phone ?? ""}
                     @input=${(event: Event) => this.patchDraft("phone", mobileDisplay(value(event)))}
                 /></label>
+                <label
+                  >${this.t("access_category")}<select
+                    .value=${draft.access_category ?? "visitor"}
+                    @change=${(event: Event) => this.patchDraft("access_category", value(event))}
+                  >
+                    <option value="visitor">${this.t("access_category_visitor")}</option>
+                    <option value="contractor">${this.t("access_category_contractor")}</option>
+                  </select></label
+                >
+                <label
+                  >${this.t("responsible_person")}<input
+                    required
+                    maxlength="64"
+                    .value=${draft.responsible_person ?? ""}
+                    @input=${(event: Event) => this.patchDraft("responsible_person", value(event))}
+                /></label>
+                <label
+                  >${this.t("access_purpose")}<input
+                    maxlength="128"
+                    .value=${draft.access_purpose ?? ""}
+                    @input=${(event: Event) => this.patchDraft("access_purpose", value(event))}
+                /></label>
               </div>
               <fieldset>
                 <legend>${this.t("guest_window")}</legend>
@@ -4487,6 +4567,11 @@ export class IntercomManagerPanel extends LitElement {
                   ${draft.display_name} · ${this.dateText(draft.valid_from)} —
                   ${this.dateText(draft.valid_until)}
                 </p>
+                <p>
+                  ${this.t(`access_category_${draft.access_category ?? "visitor"}`)} ·
+                  ${this.t("responsible_person")}: ${draft.responsible_person}
+                </p>
+                ${draft.access_purpose ? html`<p>${this.t("access_purpose")}: ${draft.access_purpose}</p>` : nothing}
                 <p>${this.t("guest_credential")}: ${draft.pin ? this.t("pin") : this.t("cards")}</p>
                 <p>
                   ${this.t("selected_stations")}:

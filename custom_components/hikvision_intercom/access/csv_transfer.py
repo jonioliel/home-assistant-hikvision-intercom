@@ -24,6 +24,9 @@ COLUMNS = (
     "valid_until",
     "stations",
     "phone",
+    "access_category",
+    "responsible_person",
+    "access_purpose",
 )
 IMPORT_COLUMNS = {
     *COLUMNS,
@@ -77,6 +80,9 @@ def export_users(users: list[ManagedUser], fields: list[str] | None = None) -> s
                 u.valid_until or "CLEAR",
                 "",
                 json.dumps(u.phone),
+                u.access_category,
+                json.dumps(u.responsible_person, ensure_ascii=False),
+                json.dumps(u.access_purpose, ensure_ascii=False),
                 json.dumps(u.group_ids, ensure_ascii=False),
                 json.dumps(u.permission_overrides, ensure_ascii=False, sort_keys=True),
                 *(
@@ -201,6 +207,11 @@ def row_patch(
         data["access_timing_policy"] = timing_policy(_json(timing))
     if phone := row.get("phone"):
         data["phone"] = "" if phone == "CLEAR" else _json(phone) if phone.startswith('"') else phone
+    if category := row.get("access_category"):
+        data["access_category"] = category
+    for field in ("responsible_person", "access_purpose"):
+        if raw := row.get(field):
+            data[field] = "" if raw == "CLEAR" else _json(raw) if raw.startswith('"') else raw
     if active := row.get("active"):
         if active not in {"true", "false"}:
             raise AccessError("invalid_boolean")
@@ -380,6 +391,9 @@ def desired_fields(user: ManagedUser) -> dict[str, Any]:
             "permission_overrides",
             "photo",
             "phone",
+            "access_category",
+            "responsible_person",
+            "access_purpose",
             "access_timing_draft",
         }
     }

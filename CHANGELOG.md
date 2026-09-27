@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.8] - 2026-09-28
+
+- Classify people as staff, visitors or contractors without changing the device-level Hikvision user type. Temporary categories require a bounded validity window and a named responsible person, validated on the server as well as in the creation form.
+- Show category, responsible person and purpose in user details and identity lifecycle reports. Preserve existing people as staff on upgrade and round-trip the new fields through CSV.
+- Keep administrative-only category and purpose edits out of station synchronization, while changes to time windows and door permissions continue through the existing enforcement path.
+
 ## [2.0.0-rc.7] - 2026-09-27
 
 - Add a fleet-wide entry-dashboard camera preference: muted live video (the existing default) or a still image refreshed every ten seconds while visible. Selecting a still never starts a card stream; selecting the image still opens the full live camera and controls. Existing saved media policies retain the live default.
