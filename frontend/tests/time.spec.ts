@@ -308,7 +308,7 @@ test("change-history filters preserve their instant after HA clock settings chan
   });
   await navigate(page, "Change history");
   await page.getByText("History filters", { exact: true }).click();
-  await page.getByLabel("From (HA display time)", { exact: true }).fill("2026-09-09T12:30");
+  await page.getByLabel("From (system infrastructure display time)", { exact: true }).fill("2026-09-09T12:30");
   await page.getByRole("button", { name: "Apply filters", exact: true }).click();
   const original = await page.evaluate(
     () => window.calls.filter((c) => c.type.endsWith("audit/list")).at(-1).filters.start,
