@@ -384,6 +384,10 @@
       "title": "Field test results cannot be loaded",
       "description": "Existing field results were not overwritten. Restore a valid backup of the acceptance store and reload the integration."
     },
+    "fleet_health_storage_corrupt": {
+      "title": "Station health history cannot be loaded",
+      "description": "The station health history failed validation and was not overwritten. Restore its storage file from a trusted backup and reload the integration; access permissions and station controls remain separate."
+    },
     "acceptance_storage_write": {
       "title": "Field test results could not be saved",
       "description": "The new result was not committed. Check available disk space and configuration-directory permissions, then save again."
