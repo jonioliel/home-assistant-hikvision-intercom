@@ -110,6 +110,7 @@ test("camera capture retake use and remove are explicit; tracks close", async ({
   expect(payload.length).toBeLessThan(44000);
   expect(await page.evaluate(() => JSON.stringify(window.demoData))).not.toContain(payload);
   const reopened = await edit(page);
+  await reopened.locator("hikvision-user-photo").scrollIntoViewIfNeeded();
   await expect(reopened.locator("hikvision-user-photo").getByRole("img")).toBeVisible();
   await reopened.getByRole("button", { name: "Remove user photo" }).click();
   await reopened.getByRole("button", { name: "Save", exact: true }).click();
