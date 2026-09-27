@@ -343,7 +343,7 @@ export class DoorPrograms extends LitElement {
             </div>
             <p>
               ${this.station?.integrated_locks.find((l) => l.physical_index === p.door)?.name ?? this.t("physical_lock") + " " + p.door}
-              · Home Assistant · <bdi>${p.policy.timezone}</bdi>
+              · ${this.t("system_infrastructure")} · <bdi>${p.policy.timezone}</bdi>
             </p>
             <p>${this.t("program_" + p.execution.status)}</p>
             ${p.checked_at ? html`<p class="sub">${this.t("program_checked")}: <bdi>${p.checked_at}</bdi></p>` : nothing}
@@ -408,7 +408,8 @@ export class DoorPrograms extends LitElement {
                   </select></label
                 >
                 <div class="sources">
-                  <strong>Home Assistant</strong><span>${this.t("program_ha_storage")}</span>
+                  <strong>${this.t("system_infrastructure")}</strong
+                  ><span>${this.t("program_ha_storage")}</span>
                 </div>
                 <p>${this.t("hold_dependency")}</p>
                 <label

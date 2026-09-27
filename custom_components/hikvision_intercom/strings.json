@@ -43,7 +43,7 @@
         },
         "data_description": {
           "mode": "Camera-only mode creates no lock and does not permit release commands.",
-          "lock_name": "Name shown in Home Assistant and WisKey, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
+          "lock_name": "Name shown in the system infrastructure and WisKey, such as Front door. Leave empty for the default name. Renaming while retaining the confirmed mapping does not release the lock."
         }
       },
       "mapping": {
@@ -330,19 +330,19 @@
     },
     "users_storage_corrupt": {
       "title": "Users storage requires attention",
-      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+      "description": "Check free space and permissions. For corrupt data, restore the matching system backup; do not delete the private storage to reset it. Reload after repair."
     },
     "users_storage_write": {
       "title": "Users storage requires attention",
-      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+      "description": "Check free space and permissions. For corrupt data, restore the matching system backup; do not delete the private storage to reset it. Reload after repair."
     },
     "events_storage_corrupt": {
       "title": "Events storage requires attention",
-      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+      "description": "Check free space and permissions. For corrupt data, restore the matching system backup; do not delete the private storage to reset it. Reload after repair."
     },
     "events_storage_write": {
       "title": "Events storage requires attention",
-      "description": "Check free space and permissions. For corrupt data, restore the matching HA backup; do not delete the private storage to reset it. Reload after repair."
+      "description": "Check free space and permissions. For corrupt data, restore the matching system backup; do not delete the private storage to reset it. Reload after repair."
     },
     "schedules_storage_corrupt": {
       "title": "Schedule storage could not be loaded",
@@ -354,7 +354,7 @@
     },
     "schedule_baselines_storage_corrupt": {
       "title": "Schedule references unavailable",
-      "description": "The schedule reference file could not be loaded. Preserve it and restore a valid backup, then restart Home Assistant. Schedule assessments and existing access remain available."
+      "description": "The schedule reference file could not be loaded. Preserve it and restore a valid backup, then restart the system infrastructure. Schedule assessments and existing access remain available."
     },
     "schedule_baselines_storage_write": {
       "title": "Schedule reference save failed",
@@ -362,11 +362,11 @@
     },
     "schedule_plans_storage_corrupt": {
       "title": "Deployment proposal storage unavailable",
-      "description": "Local deployment proposals could not be loaded. The file is preserved without overwrite. Restore a valid backup and restart Home Assistant. User management and draft storage remain independent."
+      "description": "Local deployment proposals could not be loaded. The file is preserved without overwrite. Restore a valid backup and restart the system infrastructure. User management and draft storage remain independent."
     },
     "schedule_journal_storage_corrupt": {
       "title": "Schedule journal unavailable",
-      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart the system infrastructure. Core user management remains independent."
     },
     "schedule_journal_storage_write": {
       "title": "Schedule journal could not be saved",
@@ -374,7 +374,7 @@
     },
     "schedule_operations_storage_corrupt": {
       "title": "Schedule operations unavailable",
-      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart Home Assistant. Core user management remains independent."
+      "description": "The storage file is invalid and has been preserved. Restore a valid backup and restart the system infrastructure. Core user management remains independent."
     },
     "schedule_operations_storage_write": {
       "title": "Schedule operations could not be saved",
@@ -390,7 +390,7 @@
     },
     "media_settings_storage_corrupt": {
       "title": "Camera playback settings could not be loaded",
-      "description": "The stored WisKey playback preferences failed validation. Restore this storage file from a trusted backup and restart Home Assistant. Camera and user configuration are separate."
+      "description": "The stored WisKey playback preferences failed validation. Restore this storage file from a trusted backup and restart the system infrastructure. Camera and user configuration are separate."
     },
     "profile_settings_storage_corrupt": {
       "title": "WisKey user profile settings are unavailable",
@@ -398,7 +398,7 @@
     },
     "panel_permissions_storage_corrupt": {
       "title": "WisKey user permissions are unavailable",
-      "description": "The stored Home Assistant user permissions failed validation. Non-administrators are denied access until a valid backup is restored and the integration is reloaded. Home Assistant administrators retain recovery access."
+      "description": "The stored system infrastructure user permissions failed validation. Non-administrators are denied access until a valid backup is restored and the integration is reloaded. System infrastructure administrators retain recovery access."
     }
   }
 }

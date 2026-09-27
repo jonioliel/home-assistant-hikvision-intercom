@@ -238,7 +238,9 @@ test("HA disconnect invalidates a pending signal and reconnect requires a fresh 
     window.demoHass.connection.connected = false;
     for (const callback of window.callListeners.get("disconnected")) callback();
   });
-  await expect(controls).toContainText("Call controls are paused until Home Assistant reconnects");
+  await expect(controls).toContainText(
+    "Call controls are paused until system infrastructure reconnects",
+  );
   await expect(
     page.getByRole("dialog").getByRole("button", { name: "Refresh call state" }),
   ).toBeDisabled();

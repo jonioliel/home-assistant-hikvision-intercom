@@ -1,4 +1,5 @@
 const en = {
+  system_infrastructure: "System infrastructure",
   identity_lifecycle: "Identity lifecycle",
   tools_identity_lifecycle:
     "Expiring access, possible duplicate records and active people without a PIN or card.",
@@ -37,10 +38,10 @@ const en = {
   sync_error_details: "Error details",
   clock_options: "Time and NTP",
   tools_clock_options:
-    "Shared time server, station clock synchronization and Home Assistant host settings.",
+    "Shared time server, station clock synchronization and system infrastructure host settings.",
   program_edit_pause:
     "Pause this program and restore normal door control before editing? It remains paused until you save and activate it.",
-  program_ha_storage: "Stored and executed by Home Assistant.",
+  program_ha_storage: "Stored and executed by system infrastructure.",
   public_pin_intro:
     "Public codes are stored on the station and are not assigned to a person. The station reports which slots are configured, without returning their digits. Replacing or deleting a code requires the current code.",
   public_pin_compatibility:
@@ -67,13 +68,13 @@ const en = {
   program_new: "New program",
   program_edit: "Edit opening program",
   program_native_unavailable:
-    "Station-local hold-open deployment is not available in this version. HA programs are listed below; this is not an inventory of native station schedules.",
+    "Station-local hold-open deployment is not available in this version. System infrastructure programs are listed below; this is not an inventory of native station schedules.",
   program_remove_confirm:
     "Remove this program? If WisKey holds the door open, it will first request return to normal control. An unconfirmed return stays pending.",
   program_pause_confirm: "Pause this program and request return to normal control if held open?",
   program_pause: "Pause",
   program_removing: "Removal pending",
-  program_active: "Enabled in HA",
+  program_active: "Enabled in system infrastructure",
   program_inactive: "Saved · inactive",
   program_idle: "No hold-open command is currently owned by this program.",
   program_opening: "Sending hold-open command",
@@ -89,7 +90,7 @@ const en = {
   program_activate: "Save and activate",
   program_save_inactive: "Save without activation",
   program_end_hint:
-    "At the end: request normal door control. HA and the network must remain available. One program per door; combine all required time windows here. Pause before editing an active program.",
+    "At the end: request normal door control. System infrastructure and the network must remain available. One program per door; combine all required time windows here. Pause before editing an active program.",
   hold_pause_before_edit: "Pause the program and confirm restoration before editing.",
 
   wall_open: "Open door",
@@ -104,7 +105,7 @@ const en = {
 
   user_timing_choose_enforcement: "Select an enforcement method to activate",
   user_timing_choose_notice:
-    "This saved schedule has not been activated. Select HA windows or a station-local plan, then Save & sync. Until you select a method, saving other user details keeps the existing access unchanged.",
+    "This saved schedule has not been activated. Select system infrastructure windows or a station-local plan, then Save & sync. Until you select a method, saving other user details keeps the existing access unchanged.",
 
   user_timing_active_preview_hint:
     "Calculation from the selected schedule; check station readback separately after saving.",
@@ -116,26 +117,26 @@ const en = {
   schedule_runtime_unavailable:
     "Schedule storage is unavailable. Resolve the storage repair before native deployment.",
   schedule_no_safe_slots:
-    "No safely allocatable station schedule was found. Select HA validity windows.",
+    "No safely allocatable station schedule was found. Select system infrastructure validity windows.",
   schedule_deployment_incomplete:
-    "Native deployment is incomplete. No new schedule assignment was granted; inspect schedule recovery or use HA windows.",
+    "Native deployment is incomplete. No new schedule assignment was granted; inspect schedule recovery or use system infrastructure windows.",
   schedule_station_clock_unverified:
-    "The station clock cannot be verified within ten seconds of HA. Check NTP and resynchronize.",
+    "The station clock cannot be verified within ten seconds of system infrastructure. Check NTP and resynchronize.",
   schedule_station_timezone_unverified:
-    "Station DST rules differ from the selected time zone. Use HA windows or correct the station clock rules.",
+    "Station DST rules differ from the selected time zone. Use system infrastructure windows or correct the station clock rules.",
 
   user_timing_readback: "Last station readback (configuration)",
   user_timing_readback_at: "Read back at",
   user_timing_enforcement: "Enforcement method",
-  user_timing_ha: "Home Assistant · finite validity windows",
+  user_timing_ha: "System infrastructure · finite validity windows",
   user_timing_native: "Station-local schedule · ISAPI",
   user_timing_save_draft: "Save draft only (no enforcement)",
   user_timing_scheduled: "Scheduled access",
   user_timing_outer_validity: "Additional overall validity limit",
   user_timing_ha_notice:
-    "Save and synchronize to apply. The station enforces one finite window at a time; HA renews subsequent windows. If HA or the network is unavailable, the current window still expires and later access may be denied. Check synchronization for every selected station before testing.",
+    "Save and synchronize to apply. The station enforces one finite window at a time; system infrastructure renews subsequent windows. If system infrastructure or the network is unavailable, the current window still expires and later access may be denied. Check synchronization for every selected station before testing.",
   user_timing_native_notice:
-    "Save and synchronize to deploy and read back the station-local plan. Unknown resource references, unsupported calendar exceptions or clock differences block activation; an existing managed grant is set to expired when deployment fails. Use HA windows if the station cannot safely accept a native plan.",
+    "Save and synchronize to deploy and read back the station-local plan. Unknown resource references, unsupported calendar exceptions or clock differences block activation; an existing managed grant is set to expired when deployment fails. Use system infrastructure windows if the station cannot safely accept a native plan.",
   audit_field_access_timing_policy: "Access timing enforcement",
 
   user_sync_hint:
@@ -181,9 +182,9 @@ const en = {
     "I verified the physical relay mapping. Save and reload this integration.",
   technical_relays_save: "Save relay selection",
 
-  hold_title: "Scheduled hold-open · Home Assistant",
+  hold_title: "Scheduled hold-open · system infrastructure",
   hold_dependency:
-    "HA and network connectivity are required throughout the opening window. During an outage the door may remain unlocked until communication returns; this does not replace a local station schedule.",
+    "System infrastructure and network connectivity are required throughout the opening window. During an outage the door may remain unlocked until communication returns; this does not replace a local station schedule.",
   hold_blocked:
     "Draft only. Automatic operation awaits a coordinated hold-open and restore test on this station.",
   hold_load: "Load door draft",
@@ -254,7 +255,7 @@ const en = {
     "Filtered by current group membership and profile values, only for an observed owner of the event employee ID on its station. This is not membership at the time of the event. Events with missing or unverified identity are excluded.",
   saved_reports: "Saved report queries",
   saved_reports_hint:
-    "Save the applied filters, including fixed date ranges, in this browser for your HA account. Up to 20 queries; event records are not stored here.",
+    "Save the applied filters, including fixed date ranges, in this browser for your system infrastructure account. Up to 20 queries; event records are not stored here.",
   new_report_query: "New report query",
   report_query_name: "Report query name",
   save_report_query: "Save applied query",
@@ -336,7 +337,7 @@ const en = {
     "Video stopped producing frames. Automatic retries were limited; you can retry manually.",
   mic_options: "Microphone selection and local test",
   mic_local_hint:
-    "Test the microphone locally before opening audio. The meter sends no sound to Home Assistant or the station. The test stops after one minute or when leaving the window. Device names appear after browser permission.",
+    "Test the microphone locally before opening audio. The meter sends no sound to system infrastructure or the station. The test stops after one minute or when leaving the window. Device names appear after browser permission.",
   mic_device: "Microphone",
   mic_default: "Browser default",
   mic_saved: "Saved selection",
@@ -434,7 +435,7 @@ const en = {
   photo_remove: "Remove user photo",
   photo_save_hint:
     "The photo is saved with the user. The camera stops after capture or closing this editor.",
-  photo_https: "Open Home Assistant using HTTPS to allow browser camera access.",
+  photo_https: "Open system infrastructure using HTTPS to allow browser camera access.",
   photo_camera_failed:
     "Could not open the camera. Check browser permission and that another app is not using it.",
   photo_load_failed: "Could not load the saved photo. Try reopening the editor.",
@@ -469,21 +470,21 @@ const en = {
   media_discover: "Find installed go2rtc add-on",
   media_discovered: "Add-on found. Save to use it for both RTC and MSE.",
   media_discover_failed:
-    "Add-on DNS was not reachable. Enter the HA server address with port 1984, save and check the connection.",
+    "Add-on DNS was not reachable. Enter the system infrastructure server address with port 1984, save and check the connection.",
   media_options: "Video, audio and announcements",
   tools_media_options: "Global video, talk and announcement settings for WisKey.",
   media_scope:
-    "Applies to every WisKey live player and intercom announcement. Other Home Assistant camera cards use their own player settings.",
+    "Applies to every WisKey live player and intercom announcement. Other system infrastructure camera cards use their own player settings.",
   media_transport: "Video transport",
   media_webrtc_mode: "WebRTC / go2rtc player mode",
   media_mse_hint:
-    "MSE carries camera video and compatible camera audio over the Home Assistant connection. It does not need a direct browser-to-camera RTC connection. Microphone transmission uses the separate talk controls.",
+    "MSE carries camera video and compatible camera audio over the system infrastructure connection. It does not need a direct browser-to-camera RTC connection. Microphone transmission uses the separate talk controls.",
   media_rtc_hint:
-    "RTC uses the selected go2rtc server, or the Home Assistant provider when the address is empty. Connectivity depends on ICE and the network path.",
+    "RTC uses the selected go2rtc server, or the system infrastructure provider when the address is empty. Connectivity depends on ICE and the network path.",
   media_fallback: "Allow automatic HLS fallback if the selected mode fails",
   media_go2rtc_url: "go2rtc server address (RTC and MSE)",
   media_go2rtc_hint:
-    "Leave empty to use the Home Assistant go2rtc integration. Otherwise enter a trusted local server reachable from HA, such as http://go2rtc:1984. HA sends the camera source to this server; its address and camera credentials stay out of the player. No username or password in this address.",
+    "Leave empty to use the system infrastructure go2rtc integration. Otherwise enter a trusted local server reachable from system infrastructure, such as http://go2rtc:1984. System infrastructure sends the camera source to this server; its address and camera credentials stay out of the player. No username or password in this address.",
   media_save: "Save global settings",
   media_reload: "Reload saved settings",
   media_provider_check: "Check saved go2rtc server",
@@ -496,7 +497,7 @@ const en = {
   media_provider_ready:
     "The saved go2rtc server is reachable. Camera decoding is checked when a live player opens.",
   media_provider_failed:
-    "HA could not reach the saved go2rtc server. Check its address or configure the go2rtc integration.",
+    "System infrastructure could not reach the saved go2rtc server. Check its address or configure the go2rtc integration.",
   player_mse: "MSE",
   player_video_only: "camera stream — use Start listening for audio",
   audio_diagnostics: "Download audio diagnostics",
@@ -515,7 +516,7 @@ const en = {
     "Server diagnostics could not be refreshed. Any previous sample remains visible.",
   audio_refresh_diagnostics: "Refresh server counters",
   audio_path_hint:
-    "Talk uses your microphone → Home Assistant → ISAPI. RTC video connectivity does not verify or block this audio path.",
+    "Talk uses your microphone → system infrastructure → ISAPI. RTC video connectivity does not verify or block this audio path.",
   audio_microphone_denied:
     "Microphone permission was denied. Allow microphone access for this site and hold Talk again.",
   audio_microphone_missing:
@@ -523,8 +524,8 @@ const en = {
   audio_microphone_busy:
     "The browser could not open the microphone. Check system permissions and other apps using it.",
   audio_worklet_failed:
-    "The microphone processor could not start. Reload Home Assistant after updating and try again.",
-  audio_packets: "Microphone packets accepted by HA",
+    "The microphone processor could not start. Reload system infrastructure after updating and try again.",
+  audio_packets: "Microphone packets accepted by system infrastructure",
   audio_signal: "Microphone signal",
   audio_speaker_unverified: "Accepted packets do not confirm sound from the intercom speaker.",
   tts_title: "Intercom announcement",
@@ -537,7 +538,7 @@ const en = {
   tts_settings_title: "Intercom announcements",
   tts_settings_hint:
     "Choose the voice and language once for all stations. Saved quick phrases appear in every camera call window.",
-  tts_default_engine: "Home Assistant default engine",
+  tts_default_engine: "System infrastructure default engine",
   tts_auto_language: "Automatic language",
   tts_quick_phrases: "Quick announcements",
   tts_phrase: "Announcement phrase",
@@ -548,15 +549,15 @@ const en = {
   tts_phrase_invalid: "Complete each phrase and remove duplicates before saving.",
   tts_language_unavailable: "The saved language is not supported by the selected voice engine.",
   tts_connecting: "Preparing the announcement…",
-  tts_generating: "Generating speech in Home Assistant…",
+  tts_generating: "Generating speech in system infrastructure…",
   tts_speaking: "Speaking at the selected station…",
   tts_completed: "The announcement was sent to the selected station.",
-  tts_no_engine: "No Home Assistant TTS engine is configured.",
-  tts_engines_failed: "TTS engines could not be loaded from Home Assistant.",
+  tts_no_engine: "No system infrastructure TTS engine is configured.",
+  tts_engines_failed: "TTS engines could not be loaded from system infrastructure.",
   tts_invalid_message: "Enter a message of up to 500 characters.",
   tts_engine_unavailable: "The selected TTS engine is no longer available.",
   tts_generation_timeout: "Speech generation timed out. Try a shorter message.",
-  tts_generation_failed: "Home Assistant could not generate speech with this engine.",
+  tts_generation_failed: "System infrastructure could not generate speech with this engine.",
   tts_audio_format: "The TTS engine did not return a compatible audio format.",
   tts_audio_too_long: "The generated announcement is longer than one minute.",
   tts_playback_failed: "The announcement could not be played at the station.",
@@ -565,7 +566,7 @@ const en = {
   player_reason_mse_provider_unavailable:
     "Configure a go2rtc server in Management tools → Camera playback options.",
   player_reason_mse_connection_lost:
-    "The MSE connection stopped. Check HA and go2rtc availability.",
+    "The MSE connection stopped. Check system infrastructure and go2rtc availability.",
   player_reason_mse_codec_unavailable:
     "The camera video codec is not supported by this MSE player.",
   player_reason_mse_protocol_error: "The MSE server returned an unsupported response.",
@@ -614,7 +615,7 @@ const en = {
   appearance_settings_unavailable:
     "Shared design settings are unavailable. Reload or check integration storage.",
   appearance_theme:
-    "Existing designs follow Home Assistant colors. WisKey Access has dedicated light and dark appearances.",
+    "Existing designs follow system infrastructure colors. WisKey Access has dedicated light and dark appearances.",
   appearance_session:
     "Design applied for this session. This browser could not save the preference.",
   more_navigation: "More",
@@ -628,11 +629,11 @@ const en = {
   events_report_failed:
     "The report response did not arrive. No new report or file was delivered. Try again after the connection returns.",
   events_connection_lost:
-    "Home Assistant is disconnected. Previously loaded events remain available to read; reports resume with a new request after reconnection.",
+    "System infrastructure is disconnected. Previously loaded events remain available to read; reports resume with a new request after reconnection.",
   panel_operation_unconfirmed:
     "The change may have been saved, but its result did not arrive. Refresh Users and Sync before trying again. The editor was closed and entered credentials were cleared.",
   panel_read_interrupted:
-    "The response did not arrive or Home Assistant disconnected. Refresh after the connection returns.",
+    "The response did not arrive or system infrastructure disconnected. Refresh after the connection returns.",
   audio_title: "Two-way audio",
   audio_hint:
     "Start listening, then hold to talk. Audio stops when this window closes or goes into the background; each session lasts up to 3 minutes.",
@@ -646,7 +647,7 @@ const en = {
   audio_state_listening: "Listening is active. Microphone is off.",
   audio_playback_camera: "camera audio",
   audio_https_required:
-    "Microphone access requires Home Assistant over HTTPS. Listening is available here.",
+    "Microphone access requires system infrastructure over HTTPS. Listening is available here.",
   audio_busy:
     "This station or browser already has an audio session. Stop it before starting another.",
   audio_unsupported: "The station does not advertise the audio format supported by this version.",
@@ -699,8 +700,8 @@ const en = {
   audit_field_assignments: "Station assignments",
   audit_field_ownership: "Ownership",
 
-  audit_from: "From (HA display time)",
-  audit_until: "Until (HA display time)",
+  audit_from: "From (system infrastructure display time)",
+  audit_until: "Until (system infrastructure display time)",
   audit_export_hint:
     "Export includes all retained rows matching the last applied filters, including unloaded pages.",
   audit_source_users_create: "User created",
@@ -814,7 +815,7 @@ const en = {
   permission_more: "Show more compared users",
 
   health_clock_warning:
-    "The station clock differs significantly from HA. Check its time settings; event searches and live automations may be affected.",
+    "The station clock differs significantly from system infrastructure. Check its time settings; event searches and live automations may be affected.",
   health: "Health & field tests",
   event_detail: "Event evidence",
   event_support: "Export event diagnostics",
@@ -829,7 +830,7 @@ const en = {
   device_time_ahead: "Event time is ahead of receipt time; check station clock",
   delayed_stream: "Delayed stream record; excluded from live automations",
   device_not_current: "Device marked record as not current",
-  event_received: "Received by Home Assistant",
+  event_received: "Received by system infrastructure",
   event_delay: "Receipt minus device time (seconds)",
   event_clock_hint:
     "This difference includes network delay and clock offset; it is not a network latency measurement.",
@@ -852,7 +853,7 @@ const en = {
   upgrade_readiness_failed: "Upgrade readiness could not be checked.",
   upgrade_readiness_summary: "{stations} stations across {entries} integration entries",
   upgrade_readiness_hint:
-    "Back up Home Assistant, review the changelog and complete the pending test catalog before upgrading.",
+    "Back up system infrastructure, review the changelog and complete the pending test catalog before upgrading.",
   upgrade_check_storage: "WisKey storage",
   upgrade_check_config_schema: "Configuration schema",
   upgrade_check_entries_loaded: "Integration entries loaded",
@@ -873,7 +874,7 @@ const en = {
   health_read_failed:
     "The health response did not arrive. Previous diagnostics remain visible; refresh this station to try again.",
   health_disconnected:
-    "Home Assistant is disconnected. Cached diagnostics remain visible. Reconnect to continue.",
+    "System infrastructure is disconnected. Cached diagnostics remain visible. Reconnect to continue.",
   health_cached:
     "Current session observations. Refresh reads clock and media capabilities without changing settings.",
   health_stream: "Event stream",
@@ -897,13 +898,13 @@ const en = {
   field_pin_remove: "PIN removed, user retained, PIN rejected",
   field_user_delete: "Deleted user denied access",
   field_card: "Card create, replace and revoke",
-  field_ring: "Bell event received in HA",
+  field_ring: "Bell event received in system infrastructure",
   field_answer: "Answer, reject and hang up",
   field_audio: "Two-way audio",
   field_video_desktop: "Stable video on desktop",
   field_video_mobile: "Stable video on mobile",
   field_webrtc: "Video confirmed using WebRTC",
-  field_offline_recovery: "Offline change, HA restart and recovery",
+  field_offline_recovery: "Offline change, system infrastructure restart and recovery",
   media_signals: "Call signaling",
   media_signal_hint:
     "These buttons control call signaling. Start audio separately in the camera window. Acknowledgement does not confirm an answered call.",
@@ -943,12 +944,12 @@ const en = {
   call_observation_unavailable: "State verification is unavailable",
   call_observed_state: "Observed state",
   panel_connection_lost:
-    "Home Assistant is disconnected. Door controls are paused until the connection returns.",
+    "System infrastructure is disconnected. Door controls are paused until the connection returns.",
   panel_data_stale:
     "Displayed data may be out of date. Refresh failed; you can retry with Refresh.",
   panel_load_failed: "Integration data could not be loaded.",
   panel_retry_hint: "Use Refresh after the connection returns.",
-  call_connection_lost: "Call controls are paused until Home Assistant reconnects",
+  call_connection_lost: "Call controls are paused until system infrastructure reconnects",
   call_read_failed: "Call capabilities or state could not be read",
   call_command_unknown:
     "Command result could not be verified. Refresh the call state before another action.",
@@ -962,9 +963,10 @@ const en = {
   schedule_read_count: "Records read / advertised total",
   player_export: "Playback report",
   player_suspended: "Video paused while this page is in the background",
-  player_ha_disconnected: "Video paused until Home Assistant reconnects",
+  player_ha_disconnected: "Video paused until system infrastructure reconnects",
   player_network_offline: "Video paused while the browser is offline",
-  player_reason_provider_unavailable: "Home Assistant did not advertise WebRTC for this camera.",
+  player_reason_provider_unavailable:
+    "System infrastructure did not advertise WebRTC for this camera.",
   player_reason_browser_unavailable: "WebRTC is unavailable in this browser.",
   player_reason_capabilities_timeout: "Camera capability request timed out.",
   player_reason_capabilities_failed: "Camera capabilities could not be read.",
@@ -981,7 +983,7 @@ const en = {
   player_webrtc: "WebRTC",
   player_hls: "HLS",
   player_fallback: "WebRTC unavailable; using HLS",
-  player_failed: "Video failed; retry or check HA camera diagnostics",
+  player_failed: "Video failed; retry or check system infrastructure camera diagnostics",
   player_retry: "Retry video",
   operations_reload: "Reload operations",
   operations_title: "Schedule operations",
@@ -1031,7 +1033,8 @@ const en = {
     "The previous check was interrupted. Start a new check explicitly.",
   schedule_source_changed: "The source draft changed or was removed. Prepare a new proposal.",
   schedule_ownership_changed: "The resource declaration does not match the latest station read.",
-  schedule_operations_unavailable: "Operations storage is unavailable. See Home Assistant Repairs.",
+  schedule_operations_unavailable:
+    "Operations storage is unavailable. See system infrastructure Repairs.",
   operations_state_pending: "Pending",
   operations_state_queued: "Queued",
   operations_state_checking: "Checking",
@@ -1109,7 +1112,7 @@ const en = {
   plan_no: "No",
   plan_title: "Deployment proposals",
   plan_intro:
-    "Prepare and compare a proposed station configuration. Saving reserves these IDs only within this Home Assistant library; it does not establish device ownership or apply permissions.",
+    "Prepare and compare a proposed station configuration. Saving reserves these IDs only within this system infrastructure library; it does not establish device ownership or apply permissions.",
   plan_station: "Proposal station",
   plan_binding_hint:
     "Enter resource IDs deliberately. Existing or disabled IDs are not assumed to be available. These selections are used for read-only comparison; nothing is written to the station.",
@@ -1184,11 +1187,11 @@ const en = {
   schedule_plan_limit: "The local proposal limit of 32 was reached.",
   schedule_plan_expired: "The proposal review expired or was already used. Compare again.",
   schedule_plan_storage_unavailable:
-    "Proposal storage is unavailable. Inspect the Home Assistant Repair.",
+    "Proposal storage is unavailable. Inspect the system infrastructure Repair.",
   schedule_assess: "Assess selected draft",
   schedule_baseline_title: "Changes since reference",
   schedule_baseline_hint:
-    "The reference stores private fingerprints of observed records in Home Assistant. It does not claim ownership, back up editable configurations or authorize writes. Comparisons run only when you request an assessment.",
+    "The reference stores private fingerprints of observed records in system infrastructure. It does not claim ownership, back up editable configurations or authorize writes. Comparisons run only when you request an assessment.",
   schedule_baseline_state_missing: "No reference has been saved for this station.",
   schedule_baseline_state_unavailable:
     "Reference comparison is unavailable. The inventory assessment remains available.",
@@ -1212,9 +1215,9 @@ const en = {
   schedule_baseline_replace: "Replace reference",
   schedule_baseline_clear: "Clear reference",
   schedule_baseline_save_confirm:
-    "Save these observed records as the station reference in Home Assistant? This replaces any previous reference, including with partial coverage. No station configuration will be changed.",
+    "Save these observed records as the station reference in system infrastructure? This replaces any previous reference, including with partial coverage. No station configuration will be changed.",
   schedule_baseline_clear_confirm:
-    "Remove the saved reference from Home Assistant? No station records or access rights will be changed.",
+    "Remove the saved reference from system infrastructure? No station records or access rights will be changed.",
   schedule_baseline_saved: "Reference saved. Run another assessment to compare new observations.",
   schedule_baseline_cleared:
     "Reference cleared. Run another assessment before saving a new reference.",
@@ -1223,7 +1226,8 @@ const en = {
   schedule_baseline_expired: "This observation expired or was replaced. Run another assessment.",
   schedule_baseline_limit:
     "The reference store has reached its station limit. Clear an unused reference first.",
-  schedule_baseline_unavailable: "Reference storage is unavailable. Check Home Assistant Repairs.",
+  schedule_baseline_unavailable:
+    "Reference storage is unavailable. Check system infrastructure Repairs.",
   schedule_assessment: "Draft and station compatibility",
   schedule_assessment_fits: "No excess found in the checked limits. Applying remains unavailable.",
   schedule_assessment_unknown: "Some draft limits could not be verified.",
@@ -1268,7 +1272,7 @@ const en = {
   schedule_limit_holiday_membership: "Holiday references per group",
   fleet_title: "Fleet clock comparison",
   fleet_hint:
-    "Compared with the HA host clock. Estimates include request delay and one-second timestamp precision. A repeated drift requires matching observations at least five minutes apart (maximum gap: 45 minutes); it is not continuous monitoring. Samples older than 30 minutes are stale. Refresh selected stations below; no clock settings are changed.",
+    "Compared with the system infrastructure host clock. Estimates include request delay and one-second timestamp precision. A repeated drift requires matching observations at least five minutes apart (maximum gap: 45 minutes); it is not continuous monitoring. Samples older than 30 minutes are stale. Refresh selected stations below; no clock settings are changed.",
   fleet_estimate: "Estimated offset ± uncertainty (seconds)",
   fleet_mode: "Device time source",
   fleet_rules: "Device time-zone rules",
@@ -1292,7 +1296,7 @@ const en = {
   clock_source_fallback: "Device zone unavailable — displaying UTC",
   clock_device_time: "Device clock at last read",
   clock_checked: "Clock checked at",
-  clock_skew: "Device clock minus HA clock (seconds)",
+  clock_skew: "Device clock minus system infrastructure clock (seconds)",
   clock_settings_hint:
     "Change the display source in this integration’s station Options. Default: device rules, including configured DST. Manual: an IANA zone such as Asia/Jerusalem. Device clock and NTP settings are not changed. Rules refresh every 15 minutes.",
   clock_refresh: "Read station clock",
@@ -1300,9 +1304,10 @@ const en = {
     "The device clock or DST rule could not be verified. Automatic display falls back to UTC until a valid read; a manual zone remains usable.",
   clock_stale:
     "The latest clock read failed. Display still uses the last verified rules; refresh or choose a manual zone if the device configuration changed.",
-  clock_ha_zone: "Home Assistant zone",
+  clock_ha_zone: "System infrastructure zone",
   clock_validity_basis: "Time zone for validity input",
-  clock_filter_basis: "Filter dates use this zone (all stations use the HA zone)",
+  clock_filter_basis:
+    "Filter dates use this zone (all stations use the system infrastructure zone)",
   clock_ambiguous:
     "This local time occurs twice when DST ends. Choose an unambiguous time or enter it using UTC as the time basis.",
   clock_nonexistent:
@@ -1316,10 +1321,10 @@ const en = {
   schedule_revision_conflict:
     "This schedule changed while you were editing. Reload drafts and review the latest version before saving.",
   schedule_storage_unavailable:
-    "Schedule storage could not be loaded. Check the schedule Repair in Home Assistant; existing user access remains independent.",
+    "Schedule storage could not be loaded. Check the schedule Repair in system infrastructure; existing user access remains independent.",
   schedules: "Access schedules",
   schedule_intro:
-    "Prepare named weekly schedules and holiday exceptions. These drafts are stored in Home Assistant only; they are not assigned to users or enforced by stations.",
+    "Prepare named weekly schedules and holiday exceptions. These drafts are stored in system infrastructure only; they are not assigned to users or enforced by stations.",
   schedule_library: "Saved drafts",
   schedule_reload: "Reload drafts",
   schedule_new: "New schedule",
@@ -1344,7 +1349,7 @@ const en = {
   schedule_add_holiday: "Add holiday",
   schedule_save: "Save draft",
   schedule_delete: "Delete draft",
-  schedule_saved: "Draft saved in Home Assistant. Station permissions were not changed.",
+  schedule_saved: "Draft saved in system infrastructure. Station permissions were not changed.",
   schedule_deleted: "Draft deleted.",
   schedule_delete_confirm: "Delete this local schedule draft?",
   schedule_discard: "Discard the unsaved changes to this draft?",
@@ -1409,7 +1414,7 @@ const en = {
     "Add the collected card to {name} and synchronize their existing assignments?",
   capture_targets: "Existing station assignments",
   capture_limits:
-    "One collection per station. The request waits up to 30 seconds; the private preview expires after two minutes. Closing stops HA collection; the device's reader timeout is firmware-controlled. Physical collection still needs commissioning.",
+    "One collection per station. The request waits up to 30 seconds; the private preview expires after two minutes. Closing stops system infrastructure collection; the device's reader timeout is firmware-controlled. Physical collection still needs commissioning.",
   capture_revision_changed:
     "This user changed or was deleted. Close this dialog and start a new collection from the current user record.",
   capture_state_choose: "Ready to start after capabilities are read.",
@@ -1569,7 +1574,7 @@ const en = {
   scanning: "Reading station capabilities and inventory…",
   scan_failed: "Station inspection failed",
   scan_complete: "Station inspection complete.",
-  configure: "Configure in Home Assistant",
+  configure: "Configure in system infrastructure",
   select_all_stations: "Select all eligible stations",
   clear_stations: "Clear selection",
   selected_stations: "Selected stations",
@@ -1578,9 +1583,9 @@ const en = {
   title: "WisKey",
   tools: "Management tools",
   tools_intro: "Manage access, stations and system settings.",
-  access_control: "HA user permissions",
+  access_control: "System infrastructure user permissions",
   tools_access_control:
-    "Choose which Home Assistant users may open WisKey and what each person may view or manage.",
+    "Choose which system infrastructure users may open WisKey and what each person may view or manage.",
   tools_back: "Back to management tools",
   tools_users: "People, PINs, cards and station permissions.",
   tools_devices: "Station settings, connectivity, cameras and time zones.",
@@ -1608,10 +1613,10 @@ const en = {
   tools_health: "System health, diagnostics and field test evidence.",
   tools_schedules: "Access schedule drafts and station readiness.",
   tools_appearance: "Choose a design and manage the shared default.",
-  tools_settings: "Home Assistant integration settings",
-  tools_settings_hint: "Add a station or configure the integration in Home Assistant.",
+  tools_settings: "System infrastructure integration settings",
+  tools_settings_hint: "Add a station or configure the integration in system infrastructure.",
   live_clock: "Live date and time",
-  clock_zone: "Home Assistant time zone",
+  clock_zone: "System infrastructure time zone",
   last_access: "Last access event",
   no_access_recorded: "No access event in retained history",
   unknown_person: "Unknown person",
@@ -1705,7 +1710,7 @@ const en = {
   online_stations: "Stations online",
   pending_sync: "Pending sync",
   ringing_now: "Ringing now",
-  no_stations: "Add your first intercom in Home Assistant settings.",
+  no_stations: "Add your first intercom in system infrastructure settings.",
   settings: "Integration settings",
   no_users: "Your central user list is empty.",
   no_users_detail:
@@ -1815,7 +1820,8 @@ const en = {
   no_pending_removals: "No pending removals.",
   confirm_delete:
     "Delete this person? Access removal will be queued for {count} station(s), including offline stations.",
-  confirm_adopt: "Take ownership of this device record? It will be managed by Home Assistant.",
+  confirm_adopt:
+    "Take ownership of this device record? It will be managed by system infrastructure.",
   confirm_map:
     "Use the matching central identity? This station will be synchronized to the central person’s credentials and permissions.",
   confirm_device:
@@ -1829,7 +1835,7 @@ const en = {
   admin_only: "Administrator access is required.",
   access_not_granted: "WisKey access has not been granted",
   access_not_granted_hint:
-    "Ask a Home Assistant administrator to grant access from WisKey management tools.",
+    "Ask a system infrastructure administrator to grant access from WisKey management tools.",
   view_only_mode: "View-only access: changes and control actions are disabled for this area.",
   saved: "Saved. Automatic synchronization remains enabled.",
   saved_sync: "Saved. Station synchronization has been requested.",
@@ -1850,7 +1856,7 @@ const en = {
   station_offline: "This station is offline.",
   pin_exceeds_capabilities: "The PIN length is outside a selected station’s supported range.",
   identity_migration_required: "A deployed employee ID cannot be changed directly.",
-  device_changed: "This device record was changed outside Home Assistant.",
+  device_changed: "This device record was changed outside system infrastructure.",
   unmanaged_employee: "This employee ID exists on the station and must be explicitly adopted.",
   card_owned_elsewhere: "The station reports that this card belongs to another person.",
   person_capacity: "The station has reached its user capacity.",
@@ -1870,6 +1876,7 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  system_infrastructure: "תשתית המערכת",
   identity_lifecycle: "מחזור חיי משתמשים",
   tools_identity_lifecycle:
     "הרשאות שעומדות לפוג, רשומות כפולות אפשריות ומשתמשים פעילים ללא PIN או כרטיס.",
@@ -1906,10 +1913,10 @@ const he: Record<keyof typeof en, string> = {
   camera_fullscreen_failed: "מסך מלא אינו זמין בדפדפן זה.",
   sync_error_details: "פרטי השגיאה",
   clock_options: "שעונים ושרת NTP",
-  tools_clock_options: "שרת זמן מרכזי, סנכרון שעוני התחנות והגדרת שעון Home Assistant.",
+  tools_clock_options: "שרת זמן מרכזי, סנכרון שעוני התחנות והגדרת שעון תשתית המערכת.",
   program_edit_pause:
     "להשהות את התוכנית ולהחזיר את הדלת לשליטה רגילה לפני העריכה? התוכנית תישאר מושהית עד לשמירה והפעלה מחדש.",
-  program_ha_storage: "נשמר ומופעל באמצעות Home Assistant.",
+  program_ha_storage: "נשמר ומופעל באמצעות תשתית המערכת.",
   public_pin_intro:
     "קודים ציבוריים נשמרים בתחנה ואינם משויכים לאדם. התחנה מציגה אילו מקומות מוגדרים, בלי להחזיר את ספרות הקוד. החלפה או מחיקה דורשות את הקוד הקיים.",
   public_pin_compatibility:
@@ -1935,13 +1942,13 @@ const he: Record<keyof typeof en, string> = {
   program_new: "תוכנית חדשה",
   program_edit: "עריכת תוכנית פתיחה",
   program_native_unavailable:
-    "פריסת תוכנית פתיחה מקומית אינה זמינה בגרסה זו. הרשימה מציגה תוכניות HA ואינה רשימת הלוחות המקומיים בתחנה.",
+    "פריסת תוכנית פתיחה מקומית אינה זמינה בגרסה זו. הרשימה מציגה תוכניות המנוהלות בתשתית המערכת ואינה רשימת הלוחות המקומיים בתחנה.",
   program_remove_confirm:
     "להסיר תוכנית זו? אם WisKey מחזיקה את הדלת פתוחה, תישלח קודם בקשת חזרה לשליטה רגילה. חזרה שלא אושרה תישאר ממתינה.",
   program_pause_confirm: "להשהות תוכנית זו ולבקש חזרה לשליטה רגילה אם הדלת מוחזקת פתוחה?",
   program_pause: "השהיה",
   program_removing: "הסרה ממתינה",
-  program_active: "מופעלת ב־HA",
+  program_active: "מופעלת בתשתית המערכת",
   program_inactive: "שמורה · לא פעילה",
   program_idle: "אין כרגע פקודת פתיחה קבועה בבעלות תוכנית זו.",
   program_opening: "שולח פקודת פתיחה קבועה",
@@ -1957,7 +1964,7 @@ const he: Record<keyof typeof en, string> = {
   program_activate: "שמור והפעל",
   program_save_inactive: "שמור ללא הפעלה",
   program_end_hint:
-    "בסיום: בקשת חזרה לשליטה רגילה בדלת. HA והרשת חייבים להיות זמינים. תוכנית אחת לכל דלת; ניתן לשלב בה חלונות זמן. יש להשהות תוכנית פעילה לפני עריכתה.",
+    "בסיום: בקשת חזרה לשליטה רגילה בדלת. תשתית המערכת והרשת צריכות להיות זמינות. תוכנית אחת לכל דלת; ניתן לשלב בה חלונות זמן. יש להשהות תוכנית פעילה לפני עריכתה.",
   hold_pause_before_edit: "יש להשהות את התוכנית ולהמתין לאישור החזרה לפני עריכה.",
 
   wall_open: "פתח דלת",
@@ -1972,7 +1979,7 @@ const he: Record<keyof typeof en, string> = {
 
   user_timing_choose_enforcement: "בחירת מסלול אכיפה להפעלה",
   user_timing_choose_notice:
-    "הלוח השמור עדיין לא הופעל. בחר חלונות HA או לוח מקומי, ולחץ שמירה וסנכרון. כל עוד לא נבחר מסלול, שמירת פרטים אחרים של המשתמש אינה משנה את הרשאותיו.",
+    "הלוח השמור עדיין לא הופעל. בחר חלונות תוקף דרך תשתית המערכת או לוח מקומי, ולחץ שמירה וסנכרון. כל עוד לא נבחר מסלול, שמירת פרטים אחרים של המשתמש אינה משנה את הרשאותיו.",
 
   user_timing_active_preview_hint:
     "חישוב לפי הלוח שנבחר; יש לבדוק בנפרד את הקריאה החוזרת מהתחנה לאחר השמירה.",
@@ -1983,26 +1990,26 @@ const he: Record<keyof typeof en, string> = {
   invalid_timing_policy: "הגדרת אכיפת הזמנים אינה תקינה.",
   schedule_runtime_unavailable: "אחסון הלוחות אינו זמין. יש לטפל בהתראת האחסון לפני פריסה מקומית.",
   schedule_no_safe_slots:
-    "לא נמצא לוח בתחנה שניתן להקצות ללא השפעה על הרשאות אחרות. בחר חלונות תוקף HA.",
+    "לא נמצא לוח בתחנה שניתן להקצות ללא השפעה על הרשאות אחרות. בחר חלונות תוקף דרך תשתית המערכת.",
   schedule_deployment_incomplete:
-    "הפריסה המקומית טרם הושלמה. לא הוענק שיוך חדש ללוח. בדוק שחזור פריסה או בחר חלונות HA.",
+    "הפריסה המקומית טרם הושלמה. לא הוענק שיוך חדש ללוח. בדוק שחזור פריסה או בחר חלונות תוקף דרך תשתית המערכת.",
   schedule_station_clock_unverified:
-    "לא ניתן לאמת ששעון התחנה תואם ל־HA בטווח של עשר שניות. בדוק NTP וסנכרן שוב.",
+    "לא ניתן לאמת ששעון התחנה תואם לתשתית המערכת בטווח של עשר שניות. בדוק NTP וסנכרן שוב.",
   schedule_station_timezone_unverified:
-    "כללי אזור הזמן ושעון הקיץ בתחנה אינם תואמים ללוח. בחר חלונות HA או תקן את כללי שעון התחנה.",
+    "כללי אזור הזמן ושעון הקיץ בתחנה אינם תואמים ללוח. בחר חלונות תוקף דרך תשתית המערכת או תקן את כללי שעון התחנה.",
 
   user_timing_readback: "קריאה חוזרת אחרונה מהתחנה (הגדרות)",
   user_timing_readback_at: "נקרא בחזרה בשעה",
   user_timing_enforcement: "אופן אכיפת הזמנים",
-  user_timing_ha: "Home Assistant · חלונות תוקף מוגבלים",
+  user_timing_ha: "תשתית המערכת · חלונות תוקף מוגבלים",
   user_timing_native: "לוח מקומי באינטרקום · ISAPI",
   user_timing_save_draft: "שמירת טיוטה בלבד (ללא אכיפה)",
   user_timing_scheduled: "כניסה לפי לוח זמנים",
   user_timing_outer_validity: "מגבלת תוקף כללית נוספת",
   user_timing_ha_notice:
-    "יש לשמור ולסנכרן כדי להפעיל. התחנה אוכפת חלון תוקף מוגבל אחד בכל פעם, ו־HA מחדש את החלונות הבאים. אם HA או הרשת אינם זמינים, החלון הנוכחי עדיין יפוג וייתכן שהכניסה הבאה תידחה. לפני בדיקה יש לוודא סנכרון בכל תחנה שנבחרה.",
+    "יש לשמור ולסנכרן כדי להפעיל. התחנה אוכפת חלון תוקף מוגבל אחד בכל פעם, ותשתית המערכת מחדשת את החלונות הבאים. אם תשתית המערכת או הרשת אינן זמינות, החלון הנוכחי עדיין יפוג וייתכן שהכניסה הבאה תידחה. לפני בדיקה יש לוודא סנכרון בכל תחנה שנבחרה.",
   user_timing_native_notice:
-    "שמירה וסנכרון פורסים את הלוח המקומי וקוראים אותו בחזרה מהתחנה. שיוכים לא ידועים, חריגי תאריך שאינם נתמכים או הבדלי שעון חוסמים הפעלה; בכשל פריסה, הרשאה מנוהלת קיימת תוגדר כפגת תוקף. ניתן לבחור חלונות HA כשהתחנה אינה מאפשרת פריסה מקומית מאומתת.",
+    "שמירה וסנכרון פורסים את הלוח המקומי וקוראים אותו בחזרה מהתחנה. שיוכים לא ידועים, חריגי תאריך שאינם נתמכים או הבדלי שעון חוסמים הפעלה; בכשל פריסה, הרשאה מנוהלת קיימת תוגדר כפגת תוקף. ניתן לבחור חלונות תוקף דרך תשתית המערכת כשהתחנה אינה מאפשרת פריסה מקומית מאומתת.",
   audit_field_access_timing_policy: "אכיפת זמני כניסה",
 
   user_sync_hint:
@@ -2045,9 +2052,9 @@ const he: Record<keyof typeof en, string> = {
   technical_relays_confirm: "אימתתי את מיפוי הממסרים הפיזי. שמור וטען מחדש את האינטגרציה.",
   technical_relays_save: "שמירת בחירת ממסרים",
 
-  hold_title: "פתיחה קבועה מתוזמנת · Home Assistant",
+  hold_title: "פתיחה קבועה מתוזמנת · תשתית המערכת",
   hold_dependency:
-    "נדרשת זמינות HA והרשת לאורך חלון הפתיחה. בזמן ניתוק הדלת עלולה להישאר פתוחה עד חזרת התקשורת; החלופה אינה מחליפה לוח מקומי בתחנה.",
+    "נדרשת זמינות של תשתית המערכת והרשת לאורך חלון הפתיחה. בזמן ניתוק הדלת עלולה להישאר פתוחה עד חזרת התקשורת; החלופה אינה מחליפה לוח מקומי בתחנה.",
   hold_blocked:
     "טיוטה בלבד. הפעלה אוטומטית ממתינה לבדיקה מתואמת של החזקה פתוחה וחזרה למצב רגיל בתחנה זו.",
   hold_load: "טעינת טיוטת דלת",
@@ -2118,7 +2125,7 @@ const he: Record<keyof typeof en, string> = {
     "הסינון לפי חברות בקבוצה וערכי פרופיל נוכחיים, רק כאשר אומתה בעלות מזהה העובד בתחנה בזמן האירוע. אין כאן מידע על החברות בזמן האירוע. אירועים ללא זהות מאומתת אינם נכללים.",
   saved_reports: "שאילתות דוח שמורות",
   saved_reports_hint:
-    "שמירת המסננים שהוחלו, כולל טווח תאריכים קבוע, בדפדפן הזה לחשבון HA שלך. עד 20 שאילתות; רשומות האירועים אינן נשמרות כאן.",
+    "שמירת המסננים שהוחלו, כולל טווח תאריכים קבוע, בדפדפן הזה עבור החשבון שלך בתשתית המערכת. עד 20 שאילתות; רשומות האירועים אינן נשמרות כאן.",
   new_report_query: "שאילתת דוח חדשה",
   report_query_name: "שם שאילתת הדוח",
   save_report_query: "שמירת השאילתה שהוחלה",
@@ -2196,7 +2203,7 @@ const he: Record<keyof typeof en, string> = {
     "הווידאו הפסיק להציג תמונות חדשות. מספר הניסיונות האוטומטיים מוגבל; אפשר לנסות שוב ידנית.",
   mic_options: "בחירת מיקרופון ובדיקת קלט",
   mic_local_hint:
-    "בדוק את המיקרופון מקומית לפני פתיחת שמע. המד אינו שולח קול ל־Home Assistant או לתחנה. הבדיקה מסתיימת לאחר דקה או ביציאה מהחלון. שמות ההתקנים מופיעים אחרי הרשאת הדפדפן.",
+    "בדוק את המיקרופון מקומית לפני פתיחת שמע. המד אינו שולח קול לתשתית המערכת או לתחנה. הבדיקה מסתיימת לאחר דקה או ביציאה מהחלון. שמות ההתקנים מופיעים אחרי הרשאת הדפדפן.",
   mic_device: "מיקרופון",
   mic_default: "ברירת המחדל של הדפדפן",
   mic_saved: "הבחירה שנשמרה",
@@ -2291,7 +2298,7 @@ const he: Record<keyof typeof en, string> = {
   photo_retake: "מחק וצלם מחדש",
   photo_remove: "הסרת תמונת המשתמש",
   photo_save_hint: "התמונה תישמר יחד עם המשתמש. המצלמה תכבה לאחר הצילום או סגירת העריכה.",
-  photo_https: "יש לפתוח את Home Assistant ב־HTTPS כדי לאפשר גישה למצלמה בדפדפן.",
+  photo_https: "יש לפתוח את תשתית המערכת ב־HTTPS כדי לאפשר גישה למצלמה בדפדפן.",
   photo_camera_failed: "לא ניתן לפתוח את המצלמה. בדוק הרשאת דפדפן ושהמצלמה אינה בשימוש ביישום אחר.",
   photo_load_failed: "לא ניתן לטעון את התמונה השמורה. נסה לפתוח מחדש את העריכה.",
   invalid_photo: "התמונה אינה תקינה או גדולה מדי. צלם מחדש.",
@@ -2322,20 +2329,20 @@ const he: Record<keyof typeof en, string> = {
   media_discover: "איתור תוסף go2rtc מותקן",
   media_discovered: "התוסף נמצא. שמור כדי להשתמש בו גם ב־RTC וגם ב־MSE.",
   media_discover_failed:
-    "התוסף לא נגיש בשם הרשת שלו. הזן את כתובת שרת HA עם פורט 1984, שמור ובדוק חיבור.",
+    "התוסף לא נגיש בשם הרשת שלו. הזן את כתובת שרת תשתית המערכת עם פורט 1984, שמור ובדוק חיבור.",
   media_options: "הגדרות וידאו, שמע והודעות קוליות",
   tools_media_options: "הגדרות וידאו, דיבור והודעות קוליות לכל מערכת WisKey.",
   media_scope:
-    "ההגדרות חלות על כל נגני WisKey ועל ההודעות הקוליות בכל התחנות. כרטיסי מצלמה אחרים ב־Home Assistant משתמשים בהגדרות הנגן שלהם.",
+    "ההגדרות חלות על כל נגני WisKey ועל ההודעות הקוליות בכל התחנות. כרטיסי מצלמה אחרים בתשתית המערכת משתמשים בהגדרות הנגן שלהם.",
   media_transport: "אופן ניגון הווידאו",
   media_webrtc_mode: "מצב נגן WebRTC / go2rtc",
   media_mse_hint:
-    "MSE מעביר וידאו ושמע מצלמה תואם דרך החיבור ל־Home Assistant, ללא חיבור RTC ישיר מהדפדפן למצלמה. שידור המיקרופון מתבצע דרך בקרי הדיבור הנפרדים.",
-  media_rtc_hint: "RTC משתמש בספק WebRTC של Home Assistant. החיבור תלוי ב־ICE ובנתיב הרשת.",
+    "MSE מעביר וידאו ושמע מצלמה תואם דרך החיבור לתשתית המערכת, ללא חיבור RTC ישיר מהדפדפן למצלמה. שידור המיקרופון מתבצע דרך בקרי הדיבור הנפרדים.",
+  media_rtc_hint: "RTC משתמש בספק WebRTC של תשתית המערכת. החיבור תלוי ב־ICE ובנתיב הרשת.",
   media_fallback: "לאפשר מעבר אוטומטי ל־HLS אם המצב שנבחר נכשל",
   media_go2rtc_url: "כתובת שרת go2rtc (ל־RTC ול־MSE)",
   media_go2rtc_hint:
-    "השאר ריק כדי להשתמש באינטגרציית go2rtc של Home Assistant. לחלופין הזן שרת מקומי מהימן שנגיש מ־HA, למשל http://go2rtc:1984. HA מוסר לשרת זה את מקור המצלמה; הכתובת ופרטי המצלמה אינם נשלחים לנגן. אין להזין שם משתמש או סיסמה בכתובת.",
+    "השאר ריק כדי להשתמש באינטגרציית go2rtc של תשתית המערכת. לחלופין הזן שרת מקומי מהימן שנגיש מתשתית המערכת, למשל http://go2rtc:1984. תשתית המערכת מוסרת לשרת זה את מקור המצלמה; הכתובת ופרטי המצלמה אינם נשלחים לנגן. אין להזין שם משתמש או סיסמה בכתובת.",
   media_save: "שמירה לכל המערכת",
   media_reload: "טעינת ההגדרות השמורות",
   media_provider_check: "בדיקת שרת go2rtc השמור",
@@ -2347,7 +2354,7 @@ const he: Record<keyof typeof en, string> = {
   media_save_unknown: "השמירה לא אושרה. טען את ההגדרות השמורות לפני ניסיון נוסף.",
   media_provider_ready: "שרת go2rtc השמור נגיש. פענוח וידאו מהמצלמה נבדק בפתיחת הנגן.",
   media_provider_failed:
-    "HA לא הצליח לגשת לשרת go2rtc השמור. בדוק את הכתובת או הגדר את אינטגרציית go2rtc.",
+    "תשתית המערכת לא הצליחה לגשת לשרת go2rtc השמור. בדוק את הכתובת או הגדר את אינטגרציית go2rtc.",
   player_mse: "MSE",
   player_video_only: "זרם מצלמה — השמע מופעל בלחיצה על פתח האזנה",
   audio_diagnostics: "הורד קובץ אבחון",
@@ -2365,15 +2372,15 @@ const he: Record<keyof typeof en, string> = {
   audio_diagnostics_failed: "לא ניתן לרענן את אבחון השרת. הדגימה הקודמת נשארת מוצגת, אם קיימת.",
   audio_refresh_diagnostics: "רענון מוני שרת",
   audio_path_hint:
-    "הדיבור נשלח מהמיקרופון דרך Home Assistant אל ISAPI. הצלחה או כישלון של וידאו RTC אינם מעידים על תקינות מסלול השמע הזה.",
+    "הדיבור נשלח מהמיקרופון דרך תשתית המערכת אל ISAPI. הצלחה או כישלון של וידאו RTC אינם מעידים על תקינות מסלול השמע הזה.",
   audio_microphone_denied:
     "הגישה למיקרופון נדחתה. אפשר גישה למיקרופון באתר זה והחזק שוב את כפתור הדיבור.",
   audio_microphone_missing:
     "הדפדפן לא מצא מיקרופון זמין. בדוק את התקן הקלט בהגדרות המיקרופון של הדפדפן, בחר כאן מיקרופון זמין ונסה שוב.",
   audio_microphone_busy:
     "הדפדפן לא הצליח לפתוח את המיקרופון. בדוק הרשאות מערכת ויישומים אחרים שמשתמשים בו.",
-  audio_worklet_failed: "מעבד המיקרופון לא הופעל. טען מחדש את Home Assistant לאחר העדכון ונסה שוב.",
-  audio_packets: "חבילות מיקרופון שאושרו ב־HA",
+  audio_worklet_failed: "מעבד המיקרופון לא הופעל. טען מחדש את תשתית המערכת לאחר העדכון ונסה שוב.",
+  audio_packets: "חבילות מיקרופון שאושרו בתשתית המערכת",
   audio_signal: "אות מהמיקרופון",
   audio_speaker_unverified: "אישור חבילות אינו מאמת שנשמע קול ברמקול האינטרקום.",
   tts_title: "הודעה קולית באינטרקום",
@@ -2386,7 +2393,7 @@ const he: Record<keyof typeof en, string> = {
   tts_settings_title: "הודעות קוליות לאינטרקומים",
   tts_settings_hint:
     "בחר מנוע קול ושפה פעם אחת לכל התחנות. משפטים שמורים יופיעו בחלון המצלמה של כל תחנה.",
-  tts_default_engine: "מנוע ברירת המחדל של Home Assistant",
+  tts_default_engine: "מנוע ברירת המחדל של תשתית המערכת",
   tts_auto_language: "שפה אוטומטית",
   tts_quick_phrases: "הודעות מהירות",
   tts_phrase: "משפט להקראה",
@@ -2397,22 +2404,22 @@ const he: Record<keyof typeof en, string> = {
   tts_phrase_invalid: "יש להשלים כל משפט ולהסיר כפילויות לפני השמירה.",
   tts_language_unavailable: "השפה השמורה אינה נתמכת במנוע הקול שנבחר.",
   tts_connecting: "מכין את ההודעה…",
-  tts_generating: "Home Assistant מייצר את ההקראה…",
+  tts_generating: "תשתית המערכת מייצרת את ההקראה…",
   tts_speaking: "ההודעה מוקראת בתחנה שנבחרה…",
   tts_completed: "ההודעה נשלחה להשמעה בתחנה שנבחרה.",
-  tts_no_engine: "לא מוגדר מנוע TTS ב־Home Assistant.",
-  tts_engines_failed: "לא ניתן לטעון את מנועי ה־TTS מ־Home Assistant.",
+  tts_no_engine: "לא מוגדר מנוע TTS בתשתית המערכת.",
+  tts_engines_failed: "לא ניתן לטעון את מנועי ה־TTS מתשתית המערכת.",
   tts_invalid_message: "יש להזין הודעה באורך של עד 500 תווים.",
   tts_engine_unavailable: "מנוע ה־TTS שנבחר אינו זמין עוד.",
   tts_generation_timeout: "יצירת ההקראה ארכה זמן רב מדי. נסה הודעה קצרה יותר.",
-  tts_generation_failed: "Home Assistant לא הצליח ליצור הקראה במנוע שנבחר.",
+  tts_generation_failed: "תשתית המערכת לא הצליחה ליצור הקראה במנוע שנבחר.",
   tts_audio_format: "מנוע ה־TTS לא החזיר שמע בפורמט תואם.",
   tts_audio_too_long: "ההודעה שנוצרה ארוכה מדקה.",
   tts_playback_failed: "לא ניתן היה להשמיע את ההודעה בתחנה.",
   tts_cancelled: "ההקראה הופסקה.",
   player_reason_mse_browser_unavailable: "הדפדפן אינו תומך בווידאו MSE.",
   player_reason_mse_provider_unavailable: "הגדר שרת go2rtc בכלי ניהול ← אפשרויות ניגון מצלמות.",
-  player_reason_mse_connection_lost: "חיבור MSE נותק. בדוק את זמינות HA ו־go2rtc.",
+  player_reason_mse_connection_lost: "חיבור MSE נותק. בדוק את זמינות תשתית המערכת ו־go2rtc.",
   player_reason_mse_codec_unavailable: "קידוד הווידאו של המצלמה אינו נתמך בנגן MSE זה.",
   player_reason_mse_protocol_error: "שרת MSE החזיר תגובה שאינה נתמכת.",
   player_reason_mse_session_changed: "הגדרות הניגון או זמינות התחנה השתנו.",
@@ -2460,7 +2467,7 @@ const he: Record<keyof typeof en, string> = {
   appearance_settings_unavailable:
     "הגדרת העיצוב המשותפת אינה זמינה. יש לרענן או לבדוק את אחסון האינטגרציה.",
   appearance_theme:
-    "עיצובי Access כוללים בחירה בהירה וכהה. בעיצובים הקיימים הצבעים נקבעים לפי Home Assistant. החלפת עיצוב שומרת על טיוטת העריכה.",
+    "עיצובי Access כוללים בחירה בהירה וכהה. בעיצובים הקיימים הצבעים נקבעים לפי תשתית המערכת. החלפת עיצוב שומרת על טיוטת העריכה.",
   appearance_session: "העיצוב הוחל להפעלה זו. הדפדפן לא הצליח לשמור את ההעדפה.",
   more_navigation: "עוד",
   station_details: "פרטי התחנה",
@@ -2473,11 +2480,11 @@ const he: Record<keyof typeof en, string> = {
   events_report_failed:
     "תשובת הדוח לא התקבלה. לא התקבלו דוח או קובץ חדשים. ניתן לנסות שוב לאחר חידוש החיבור.",
   events_connection_lost:
-    "החיבור ל־Home Assistant נותק. אירועים שכבר נטענו זמינים לעיון; להפקת דוח נדרשת בקשה חדשה לאחר חידוש החיבור.",
+    "החיבור לתשתית המערכת נותק. אירועים שכבר נטענו זמינים לעיון; להפקת דוח נדרשת בקשה חדשה לאחר חידוש החיבור.",
   panel_operation_unconfirmed:
     "ייתכן שהשינוי נשמר, אך התשובה לא התקבלה. יש לרענן את המשתמשים והסנכרון לפני ניסיון נוסף. חלון העריכה נסגר ופרטי הזיהוי שהוקלדו נוקו.",
   panel_read_interrupted:
-    "התשובה לא התקבלה או שהחיבור ל־Home Assistant נותק. יש לרענן לאחר חידוש החיבור.",
+    "התשובה לא התקבלה או שהחיבור לתשתית המערכת נותק. יש לרענן לאחר חידוש החיבור.",
   audio_title: "שמע דו־כיווני",
   audio_hint:
     "הפעל האזנה ולחץ ברצף כדי לדבר. השמע נפסק בסגירת החלון או במעבר לרקע; כל חיבור מוגבל ל־3 דקות.",
@@ -2490,7 +2497,7 @@ const he: Record<keyof typeof en, string> = {
   audio_state_opening: "מחבר שמע מהתחנה…",
   audio_state_listening: "ההאזנה פעילה. המיקרופון כבוי.",
   audio_playback_camera: "שמע המצלמה",
-  audio_https_required: "גישה למיקרופון מחייבת פתיחת Home Assistant דרך HTTPS. ניתן להאזין כאן.",
+  audio_https_required: "גישה למיקרופון מחייבת פתיחת תשתית המערכת דרך HTTPS. ניתן להאזין כאן.",
   audio_busy: "לתחנה או לדפדפן כבר יש חיבור שמע. עצור אותו לפני פתיחת חיבור נוסף.",
   audio_unsupported: "התחנה אינה מדווחת על פורמט השמע הנתמך בגרסה זו.",
   audio_auth_failed: "התחנה לא אישרה הזדהות לחיבור השמע.",
@@ -2542,8 +2549,8 @@ const he: Record<keyof typeof en, string> = {
   audit_field_assignments: "הרשאות תחנות",
   audit_field_ownership: "בעלות",
 
-  audit_from: "מתאריך (זמן התצוגה של HA)",
-  audit_until: "עד תאריך (זמן התצוגה של HA)",
+  audit_from: "מתאריך (זמן התצוגה של תשתית המערכת)",
+  audit_until: "עד תאריך (זמן התצוגה של תשתית המערכת)",
   audit_export_hint:
     "הייצוא כולל את כל הרשומות השמורות התואמות למסננים שהוחלו, כולל עמודים שלא נטענו.",
   audit_source_users_create: "יצירת משתמש",
@@ -2655,7 +2662,7 @@ const he: Record<keyof typeof en, string> = {
   permission_more: "הצגת משתמשים נוספים מההשוואה",
 
   health_clock_warning:
-    "שעון התחנה שונה משמעותית משעון HA. בדוק את הגדרות הזמן בציוד; חיפוש אירועים ואוטומציות זמן אמת עלולים להיות מושפעים.",
+    "שעון התחנה שונה משמעותית משעון תשתית המערכת. בדוק את הגדרות הזמן בציוד; חיפוש אירועים ואוטומציות זמן אמת עלולים להיות מושפעים.",
   health: "בריאות ובדיקות שטח",
   event_detail: "פירוט האירוע",
   event_support: "הורדת אבחון האירוע",
@@ -2669,7 +2676,7 @@ const he: Record<keyof typeof en, string> = {
   device_time_ahead: "זמן האירוע מאוחר מזמן הקבלה; יש לבדוק את שעון התחנה",
   delayed_stream: "אירוע הגיע באיחור; אינו מפעיל אוטומציות זמן אמת",
   device_not_current: "התחנה סימנה את הרשומה כאירוע שאינו נוכחי",
-  event_received: "התקבל ב־Home Assistant",
+  event_received: "התקבל בתשתית המערכת",
   event_delay: "זמן קבלה פחות זמן ציוד (שניות)",
   event_clock_hint: "ההפרש כולל השהיית רשת והפרש שעונים; אינו מדידת השהיית רשת בלבד.",
   event_export_hint: "אבחון להורדה אינו כולל שמות, מזהי משתמש, כרטיסים או כתובות תחנות.",
@@ -2691,7 +2698,7 @@ const he: Record<keyof typeof en, string> = {
   upgrade_readiness_failed: "לא ניתן לבדוק מוכנות לשדרוג.",
   upgrade_readiness_summary: "{stations} תחנות ב־{entries} רשומות אינטגרציה",
   upgrade_readiness_hint:
-    "לפני שדרוג יש לגבות את Home Assistant, לעבור על יומן השינויים ולהשלים את מסמך הבדיקות הפתוחות.",
+    "לפני שדרוג יש לגבות את תשתית המערכת, לעבור על יומן השינויים ולהשלים את מסמך הבדיקות הפתוחות.",
   upgrade_check_storage: "אחסון WisKey",
   upgrade_check_config_schema: "מבנה ההגדרות",
   upgrade_check_entries_loaded: "טעינת רשומות האינטגרציה",
@@ -2712,7 +2719,7 @@ const he: Record<keyof typeof en, string> = {
   health_read_failed:
     "תשובת האבחון לא התקבלה. הנתונים הקודמים נשארו מוצגים; רענן תחנה זו כדי לנסות שוב.",
   health_disconnected:
-    "החיבור ל־Home Assistant נותק. נתוני האבחון הקודמים נשארו מוצגים. יש להתחבר מחדש כדי להמשיך.",
+    "החיבור לתשתית המערכת נותק. נתוני האבחון הקודמים נשארו מוצגים. יש להתחבר מחדש כדי להמשיך.",
   health_cached: "תצפיות מההפעלה הנוכחית. הרענון קורא שעון ויכולות מדיה ללא שינוי הגדרות.",
   health_stream: "זרם אירועים",
   health_history: "השלמת היסטוריה",
@@ -2740,7 +2747,7 @@ const he: Record<keyof typeof en, string> = {
   field_video_desktop: "וידאו יציב במחשב",
   field_video_mobile: "וידאו יציב בנייד",
   field_webrtc: "וידאו מאומת באמצעות WebRTC",
-  field_offline_recovery: "שינוי בזמן ניתוק, אתחול HA והתאוששות",
+  field_offline_recovery: "שינוי בזמן ניתוק, אתחול תשתית המערכת והתאוששות",
   media_signals: "איתות שיחה",
   media_signal_hint:
     "כפתורים אלה שולטים באיתות השיחה. הפעל שמע בנפרד בחלון המצלמה. אישור הפקודה אינו מאמת מענה.",
@@ -2776,12 +2783,12 @@ const he: Record<keyof typeof en, string> = {
   call_observation_unchanged: "מצב התחנה טרם השתנה",
   call_observation_unavailable: "אימות המצב אינו זמין",
   call_observed_state: "המצב שנקרא",
-  panel_connection_lost: "החיבור ל־Home Assistant נותק. פקדי הדלתות מושהים עד לחידוש החיבור.",
+  panel_connection_lost: "החיבור לתשתית המערכת נותק. פקדי הדלתות מושהים עד לחידוש החיבור.",
   panel_data_stale:
     "ייתכן שהנתונים המוצגים אינם עדכניים. הרענון נכשל; ניתן לנסות שוב באמצעות רענון.",
   panel_load_failed: "לא ניתן לטעון את נתוני האינטגרציה.",
   panel_retry_hint: "לאחר חזרת החיבור ניתן ללחוץ על רענון.",
-  call_connection_lost: "פקדי השיחה מושהים עד לחידוש החיבור ל־Home Assistant",
+  call_connection_lost: "פקדי השיחה מושהים עד לחידוש החיבור לתשתית המערכת",
   call_read_failed: "לא ניתן לקרוא יכולות או מצב שיחה",
   call_command_unknown: "תוצאת הפקודה לא אומתה. יש לרענן את מצב השיחה לפני פעולה נוספת.",
   call_refresh: "רענון מצב שיחה",
@@ -2794,9 +2801,9 @@ const he: Record<keyof typeof en, string> = {
   schedule_read_count: "רשומות שנקראו / סך שפורסם",
   player_export: "דוח ניגון",
   player_suspended: "הווידאו הושהה כשהעמוד ברקע",
-  player_ha_disconnected: "הווידאו הושהה עד לחידוש החיבור ל־Home Assistant",
+  player_ha_disconnected: "הווידאו הושהה עד לחידוש החיבור לתשתית המערכת",
   player_network_offline: "הווידאו הושהה כשהדפדפן ללא רשת",
-  player_reason_provider_unavailable: "Home Assistant לא פרסם תמיכה ב־WebRTC למצלמה זו.",
+  player_reason_provider_unavailable: "תשתית המערכת לא פרסמה תמיכה ב־WebRTC למצלמה זו.",
   player_reason_browser_unavailable: "WebRTC אינו זמין בדפדפן זה.",
   player_reason_capabilities_timeout: "קריאת יכולות המצלמה חרגה מהזמן שהוקצב.",
   player_reason_capabilities_failed: "לא ניתן לקרוא יכולות מצלמה.",
@@ -2813,7 +2820,7 @@ const he: Record<keyof typeof en, string> = {
   player_webrtc: "WebRTC",
   player_hls: "HLS",
   player_fallback: "WebRTC אינו זמין; מעבר ל־HLS",
-  player_failed: "טעינת וידאו נכשלה; נסה שוב או בדוק את אבחון המצלמה ב־HA",
+  player_failed: "טעינת וידאו נכשלה; נסה שוב או בדוק את אבחון המצלמה בתשתית המערכת",
   player_retry: "נסה וידאו שוב",
   operations_reload: "טעינת עבודות מחדש",
   operations_title: "עבודות לוחות זמנים",
@@ -2862,7 +2869,7 @@ const he: Record<keyof typeof en, string> = {
   schedule_source_changed: "טיוטת המקור השתנתה או הוסרה. יש להכין תוכנית חדשה.",
   schedule_ownership_changed: "הצהרת האחריות למשאבים אינה תואמת לקריאה האחרונה מהתחנה.",
   schedule_operations_unavailable:
-    "אחסון העבודות אינו זמין. יש לבדוק את מסך התיקונים של Home Assistant.",
+    "אחסון העבודות אינו זמין. יש לבדוק את מסך התיקונים של תשתית המערכת.",
   operations_state_pending: "ממתינה",
   operations_state_queued: "בתור",
   operations_state_checking: "בבדיקה",
@@ -2937,7 +2944,7 @@ const he: Record<keyof typeof en, string> = {
   plan_no: "לא",
   plan_title: "תוכניות פריסה",
   plan_intro:
-    "הכנה והשוואה של תצורה מוצעת לתחנה. השמירה משריינת את המזהים רק בספרייה המקומית של Home Assistant; היא אינה מוכיחה בעלות על המשאבים ואינה מחילה הרשאות.",
+    "הכנה והשוואה של תצורה מוצעת לתחנה. השמירה משריינת את המזהים רק בספרייה המקומית של תשתית המערכת; היא אינה מוכיחה בעלות על המשאבים ואינה מחילה הרשאות.",
   plan_station: "תחנה לתוכנית הפריסה",
   plan_binding_hint:
     "בחרו מזהי משאבים במפורש. מזהים קיימים או כבויים אינם נחשבים פנויים. הבחירה משמשת להשוואה בקריאה בלבד; דבר אינו נכתב לתחנה.",
@@ -3005,11 +3012,11 @@ const he: Record<keyof typeof en, string> = {
   schedule_plan_limit: "הגעתם למגבלה של 32 תוכניות פריסה מקומיות.",
   schedule_plan_expired: "תוקף בדיקת התוכנית פג או שכבר נוצלה. בצעו השוואה מחדש.",
   schedule_plan_storage_unavailable:
-    "אחסון תוכניות הפריסה אינו זמין. בדקו את הודעת התיקון ב־Home Assistant.",
+    "אחסון תוכניות הפריסה אינו זמין. בדקו את הודעת התיקון בתשתית המערכת.",
   schedule_assess: "בדיקת התאמת הטיוטה",
   schedule_baseline_title: "שינויים מנקודת הייחוס",
   schedule_baseline_hint:
-    "נקודת הייחוס שומרת ב־Home Assistant טביעות של הרשומות שנקראו. היא אינה קובעת בעלות, אינה גיבוי תצורה לשחזור ואינה מאשרת כתיבה. ההשוואה רצה רק בעת בדיקת התאמה שתבקשו.",
+    "נקודת הייחוס שומרת בתשתית המערכת טביעות של הרשומות שנקראו. היא אינה קובעת בעלות, אינה גיבוי תצורה לשחזור ואינה מאשרת כתיבה. ההשוואה רצה רק בעת בדיקת התאמה שתבקשו.",
   schedule_baseline_state_missing: "לא נשמרה נקודת ייחוס לתחנה זו.",
   schedule_baseline_state_unavailable: "השוואת נקודת ייחוס אינה זמינה. בדיקת ההתאמה נשארת זמינה.",
   schedule_baseline_state_changed: "זוהו שינויים",
@@ -3031,9 +3038,9 @@ const he: Record<keyof typeof en, string> = {
   schedule_baseline_replace: "החלף נקודת ייחוס",
   schedule_baseline_clear: "מחק נקודת ייחוס",
   schedule_baseline_save_confirm:
-    "לשמור את הרשומות שנקראו כנקודת הייחוס לתחנה ב־Home Assistant? נקודה קודמת תוחלף גם אם הקריאה חלקית. תצורת התחנה לא תשתנה.",
+    "לשמור את הרשומות שנקראו כנקודת הייחוס לתחנה בתשתית המערכת? נקודה קודמת תוחלף גם אם הקריאה חלקית. תצורת התחנה לא תשתנה.",
   schedule_baseline_clear_confirm:
-    "למחוק את נקודת הייחוס מ־Home Assistant? רשומות התחנה והרשאות הגישה לא ישתנו.",
+    "למחוק את נקודת הייחוס מתשתית המערכת? רשומות התחנה והרשאות הגישה לא ישתנו.",
   schedule_baseline_saved: "נקודת הייחוס נשמרה. הריצו בדיקת התאמה נוספת להשוואת קריאה חדשה.",
   schedule_baseline_cleared: "נקודת הייחוס נמחקה. הריצו בדיקת התאמה נוספת לפני שמירת נקודה חדשה.",
   schedule_baseline_unknown:
@@ -3041,7 +3048,7 @@ const he: Record<keyof typeof en, string> = {
   schedule_baseline_expired: "תוקף הקריאה פג או שהיא הוחלפה. הריצו בדיקת התאמה נוספת.",
   schedule_baseline_limit: "אחסון נקודות הייחוס הגיע למגבלת התחנות. מחקו קודם נקודה שאינה בשימוש.",
   schedule_baseline_unavailable:
-    "אחסון נקודות הייחוס אינו זמין. בדקו את מסך התיקונים ב־Home Assistant.",
+    "אחסון נקודות הייחוס אינו זמין. בדקו את מסך התיקונים בתשתית המערכת.",
   schedule_assessment: "התאמת הטיוטה לתחנה",
   schedule_assessment_fits: "לא נמצאה חריגה במגבלות שנבדקו. החלה על התחנה עדיין אינה זמינה.",
   schedule_assessment_unknown: "חלק ממגבלות הטיוטה לא ניתנות לאימות.",
@@ -3086,7 +3093,7 @@ const he: Record<keyof typeof en, string> = {
   schedule_limit_holiday_membership: "הפניות לחגים בכל קבוצה",
   fleet_title: "השוואת שעוני התחנות",
   fleet_hint:
-    "ההשוואה לשעון שרת HA. האומדן כולל השהיית בקשה ודיוק חותמת זמן של שנייה. חריגה חוזרת דורשת דגימות תואמות בהפרש של חמש דקות לפחות ועד 45 דקות; זו אינה מדידה רציפה. דגימה בת יותר מ־30 דקות מסומנת כישנה. אפשר לרענן תחנות נבחרות למטה; הגדרות השעון אינן משתנות.",
+    "ההשוואה לשעון שרת תשתית המערכת. האומדן כולל השהיית בקשה ודיוק חותמת זמן של שנייה. חריגה חוזרת דורשת דגימות תואמות בהפרש של חמש דקות לפחות ועד 45 דקות; זו אינה מדידה רציפה. דגימה בת יותר מ־30 דקות מסומנת כישנה. אפשר לרענן תחנות נבחרות למטה; הגדרות השעון אינן משתנות.",
   fleet_estimate: "אומדן הפרש ± אי־ודאות (שניות)",
   fleet_mode: "מקור הזמן במכשיר",
   fleet_rules: "כללי אזור הזמן במכשיר",
@@ -3110,7 +3117,7 @@ const he: Record<keyof typeof en, string> = {
   clock_source_fallback: "אזור הזמן של התחנה אינו זמין — מוצג UTC",
   clock_device_time: "שעון המכשיר בקריאה האחרונה",
   clock_checked: "מועד בדיקת השעון",
-  clock_skew: "הפרש שעון המכשיר משעון HA (שניות)",
+  clock_skew: "הפרש שעון המכשיר משעון תשתית המערכת (שניות)",
   clock_settings_hint:
     "את מקור התצוגה משנים באפשרויות התחנה בהגדרות האינטגרציה. ברירת המחדל: כללי המכשיר, כולל שעון קיץ. בבחירה ידנית הזינו אזור IANA כגון Asia/Jerusalem. שעון המכשיר והגדרות NTP אינם משתנים. הכללים מתעדכנים כל 15 דקות.",
   clock_refresh: "קריאת שעון התחנה",
@@ -3118,9 +3125,9 @@ const he: Record<keyof typeof en, string> = {
     "שעון המכשיר או כלל שעון הקיץ לא אומתו. התצוגה האוטומטית משתמשת ב־UTC עד לקריאה תקינה; אזור זמן ידני נשאר פעיל.",
   clock_stale:
     "קריאת השעון האחרונה נכשלה. התצוגה משתמשת בכללים האחרונים שאומתו; רעננו או בחרו אזור ידני אם הגדרות המכשיר השתנו.",
-  clock_ha_zone: "אזור הזמן של Home Assistant",
+  clock_ha_zone: "אזור הזמן של תשתית המערכת",
   clock_validity_basis: "אזור זמן להזנת תוקף",
-  clock_filter_basis: "תאריכי הסינון לפי אזור זה (בכל התחנות לפי HA)",
+  clock_filter_basis: "תאריכי הסינון לפי אזור זה (בכל התחנות לפי תשתית המערכת)",
   clock_ambiguous:
     "השעה המקומית מופיעה פעמיים בסיום שעון הקיץ. בחרו שעה חד־משמעית או הזינו אותה כש־UTC נבחר כבסיס הזמן.",
   clock_nonexistent:
@@ -3134,10 +3141,10 @@ const he: Record<keyof typeof en, string> = {
   schedule_revision_conflict:
     "תוכנית השעות השתנתה בזמן העריכה. טענו את הטיוטות מחדש ובדקו את הגרסה העדכנית לפני שמירה.",
   schedule_storage_unavailable:
-    "אחסון תוכניות השעות לא נטען. בדקו את התיקון הנדרש ב־Home Assistant; הרשאות המשתמשים הקיימות נשארות עצמאיות.",
+    "אחסון תוכניות השעות לא נטען. בדקו את התיקון הנדרש בתשתית המערכת; הרשאות המשתמשים הקיימות נשארות עצמאיות.",
   schedules: "תוכניות שעות",
   schedule_intro:
-    "הכנת תוכניות שבועיות וחריגי חגים. הטיוטות נשמרות ב־Home Assistant בלבד; הן אינן משויכות למשתמשים ואינן נאכפות בתחנות.",
+    "הכנת תוכניות שבועיות וחריגי חגים. הטיוטות נשמרות בתשתית המערכת בלבד; הן אינן משויכות למשתמשים ואינן נאכפות בתחנות.",
   schedule_library: "טיוטות שמורות",
   schedule_reload: "טעינת טיוטות מחדש",
   schedule_new: "תוכנית חדשה",
@@ -3162,7 +3169,7 @@ const he: Record<keyof typeof en, string> = {
   schedule_add_holiday: "הוספת חג",
   schedule_save: "שמירת טיוטה",
   schedule_delete: "מחיקת טיוטה",
-  schedule_saved: "הטיוטה נשמרה ב־Home Assistant. הרשאות התחנות לא השתנו.",
+  schedule_saved: "הטיוטה נשמרה בתשתית המערכת. הרשאות התחנות לא השתנו.",
   schedule_deleted: "הטיוטה נמחקה.",
   schedule_delete_confirm: "למחוק את טיוטת תוכנית השעות המקומית?",
   schedule_discard: "לוותר על השינויים שטרם נשמרו בטיוטה?",
@@ -3226,7 +3233,7 @@ const he: Record<keyof typeof en, string> = {
   capture_confirm_prompt: "להוסיף את הכרטיס שנקרא למשתמש {name} ולסנכרן את השיוכים הקיימים שלו?",
   capture_targets: "שיוכים קיימים לאינטרקומים",
   capture_limits:
-    "קריאה אחת בכל תחנה. הבקשה ממתינה עד 30 שניות; התצוגה הפרטית פגה לאחר שתי דקות. סגירה מפסיקה את הקריאה ב־HA; זמן ההמתנה בקורא נקבע בקושחה. קריאה פיזית עדיין דורשת אימות.",
+    "קריאה אחת בכל תחנה. הבקשה ממתינה עד 30 שניות; התצוגה הפרטית פגה לאחר שתי דקות. סגירה מפסיקה את הקריאה בתשתית המערכת; זמן ההמתנה בקורא נקבע בקושחה. קריאה פיזית עדיין דורשת אימות.",
   capture_revision_changed: "המשתמש השתנה או נמחק. סגור את החלון והתחל קריאה חדשה מהרשומה העדכנית.",
   capture_state_choose: "אפשר להתחיל לאחר בדיקת היכולות.",
   capture_state_preparing: "נבדקות יכולות האינטרקום העדכניות…",
@@ -3382,7 +3389,7 @@ const he: Record<keyof typeof en, string> = {
   scanning: "קורא יכולות ורשימת משתמשים מהציוד…",
   scan_failed: "סריקת התחנה נכשלה",
   scan_complete: "סריקת התחנה הושלמה.",
-  configure: "הגדרות ב־Home Assistant",
+  configure: "הגדרות בתשתית המערכת",
   select_all_stations: "בחר את כל התחנות הזמינות לניהול",
   clear_stations: "נקה בחירה",
   selected_stations: "תחנות שנבחרו",
@@ -3402,9 +3409,9 @@ const he: Record<keyof typeof en, string> = {
   title: "WisKey",
   tools: "כלי ניהול",
   tools_intro: "ניהול הרשאות, תחנות והגדרות המערכת.",
-  access_control: "הרשאות משתמשי HA",
+  access_control: "הרשאות משתמשי תשתית המערכת",
   tools_access_control:
-    "בחירת משתמשי Home Assistant שרשאים לפתוח את WisKey ומה כל אחד רשאי לראות או לנהל.",
+    "בחירת משתמשי תשתית המערכת שרשאים לפתוח את WisKey ומה כל אחד רשאי לראות או לנהל.",
   tools_back: "חזרה לכלי ניהול",
   tools_users: "משתמשים, קודי PIN, כרטיסים והרשאות לתחנות.",
   tools_devices: "הגדרות תחנות, חיבור, מצלמות ואזורי זמן.",
@@ -3431,10 +3438,10 @@ const he: Record<keyof typeof en, string> = {
   tools_health: "בריאות המערכת, אבחון ותיעוד בדיקות בשטח.",
   tools_schedules: "טיוטות של תוכניות שעות ומוכנות התחנות.",
   tools_appearance: "בחירת עיצוב והגדרת ברירת מחדל משותפת.",
-  tools_settings: "הגדרות האינטגרציה ב־Home Assistant",
-  tools_settings_hint: "הוספת תחנה והגדרת האינטגרציה דרך Home Assistant.",
+  tools_settings: "הגדרות האינטגרציה בתשתית המערכת",
+  tools_settings_hint: "הוספת תחנה והגדרת האינטגרציה דרך תשתית המערכת.",
   live_clock: "תאריך ושעה חיים",
-  clock_zone: "אזור הזמן של Home Assistant",
+  clock_zone: "אזור הזמן של תשתית המערכת",
   download_sync_diagnostics: "הורד דוח אבחון סנכרון",
   diagnostics_downloaded:
     "דוח האבחון הורד. הדוח אינו כולל שמות, כתובות, קודי PIN או מספרי כרטיסים.",
@@ -3511,7 +3518,7 @@ const he: Record<keyof typeof en, string> = {
   online_stations: "תחנות מחוברות",
   pending_sync: "ממתינים לסנכרון",
   ringing_now: "מצלצלים כעת",
-  no_stations: "הוסף אינטרקום ראשון בהגדרות Home Assistant.",
+  no_stations: "הוסף אינטרקום ראשון בהגדרות תשתית המערכת.",
   settings: "הגדרות האינטגרציה",
   no_users: "רשימת המשתמשים המרכזית ריקה.",
   no_users_detail:
@@ -3619,7 +3626,7 @@ const he: Record<keyof typeof en, string> = {
   pending_removals: "הסרות ממתינות",
   no_pending_removals: "אין הסרות ממתינות.",
   confirm_delete: "למחוק משתמש זה? ההסרה תתוזמן ב־{count} תחנות, כולל תחנות מנותקות.",
-  confirm_adopt: "להעביר את הרשומה הזו לניהול של Home Assistant?",
+  confirm_adopt: "להעביר את הרשומה הזו לניהול של תשתית המערכת?",
   confirm_map:
     "להשתמש בזהות המרכזית התואמת? פרטי הגישה וההרשאות בתחנה יסונכרנו לפי הרשומה המרכזית.",
   confirm_device: "לייבא את מצב המכשיר למשתמש המרכזי? השינוי יחול על כל התחנות המשויכות.",
@@ -3630,7 +3637,7 @@ const he: Record<keyof typeof en, string> = {
   loading: "טוען…",
   admin_only: "נדרשת הרשאת מנהל מערכת.",
   access_not_granted: "לא הוגדרה עבורך גישה ל־WisKey",
-  access_not_granted_hint: "יש לבקש ממנהל Home Assistant להעניק הרשאה מתוך כלי הניהול של WisKey.",
+  access_not_granted_hint: "יש לבקש ממנהל תשתית המערכת להעניק הרשאה מתוך כלי הניהול של WisKey.",
   view_only_mode: "הרשאת צפייה בלבד: שינוי נתונים ופעולות שליטה באזור זה חסומים.",
   saved: "נשמר. הסנכרון האוטומטי ממשיך לפעול.",
   saved_sync: "נשמר. נשלחה בקשה לסנכרון לתחנות.",
@@ -3650,7 +3657,7 @@ const he: Record<keyof typeof en, string> = {
   station_offline: "התחנה מנותקת.",
   pin_exceeds_capabilities: "אורך הקוד אינו בטווח הנתמך באחת התחנות.",
   identity_migration_required: "לא ניתן לשנות ישירות מזהה עובד שכבר נפרס.",
-  device_changed: "רשומה זו שונתה במכשיר מחוץ ל־Home Assistant.",
+  device_changed: "רשומה זו שונתה במכשיר מחוץ לתשתית המערכת.",
   unmanaged_employee: "מזהה זה קיים בתחנה ונדרש ייבוא מפורש שלו.",
   card_owned_elsewhere: "התחנה מדווחת שהכרטיס שייך למשתמש אחר.",
   person_capacity: "התחנה הגיעה למספר המשתמשים המרבי.",

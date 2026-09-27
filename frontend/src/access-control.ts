@@ -284,9 +284,11 @@ export class WiskeyAccessControl extends LitElement {
       <section dir=${this.he() ? "rtl" : "ltr"}>
         <div class="heading">
           <div>
-            <h2>${this.text("Home Assistant user permissions", "הרשאות משתמשי Home Assistant")}</h2>
+            <h2>
+              ${this.text("System infrastructure user permissions", "הרשאות משתמשי תשתית המערכת")}
+            </h2>
             <p class="hint">
-              ${this.text("Choose which WisKey areas each non-administrator may view or manage. Home Assistant administrators always have full access.", "בחר אילו אזורים ב־WisKey כל משתמש שאינו מנהל רשאי לראות או לנהל. למנהלי Home Assistant יש תמיד גישה מלאה.")}
+              ${this.text("Choose which WisKey areas each non-administrator may view or manage. System infrastructure administrators always have full access.", "בחר אילו אזורים ב־WisKey כל משתמש שאינו מנהל רשאי לראות או לנהל. למנהלי תשתית המערכת יש תמיד גישה מלאה.")}
             </p>
           </div>
           <div class="actions">
@@ -313,7 +315,7 @@ export class WiskeyAccessControl extends LitElement {
                   ${user.admin ? html`<span class="badge">${this.text("Administrator", "מנהל")}</span>` : nothing}
                   ${!user.active ? html`<span class="badge inactive">${this.text("Inactive", "לא פעיל")}</span>` : nothing}
                 </div>
-                ${user.admin ? html`<span class="hint">${this.text("Full access from Home Assistant", "גישה מלאה מכוח הרשאת מנהל ב־Home Assistant")}</span>` : html`<label class="switch"><input type="checkbox" .checked=${policy.enabled} ?disabled=${this._busy || !user.active} @change=${(event: Event) => this.changeEnabled(user.id, (event.target as HTMLInputElement).checked)} />${this.text("Allow WisKey access", "מתן גישה ל־WisKey")}</label>`}
+                ${user.admin ? html`<span class="hint">${this.text("Full access from system infrastructure", "גישה מלאה מכוח הרשאת מנהל בתשתית המערכת")}</span>` : html`<label class="switch"><input type="checkbox" .checked=${policy.enabled} ?disabled=${this._busy || !user.active} @change=${(event: Event) => this.changeEnabled(user.id, (event.target as HTMLInputElement).checked)} />${this.text("Allow WisKey access", "מתן גישה ל־WisKey")}</label>`}
               </div>
               ${
                 !user.admin

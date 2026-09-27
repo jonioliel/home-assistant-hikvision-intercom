@@ -54,7 +54,7 @@ test("central settings save separately and bulk failure does not stop next stati
   expect(calls.map((x: any) => x.station_id)).toEqual(["one", "two"]);
   expect(calls.every((x: any) => x.revision === 1 && !x.copy_system)).toBe(true);
   await expect(
-    panel.getByRole("button", { name: "Apply NTP to Home Assistant", exact: true }),
+    panel.getByRole("button", { name: "Apply NTP to system infrastructure", exact: true }),
   ).toHaveCount(0);
 });
 

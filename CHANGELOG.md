@@ -6,6 +6,12 @@ Semantic Versioning is used throughout the project.
 
 - Document the HA add-on connection path, WisKey command/permission boundary, complete VMS screen-parity map and media integration limits for SMPLWISE VMS.
 
+## [2.0.0-rc.6] - 2026-09-27
+
+- Use “תשתית המערכת” (system infrastructure) throughout WisKey-owned Hebrew and English screens, settings, permission management, diagnostics and integration repair messages in place of visible Home Assistant/HA branding.
+- Preserve the `hikvision_intercom` integration domain, HACS layout, API identifiers and stored enforcement modes. The media provider check still uses its existing API response while the panel presents the localized system-infrastructure label.
+- Update browser regression expectations and add a focused Hebrew visual checklist. No station configuration or access permissions change.
+
 ## [2.0.0-rc.5] - 2026-09-27
 
 - Play muted live video, using the saved HLS/RTC/MSE transport, in visible WisKey 04 entry-center station cards instead of periodically refreshed still images. Suspend the card streams when a dialog opens, the page is hidden, or the cards leave the viewport; the full camera dialog retains its explicit audio controls.

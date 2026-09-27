@@ -51,6 +51,20 @@ test("global options save, reload, broadcast and conflicts", async ({ page }) =>
   await expect(form.getByRole("button", { name: "Save global settings" })).toBeEnabled();
 });
 
+test("provider check presents a localized system infrastructure label", async ({ page }) => {
+  for (const [query, section, button, label] of [
+    ["/", "Video, audio and announcements", "Check saved go2rtc server", "System infrastructure"],
+    ["/?lang=he", "הגדרות וידאו, שמע והודעות קוליות", "בדיקת שרת go2rtc השמור", "תשתית המערכת"],
+  ]) {
+    await page.goto(query);
+    await navigate(page, section);
+    const form = page.locator("hikvision-media-settings");
+    await form.getByRole("button", { name: button }).click();
+    await expect(form.getByRole("status")).toContainText(label);
+    await expect(form.getByRole("status")).not.toContainText(/Home Assistant|\bHA\b/);
+  }
+});
+
 test("saving TTS phrases does not restart an open camera player", async ({ page }) => {
   await page.goto("/");
   await selectPolicy(page, { ...policy, transport: "hls" });

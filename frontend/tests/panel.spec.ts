@@ -164,7 +164,9 @@ test("empty and dark layouts render without application errors", async ({ page }
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/?empty=1&dark=1");
-  await expect(page.getByText("Add your first intercom in Home Assistant settings.")).toBeVisible();
+  await expect(
+    page.getByText("Add your first intercom in system infrastructure settings."),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Users", exact: true }).click();
   await expect(page.getByText("Your central user list is empty.")).toBeVisible();
   expect(errors).toEqual([]);
@@ -229,11 +231,12 @@ test("untrusted names render as text", async ({ page }) => {
 
 test("live camera rejects a URL outside Home Assistant", async ({ page }) => {
   const external = [];
+  await page.goto("/");
+  const origin = new URL(page.url()).origin;
   page.on("request", (request) => {
-    if (request.url().startsWith("http") && !request.url().startsWith("http://127.0.0.1:8765"))
+    if (request.url().startsWith("http") && new URL(request.url()).origin !== origin)
       external.push(request.url());
   });
-  await page.goto("/");
   await page.evaluate(() => {
     const original = window.demoHass.callWS;
     window.demoHass.callWS = (message) => {
@@ -434,10 +437,9 @@ test("station inspection shows observed capabilities and sends only the rescan a
     .locator("article.station")
     .filter({ has: page.getByRole("heading", { name: "Main gate", exact: true }) });
   await expect(gate.locator(".lock-mapping")).toHaveText("Physical lock 1 → API 1");
-  await expect(gate.getByRole("link", { name: "Configure in Home Assistant" })).toHaveAttribute(
-    "href",
-    "/config/integrations/integration/hikvision_intercom",
-  );
+  await expect(
+    gate.getByRole("link", { name: "Configure in system infrastructure" }),
+  ).toHaveAttribute("href", "/config/integrations/integration/hikvision_intercom");
   await gate.getByRole("button", { name: "Rescan access capabilities" }).click();
   await expect(page.getByText("Station inspection complete.", { exact: true })).toBeVisible();
   const commands = await page.evaluate(() => window.calls.map((item) => item.type));
@@ -1591,7 +1593,9 @@ test("HA disconnect marks an in-flight release uncertain and reconnect refreshes
     window.demoHass.connection.connected = false;
     for (const callback of window.panelConnectionListeners.get("disconnected")) callback();
   });
-  await expect(page.getByText("Home Assistant is disconnected.", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("System infrastructure is disconnected.", { exact: false }),
+  ).toBeVisible();
   await expect(first.locator(".release-feedback")).toContainText("Release was not confirmed");
   await expect(first.getByRole("button", { name: "Open active lock", exact: true })).toBeDisabled();
   await expect(

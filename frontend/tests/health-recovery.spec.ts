@@ -125,7 +125,7 @@ test("disconnect stops queued health reads and reconnect requests cached data on
     window.oldHealthResponse = window.healthPending.get("station-0");
     window.healthConnectionState(false);
   });
-  await expect(health.getByRole("alert")).toContainText("Home Assistant is disconnected");
+  await expect(health.getByRole("alert")).toContainText("System infrastructure is disconnected");
   await expect(health).toContainText("cached station");
   await expect(
     health.locator(".health-card").first().getByRole("button", { name: "Refresh", exact: true }),
