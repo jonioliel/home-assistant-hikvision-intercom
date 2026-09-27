@@ -315,6 +315,43 @@ def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
     return None
 
 
+PREVIEW_ACTIONS = {
+    "door_unlock": "stations/test_unlock",
+    "station_view": "stations/get",
+    "station_settings": "stations/technical_update",
+    "people_view": "users/get",
+    "people_edit": "users/update",
+    "people_export": "users/csv_export",
+    "whatsapp_send": "whatsapp/send",
+    "events_view": "events/list",
+    "events_export": "events/export",
+    "event_capture": "events/trace_start",
+    "system_settings": "media/settings_update",
+}
+
+
+def preview_policy(value: Any) -> dict[str, Any]:
+    """Explain a proposed grant using the same command classification as enforcement."""
+
+    policy = normalize_policy(value)
+
+    def grants(command: str) -> bool:
+        required = requirements(command)
+        return bool(
+            policy["enabled"]
+            and required
+            and any(
+                _LEVEL_VALUE[policy["areas"][area]] >= _LEVEL_VALUE[level]
+                for area, level in required
+            )
+        )
+
+    return {
+        "enabled": policy["enabled"],
+        "actions": {name: grants(command) for name, command in PREVIEW_ACTIONS.items()},
+    }
+
+
 def area_allowed(
     permissions: PanelPermissions | None, user: Any, area: str, level: str = "view"
 ) -> bool:

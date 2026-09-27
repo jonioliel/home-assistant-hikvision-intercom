@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.11 — בדיקות הרשאות מפעילים</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}
+    *{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:auto;padding:24px}
+    header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}
+    p{margin:.4em 0}.card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}
+    button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer}
+    .muted{color:#526b62}.warning{border-inline-start:4px solid #c78a22;padding-inline-start:12px}
+    a{color:#155d46}@media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.11</p><h1>בדיקות קצרות: תצוגה מקדימה להרשאות</h1><p>בדיקות כללי ההרשאה ובדיקות הממשק עברו אוטומטית. נותר לוודא שהמסך משקף את בחירתך במערכת המותקנת.</p></header>
+  <section class="card"><h2>לאחר העדכון</h2>
+    <label><input type="checkbox" data-id="upgrade"> לאחר עדכון HACS והפעלה מחדש של תשתית המערכת מוצגת גרסה 2.0.0-rc.11.</label>
+    <label><input type="checkbox" data-id="preview"> כמנהל, פתח כלי ניהול ← הרשאות משתמשי תשתית המערכת. בחר תבנית תפקיד למשתמש שאינו מנהל ולחץ ״תצוגה מקדימה של ההרשאות״. בדוק שפתיחת דלת, שינוי משתמשים וייצוא מסומנים לפי רמות הגישה שבחרת.</label>
+    <label><input type="checkbox" data-id="unsaved"> לחץ על תצוגה מקדימה בלי לשמור. רענן את הדף: ההרשאה הישנה עדיין תקפה. התצוגה המקדימה לא משנה הרשאות.</label>
+    <label><input type="checkbox" data-id="invalidate"> שנה רמת גישה או תבנית. התצוגה הישנה נעלמת, ולחיצה חוזרת מציגה את התוצאה החדשה.</label>
+  </section>
+  <section class="card"><h2>הרשאות בפועל — רק אם ברצונך לבדוק משתמש מפעיל</h2>
+    <label><input type="checkbox" data-id="enforcement"> שמור תפקיד מצומצם למשתמש בדיקה שאינו מנהל. התחבר איתו וודא שפעולה שאינה מורשית נדחית, גם אם מנסים לבצע אותה ישירות. החזר את הרשאותיו הקודמות בסיום.</label>
+    <p class="muted warning">התצוגה המקדימה מחושבת לפי כללי השרת, אך אינה שומרת הרשאות. הגבלה לפי תחנה או שדה עדיין אינה חלק מהגרסה הזו.</p>
+  </section>
+  <section class="card"><h2>בדיקות קודמות</h2><p class="muted">בדיקות <a href="WISKEY_2.0.0_RC10_EVENTS_TESTS_HE.html">חקירת האירועים</a>, <a href="WISKEY_2.0.0_RC9_FLEET_HEALTH_TESTS_HE.html">בריאות הצי ובחירת וידאו/תמונה</a> ו<a href="WISKEY_2.0.0_RC8_TEMP_ACCESS_TESTS_HE.html">גישה זמנית</a> נשארות פתוחות.</p></section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם סעיף נכשל, שלח את המסך, הפעולה, התוצאה שציפית לה ומה שהתרחש. אין צורך לשלוח PIN, מספר כרטיס או סיסמה.</p><button id="reset">נקה סימונים</button></section>
+  <p class="muted">הסימונים נשמרים בדפדפן הזה בלבד.</p>
+</main>
+<script>
+  const key='wiskey-2.0.0-rc.11-operators';
+  for(const input of document.querySelectorAll('input[data-id]')){
+    input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';
+    input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'));
+  }
+  document.getElementById('reset').addEventListener('click',()=>{
+    for(const input of document.querySelectorAll('input[data-id]')){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}
+  });
+</script>
+</body></html>

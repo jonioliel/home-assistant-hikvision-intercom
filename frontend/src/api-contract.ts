@@ -21,6 +21,7 @@ const reads = new Set([
   "authorization/session",
   "appearance/settings_get",
   "authorization/settings_get",
+  "authorization/preview",
   "acceptance/get",
   "audit/export",
   "audit/list",

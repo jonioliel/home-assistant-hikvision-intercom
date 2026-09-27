@@ -36,6 +36,7 @@ READ_COMMANDS = frozenset(
         "authorization/session",
         "appearance/settings_get",
         "authorization/settings_get",
+        "authorization/preview",
         "overview",
         "stations/list",
         "stations/get",

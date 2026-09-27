@@ -51,3 +51,33 @@ test("role template applies only the existing server-enforced area grants", asyn
     management: "none",
   });
 });
+
+test("administrator previews unsaved effective actions and edits invalidate the preview", async ({
+  page,
+}) => {
+  await page.goto("/?lang=he");
+  await page.getByRole("button", { name: "כלי ניהול" }).click();
+  await page.getByRole("button", { name: /הרשאות משתמשי תשתית המערכת/ }).click();
+  const reception = page.locator("wiskey-access-control article").filter({ hasText: "Reception" });
+  await reception.getByLabel("תבנית תפקיד עבור Reception").selectOption("reception");
+  await reception.getByRole("button", { name: "תצוגה מקדימה של ההרשאות" }).click();
+  const preview = reception.locator(".permission-preview");
+  await expect(preview.locator("span").filter({ hasText: "פתיחת דלתות" })).toHaveAttribute(
+    "data-allowed",
+    "true",
+  );
+  await expect(
+    preview.locator("span").filter({ hasText: "שינוי משתמשים והרשאות" }),
+  ).toHaveAttribute("data-allowed", "false");
+  expect(
+    await page.evaluate(() =>
+      window.calls.some((call) => call.type.endsWith("authorization/settings_update")),
+    ),
+  ).toBe(false);
+  await reception.getByLabel("משתמשים").selectOption("manage");
+  await expect(preview).toHaveCount(0);
+  await reception.getByRole("button", { name: "תצוגה מקדימה של ההרשאות" }).click();
+  await expect(
+    preview.locator("span").filter({ hasText: "שינוי משתמשים והרשאות" }),
+  ).toHaveAttribute("data-allowed", "true");
+});

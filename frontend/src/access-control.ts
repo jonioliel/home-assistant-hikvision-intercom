@@ -19,6 +19,10 @@ interface PermissionSettings {
   users: Record<string, Policy>;
   directory: DirectoryUser[];
 }
+interface PermissionPreview {
+  enabled: boolean;
+  actions: Record<string, boolean>;
+}
 const areas: Area[] = ["overview", "users", "events", "stations", "management"];
 const emptyPolicy = (): Policy => ({
   enabled: false,
@@ -70,6 +74,8 @@ export class WiskeyAccessControl extends LitElement {
     _busy: { state: true },
     _error: { state: true },
     _saved: { state: true },
+    _previews: { state: true },
+    _previewBusy: { state: true },
   };
   hass?: Hass;
   private _settings?: PermissionSettings;
@@ -77,6 +83,9 @@ export class WiskeyAccessControl extends LitElement {
   private _busy = false;
   private _error = "";
   private _saved = false;
+  private _previews: Record<string, PermissionPreview> = {};
+  private _previewBusy = "";
+  private previewGeneration = 0;
   private mounted = false;
 
   connectedCallback() {
@@ -86,6 +95,8 @@ export class WiskeyAccessControl extends LitElement {
   }
   disconnectedCallback() {
     this.mounted = false;
+    this.previewGeneration++;
+    this._previewBusy = "";
     super.disconnectedCallback();
   }
   protected updated(changed: Map<string, unknown>) {
@@ -113,6 +124,9 @@ export class WiskeyAccessControl extends LitElement {
       if (!this.mounted) return;
       this._settings = settings;
       this._draft = this.clone(settings.users);
+      this._previews = {};
+      this.previewGeneration++;
+      this._previewBusy = "";
       this._saved = false;
     } catch (error) {
       this._error = String((error as { code?: string })?.code ?? "failed");
@@ -124,6 +138,7 @@ export class WiskeyAccessControl extends LitElement {
     return this._draft[id] ?? emptyPolicy();
   }
   private changeEnabled(id: string, enabled: boolean) {
+    this.invalidatePreview(id);
     const policy = structuredClone(this.policy(id));
     policy.enabled = enabled;
     if (enabled && Object.values(policy.areas).every((level) => level === "none"))
@@ -132,6 +147,7 @@ export class WiskeyAccessControl extends LitElement {
     this._saved = false;
   }
   private changeLevel(id: string, area: Area, level: Level) {
+    this.invalidatePreview(id);
     const policy = structuredClone(this.policy(id));
     policy.areas[area] = level;
     policy.enabled = Object.values(policy.areas).some((value) => value !== "none");
@@ -141,6 +157,7 @@ export class WiskeyAccessControl extends LitElement {
   private applyPreset(id: string, preset: string) {
     const levels = rolePresets[preset];
     if (!levels) return;
+    this.invalidatePreview(id);
     this._draft = { ...this._draft, [id]: { enabled: true, areas: { ...levels } } };
     this._saved = false;
   }
@@ -156,6 +173,9 @@ export class WiskeyAccessControl extends LitElement {
       });
       this._settings = settings;
       this._draft = this.clone(settings.users);
+      this._previews = {};
+      this.previewGeneration++;
+      this._previewBusy = "";
       this._saved = true;
     } catch (error) {
       const code = String((error as { code?: string })?.code ?? "failed");
@@ -187,6 +207,52 @@ export class WiskeyAccessControl extends LitElement {
       manage: ["View and manage", "צפייה וניהול"],
     };
     return this.text(...labels[level]);
+  }
+  private invalidatePreview(id: string) {
+    this.previewGeneration++;
+    if (this._previewBusy === id) this._previewBusy = "";
+    if (this._previews[id]) {
+      const next = { ...this._previews };
+      delete next[id];
+      this._previews = next;
+    }
+  }
+  private async preview(id: string) {
+    if (this._busy || this._previewBusy) return;
+    const generation = ++this.previewGeneration;
+    this._previewBusy = id;
+    this._error = "";
+    try {
+      const result = await this.request<PermissionPreview>("authorization/preview", {
+        policy: this.policy(id),
+      });
+      if (this.mounted && this.hass?.user?.is_admin && generation === this.previewGeneration)
+        this._previews = { ...this._previews, [id]: result };
+    } catch {
+      if (this.mounted && generation === this.previewGeneration)
+        this._error = this.text(
+          "Could not preview these permissions.",
+          "לא ניתן להציג תצוגה מקדימה להרשאות אלו.",
+        );
+    } finally {
+      if (generation === this.previewGeneration) this._previewBusy = "";
+    }
+  }
+  private actionLabel(action: string) {
+    const labels: Record<string, [string, string]> = {
+      door_unlock: ["Open doors", "פתיחת דלתות"],
+      station_view: ["View stations", "צפייה בתחנות"],
+      station_settings: ["Change station settings", "שינוי הגדרות תחנות"],
+      people_view: ["View people", "צפייה במשתמשים"],
+      people_edit: ["Change people and access", "שינוי משתמשים והרשאות"],
+      people_export: ["Export people", "ייצוא משתמשים"],
+      whatsapp_send: ["Send WhatsApp messages", "שליחת הודעות WhatsApp"],
+      events_view: ["View events", "צפייה באירועים"],
+      events_export: ["Export events", "ייצוא אירועים"],
+      event_capture: ["Capture event traces", "לכידת אירועים"],
+      system_settings: ["Change system settings", "שינוי הגדרות המערכת"],
+    };
+    return labels[action] ? this.text(...labels[action]) : action;
   }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
@@ -242,6 +308,26 @@ export class WiskeyAccessControl extends LitElement {
           grid-template-columns: repeat(5, minmax(145px, 1fr));
           gap: 10px;
           margin-top: 14px;
+        }
+        .permission-preview {
+          margin-top: 12px;
+          padding: 12px;
+          border: 1px solid var(--divider-color, #dbe3ed);
+          border-radius: 10px;
+        }
+        .preview-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+          gap: 8px;
+          margin-top: 10px;
+        }
+        .preview-actions span {
+          padding: 8px;
+          border-radius: 8px;
+          background: var(--access-red-bg, #fff0f0);
+        }
+        .preview-actions span[data-allowed="true"] {
+          background: var(--access-green-bg, #eaf7ef);
         }
         label {
           display: grid;
@@ -391,7 +477,32 @@ export class WiskeyAccessControl extends LitElement {
                               </select></label
                             >`,
                         )}
-                      </div>`
+                      </div>
+                      <button
+                        type="button"
+                        ?disabled=${this._busy || !!this._previewBusy || !user.active}
+                        @click=${() => this.preview(user.id)}
+                      >
+                        ${this._previewBusy === user.id ? this.text("Checking…", "בודק…") : this.text("Preview effective access", "תצוגה מקדימה של ההרשאות")}
+                      </button>
+                      ${
+                        this._previews[user.id]
+                          ? html`<div
+                              class="permission-preview"
+                              aria-label=${this.text("Effective access preview", "תצוגה מקדימה של גישה בפועל")}
+                            >
+                              <strong
+                                >${this.text("Effective access preview", "תצוגה מקדימה של גישה בפועל")}</strong
+                              >
+                              <p class="hint">
+                                ${this.text("Based on the unsaved selection. Changes take effect only after saving; the user must also be active.", "לפי הבחירה שטרם נשמרה. השינוי יחול רק לאחר שמירה, ובתנאי שהמשתמש פעיל.")}
+                              </p>
+                              <div class="preview-actions">
+                                ${Object.entries(this._previews[user.id].actions).map(([action, allowed]) => html`<span data-allowed=${allowed ? "true" : "false"}>${allowed ? "✓" : "—"} ${this.actionLabel(action)}</span>`)}
+                              </div>
+                            </div>`
+                          : nothing
+                      }`
                   : nothing
               }
             </article>`;

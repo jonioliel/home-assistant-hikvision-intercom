@@ -4,6 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.11] - 2026-09-28
+
+- Add an administrator-only, read-only preview of proposed operator access. The server evaluates selected actions using the same command classification as actual authorization, including door control, user changes and exports, event access, station settings and system settings.
+- Keep previews separate from saving, clear them as soon as a draft changes, and reject invalid policies before previewing. Existing area grants and enforcement remain unchanged; per-station and per-field scopes remain future work.
+
 ## [2.0.0-rc.10] - 2026-09-28
 
 - Add an observed anomaly digest to event activity reports. Count access denials, PIN attempt limits, exceptional unlocks and doors not closed separately from authentication totals, with a ranked station breakdown.
