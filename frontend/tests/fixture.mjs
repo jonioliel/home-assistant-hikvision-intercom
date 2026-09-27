@@ -1203,6 +1203,24 @@ const fake = {
         day_timezone: "UTC",
         totals: counts,
         methods: { card: 150, pin: 50 },
+        anomalies: {
+          access_denied: 12,
+          attempt_limit: 3,
+          unlock_exception: 1,
+          door_not_closed: 2,
+        },
+        anomaly_by_station: [
+          {
+            station_id: "station-0",
+            total: 18,
+            counts: {
+              access_denied: 12,
+              attempt_limit: 3,
+              unlock_exception: 1,
+              door_not_closed: 2,
+            },
+          },
+        ],
         by_station: [{ station_id: "station-0", ...counts }],
         by_day: [{ day: "2026-09-08", ...counts }],
         storage_failed: false,

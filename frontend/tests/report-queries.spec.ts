@@ -45,6 +45,26 @@ async function prepare(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Events", exact: true }).click();
 }
 
+test("anomaly digest drills into the observed event type without losing applied filters", async ({
+  page,
+}) => {
+  await prepare(page);
+  const events = page.locator("hikvision-intercom-events");
+  await events.getByLabel("Result", { exact: true }).selectOption("denied");
+  await events.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await events.getByRole("button", { name: "Generate report", exact: true }).click();
+  const digest = events.getByRole("region", { name: "Observed access anomalies" });
+  await expect(digest.getByRole("button", { name: /PIN attempt limit/i })).toContainText("3");
+  await digest.getByRole("button", { name: /PIN attempt limit/i }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => window.calls.findLast((call) => call.type.endsWith("events/list"))?.filters,
+      ),
+    )
+    .toMatchObject({ result: "denied", event_type: "attempt_limit" });
+});
+
 test("saved report queries preserve applied membership filters and reject removed fields", async ({
   page,
 }) => {
