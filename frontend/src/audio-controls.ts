@@ -7,6 +7,8 @@ import { downloadText } from "./download";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
 import type { MediaPolicy } from "./media-settings";
+import type { IntercomCamera } from "./camera";
+import { evaluateMediaEvidence, type MediaEvidence } from "./media-evidence";
 import { decodeMuLaw } from "./audio-codec";
 
 interface AudioEvent {
@@ -222,6 +224,10 @@ export class IntercomAudioControls extends LitElement {
     _diagnosticsOpen: { state: true },
     _diagnosticLoading: { state: true },
     _diagnosticError: { state: true },
+    _mediaCheckBusy: { state: true },
+    _mediaCheckError: { state: true },
+    _mediaEvidence: { state: true },
+    _mediaEvidenceAt: { state: true },
     lastBackend: { state: true },
     backendSampledAt: { state: true },
     _haConnected: { state: true },
@@ -245,6 +251,10 @@ export class IntercomAudioControls extends LitElement {
   private _diagnosticsOpen = false;
   private _diagnosticLoading = false;
   private _diagnosticError = false;
+  private _mediaCheckBusy = false;
+  private _mediaCheckError = false;
+  private _mediaEvidence: MediaEvidence | null = null;
+  private _mediaEvidenceAt: string | null = null;
   private diagnosticEpoch = -1;
   private lastDiagnosticPoll = 0;
   private backendSampledAt: string | null = null;
@@ -357,6 +367,8 @@ export class IntercomAudioControls extends LitElement {
       this._peakSignal = 0;
       this._receivedSignal = 0;
       this._receivedPeakSignal = 0;
+      this._mediaEvidence = null;
+      this._mediaEvidenceAt = null;
     }
     const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
     if (this.observedConnection !== connection) this.bindConnection(connection);
@@ -413,6 +425,10 @@ export class IntercomAudioControls extends LitElement {
     this._receivedPeakSignal = 0;
     this._diagnosticError = false;
     this._diagnosticLoading = false;
+    this._mediaEvidence = null;
+    this._mediaEvidenceAt = null;
+    this._mediaCheckError = false;
+    this._mediaCheckBusy = false;
     this.startedAt = new Date().toISOString();
     if (this.cameraAudioAvailable) {
       this._state = "listening";
@@ -799,6 +815,7 @@ export class IntercomAudioControls extends LitElement {
     this.cameraAudioAvailable = false;
     this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     this.epoch++;
+    this._mediaCheckBusy = false;
     this._diagnosticLoading = false;
     this.connection = undefined;
     this.activeStationId = "";
@@ -855,6 +872,38 @@ export class IntercomAudioControls extends LitElement {
       if (this.epoch === epoch) this._diagnosticLoading = false;
     }
   }
+  private async checkMediaPaths() {
+    if (!this.hass?.user?.is_admin || !this.isConnected || this._mediaCheckBusy) return;
+    const epoch = this.epoch;
+    const stationId = this.station?.id;
+    this._mediaCheckBusy = true;
+    this._mediaCheckError = false;
+    try {
+      if (this.token) await this.refreshDiagnostics();
+      const camera = (this.getRootNode() as ParentNode).querySelector<IntercomCamera>(
+        ".camera-layout hikvision-intercom-camera",
+      );
+      const playback = (await camera?.diagnostics()) ?? null;
+      if (
+        !this.isConnected ||
+        !this.hass?.user?.is_admin ||
+        this.station?.id !== stationId ||
+        this.epoch !== epoch
+      )
+        return;
+      this._mediaEvidence = evaluateMediaEvidence(playback, {
+        state: this._state,
+        microphonePacketsAcknowledged: this._acknowledged,
+        backend: this.lastBackend,
+      });
+      this._mediaEvidenceAt = new Date().toISOString();
+    } catch {
+      if (this.isConnected && this.station?.id === stationId && this.epoch === epoch)
+        this._mediaCheckError = true;
+    } finally {
+      if (this.epoch === epoch) this._mediaCheckBusy = false;
+    }
+  }
   private async exportDiagnostics() {
     if (!this.hass?.user?.is_admin || !this.isConnected) return;
     const epoch = this.epoch,
@@ -893,6 +942,9 @@ export class IntercomAudioControls extends LitElement {
           station_peak_percent: this._receivedPeakSignal,
           backend_sampled_at: this.backendSampledAt,
           backend_refresh_failed: this._diagnosticError,
+          media_paths_sample: this._mediaEvidence
+            ? { sampled_at: this._mediaEvidenceAt, evidence: this._mediaEvidence }
+            : null,
           receive_packets: this.received,
           backend: this.lastBackend,
           error: this._error || null,
@@ -932,6 +984,53 @@ export class IntercomAudioControls extends LitElement {
         >
           <summary>${this.t("audio_diagnostics_title")}</summary>
           <p>${this.t("audio_path_hint")}</p>
+          <div class="buttons">
+            <button ?disabled=${this._mediaCheckBusy} @click=${() => this.checkMediaPaths()}>
+              ${this.t("media_evidence_check")}
+            </button>
+          </div>
+          ${this._mediaCheckError ? html`<p role="status">${this.t("media_evidence_error")}</p>` : nothing}
+          ${
+            this._mediaEvidence
+              ? html`<dl class="media-evidence" aria-label=${this.t("media_evidence_title")}>
+                    <div>
+                      <dt>${this.t("media_evidence_video")}</dt>
+                      <dd>${this.t("media_evidence_video_" + this._mediaEvidence.video)}</dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("media_evidence_listen")}</dt>
+                      <dd>${this.t("media_evidence_listen_" + this._mediaEvidence.listen)}</dd>
+                    </div>
+                    <div>
+                      <dt>${this.t("media_evidence_talk")}</dt>
+                      <dd>${this.t("media_evidence_talk_" + this._mediaEvidence.talk)}</dd>
+                    </div>
+                    ${
+                      this._mediaEvidence.codec
+                        ? html`<div>
+                            <dt>${this.t("media_evidence_codec")}</dt>
+                            <dd>${this._mediaEvidence.codec}</dd>
+                          </div>`
+                        : nothing
+                    }
+                    ${
+                      this._mediaEvidence.jitterMs !== null
+                        ? html`<div>
+                            <dt>${this.t("media_evidence_jitter")}</dt>
+                            <dd>${this._mediaEvidence.jitterMs.toFixed(1)} ms</dd>
+                          </div>`
+                        : nothing
+                    }
+                  </dl>
+                  <p>
+                    ${this.t("media_evidence_sample")}:
+                    <time datetime=${this._mediaEvidenceAt ?? ""}
+                      >${this._mediaEvidenceAt ? new Date(this._mediaEvidenceAt).toLocaleTimeString(this.hass?.language) : "—"}</time
+                    >
+                  </p>
+                  <p>${this.t("media_evidence_limit")}</p>`
+              : nothing
+          }
           <dl>
             <div>
               <dt>${this.t("audio_signal")}</dt>

@@ -4,6 +4,11 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.12] - 2026-09-28
+
+- Add a read-only media-path check inside camera audio diagnostics. Report decoded video, incoming RTC/MSE or ISAPI evidence and outgoing microphone delivery separately, including incoming audio codec and available RTC jitter.
+- Keep untested paths distinct from failures, label the sample time, and include the latest evidence sample in the audio diagnostic download. The check does not start listening, open a microphone, send audio or change playback settings; transport evidence does not prove physical audibility.
+
 ## [2.0.0-rc.11] - 2026-09-28
 
 - Add an administrator-only, read-only preview of proposed operator access. The server evaluates selected actions using the same command classification as actual authorization, including door control, user changes and exports, event access, station settings and system settings.

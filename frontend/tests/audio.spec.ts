@@ -171,6 +171,48 @@ test("listen and talk controls switch camera-stream audio without native media c
   await expect.poll(() => page.evaluate(() => window.audio.cameraPlayback.at(-1))).toBe(false);
 });
 
+test("read-only media path check separates video from untested audio", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.evaluate((element: any) => {
+    const camera = element.closest(".camera-layout").querySelector("hikvision-intercom-camera");
+    camera.diagnostics = async () => ({
+      active_transport: "mse",
+      first_frame_at: "2026-09-28T00:00:00Z",
+      width: 1280,
+      height: 720,
+      camera_audio_enabled: false,
+      mse: { audio_included: true },
+    });
+  });
+  await audio.locator(".audio-options > summary").click();
+  await audio.getByText("Audio diagnostics", { exact: true }).click();
+  await audio.getByRole("button", { name: "Check media paths" }).click();
+  await expect(audio).toContainText("Frame received in this player");
+  await expect(audio).toContainText("Open listening to check");
+  await expect(audio).toContainText("Talk has not been sampled");
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((call: any) => call.type?.includes("/audio/")).length,
+    ),
+  ).toBe(0);
+});
+
+test("a delayed media check cannot populate a newly opened audio session", async ({ page }) => {
+  const audio = await setup(page);
+  await audio.evaluate((element: any) => {
+    const camera = element.closest(".camera-layout").querySelector("hikvision-intercom-camera");
+    camera.diagnostics = () => new Promise((resolve) => (window.audio.mediaReady = resolve));
+  });
+  await audio.locator(".audio-options > summary").click();
+  await audio.getByText("Audio diagnostics", { exact: true }).click();
+  await audio.getByRole("button", { name: "Check media paths" }).click();
+  await expect.poll(() => page.evaluate(() => typeof window.audio.mediaReady)).toBe("function");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await page.evaluate(() => window.audio.mediaReady({ failed: true }));
+  await expect(audio.locator(".media-evidence")).toHaveCount(0);
+  await expect(audio.getByRole("button", { name: "Check media paths" })).toBeEnabled();
+});
+
 test("releasing while microphone permission is pending stops late tracks", async ({ page }) => {
   const audio = await setup(page);
   await page.evaluate(() => ((window as any).audio.delayMic = true));
