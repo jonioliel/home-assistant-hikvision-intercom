@@ -19,6 +19,15 @@ const routes = new Map([
     ],
   ],
   ["/", [new URL("./fixture.html", import.meta.url), "text/html"]],
+  ["/hikvision-intercom", [new URL("./fixture.html", import.meta.url), "text/html"]],
+  ["/embed-host.html", [new URL("./embed-host.html", import.meta.url), "text/html"]],
+  [
+    "/wiskey-embed-client.mjs",
+    [
+      new URL("../../docs/integrations/examples/wiskey-embed-client.mjs", import.meta.url),
+      "text/javascript",
+    ],
+  ],
   ["/fixture.mjs", [new URL("./fixture.mjs", import.meta.url), "text/javascript"]],
   [
     "/panel.js",

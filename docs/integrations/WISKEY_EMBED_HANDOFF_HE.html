@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WisKey — מסירה לפיתוח SMPLWISE VMS</title>
+    <style>
+      :root { font-family: Arial, sans-serif; color: #183b38; background: #f2f6f5; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { max-width: 1000px; margin: auto; padding: 24px; }
+      header, section { background: white; border: 1px solid #d8e4df; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+      h1 { font-size: clamp(24px, 4vw, 34px); margin: 8px 0; }
+      h2 { font-size: 21px; margin-top: 0; }
+      p, li { line-height: 1.75; }
+      .badge { display: inline-block; color: #176148; background: #e5f3ec; border-radius: 20px; padding: 6px 12px; }
+      .files { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
+      a { color: #176b5a; overflow-wrap: anywhere; }
+      .files a { border: 1px solid #cddfd7; padding: 16px; border-radius: 10px; text-decoration: none; }
+      code, pre { direction: ltr; unicode-bidi: isolate; }
+      pre { text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; background: #edf3f1; padding: 16px; border-radius: 10px; }
+      .note { border-inline-start: 4px solid #408d73; padding-inline-start: 16px; }
+      @media(max-width:500px) { main { padding: 12px; } header,section { padding: 16px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="badge">גרסה 2.0.0-rc.19 · חוזה הטמעה 1</span>
+        <h1>מסכי WisKey בתוך SMPLWISE VMS</h1>
+        <p>ממשק הטמעה וניווט יציב למסכים הקיימים, בזהות המשתמש המחובר לתשתית המערכת.</p>
+      </header>
+      <section>
+        <h2>קבצים להעברה למפתח</h2>
+        <div class="files">
+          <a href="WISKEY_EMBED_API_V1.md">מפרט מלא והוראות לפיתוח VMS</a>
+          <a href="examples/wiskey-embed-client.mjs" download>דוגמת חיבור JavaScript</a>
+          <a href="WISKEY_EMBED_IMPLEMENTATION_CONFIRMATION_HE.md">אישור מימוש והיקף האימות</a>
+        </div>
+      </section>
+      <section>
+        <h2>איך מתחברים</h2>
+        <ol>
+          <li>מעדכנים את WisKey מתוך <a href="https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.19">שחרור rc.19</a> לאחר מעבר בדיקות השחרור, ומשלימים הפעלה מחדש וטעינת ממשק.</li>
+          <li>בתוסף VMS טוענים iframe באותו מקור דפדפן, עם הכתובת הבאה.</li>
+          <li>נרשמים להודעות לפני טעינת המסגרת; בונים ניווט לפי <code>wiskey:ready</code>.</li>
+          <li>מחליפים קריאות למתודות פנימיות ב־<code>wiskey:navigate</code>; משקפים את המיקום שאושר מתוך <code>wiskey:location</code>.</li>
+        </ol>
+        <pre>/hikvision-intercom?embed=1&amp;tab=users
+/hikvision-intercom?embed=1&amp;tab=tools&amp;tool=media_options</pre>
+        <p class="note">אין להעביר למסגרת אסימון שירות. משתמש ללא הרשאות נוספות ממשיך לקבל רק את המסכים והפעולות המותרים לו. הכניסה הרגילה ל־WisKey שומרת על הסרגל הקיים.</p>
+      </section>
+      <section>
+        <h2>מה נותר לבדוק בצד VMS</h2>
+        <ul>
+          <li>סרגל אחד, ניווט וקישורים ב־Ingress בפועל, במחשב ובנייד.</li>
+          <li>מנהל ומשתמש מוגבל, פתיחה וסגירה של המודול וחזרה אליו.</li>
+          <li>תצוגת מצלמה ושמע במסגרת המקוננת בהתאם להרשאות הדפדפן והתשתית.</li>
+        </ul>
+        <p>המימוש בצד WisKey נבדק אוטומטית. בדיקות אלו נוגעות לחיבור בתוך התוסף הנפרד; הן אינן אישור שה־VMS כבר אימץ את החוזה.</p>
+        <p>מסמך הבדיקות המרוכז לכל פיתוחי הימים האחרונים ממתין לבקשתך.</p>
+      </section>
+    </main>
+  </body>
+</html>

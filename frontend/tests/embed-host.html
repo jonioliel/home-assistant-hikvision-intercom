@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Synthetic VMS embed host</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+      iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe title="WisKey"></iframe>
+    <script>
+      const frame = document.querySelector("iframe");
+      window.embedMessages = [];
+      window.addEventListener("message", (event) => {
+        if (event.origin === location.origin && event.source === frame.contentWindow)
+          window.embedMessages.push(event.data);
+      });
+      window.vmsNavigate = (tab, tool = null) => {
+        frame.contentWindow.postMessage({ type: "wiskey:navigate", tab, tool }, location.origin);
+      };
+      frame.src =
+        new URLSearchParams(location.search).get("frame") ||
+        "/hikvision-intercom?embed=1&tab=users";
+    </script>
+  </body>
+</html>

@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Target WisKey source:** v2.0.0-rc.16, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
+**Target WisKey source:** v2.0.0-rc.19, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
@@ -29,6 +29,16 @@ Include the schema-11 user repository and the new guest-template and fleet-alert
 
 ## 1. The intended ownership boundary
 
+**Exact original screens inside same-origin VMS ingress, from rc.19:** use the
+[embedded panel contract v1](WISKEY_EMBED_API_V1.md) and its
+[reference browser adapter](examples/wiskey-embed-client.mjs). It adds opt-in
+`embed=1`, tab/tool deep links, a permission-filtered navigation catalog and
+same-origin parent messages. The original WisKey frontend remains responsible for
+its workflows and runs as the signed-in browser operator. This route replaces DOM
+deep-linking and a duplicate WisKey toolbar; it does not require recreating these
+screens or sending a Supervisor token to the browser. The backend integration guide
+below remains relevant when VMS needs its own data views or separate service workflows.
+
 Keep smplwise access control / WisKey installed as the HA integration under its **technical domain hikvision_intercom**. The visible brand is not the command namespace. WisKey remains the only writer of managed people, PIN/card credentials, group access, station synchronization, door programs, public codes and ISAPI station state. VMS consumes WisKey through HA and may present those operations in its own UI.
 
 ~~~text
@@ -39,7 +49,7 @@ Video in VMS ── HA camera/stream service or an explicitly designed media ada
 
 Do not read or edit HA private .storage/hikvision_intercom.* files, call the intercom ISAPI directly for WisKey-managed data, copy PIN/card secrets into VMS, or use the HA Recorder database as an API. Those paths bypass WisKey's revisions, permissions, synchronization, and audit context.
 
-The already installed HA panel is at /hikvision-intercom on the **HA frontend origin** ([panel.py](../../custom_components/hikvision_intercom/panel.py)). A VMS link to that route is the quickest way to show the exact original screens under the browser's HA login, but it opens the WisKey panel rather than reproducing it inside the VMS. Embedding it as an ingress iframe is not a verified integration route; origin, cookies and frame policy must be tested separately. The native VMS screen map below is the route for actual in-VMS parity.
+The already installed HA panel is at /hikvision-intercom on the **HA frontend origin** ([panel.py](../../custom_components/hikvision_intercom/panel.py)). Its same-origin embedded contract is implemented and covered by automated iframe tests from rc.19. Actual VMS deployment, browser login and ancestor media/frame policy still need the VMS developer's integration check. The native VMS screen map below is an alternative for independently implemented screens, not a prerequisite for embedding the originals.
 
 **The exact WisKey 04 appearance is a frontend implementation, not a backend response.** Recreate the screens against the APIs below, or deliberately share the current frontend component source after supplying its expected HA hass object and testing every lifecycle. Copying only CSS or loading the compiled panel.js into an ingress page will not supply its HA context or make it a supported VMS component.
 

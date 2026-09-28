@@ -4,6 +4,14 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.19] — 2026-09-28
+
+- Add opt-in `embed=1` for the original WisKey screens in a same-origin SMPLWISE VMS iframe. Omit only the WisKey top toolbar; retain content navigation, dialogs, existing themes, media controls and server-side permissions. Normal panel opening retains its toolbar.
+- Add `tab`/`tool` deep links, canonical replace-state URLs, router-state/query/hash preservation, popstate/infrastructure-location handling and the existing unsaved-schedule guard.
+- Expose embed contract v1 through `data-embed-api`, permission-filtered ready catalogs, location/title notifications and validated parent navigation. Reject different origins, non-parent senders, unknown IDs and locked/revoked sessions; navigation performs no device or data mutations.
+- Use the official memory-only kiosk event with `detail.enable`, restore the observed state on exit, and avoid persistent sidebar preferences. Embedded layouts fill their iframe host in all existing appearances.
+- Supply [VMS implementation instructions](docs/integrations/WISKEY_EMBED_API_V1.md), a tested [reference adapter](docs/integrations/examples/wiskey-embed-client.mjs), and [implementation verification](docs/integrations/WISKEY_EMBED_IMPLEMENTATION_CONFIRMATION_HE.md). The separate VMS still needs to adopt the adapter and verify its actual ingress/media deployment. Technical domain, registration and storage are unchanged.
+
 ## [2.0.0-rc.18] — 2026-09-28
 
 - Add an administrator fleet and reporting workspace alongside existing tools and themes: station zones, owners, tags, maintenance windows and per-station alert thresholds.
