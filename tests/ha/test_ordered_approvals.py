@@ -16,7 +16,9 @@ async def request(client, route, **data):
 
 async def reviewer_client(hass, hass_ws_client):
     user = await hass.auth.async_create_user("Second operator", group_ids=[GROUP_ID_ADMIN])
-    refresh = await hass.auth.async_create_refresh_token(user)
+    refresh = await hass.auth.async_create_refresh_token(
+        user, client_id="https://ordered-tests.invalid"
+    )
     token = hass.auth.async_create_access_token(refresh)
     return user, await hass_ws_client(hass, access_token=token)
 
@@ -42,7 +44,6 @@ async def test_csv_job_requires_a_current_second_admin_and_an_explicit_resume(
         content=raw,
         mode="create",
         review_token=preview["result"]["review_token"],
-        column_map={},
         confirmed=True,
     )
     assert created["success"], created
