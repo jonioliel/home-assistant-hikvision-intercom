@@ -2,7 +2,7 @@
 
 import json
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pyotp
 import pytest
@@ -141,3 +141,22 @@ async def test_general_approval_rejects_bypasses_and_preserves_credentials(
     await center.update_settings(
         1, {"idle_minutes": 0, "reauth_sensitive": False, "dual_approval": False}
     )
+
+
+async def test_resumable_csv_accepts_same_payload_budget_as_foreground_import(
+    hass, loaded_entry, hass_ws_client
+):
+    client = await hass_ws_client(hass)
+    handler = "custom_components.hikvision_intercom.websocket._dispatch"
+    with patch(handler, AsyncMock(return_value={"id": "reviewed-job"})) as dispatch:
+        result = await request(
+            client,
+            "jobs/csv_create",
+            content="synthetic," * 10000,
+            mode="add_only",
+            review_token="synthetic-review",
+            column_map={},
+            confirmed=True,
+        )
+    assert result["success"], result
+    assert dispatch.await_count == 1

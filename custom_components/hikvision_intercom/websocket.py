@@ -1382,7 +1382,8 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
                 67_108_864
                 if command == "backups/preview"
                 else 1_048_576
-                if command in {"users/csv_preview", "users/csv_apply", "users/csv_inspect"}
+                if command
+                in {"users/csv_preview", "users/csv_apply", "users/csv_inspect", "jobs/csv_create"}
                 else 65_536
             )
             if len(json.dumps(msg, ensure_ascii=False).encode()) > maximum:
