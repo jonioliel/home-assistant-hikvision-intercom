@@ -566,12 +566,16 @@ async def test_outside_binding_after_assignment_removal_is_read_only_in_every_pe
         ("users/query", {"query": "", "filters": {}, "offset": 0, "limit": 25, "snapshot": ""}),
         ("overview", {}),
     ):
-        reply = (await request(reader, command, **data))["result"]
+        response = await request(reader, command, **data)
+        assert response["success"], response
+        reply = response["result"]
         rows = (
             [reply]
             if command == "users/get"
             else reply
             if command == "users/list"
+            else reply["records"]
+            if command == "users/query"
             else reply["users"]
         )
         assert next(row for row in rows if row["id"] == local.id)["operator_editable"] is False
