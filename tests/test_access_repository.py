@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from custom_components.hikvision_intercom.access.admin_audit import audit_actor
 from custom_components.hikvision_intercom.access.models import (
     AccessError,
     SecretValue,
@@ -98,6 +99,60 @@ async def test_existing_user_without_temporary_fields_loads_as_staff(repo):
     await restored.async_load(saved)
     assert restored.get(user.id).access_category == "staff"
     assert restored.get(user.id).responsible_person == ""
+
+
+@pytest.mark.parametrize("active", [True, False])
+async def test_temporary_renewal_changes_only_validity_and_is_audited(repo, active):
+    user = await person(
+        repo,
+        active=active,
+        access_category="contractor",
+        responsible_person="Facilities",
+        access_purpose="Maintenance",
+        valid_from="2026-09-28T09:00:00+00:00",
+        valid_until="2026-09-28T12:00:00+00:00",
+        access_timing_policy={
+            "mode": "ha",
+            "schedule": {
+                "mode": "weekly",
+                "timezone": "Asia/Jerusalem",
+                "days": ["Monday", "Thursday"],
+                "dates": [],
+                "periods": [{"start": "09:00", "end": "17:00"}],
+            },
+            "bindings": {},
+        },
+    )
+    patch = {"valid_from": "2026-09-28T09:00:00+00:00", "valid_until": "2026-10-28T12:00:00+00:00"}
+    with audit_actor("operator", "users/update"):
+        renewed = await repo.async_update(user.id, patch, expected_revision=user.revision)
+    assert renewed.valid_until == patch["valid_until"]
+    assert renewed.active is active
+    assert renewed.pin.value == user.pin.value
+    assert [card.card_no.value for card in renewed.cards] == [
+        card.card_no.value for card in user.cards
+    ]
+    assert {sid: a.allowed_locks for sid, a in renewed.assignments.items()} == {
+        sid: a.allowed_locks for sid, a in user.assignments.items()
+    }
+    for field in (
+        "responsible_person",
+        "access_purpose",
+        "access_category",
+        "access_timing_policy",
+    ):
+        assert getattr(renewed, field) == getattr(user, field)
+    audit = repo.snapshot()["admin_audit"]["records"][-1]
+    assert audit["actor"] == "operator" and audit["action"] == "users/update"
+    assert audit["fields"] == ["valid_until"]
+    assert audit["before"]["valid_until"] == user.valid_until
+    assert audit["after"]["valid_until"] == renewed.valid_until
+    assert "123456" not in str(audit) and "000012345678" not in str(audit)
+    with pytest.raises(AccessError, match="revision_conflict"):
+        await repo.async_update(
+            user.id, {"valid_until": "2026-11-28T12:00:00+00:00"}, expected_revision=user.revision
+        )
+    assert repo.get(user.id).revision == renewed.revision
 
 
 async def test_failed_persistence_does_not_publish_desired_state(repo):
