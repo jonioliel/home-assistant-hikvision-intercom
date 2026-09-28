@@ -19,6 +19,7 @@ interface AuditRow {
   after: Record<string, unknown> | null;
   revision_before: number | null;
   revision_after: number | null;
+  reason_code?: string;
 }
 interface AuditReport {
   records: AuditRow[];
@@ -48,6 +49,7 @@ const actions = [
   "users/update",
   "users/delete",
   "users/set_active",
+  "users/temporary_cancel",
   "cards/add",
   "cards/remove",
   "users/csv_apply",
@@ -491,6 +493,7 @@ export class AdminAudit extends LitElement {
                   ${row.actor ? (this._report?.actors[row.actor] ?? row.actor) : this.t("audit_system")}<br />${this.t("audit_fields")}:
                   ${row.fields.map((f) => this.t("audit_field_" + f)).join(", ")}
                 </p>
+                ${row.reason_code ? html`<p class="record-meta">${this.t("temporary_cancel_reason")}: ${this.t("temporary_reason_" + row.reason_code)}</p>` : nothing}
                 <details class="audit-diff">
                   <summary>${this.t("audit_change_details")}</summary>
                   <div class="comparison">

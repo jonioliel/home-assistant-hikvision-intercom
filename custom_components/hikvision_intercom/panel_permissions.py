@@ -143,6 +143,9 @@ class PanelPermissions:
 # Every panel command is classified here. Unknown commands fail closed.
 # A tuple of requirements means any one grant is sufficient.
 _READ_USERS = {
+    "visits/operators",
+    "visits/list",
+    "guest_templates/get",
     "users/list",
     "users/query",
     "users/get",
@@ -159,10 +162,16 @@ _READ_USERS = {
     "whatsapp/media",
 }
 _WRITE_USERS = {
+    "visits/create",
+    "visits/request",
+    "visits/decide",
+    "guest_templates/upsert",
+    "guest_templates/delete",
     "users/create",
     "users/update",
     "users/delete",
     "users/set_active",
+    "users/temporary_cancel",
     "users/pin_check",
     "users/pin_generate",
     "users/csv_inspect",
@@ -202,6 +211,7 @@ _WRITE_EVENTS = {
     "events/trace_stop",
 }
 _READ_STATIONS = {
+    "fleet/alerts",
     "stations/list",
     "stations/get",
     "stations/inventory",
@@ -218,6 +228,7 @@ _READ_STATIONS = {
     "stations/permission_audit",
 }
 _WRITE_STATIONS = {
+    "fleet/alerts_action",
     "stations/rescan",
     "stations/technical_codes_write",
     "stations/technical_hold_delete",

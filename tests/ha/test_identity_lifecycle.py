@@ -4,6 +4,8 @@ import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from custom_components.hikvision_intercom.access_runtime import get_manager
 
 from .test_websocket import request
@@ -143,3 +145,65 @@ async def test_temporary_lifecycle_renewal_reuses_sync_queue_and_viewer_cannot_w
         sync_now=True,
     )
     assert not denied["success"] and denied["error"]["code"] == "unauthorized"
+    cancel_denied = await request(
+        viewer,
+        "users/temporary_cancel",
+        user_id=person.id,
+        revision=renewed["result"]["revision"],
+        reason_code="visit_cancelled",
+    )
+    assert not cancel_denied["success"] and cancel_denied["error"]["code"] == "unauthorized"
+
+
+@pytest.mark.parametrize(
+    "reason", ["visit_cancelled", "visit_completed", "access_no_longer_needed"]
+)
+async def test_cancellation_api_persists_disable_intent_and_audits_authenticated_actor(
+    hass, loaded_entry, hass_ws_client, reason
+):
+    manager = get_manager(hass)
+    now = datetime.now(UTC)
+    person = await manager.repository.async_create(
+        {
+            "display_name": "Contractor",
+            "access_category": "contractor",
+            "responsible_person": "Facilities",
+            "pin": "745829",
+            "valid_from": now.isoformat(),
+            "valid_until": (now + timedelta(days=1)).isoformat(),
+            "assignments": {loaded_entry.entry_id: {"allowed_locks": [1]}},
+        }
+    )
+    client = await hass_ws_client(hass)
+    overview = await request(client, "overview")
+    assert "users/temporary_cancel" in overview["result"]["api"]["commands"]
+    with patch.object(manager, "request_user") as queued:
+        result = await request(
+            client,
+            "users/temporary_cancel",
+            user_id=person.id,
+            revision=person.revision,
+            reason_code=reason,
+        )
+        assert result["success"], result
+        queued.assert_called_once_with(person.id)
+    assert not result["result"]["active"] and "745829" not in json.dumps(result)
+    audit = manager.repository.snapshot()["admin_audit"]["records"][-1]
+    assert audit["action"] == "users/temporary_cancel" and audit["actor"]
+    assert audit["reason_code"] == reason
+    invalid = await request(
+        client,
+        "users/temporary_cancel",
+        user_id=person.id,
+        revision=result["result"]["revision"],
+        reason_code="arbitrary",
+    )
+    assert not invalid["success"] and invalid["error"]["code"] == "invalid_fields"
+    duplicate = await request(
+        client,
+        "users/temporary_cancel",
+        user_id=person.id,
+        revision=result["result"]["revision"],
+        reason_code=reason,
+    )
+    assert not duplicate["success"] and duplicate["error"]["code"] == "temporary_already_inactive"

@@ -781,6 +781,42 @@ class AccessManager:
                 self.request(key)
         self._changed()
 
+    async def async_cancel_temporary(self, user_id: str, *, revision: int) -> dict[str, Any]:
+        # Disabling existing access does not require fresh firmware capability reads.
+        # Desired disable intent must be saved even when a station is disconnected.
+        user = await self.repository.async_cancel_temporary(user_id, expected_revision=revision)
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_create_visit(
+        self, data: dict[str, Any], *, actor: str, approver: str
+    ) -> dict[str, Any]:
+        data = {**data, "active": False}
+        self._validate(
+            build_user(
+                self.repository.permission_data(data), employee_no="100000000", now=utc_now()
+            )
+        )
+        user = await self.repository.async_create(data, approval=(actor, approver))
+        self._changed()
+        return user.public()
+
+    async def async_decide_visit(
+        self, request_id: str, *, revision: int, actor: str, decision: str
+    ) -> dict[str, Any]:
+        row = await self.repository.async_decide_visit(
+            request_id,
+            expected_revision=revision,
+            actor=actor,
+            decision=decision,
+            validate=self._validate,
+        )
+        if decision == "approve":
+            self.request_user(row["user_id"])
+        self._changed()
+        return row
+
     @staticmethod
     def _pending_users(state: dict[str, Any], station_id: str) -> set[str]:
         from .sync_tracking import pending_users

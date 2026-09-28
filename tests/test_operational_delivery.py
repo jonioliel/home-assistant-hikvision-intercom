@@ -129,6 +129,7 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     raw = repo.snapshot()
     raw.pop("sync_operations")
     raw["schema"] = schema
+    raw.pop("visit_requests")
     if schema < 5:
         raw.pop("profile_settings")
     if schema < 3:
@@ -146,7 +147,7 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     await restored.async_load(raw)
     assert restored.get(user.id).pin.value == user.pin.value
     assert restored.get(user.id).cards[0].card_no == user.cards[0].card_no
-    assert restored.snapshot()["schema"] == 10
+    assert restored.snapshot()["schema"] == 11
     assert pending_age(restored.snapshot(), "a") is None
     operation = restored.public()["sync_operations"][0]
     assert operation["queued_at"] is None
@@ -214,6 +215,7 @@ async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
     )
     backup = repo.snapshot()
     backup["schema"] = 7
+    backup.pop("visit_requests")
     backup.pop("sync_operations")
     original = deepcopy(backup)
     restored = AccessRepository(AsyncMock())

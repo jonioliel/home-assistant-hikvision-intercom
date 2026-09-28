@@ -1,12 +1,12 @@
 # smplwise access control (WisKey) ↔ VMS integration handoff
 
-**Code reviewed:** smplwise access control 2.0.0-rc.4 (27 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
+**Code reviewed:** smplwise access control 2.0.0-rc.14 (28 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
 
 For a VMS already running as a Home Assistant add-on, start with the [complete add-on and screen-parity implementation guide](SMPLWISE_VMS_ADDON_IMPLEMENTATION_GUIDE.md). It covers the Supervisor WebSocket route, identity boundary, every current screen, media gaps and acceptance criteria. This document remains the concise API/storage reference.
 
 ## Instructions for Claude implementing the VMS client
 
-Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all 134 panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.
+Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all registered panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.
 
 1. Create a dedicated, active **non-admin** Home Assistant account for the VMS, configure only the necessary WisKey area grants, and keep its token in the VMS backend secret store.
 2. Connect to `wss://<HA-host>/api/websocket`; answer `auth_required` with the token; correlate each command by its integer `id`. On reconnect, authenticate again and resubscribe.
@@ -16,7 +16,7 @@ Build a **server-side HA WebSocket adapter** for this existing integration. Do n
 6. Keep camera viewing and talkback as separate integrations. HA camera entities are the first video route; the panel's MSE/RTC and audio bridges are stateful implementation endpoints, not general RTSP URLs.
 7. Test with a non-admin account: allowed read, denied write, one controlled action on a test station, stale revision, disconnect/reconnect, token revocation, and a real event. Never use production PIN/card data in test fixtures.
 
-**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.4 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
+**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.14 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
 
 ## Architecture decision
 
@@ -52,7 +52,7 @@ Connection flow (the token is a placeholder, never commit it):
 {"id":2,"type":"hikvision_intercom/overview"}
 ```
 
-HA command replies have the standard envelope `{"id":2,"type":"result","success":true,"result":{...}}`. Failed commands use `success:false` and an `error.code`; never treat a WebSocket acknowledgement as proof that a physical action happened. `overview.result.api` contains the current `version`, `min_client`, `capabilities`, and **the commands authorized for the connected HA user**. The panel contract is currently version `1`; include `"api_contract":1` on write commands. The [source-derived catalog of all 134 panel commands and their required top-level fields](WISKEY_VMS_PANEL_COMMANDS.json) accompanies this document. Nested object schemas, allowed enum values, workflow tokens, and responses still require the WisKey source (`websocket.py`, `audio_api.py`, `audio_tts.py`); the catalog is not a standalone OpenAPI specification.
+HA command replies have the standard envelope `{"id":2,"type":"result","success":true,"result":{...}}`. Failed commands use `success:false` and an `error.code`; never treat a WebSocket acknowledgement as proof that a physical action happened. `overview.result.api` contains the current `version`, `min_client`, `capabilities`, and **the commands authorized for the connected HA user**. The panel contract is currently version `1`; include `"api_contract":1` on write commands. The [source-derived catalog of all registered panel commands and their required top-level fields](WISKEY_VMS_PANEL_COMMANDS.json) accompanies this document. Nested object schemas, allowed enum values, workflow tokens, and responses still require the WisKey source (`websocket.py`, `audio_api.py`, `audio_tts.py`); the catalog is not a standalone OpenAPI specification.
 
 ## Existing operations the VMS can call now
 
@@ -152,3 +152,9 @@ Until then, the current authenticated WebSocket commands are suitable for a cont
 - [Home Assistant apps/add-ons](https://developers.home-assistant.io/docs/apps/)
 - [Home Assistant camera entity](https://developers.home-assistant.io/docs/core/entity/camera)
 - [Home Assistant Recorder](https://www.home-assistant.io/integrations/recorder/)
+
+## Visit operations extension
+
+See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.
+
+See also [fleet alerts](FLEET_ALERTS_API.md), [investigation timeline and complete report](INVESTIGATION_TIMELINE_API.md), and [browser-local audio output](BROWSER_AUDIO_OUTPUT.md) for the new operations and their explicit permission/evidence boundaries.

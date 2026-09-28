@@ -15,6 +15,7 @@ from .models import AccessError, ManagedUser, text_field, utc_now
 
 LIMIT = 5000
 DAYS = 30
+CANCELLATION_REASONS = frozenset({"visit_cancelled", "visit_completed", "access_no_longer_needed"})
 ACTIONS = frozenset(
     {
         "profiles/settings_update",
@@ -22,6 +23,9 @@ ACTIONS = frozenset(
         "users/update",
         "users/delete",
         "users/set_active",
+        "users/temporary_cancel",
+        "visits/create",
+        "visits/decide",
         "cards/add",
         "cards/remove",
         "users/csv_apply",
@@ -48,15 +52,23 @@ ACTIONS = frozenset(
         "system",
     }
 )
-_context: ContextVar[tuple[str, str, asyncio.Task[Any] | None] | None] = ContextVar(
+_context: ContextVar[tuple[str, str, asyncio.Task[Any] | None, str | None] | None] = ContextVar(
     "access_audit", default=None
 )
 
 
 @contextmanager
-def audit_actor(actor: str, action: str) -> Iterator[None]:
+def audit_actor(actor: str, action: str, *, reason_code: str | None = None) -> Iterator[None]:
     action = action if action in ACTIONS else "system"
-    token = _context.set((text_field(actor, 128, empty=True), action, asyncio.current_task()))
+    if reason_code is not None and (
+        action != "users/temporary_cancel"
+        or not isinstance(reason_code, str)
+        or reason_code not in CANCELLATION_REASONS
+    ):
+        raise AccessError("invalid_fields")
+    token = _context.set(
+        (text_field(actor, 128, empty=True), action, asyncio.current_task(), reason_code)
+    )
     try:
         yield
     finally:
@@ -69,6 +81,11 @@ def current_actor() -> tuple[str, str]:
     if item is None or item[2] is not asyncio.current_task():
         return "", "system"
     return item[:2]
+
+
+def current_reason_code() -> str | None:
+    item = _context.get()
+    return item[3] if item is not None and item[2] is asyncio.current_task() else None
 
 
 def summary(raw: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -110,7 +127,14 @@ def changes(before: dict[str, Any] | None, after: dict[str, Any] | None) -> list
     return sorted(key for key in first.keys() | last.keys() if first.get(key) != last.get(key))
 
 
-def append_changes(old: dict[str, Any], new: dict[str, Any], actor: str, action: str) -> None:
+def append_changes(
+    old: dict[str, Any],
+    new: dict[str, Any],
+    actor: str,
+    action: str,
+    *,
+    reason_code: str | None = None,
+) -> None:
     audit = new["admin_audit"]
     now = utc_now()
     cutoff = (datetime.now(UTC) - timedelta(days=DAYS)).isoformat(timespec="seconds")
@@ -166,6 +190,7 @@ def append_changes(old: dict[str, Any], new: dict[str, Any], actor: str, action:
                 "after": summary(after),
                 "revision_before": before["revision"] if before else None,
                 "revision_after": after["revision"] if after else None,
+                **({"reason_code": reason_code} if reason_code is not None else {}),
             }
         )
         audit["next"] += 1
@@ -189,7 +214,7 @@ def validate_storage(audit: Any, receipts: Any) -> None:
         raise AccessError("invalid_storage")
     previous = 0
     for row in audit["records"]:
-        if not isinstance(row, dict) or set(row) != {
+        required_fields = {
             "sequence",
             "time",
             "actor",
@@ -201,7 +226,17 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             "after",
             "revision_before",
             "revision_after",
-        }:
+        }
+        if (
+            not isinstance(row, dict)
+            or not required_fields <= set(row) <= required_fields | {"reason_code"}
+            or "reason_code" in row
+            and (
+                row["action"] != "users/temporary_cancel"
+                or not isinstance(row["reason_code"], str)
+                or row["reason_code"] not in CANCELLATION_REASONS
+            )
+        ):
             raise AccessError("invalid_storage")
         if (
             type(row["sequence"]) is not int
@@ -405,6 +440,7 @@ def export(audit: dict[str, Any], filters: dict[str, Any]) -> dict[str, Any]:
             "changed_fields",
             "revision_before",
             "revision_after",
+            "reason_code",
         ],
         (
             [
@@ -418,6 +454,7 @@ def export(audit: dict[str, Any], filters: dict[str, Any]) -> dict[str, Any]:
                 ";".join(r["fields"]),
                 r["revision_before"],
                 r["revision_after"],
+                r.get("reason_code", ""),
             ]
             for r in report["records"]
         ),

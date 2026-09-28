@@ -2,7 +2,17 @@ import { defineConfig } from "@playwright/test";
 const port = Number(process.env.WISKEY_TEST_PORT || 8765);
 export default defineConfig({
   testDir: "./tests",
-  testMatch: ["operational.spec.ts", "access-design.spec.ts", "temporary-renewal.spec.ts"],
+  testMatch: [
+    "operational.spec.ts",
+    "access-design.spec.ts",
+    "temporary-renewal.spec.ts",
+    "temporary-cancellation.spec.ts",
+    "guest-templates.spec.ts",
+    "visit-requests.spec.ts",
+    "fleet-alerts.spec.ts",
+    "investigations.spec.ts",
+    "audio-output-cross.spec.ts",
+  ],
   fullyParallel: true,
   workers: 2,
   use: { baseURL: `http://127.0.0.1:${port}`, headless: true },

@@ -216,6 +216,111 @@ test("mobile playback selects the WebKit media session and restores it after lis
   expect(await page.evaluate(() => (navigator as any).audioSession.type)).toBe("ambient");
 });
 
+test("custom RTC output is routed before gain, switching recovers gain and stop remains muted", async ({
+  page,
+}) => {
+  await rtc(page, "audio");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("RTC");
+  await page.evaluate(() => {
+    window.sinkRoutes = [];
+    Object.defineProperty(AudioContext.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id) {
+        window.sinkRoutes.push({ target: "context", id });
+      },
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id) {
+        window.sinkRoutes.push({ target: "element", id });
+      },
+    });
+  });
+  const immediate = await camera.evaluate(async (element: any) => {
+    await element.setOutputDevice("speaker");
+    element.setPlaybackAudio(true);
+    const before = element.playbackGain.gain.value;
+    await element.setOutputDevice("headphones");
+    return {
+      before,
+      after: element.playbackGain.gain.value,
+      captured: element.playbackUsesCapturedStream,
+      muted: element.shadowRoot.querySelector("video").muted,
+    };
+  });
+  expect(immediate.before).toBe(0);
+  expect(immediate.after).toBe(32);
+  expect(immediate.muted).toBe(immediate.captured);
+  expect(
+    await page.evaluate(() =>
+      window.sinkRoutes.some((call) => call.target === "context" && call.id === "headphones"),
+    ),
+  ).toBe(true);
+  const stopped = await camera.evaluate(async (element: any) => {
+    element.setPlaybackAudio(false);
+    await element.setOutputDevice("");
+    return {
+      gain: element.playbackGain.gain.value,
+      muted: element.shadowRoot.querySelector("video").muted,
+    };
+  });
+  expect(stopped).toEqual({ gain: 0, muted: true });
+});
+
+test("default RTC audio never invokes output selection or sink routing", async ({ page }) => {
+  await rtc(page, "audio");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("RTC");
+  await page.evaluate(() => {
+    window.sinkRoutes = [];
+    Object.defineProperty(AudioContext.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id) {
+        window.sinkRoutes.push(id);
+      },
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id) {
+        window.sinkRoutes.push(id);
+      },
+    });
+  });
+  const gain = await camera.evaluate((element: any) => {
+    element.setPlaybackAudio(true);
+    return element.playbackGain.gain.value;
+  });
+  expect(gain).toBe(32);
+  expect(await page.evaluate(() => window.sinkRoutes)).toEqual([]);
+  await camera.evaluate((element: any) => element.setPlaybackAudio(false));
+});
+
+test("custom output routes native camera playback when the amplification graph is unavailable", async ({
+  page,
+}) => {
+  await rtc(page, "audio");
+  const camera = page.getByRole("dialog").locator("hikvision-intercom-camera");
+  await expect(page.getByRole("dialog").locator(".player-status")).toHaveText("RTC");
+  await page.evaluate(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id) {
+        window.nativeOutput = id;
+      },
+    });
+  });
+  await camera.evaluate(async (element: any) => {
+    element.ensurePlaybackGraph = () => false;
+    await element.setOutputDevice("headphones");
+    element.setPlaybackAudio(true);
+  });
+  await expect(camera.locator("video")).toHaveJSProperty("muted", false);
+  expect(await page.evaluate(() => window.nativeOutput)).toBe("headphones");
+  await camera.evaluate((element: any) => element.setPlaybackAudio(false));
+  await expect(camera.locator("video")).toHaveJSProperty("muted", true);
+});
+
 test("WebRTC rejection falls back to HLS and exposes safe failure status", async ({ page }) => {
   await rtc(page, "fail");
   await expect(page.getByRole("dialog")).toContainText("Video failed");

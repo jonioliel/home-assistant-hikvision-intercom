@@ -3,7 +3,9 @@ import { downloadText } from "./download";
 import { translate } from "./i18n";
 import { boundedRequest } from "./request";
 import { formatTime, UTC_ZONE, type DisplayZone } from "./time";
-import type { Hass } from "./types";
+import type { Hass, Station } from "./types";
+import type { TemporaryAssignmentStates } from "./temporary-cancel";
+import "./temporary-cancel";
 import { type TemporaryAccessUser } from "./temporary-validity";
 import "./temporary-validity";
 
@@ -31,6 +33,7 @@ interface Expiration extends LifecycleUser {
 interface TemporaryUser extends LifecycleUser, TemporaryAccessUser {
   state: "active" | "upcoming" | "expired" | "inactive";
   expiring_soon: boolean;
+  assignment_states?: TemporaryAssignmentStates;
 }
 interface DuplicateGroup {
   reason: "display_name" | "phone" | "card_last4" | "employee_no";
@@ -291,6 +294,8 @@ export class IdentityLifecycle extends LitElement {
     hass: { attribute: false },
     zone: { attribute: false },
     canManage: { type: Boolean },
+    canCancel: { type: Boolean },
+    stations: { attribute: false },
     _report: { state: true },
     _busy: { state: true },
     _error: { state: true },
@@ -298,10 +303,14 @@ export class IdentityLifecycle extends LitElement {
     _temporaryFilter: { state: true },
     _renewal: { state: true },
     _notice: { state: true },
+    _cancellation: { state: true },
   };
   hass?: Hass;
   zone: DisplayZone = UTC_ZONE;
   canManage = false;
+  canCancel = false;
+  stations: Pick<Station, "id" | "name">[] = [];
+  private _cancellation?: TemporaryUser;
   private _report?: LifecycleReport;
   private _busy = false;
   private _error = "";
@@ -310,6 +319,7 @@ export class IdentityLifecycle extends LitElement {
   private _renewal?: TemporaryUser;
   private _notice = "";
   private renewalFocus?: HTMLElement;
+  private cancellationFocus?: HTMLElement;
   private request?: AbortController;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
 
@@ -372,6 +382,17 @@ export class IdentityLifecycle extends LitElement {
     this._notice = "";
     this.renewalFocus = event.currentTarget as HTMLElement;
     this._renewal = user;
+  }
+  private openCancellation(user: TemporaryUser, event: Event) {
+    this._notice = "";
+    this.cancellationFocus = event.currentTarget as HTMLElement;
+    this._cancellation = user;
+  }
+  private closeCancellation() {
+    this._cancellation = undefined;
+    void this.updateComplete.then(
+      () => this.cancellationFocus?.isConnected && this.cancellationFocus.focus(),
+    );
   }
   private temporaryAccess() {
     const temporary = this._report?.temporary_access;
@@ -449,6 +470,7 @@ export class IdentityLifecycle extends LitElement {
                               </button>`
                             : nothing
                         }
+                        ${this.canCancel && user.active && Number.isInteger(user.revision) ? html`<button @click=${(event: Event) => this.openCancellation(user, event)}>${this.t("temporary_cancel")}</button>` : nothing}
                       </div>
                     </div>
                   </article>`,
@@ -603,6 +625,24 @@ export class IdentityLifecycle extends LitElement {
                 ${formatTime(report.generated_at, this.hass?.language, this.zone)}
               </p>
             `
+      }
+      ${
+        this._cancellation
+          ? html`<wiskey-temporary-cancel
+              .hass=${this.hass}
+              .user=${this._cancellation}
+              .latestUser=${this._report?.temporary_access?.users.find((user) => user.id === this._cancellation?.id)}
+              .stations=${this.stations}
+              .assignmentStates=${this._report?.temporary_access?.users.find((user) => user.id === this._cancellation?.id)?.assignment_states}
+              .canManage=${this.canManage && this.canCancel}
+              .refreshing=${this._busy}
+              @cancellation-close=${() => this.closeCancellation()}
+              @cancellation-refresh=${() => void this.load(true)}
+              @access-cancelled=${() => {
+                void this.load(true);
+              }}
+            ></wiskey-temporary-cancel>`
+          : nothing
       }
       ${
         this._renewal

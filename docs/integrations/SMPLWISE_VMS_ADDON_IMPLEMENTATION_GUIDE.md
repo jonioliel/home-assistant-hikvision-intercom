@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Verified WisKey source:** v2.0.0-rc.4, 27 September 2026.
+**Target WisKey source:** v2.0.0-rc.14, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
@@ -12,7 +12,18 @@
 
 ה־VMS יכול לרוץ כתוסף ב־Home Assistant ולהתחבר ל־WisKey דרך ה־WebSocket הפנימי של HA. אין צורך להסיר או להעביר את WisKey מהאינטגרציה הקיימת. המסמך ממפה את חמשת מסכי הניווט, כלי הניהול והפקודות שמפעילות אותם, יחד עם דוגמאות חיבור ובדיקות קבלה. הנתונים וההרשאות ממשיכים להישמר ולהיאכף ב־WisKey. וידאו, שיחה ושמע דורשים מתאם מדיה ובדיקות נפרדות כדי להגיע לשוויון מלא בממשק החדש.
 
-הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת 134 הפקודות נמצאת בקובץ JSON הנלווה.
+הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת הפקודות המעודכנת נמצאת בקובץ JSON הנלווה.
+
+## Additions in 2.0.0-rc.14
+
+Use the advertised installed commands and existing operator grants. Preserve the distinction between saved intent, synchronization evidence and physical access:
+
+- [Visit operations](VISIT_OPERATIONS_API.md): templates without credentials, temporary cancellation, atomic inactive guest creation, approval by a selected second operator and server-filtered queues. Decisions must run under the actual chosen operator identity; an add-on service account cannot impersonate the host by adding an actor field.
+- [Fleet alerts](FLEET_ALERTS_API.md): cached observations, durable snoozes/maintenance and restoration. These policies suppress alert presentation, not underlying faults or synchronization.
+- [Investigation timeline](INVESTIGATION_TIMELINE_API.md): administrator-only safe evidence query, conservative person matching, stable paging, browser-local saved filters and consistent complete JSON report. Ordinary management grants do not grant the combined endpoint.
+- [Local listening output](BROWSER_AUDIO_OUTPUT.md): a VMS media viewer must route its own media elements/audio contexts; this is not a backend preference or device command.
+
+Include the schema-11 user repository and the new guest-template and fleet-alert policy stores in normal configuration backups. Restore the matching pre-upgrade backup for software rollback. The namespace, API contract and existing screens/appearances are unchanged.
 
 ## 1. The intended ownership boundary
 
@@ -96,7 +107,7 @@ The current API is the **WisKey panel contract v1**, not a frozen VMS v1 API. It
 }
 ~~~
 
-The arrays above are shortened examples. Call authorization/session and overview at login, check access.allowed and access.areas, then enable a control only if the matching command appears in api.commands. Most write requests carry api_contract:1. The complete, source-derived inventory of **134 management commands with required top-level field types** is [WISKEY_VMS_PANEL_COMMANDS.json](WISKEY_VMS_PANEL_COMMANDS.json). Separate handlers implement subscribe, audio/* and tts/*; their schemas and stateful behavior are not fully described by that JSON.
+The arrays above are shortened examples. Call authorization/session and overview at login, check access.allowed and access.areas, then enable a control only if the matching command appears in api.commands. Most write requests carry api_contract:1. The complete, source-derived inventory of **management commands with required top-level field types** is [WISKEY_VMS_PANEL_COMMANDS.json](WISKEY_VMS_PANEL_COMMANDS.json). Separate handlers implement subscribe, audio/* and tts/*; their schemas and stateful behavior are not fully described by that JSON.
 
 Use the response from the installed instance as the runtime authority. A command in this guide or catalog is not necessarily available to a low-privilege account or supported by every station.
 
@@ -253,8 +264,12 @@ For pixel-level matching, use current frontend components and CSS as the source 
 ## 12. Source index and companion documents
 
 - [Existing English VMS/API handoff](WISKEY_VMS_HANDOFF.md): architecture, storage and key command recipes.
-- [Full source-derived management command catalog](WISKEY_VMS_PANEL_COMMANDS.json): all 134 command names and required top-level fields.
+- [Full source-derived management command catalog](WISKEY_VMS_PANEL_COMMANDS.json): all registered command names and required top-level fields.
 - [WebSocket registry, dispatch and projections](../../custom_components/hikvision_intercom/websocket.py), [contract](../../custom_components/hikvision_intercom/api_contract.py), [permissions](../../custom_components/hikvision_intercom/panel_permissions.py).
 - [Frontend shell and screen router](../../frontend/src/panel.ts), [frontend data types](../../frontend/src/types.ts), [WisKey 04 style](../../frontend/src/wiskey-v4-styles.ts), [Hebrew strings](../../frontend/src/i18n.ts).
 - [MSE bridge](../../custom_components/hikvision_intercom/mse_api.py), [RTC bridge](../../custom_components/hikvision_intercom/rtc_api.py), [audio RPC](../../custom_components/hikvision_intercom/audio_api.py), [TTS RPC](../../custom_components/hikvision_intercom/audio_tts.py).
 - [Event retention and query](../../custom_components/hikvision_intercom/events.py), [safe user projection](../../custom_components/hikvision_intercom/access/models.py), [shared media settings](../../custom_components/hikvision_intercom/media_settings.py).
+
+## Visit operations extension
+
+See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.

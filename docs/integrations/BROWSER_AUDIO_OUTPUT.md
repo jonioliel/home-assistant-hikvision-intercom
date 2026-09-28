@@ -1,0 +1,13 @@
+# Local listening output in the camera window
+
+The camera audio settings include a browser-local speaker/headphone selector, additional to the existing microphone selector. No integration service, station setting or device sound level is changed. Output selection never requests a microphone, opens listening, starts talkback or sends a test tone.
+
+The choice belongs to this camera window only. Closing the window or changing the authenticated operator resets it. There is deliberately no new persistent device-ID preference. Existing defaults and mobile playback/session behavior remain unchanged when the operator does not choose an output.
+
+Support requires a secure context, both `HTMLMediaElement.setSinkId` and `AudioContext.setSinkId`, and browser permission for the chosen output. A supported browser can enumerate already-visible outputs without requesting microphone permission. When `MediaDevices.selectAudioOutput` exists, an explicit button opens the browser's native output prompt. Labels and opaque device IDs remain in the browser and are absent from diagnostic exports. Unsupported browsers show the system default and direct the operator to operating-system sound settings.
+
+Routing covers both the camera's video/Web Audio speech-gain graph and the existing ISAPI receive-audio context. A newly created custom-output graph stays silent until routing succeeds. When amplification is unavailable, native camera playback is also routed before unmuting. Native default playback does not acquire a new asynchronous routing step. Active talkback blocks output changes, and an output change blocks a new listen/talk action until it settles. Existing gain, limiter, microphone worklet, MSE/RTC/HLS transport, TTS and session limits remain in place.
+
+Failed selection restores the previous choice; failed restoration stops listening. Device removal warns and retains the explicit choice rather than silently redirecting private audio. Backgrounding, closing the camera or account changes discard late selection results. Selection proves browser routing acknowledgement, not audible sound; speaker/headphone audibility remains a physical acceptance check.
+
+Primary browser references: [AudioContext.setSinkId](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/setSinkId), [HTMLMediaElement.setSinkId](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/setSinkId), and [MediaDevices.selectAudioOutput](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/selectAudioOutput). Availability differs between browsers. A VMS viewer must route its own media elements and audio contexts; this choice is not a server API setting.

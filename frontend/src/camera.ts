@@ -7,6 +7,7 @@ import { CameraRTC } from "./camera-rtc";
 import { translate } from "./i18n";
 import { downloadText } from "./download";
 import type { Hass } from "./types";
+import { routeOutput } from "./audio-output";
 
 /** Images and HLS are obtained exclusively from authenticated Home Assistant camera APIs. */
 export class IntercomCamera extends LitElement {
@@ -61,6 +62,8 @@ export class IntercomCamera extends LitElement {
   private previousMSE?: Record<string, unknown>;
   private activeTransport = "";
   private audioEnabled = false;
+  private outputDevice = "";
+  private outputEpoch = 0;
   private playbackContext?: AudioContext;
   private playbackElement?: HTMLVideoElement;
   private playbackSource?: AudioNode;
@@ -230,6 +233,7 @@ export class IntercomCamera extends LitElement {
     }
   }
   private closePlaybackGraph() {
+    this.outputEpoch++;
     this.playbackSource?.disconnect();
     this.playbackGain?.disconnect();
     this.playbackLimiter?.disconnect();
@@ -308,8 +312,32 @@ export class IntercomCamera extends LitElement {
     const video = this.renderRoot.querySelector("video");
     if (!video) return false;
     if (enabled) this.ensurePlaybackGraph(video);
-    if (this.playbackGain) this.playbackGain.gain.value = enabled ? 32 : 0;
-    video.muted = this.playbackUsesCapturedStream ? true : !enabled;
+    // The unchanged default path remains synchronous for mobile playback.
+    // A custom output stays silent until its graph or native player is routed.
+    if (this.playbackGain) this.playbackGain.gain.value = enabled && !this.outputDevice ? 32 : 0;
+    if (enabled && this.outputDevice) {
+      const context = this.playbackContext,
+        gain = this.playbackGain,
+        epoch = ++this.outputEpoch;
+      void Promise.all([
+        routeOutput(video, this.outputDevice),
+        routeOutput(context, this.outputDevice),
+      ])
+        .then(() => {
+          if (epoch === this.outputEpoch && this.audioEnabled && context === this.playbackContext) {
+            if (gain) gain.gain.value = 32;
+            video.muted = this.playbackUsesCapturedStream;
+          }
+        })
+        .catch(() => {
+          if (epoch === this.outputEpoch && this.audioEnabled)
+            this.dispatchEvent(
+              new CustomEvent("hikvision-output-failed", { bubbles: true, composed: true }),
+            );
+        });
+    }
+    video.muted =
+      enabled && this.outputDevice ? true : this.playbackUsesCapturedStream ? true : !enabled;
     video.volume = 1;
     if (enabled) {
       void this.playbackContext?.resume().catch(() => undefined);
@@ -322,6 +350,54 @@ export class IntercomCamera extends LitElement {
           ? (this.rtc?.hasAudio() ?? false)
           : this.activeTransport === "hls";
     return enabled && available;
+  }
+  async setOutputDevice(id: string) {
+    if (this.preview || !this.hass?.user?.is_admin) throw { code: "unauthorized" };
+    const previous = this.outputDevice,
+      epoch = ++this.outputEpoch,
+      actor = this.hass?.user?.id;
+    const generation = this.generation;
+    // Validate permission/device presence even when the failed player currently
+    // renders no video. This silent detached element never starts playback.
+    const video = this.renderRoot.querySelector("video") ?? new Audio();
+    const context = this.playbackContext;
+    try {
+      await routeOutput(video, id);
+      await routeOutput(context, id);
+      if (
+        epoch !== this.outputEpoch ||
+        generation !== this.generation ||
+        !this.isConnected ||
+        actor !== this.hass?.user?.id ||
+        !this.hass?.user?.is_admin
+      )
+        throw { code: "connection_lost" };
+      this.outputDevice = id;
+      if (this.audioEnabled && context === this.playbackContext) {
+        if (this.playbackGain) this.playbackGain.gain.value = 32;
+        if (video) video.muted = this.playbackUsesCapturedStream;
+      }
+    } catch (error) {
+      if (epoch === this.outputEpoch || this.outputDevice === previous) {
+        try {
+          await routeOutput(video, previous);
+          await routeOutput(context, previous);
+          if (
+            epoch === this.outputEpoch &&
+            this.audioEnabled &&
+            context === this.playbackContext &&
+            this.playbackGain
+          )
+            this.playbackGain.gain.value = 32;
+        } catch {
+          this.setPlaybackAudio(false);
+          this.dispatchEvent(
+            new CustomEvent("hikvision-output-failed", { bubbles: true, composed: true }),
+          );
+        }
+      }
+      throw error;
+    }
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
@@ -571,6 +647,7 @@ export class IntercomCamera extends LitElement {
       playback_gain: this.playbackGain?.gain.value ?? 1,
       playback_audio_context: this.playbackContext?.state ?? null,
       playback_capture_stream: this.playbackUsesCapturedStream,
+      custom_audio_output: !!this.outputDevice,
       rtc,
       mse: this.mse?.summary() ?? this.previousMSE ?? null,
       selected_transport: (this.media ?? DEFAULT_MEDIA).transport,

@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.4",
+  "integration_version": "2.0.0-rc.14",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -50,6 +50,14 @@
     "hikvision_intercom/audit/list": {
       "required": {
         "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/authorization/preview": {
+      "required": {
+        "policy": "dict"
       },
       "optional_common": {
         "api_contract": "int"
@@ -299,9 +307,59 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/fleet/alerts": {
+      "required": {
+        "offset": "int",
+        "limit": "int",
+        "station_id": "str",
+        "kind": "str",
+        "include_suppressed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/fleet/alerts_action": {
+      "required": {
+        "revision": "int",
+        "station_id": "str",
+        "kind": "str",
+        "action": "str",
+        "duration_minutes": "int",
+        "reason": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/fleet/inventory_export": {
       "required": {
         "format": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/delete": {
+      "required": {
+        "revision": "int",
+        "template_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/upsert": {
+      "required": {
+        "revision": "int",
+        "template_id": "str",
+        "values": "dict"
       },
       "optional_common": {
         "api_contract": "int"
@@ -315,9 +373,28 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/health/history": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/health/refresh": {
       "required": {
         "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/investigations/query": {
+      "required": {
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
       },
       "optional_common": {
         "api_contract": "int"
@@ -1062,11 +1139,65 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/users/temporary_cancel": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "reason_code": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/users/update": {
       "required": {
         "user_id": "str",
         "revision": "int",
         "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/create": {
+      "required": {
+        "data": "dict",
+        "approver_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/decide": {
+      "required": {
+        "request_id": "str",
+        "revision": "int",
+        "decision": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/list": {
+      "required": {
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/operators": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/request": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "approver_id": "str"
       },
       "optional_common": {
         "api_contract": "int"

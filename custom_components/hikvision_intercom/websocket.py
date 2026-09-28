@@ -67,6 +67,29 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "fleet/alerts": {
+        "offset": int,
+        "limit": int,
+        "station_id": str,
+        "kind": str,
+        "include_suppressed": bool,
+    },
+    "fleet/alerts_action": {
+        "revision": int,
+        "station_id": str,
+        "kind": str,
+        "action": str,
+        "duration_minutes": int,
+        "reason": str,
+    },
+    "visits/operators": {},
+    "visits/list": {"offset": int, "limit": int},
+    "visits/create": {"data": dict, "approver_id": str},
+    "visits/request": {"user_id": str, "revision": int, "approver_id": str},
+    "visits/decide": {"request_id": str, "revision": int, "decision": str},
+    "guest_templates/get": {},
+    "guest_templates/upsert": {"revision": int, "template_id": str, "values": dict},
+    "guest_templates/delete": {"revision": int, "template_id": str},
     "appearance/settings_get": {},
     "appearance/settings_update": {"revision": int, "default": str},
     "authorization/session": {},
@@ -148,6 +171,7 @@ COMMANDS = {
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
     "users/bulk_receipts": {},
+    "investigations/query": {"filters": dict, "offset": int, "limit": int, "snapshot": str},
     "operations/query": {"filters": dict, "offset": int, "limit": int, "snapshot": str},
     "audit/list": {"filters": dict},
     "audit/export": {"filters": dict},
@@ -226,6 +250,7 @@ COMMANDS = {
     "users/update": {"user_id": str, "revision": int, "data": dict},
     "users/delete": {"user_id": str, "revision": int},
     "users/set_active": {"user_id": str, "revision": int, "active": bool},
+    "users/temporary_cancel": {"user_id": str, "revision": int, "reason_code": str},
     "cards/add": {"user_id": str, "revision": int, "data": dict},
     "cards/remove": {"user_id": str, "revision": int, "card_id": str},
     "stations/clock_refresh": {"station_id": str},
@@ -388,7 +413,11 @@ async def _dispatch(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
-    with audit_actor(actor, command):
+    with audit_actor(
+        actor,
+        command,
+        reason_code=msg.get("reason_code") if command == "users/temporary_cancel" else None,
+    ):
         return await _dispatch_inner(hass, command, msg, actor=actor, user=user)
 
 
@@ -826,6 +855,20 @@ async def _dispatch_inner(
         return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command in {"fleet/alerts", "fleet/alerts_action"}:
+        from .fleet_alerts_api import dispatch_alerts
+
+        return await dispatch_alerts(hass, command, msg, actor)
+    if command == "investigations/query":
+        from .investigations_api import investigate
+
+        return await investigate(hass, msg)
+    if command.startswith("guest_templates/"):
+        from .guest_templates_api import dispatch_templates
+
+        return await dispatch_templates(hass, command, msg, actor)
+    if command == "users/temporary_cancel":
+        return await manager.async_cancel_temporary(msg["user_id"], revision=msg["revision"])
     if command == "users/lifecycle":
         from .access.identity_lifecycle import report
 
@@ -848,7 +891,7 @@ async def _dispatch_inner(
         return {
             "pin": manager.repository.generate_unique_pin(exclude_user_id=msg["user_id"] or None)
         }
-    if command in {"users/create", "users/update"} and {
+    if command in {"users/create", "users/update", "visits/create"} and {
         "profile",
         "group_ids",
         "photo",
@@ -875,6 +918,12 @@ async def _dispatch_inner(
             raise AccessError("photo_disabled")
     if command == "users/create":
         return await manager.async_create(_patch(msg["data"]), sync_now=msg.get("sync_now", True))
+    if command.startswith("visits/"):
+        from .visit_requests_api import dispatch_visits
+
+        if command == "visits/create":
+            msg = {**msg, "data": _patch(msg["data"])}
+        return await dispatch_visits(hass, command, msg, actor)
     if command in {"users/update", "users/set_active", "cards/add", "cards/remove"}:
         patch = msg.get("data", {})
         if command == "users/set_active":
@@ -1000,6 +1049,7 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             vol.Required("id"): int,
             vol.Required("type"): str,
             **{vol.Required(key): kind for key, kind in fields.items()},
+            **({vol.Optional("filters"): dict} if command == "visits/list" else {}),
             **(
                 {vol.Optional("column_map"): dict}
                 if command in {"users/csv_preview", "users/csv_apply"}

@@ -259,6 +259,7 @@ if (query.has("lifecycle")) {
       "users/duplicate_check",
       "users/create",
       "users/update",
+      ...(!query.has("legacy-cancellation") ? ["users/temporary_cancel"] : []),
       "support/bundle",
     ],
   };
@@ -299,6 +300,170 @@ if (query.has("paged")) {
   }
 }
 data.user_count = data.users.length;
+if (query.has("guest-templates")) {
+  data.api.capabilities.push("guest_visit_templates", "user_timing_enforcement");
+  data.api.commands.push("guest_templates/get", "guest_templates/upsert", "guest_templates/delete");
+}
+const guestTemplates = {
+  revision: 0,
+  items: query.has("guest-templates")
+    ? [
+        {
+          id: "a".repeat(32),
+          label: hebrew ? "תחזוקת שבוע" : "Weekly maintenance",
+          access_category: "contractor",
+          responsible_person: hebrew ? "מנהל אחזקה" : "Facilities",
+          access_purpose: hebrew ? "ביקורת" : "Inspection",
+          duration_minutes: 180,
+          doors: { "station-0": [1], "station-1": [1] },
+          weekly_timing: {
+            mode: "weekly",
+            timezone: "Asia/Jerusalem",
+            days: ["Monday", "Thursday"],
+            dates: [],
+            periods: [{ start: "12:00", end: "18:00" }],
+          },
+          updated_at: "2026-09-28T00:00:00Z",
+          updated_by: "admin",
+        },
+      ]
+    : [],
+};
+window.guestTemplates = guestTemplates;
+if (query.has("visits")) {
+  data.api.capabilities.push("visit_host_approval");
+  data.api.commands.push(
+    "visits/operators",
+    "visits/list",
+    "visits/create",
+    "visits/request",
+    "visits/decide",
+  );
+  Object.assign(data.users[3], {
+    access_category: "visitor",
+    responsible_person: "Reception",
+    access_purpose: "Inspection",
+    valid_from: new Date().toISOString(),
+    valid_until: new Date(Date.now() + 86400000).toISOString(),
+  });
+}
+function visitSnapshot(user) {
+  return {
+    display_name: user.display_name,
+    employee_no: user.employee_no,
+    access_category: user.access_category,
+    responsible_person: user.responsible_person,
+    access_purpose: user.access_purpose,
+    valid_from: user.valid_from,
+    valid_until: user.valid_until,
+    pin_configured: user.pin_configured,
+    enabled_cards: user.cards.filter((card) => card.enabled).length,
+    doors: Object.fromEntries(
+      Object.entries(user.assignments)
+        .filter(([, item]) => item.enabled)
+        .map(([id, item]) => [id, item.allowed_locks]),
+    ),
+    timing_schedule: user.access_timing_policy?.schedule ?? null,
+  };
+}
+const visitRequests = {
+  revision: query.has("visits") ? 1 : 0,
+  items: query.has("visits")
+    ? [
+        {
+          id: "visit-1",
+          user_id: data.users[3].id,
+          user_revision: 1,
+          revision: 1,
+          approver_id: "demo-admin",
+          requested_by: "demo-host",
+          requested_at: new Date().toISOString(),
+          status: "pending",
+          decided_by: "",
+          decided_at: null,
+          snapshot: visitSnapshot(data.users[3]),
+          stale: false,
+          user_deleted: false,
+        },
+      ]
+    : [],
+};
+window.visitRequests = visitRequests;
+if (query.has("fleet-alerts")) {
+  data.api.capabilities.push("fleet_triage_alerts");
+  data.api.commands.push("fleet/alerts", "fleet/alerts_action");
+}
+const fleetAlerts = {
+  revision: 0,
+  suppressions: [],
+  items: [
+    {
+      id: "station-0/sync_conflict",
+      station_id: "station-0",
+      station_name: names[0],
+      kind: "sync_conflict",
+      severity: "error",
+      observed_since: new Date(Date.now() - 3600000).toISOString(),
+      observed_seconds: 3600,
+      suppressed: false,
+      suppression: null,
+    },
+    {
+      id: "station-1/event_gap",
+      station_id: "station-1",
+      station_name: names[1],
+      kind: "event_gap",
+      severity: "warning",
+      observed_since: new Date(Date.now() - 1800000).toISOString(),
+      observed_seconds: 1800,
+      suppressed: false,
+      suppression: null,
+    },
+  ],
+};
+window.fleetAlerts = fleetAlerts;
+if (query.has("investigations")) {
+  data.api.capabilities.push("investigation_timeline");
+  data.api.commands.push("investigations/query");
+}
+const investigationRows = ["access", "sync", "change"].map((source, i) => ({
+  id: `${source}/example`,
+  source,
+  time: new Date(Date.now() - i * 60000).toISOString(),
+  received_at: source === "access" ? new Date().toISOString() : null,
+  time_source: source === "access" ? "device" : "system",
+  user_id: data.users[0].id,
+  person_name: data.users[0].display_name,
+  employee_no: data.users[0].employee_no,
+  station_ids: ["station-0"],
+  action:
+    source === "access"
+      ? "access_granted"
+      : source === "sync"
+        ? "sync/user_station"
+        : "users/update",
+  status: source === "access" ? "granted" : source === "sync" ? "verified" : "saved",
+  actor: source === "change" ? "demo-admin" : null,
+  evidence:
+    source === "access"
+      ? "device_event"
+      : source === "sync"
+        ? "device_readback"
+        : "desired_state_saved",
+  details:
+    source === "access"
+      ? {
+          authentication: "pin",
+          door: 1,
+          identity_basis: "observed_station_owner",
+          recovered: false,
+        }
+      : source === "change"
+        ? { fields: ["assignments"], revision_before: 1, revision_after: 2 }
+        : { queued_at: new Date().toISOString(), verified_at: new Date().toISOString() },
+}));
+window.investigationRows = investigationRows;
+window.investigationRevision = 0;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -373,6 +538,38 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "investigations/query") {
+      if (window.investigationDelay)
+        await new Promise((resolve) => setTimeout(resolve, window.investigationDelay));
+      const filters = message.filters;
+      const rows = window.investigationRows.filter(
+        (row) =>
+          (!filters.user_id || row.user_id === filters.user_id) &&
+          (!filters.station_id || row.station_ids.includes(filters.station_id)) &&
+          (!filters.source || filters.source === "all" || row.source === filters.source) &&
+          (!filters.query || row.person_name.toLowerCase().includes(filters.query.toLowerCase())),
+      );
+      const snapshot = "investigation-" + window.investigationRevision;
+      return structuredClone({
+        records: rows.slice(message.offset, message.offset + message.limit),
+        total: rows.length,
+        offset: message.offset,
+        limit: message.limit,
+        next_offset:
+          message.offset + message.limit < rows.length ? message.offset + message.limit : null,
+        previous_offset: message.offset ? Math.max(0, message.offset - message.limit) : null,
+        snapshot,
+        stale: !!message.snapshot && message.snapshot !== snapshot,
+        summary: Object.fromEntries(
+          ["access", "change", "sync"].map((source) => [
+            source,
+            rows.filter((row) => row.source === source).length,
+          ]),
+        ),
+        sources: { access_available: true, access_storage_failed: false },
+        actors: { "demo-admin": "System administrator" },
+      });
+    }
     if (command === "authorization/session")
       return structuredClone(
         this?.user?.is_admin === false && !query.has("reader")
@@ -1032,6 +1229,7 @@ const fake = {
               (assignment) => assignment.enabled,
             ).length,
             timing_policy_configured: !!user.access_timing_policy,
+            assignment_states: structuredClone(user.assignments),
           };
         });
       const temporarySummary = Object.fromEntries(
@@ -1365,6 +1563,210 @@ const fake = {
       const user = data.users.find((item) => item.id === message.user_id);
       user.active = message.active;
       user.revision++;
+    }
+    if (command === "users/temporary_cancel") {
+      const user = data.users.find((item) => item.id === message.user_id);
+      if (message.revision !== user.revision) throw { code: "revision_conflict" };
+      if (!["visitor", "contractor"].includes(user.access_category))
+        throw { code: "temporary_user_required" };
+      if (!user.active) throw { code: "temporary_already_inactive" };
+      user.active = false;
+      user.revision++;
+      for (const assignment of Object.values(user.assignments)) {
+        assignment.sync_state = "pending";
+        assignment.desired_revision = user.revision;
+      }
+      callbacks.forEach((callback) => callback({ kind: "refresh" }));
+      return structuredClone(user);
+    }
+    if (command === "guest_templates/get") return structuredClone(guestTemplates);
+    if (command === "fleet/alerts") {
+      const policies = fleetAlerts.suppressions.filter((row) => Date.parse(row.until) > Date.now());
+      const rows = fleetAlerts.items.map((item) => {
+        const suppression = policies.find(
+          (row) =>
+            row.station_id === item.station_id &&
+            (row.kind === item.kind || row.kind === "maintenance"),
+        );
+        return { ...item, suppressed: !!suppression, suppression: suppression ?? null };
+      });
+      const filtered = rows.filter(
+        (row) =>
+          (message.include_suppressed || !row.suppressed) &&
+          (!message.station_id || row.station_id === message.station_id) &&
+          (!message.kind || row.kind === message.kind),
+      );
+      return {
+        revision: fleetAlerts.revision,
+        generated_at: new Date().toISOString(),
+        items: structuredClone(filtered.slice(message.offset, message.offset + message.limit)),
+        total: filtered.length,
+        offset: message.offset,
+        next_offset: null,
+        active_count: rows.filter((row) => !row.suppressed).length,
+        suppressed_count: rows.filter((row) => row.suppressed).length,
+        suppressions: structuredClone(policies),
+      };
+    }
+    if (command === "fleet/alerts_action") {
+      if (message.revision !== fleetAlerts.revision) throw { code: "revision_conflict" };
+      fleetAlerts.suppressions = fleetAlerts.suppressions.filter(
+        (row) => !(row.station_id === message.station_id && row.kind === message.kind),
+      );
+      if (message.action === "suppress")
+        fleetAlerts.suppressions.push({
+          station_id: message.station_id,
+          kind: message.kind,
+          reason: message.reason,
+          until: new Date(Date.now() + message.duration_minutes * 60000).toISOString(),
+          created_at: new Date().toISOString(),
+          actor: this.user.id,
+        });
+      fleetAlerts.revision++;
+      return { revision: fleetAlerts.revision };
+    }
+    if (command === "visits/operators")
+      return {
+        operators: [
+          { id: "demo-admin", name: "Administrator" },
+          { id: "demo-host", name: "Reception host" },
+        ],
+      };
+    if (command === "visits/list") {
+      const filters = message.filters ?? {};
+      const rows = visitRequests.items.filter(
+        (row) =>
+          (!filters.status || filters.status === "all" || row.status === filters.status) &&
+          (!filters.scope ||
+            filters.scope === "all" ||
+            row[filters.scope === "approver" ? "approver_id" : "requested_by"] === this.user.id) &&
+          (!filters.query ||
+            [
+              row.snapshot.display_name,
+              row.snapshot.employee_no,
+              row.snapshot.responsible_person,
+              row.snapshot.access_purpose,
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(filters.query.toLowerCase())),
+      );
+      const offset = Math.min(
+        message.offset,
+        rows.length ? Math.floor((rows.length - 1) / message.limit) * message.limit : 0,
+      );
+      return {
+        ...structuredClone(visitRequests),
+        items: structuredClone(rows.slice(offset, offset + message.limit)),
+        total: rows.length,
+        offset,
+        next_offset: offset + message.limit < rows.length ? offset + message.limit : null,
+      };
+    }
+    if (command === "visits/create") {
+      if (message.approver_id === this.user.id) throw { code: "visit_second_operator_required" };
+      const source = structuredClone(message.data);
+      const user = {
+        ...source,
+        id: crypto.randomUUID(),
+        employee_no: source.employee_no || "1099",
+        revision: 1,
+        active: false,
+        pin_configured: !!source.pin,
+        cards: source.cards ?? [],
+        assignments: source.assignments ?? {},
+        identity_locked: false,
+      };
+      delete user.pin;
+      if (source.door_permissions)
+        user.assignments = Object.fromEntries(
+          Object.entries(source.door_permissions).map(([id, locks]) => [
+            id,
+            { enabled: true, allowed_locks: locks, sync_state: "pending" },
+          ]),
+        );
+      data.users.push(user);
+      visitRequests.revision++;
+      visitRequests.items.unshift({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        user_revision: 1,
+        revision: 1,
+        approver_id: message.approver_id,
+        requested_by: this.user.id,
+        requested_at: new Date().toISOString(),
+        status: "pending",
+        decided_by: "",
+        decided_at: null,
+        snapshot: visitSnapshot(user),
+        stale: false,
+        user_deleted: false,
+      });
+      return structuredClone(user);
+    }
+    if (command === "visits/decide") {
+      const row = visitRequests.items.find((item) => item.id === message.request_id);
+      if (row.revision !== message.revision) throw { code: "revision_conflict" };
+      if (row.status !== "pending") throw { code: "visit_request_closed" };
+      const user = data.users.find((item) => item.id === row.user_id);
+      if (message.decision === "approve" && (row.stale || user.revision !== row.user_revision))
+        throw { code: "visit_request_stale" };
+      row.status = { approve: "approved", reject: "rejected", cancel: "cancelled" }[
+        message.decision
+      ];
+      row.revision++;
+      row.decided_by = this.user.id;
+      row.decided_at = new Date().toISOString();
+      visitRequests.revision++;
+      if (message.decision === "approve") {
+        user.active = true;
+        user.revision++;
+      }
+      return structuredClone(row);
+    }
+    if (command === "visits/request") {
+      const user = data.users.find((item) => item.id === message.user_id);
+      if (user.revision !== message.revision) throw { code: "revision_conflict" };
+      if (user.active) throw { code: "visit_inactive_required" };
+      for (const row of visitRequests.items)
+        if (row.user_id === user.id && row.status === "pending") row.status = "superseded";
+      visitRequests.revision++;
+      const row = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        user_revision: user.revision,
+        revision: 1,
+        approver_id: message.approver_id,
+        requested_by: this.user.id,
+        requested_at: new Date().toISOString(),
+        status: "pending",
+        decided_by: "",
+        decided_at: null,
+        snapshot: visitSnapshot(user),
+        stale: false,
+        user_deleted: false,
+      };
+      visitRequests.items.unshift(row);
+      return structuredClone(row);
+    }
+    if (command === "guest_templates/upsert" || command === "guest_templates/delete") {
+      if (message.revision !== guestTemplates.revision) throw { code: "revision_conflict" };
+      if (command.endsWith("delete"))
+        guestTemplates.items = guestTemplates.items.filter(
+          (item) => item.id !== message.template_id,
+        );
+      else {
+        const id = message.template_id || crypto.randomUUID().replaceAll("-", "");
+        guestTemplates.items = guestTemplates.items.filter((item) => item.id !== id);
+        guestTemplates.items.push({
+          ...structuredClone(message.values),
+          id,
+          updated_at: new Date().toISOString(),
+          updated_by: "admin",
+        });
+      }
+      guestTemplates.revision++;
+      return structuredClone(guestTemplates);
     }
     if (command === "stations/inventory")
       return [
