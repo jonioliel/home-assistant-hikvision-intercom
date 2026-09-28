@@ -107,6 +107,7 @@ const whatsappIcon = html`<svg
 
 export class UserDetails extends LitElement {
   static properties = {
+    canRenew: { type: Boolean },
     canEdit: { type: Boolean },
     renewing: { state: true },
     renewalNotice: { state: true },
@@ -537,6 +538,7 @@ export class UserDetails extends LitElement {
   messageDraft = "";
   embedded = false;
   v4 = false;
+  canRenew = false;
   canEdit = true;
   allowedCommands?: string[];
   hass?: Hass;
@@ -996,7 +998,7 @@ export class UserDetails extends LitElement {
         ${this.busy ? html`<p role="status">${this.t("wait")}</p>` : nothing}${this.sent ? html`<p role="status">${this.t("accepted")}</p>` : nothing}${this.error ? html`<p class="error" role="alert">${this.t(this.error)}</p>` : nothing}
       </main>
       <footer>
-        ${this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
+        ${this.canRenew && this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
         <button
           ?disabled=${!this.canEdit}
           @click=${() => {

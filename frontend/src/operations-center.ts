@@ -200,6 +200,7 @@ export class OperationsCenter extends LitElement {
     hass: { attribute: false },
     users: { attribute: false },
     stations: { attribute: false },
+    canCheckpoint: { type: Boolean },
     canRetryUser: { type: Boolean },
     canRetryStation: { type: Boolean },
     _page: { state: true },
@@ -213,6 +214,7 @@ export class OperationsCenter extends LitElement {
   hass?: Hass;
   users: Person[] = [];
   stations: Station[] = [];
+  canCheckpoint = false;
   canRetryUser = false;
   canRetryStation = false;
   private _page?: OperationPage;
@@ -326,7 +328,7 @@ export class OperationsCenter extends LitElement {
   }
   render() {
     const summary = this._page?.summary ?? {};
-    return html`<wiskey-checkpoint-jobs .hass=${this.hass}></wiskey-checkpoint-jobs>
+    return html`${this.canCheckpoint ? html`<wiskey-checkpoint-jobs .hass=${this.hass}></wiskey-checkpoint-jobs>` : nothing}
       <div class="heading">
         <div>
           <h2>${this.t("jobs_title")}</h2>

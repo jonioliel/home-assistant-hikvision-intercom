@@ -3111,6 +3111,8 @@ export class IntercomManagerPanel extends LitElement {
     );
   }
   private tabAvailable(tab: string) {
+    if (tab === "workflow_center" && !this._data?.api?.commands.includes("workflows/get"))
+      return false;
     if (tab === "tools") return this.canView("stations") || this.canView("management");
     if (!this.canView(this.tabArea(tab))) return false;
     const command: Record<string, string> = {
@@ -3774,6 +3776,7 @@ export class IntercomManagerPanel extends LitElement {
     return html`<wiskey-user-details
       embedded
       .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+      .canRenew=${this._data?.api?.commands.includes("workflows/renew_request") ?? false}
       .canEdit=${this.personEditable(person)}
       .hass=${this.protectedHass}
       .person=${person}
@@ -4317,7 +4320,7 @@ export class IntercomManagerPanel extends LitElement {
       <form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
         <p class="field-note">${this.t("save_hint")}</p>
         ${
-          this._session?.is_admin && this.commandAvailable("workflows/get")
+          this._session?.is_admin && this._data?.api?.commands.includes("workflows/get")
             ? html`<details>
                 <summary>${this.t("staff_template_picker")}</summary>
                 <wiskey-workflow-center
@@ -5753,6 +5756,7 @@ export class IntercomManagerPanel extends LitElement {
                                         ></wiskey-identity-lifecycle>`
                                       : this._tab === "operations_center"
                                         ? html`<wiskey-operations-center
+                                            .canCheckpoint=${this._data.api?.commands.includes("jobs/list") ?? false}
                                             .hass=${this.protectedHass}
                                             .users=${this._data.users}
                                             .stations=${this._data.stations}
@@ -5810,6 +5814,7 @@ export class IntercomManagerPanel extends LitElement {
           ? html`<wiskey-user-details
               .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
               .v4=${isWiskeyAppearance(this._appearance)}
+              .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
               .canEdit=${this.personEditable(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
               .hass=${this.protectedHass}
               .messageDraft=${this.messageDrafts.get(this._detailsModalUser) ?? ""}
