@@ -1,4 +1,7 @@
 const en = {
+  previous: "Previous",
+  next: "Next",
+  user_not_found: "This user was deleted or is no longer available.",
   visit_queue_next: "Next",
   visit_queue_previous: "Previous",
   visit_queue_scope: "Requests to show",
@@ -2259,6 +2262,9 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  previous: "הקודם",
+  next: "הבא",
+  user_not_found: "המשתמש נמחק או אינו זמין עוד.",
   visit_queue_next: "הבא",
   visit_queue_previous: "הקודם",
   visit_queue_scope: "בקשות להצגה",

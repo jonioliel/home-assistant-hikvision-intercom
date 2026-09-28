@@ -80,6 +80,21 @@ test("viewer has no actions and Hebrew mobile queue fits", async ({ page }) => {
   expect(await view.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 
+test("deleted visitor is explained in Hebrew and cannot be approved or resubmitted", async ({
+  page,
+}) => {
+  await page.goto("/?visits=1&lang=he");
+  await page.evaluate(() => (window.visitRequests.items[0].user_deleted = true));
+  await navigate(page, "אישורי ביקור");
+  const view = page.locator("wiskey-visit-requests");
+  await expect(view.locator("article")).toContainText("המשתמש נמחק או אינו זמין עוד.");
+  await expect(view.getByRole("button", { name: "אישור ביקור", exact: true })).toBeDisabled();
+  await expect(view.getByRole("button", { name: "הגשת בקשה מעודכנת", exact: true })).toHaveCount(0);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("visits/decide")).length),
+  ).toBe(0);
+});
+
 test("guest wizard keeps approval optional and sends an inactive request only on save", async ({
   page,
 }) => {
