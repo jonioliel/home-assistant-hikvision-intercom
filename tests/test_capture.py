@@ -164,9 +164,11 @@ async def enrollment(fleet, monkeypatch):
     return manager, device, collector, user
 
 
-async def captured(enrollment, actor="admin"):
+async def captured(enrollment, actor="admin", *, authorize=None):
     manager, _, _, user = enrollment
-    result = manager.enrollment.start("a", user["id"], user["revision"], 0, actor)
+    result = manager.enrollment.start(
+        "a", user["id"], user["revision"], 0, actor, authorize=authorize
+    )
     await manager.enrollment.sessions[result["session_id"]].task
     return result["session_id"]
 
@@ -315,3 +317,104 @@ async def test_session_limit_and_camera_only_stations_cannot_start(enrollment):
         manager.enrollment.start("d", user["id"], user["revision"], 0, "admin")
     await manager.async_close()
     assert not manager.enrollment.sessions
+
+
+@pytest.mark.parametrize("operation", ["status", "cancel", "confirm"])
+async def test_revoked_capture_clears_credential_before_read_or_commit(enrollment, operation):
+    manager, _, _, user = enrollment
+    allowed = True
+    key = await captured(enrollment, authorize=lambda: allowed)
+    ref = manager.enrollment.sessions[key]
+    allowed = False
+    with pytest.raises(AccessError, match="unauthorized"):
+        if operation == "status":
+            manager.enrollment.status(key, "admin")
+        elif operation == "cancel":
+            await manager.enrollment.cancel(key, "admin")
+        else:
+            await manager.enrollment.confirm(key, "admin", "")
+    assert ref.card is None and key not in manager.enrollment.sessions
+    assert not manager.repository.get(user["id"]).cards
+    assert ref.permission_timer.cancelled()
+
+
+async def test_waiting_capture_revocation_cancels_collection_without_polling_from_ui(enrollment):
+    manager, _, collector, user = enrollment
+    entered = asyncio.Event()
+    allowed = True
+
+    async def waiting(*args, **kwargs):
+        entered.set()
+        await asyncio.Future()
+
+    collector.async_capture.side_effect = waiting
+    started = manager.enrollment.start(
+        "a", user["id"], user["revision"], 0, "admin", authorize=lambda: allowed
+    )
+    ref = manager.enrollment.sessions[started["session_id"]]
+    task = ref.task
+    await asyncio.wait_for(entered.wait(), 1)
+    allowed = False
+    await asyncio.wait_for(asyncio.gather(task, return_exceptions=True), 2)
+    assert task.cancelled() and not manager.enrollment.sessions
+    assert ref.card is None and ref.permission_timer.cancelled()
+    assert not manager.repository.get(user["id"]).cards
+
+
+@pytest.mark.parametrize("phase", ["capabilities", "capture"])
+async def test_revocation_during_device_read_never_retains_a_collected_card(enrollment, phase):
+    manager, _, collector, user = enrollment
+    allowed = True
+
+    async def read(*args, **kwargs):
+        nonlocal allowed
+        allowed = False
+        return CaptureCapabilities.parse(FLAGS, CAP) if phase == "capabilities" else CAPTURED
+
+    getattr(collector, "async_" + phase).side_effect = read
+    started = manager.enrollment.start(
+        "a", user["id"], user["revision"], 0, "admin", authorize=lambda: allowed
+    )
+    ref = manager.enrollment.sessions[started["session_id"]]
+    task = ref.task
+    await task
+    assert not task.cancelled() and not manager.enrollment.sessions and ref.card is None
+    assert not manager.repository.get(user["id"]).cards
+    if phase == "capabilities":
+        collector.async_capture.assert_not_called()
+
+
+async def test_authorization_failure_is_closed_before_device_lookup(enrollment, monkeypatch):
+    manager, _, collector, user = enrollment
+
+    def failed():
+        raise RuntimeError("PRIVATE_POLICY_ERROR")
+
+    def forbidden_lookup(station):
+        pytest.fail("A denied operator must not look up the device client")
+
+    monkeypatch.setattr(manager.enrollment, "_client", forbidden_lookup)
+    for authorize in (lambda: False, lambda: "truthy", failed):
+        with pytest.raises(AccessError, match="unauthorized"):
+            manager.enrollment.start(
+                "a", user["id"], user["revision"], 0, "admin", authorize=authorize
+            )
+    collector.async_capabilities.assert_not_called()
+    assert not manager.enrollment.sessions
+
+
+async def test_failed_authorization_source_drops_an_existing_capture(enrollment):
+    manager, _, _, user = enrollment
+    failed = False
+
+    def authorize():
+        if failed:
+            raise RuntimeError("PRIVATE_POLICY_ERROR")
+        return True
+
+    key = await captured(enrollment, authorize=authorize)
+    ref = manager.enrollment.sessions[key]
+    failed = True
+    manager.enrollment._check_permission(key)
+    assert not manager.enrollment.sessions and ref.card is None
+    assert not manager.repository.get(user["id"]).cards

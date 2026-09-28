@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -31,6 +32,8 @@ class CaptureSession:
     error: str | None = None
     task: asyncio.Task[None] | None = None
     timer: asyncio.TimerHandle | None = None
+    permission_timer: asyncio.TimerHandle | None = None
+    authorize: Callable[[], bool] | None = None
 
     def public(self) -> dict[str, Any]:
         return {
@@ -59,7 +62,29 @@ class CardEnrollment:
         session = self.sessions.get(session_id)
         if session is None or session.actor != actor:
             raise AccessError("capture_not_found")
+        if not self._authorized(session.authorize):
+            self._drop(session)
+            raise AccessError("unauthorized")
         return session
+
+    @staticmethod
+    def _authorized(authorize: Callable[[], bool] | None) -> bool:
+        try:
+            return authorize is None or authorize() is True
+        except Exception:
+            # Losing the policy source must not preserve a captured credential.
+            return False
+
+    def _check_permission(self, session_id: str) -> None:
+        session = self.sessions.get(session_id)
+        if session is None or session.state == "applying":
+            return
+        if not self._authorized(session.authorize):
+            self._drop(session)
+            return
+        session.permission_timer = asyncio.get_running_loop().call_later(
+            0.5, self._check_permission, session_id
+        )
 
     async def capabilities(self, station_id: str) -> dict[str, Any]:
         try:
@@ -69,8 +94,17 @@ class CardEnrollment:
             raise AccessError("capture_unsupported") from None
 
     def start(
-        self, station_id: str, user_id: str, revision: int, reader_id: int, actor: str
+        self,
+        station_id: str,
+        user_id: str,
+        revision: int,
+        reader_id: int,
+        actor: str,
+        *,
+        authorize: Callable[[], bool] | None = None,
     ) -> dict[str, Any]:
+        if not self._authorized(authorize):
+            raise AccessError("unauthorized")
         self._client(station_id)
         user = self.manager.repository.get(user_id)
         if type(revision) is not int or revision != user.revision:
@@ -82,6 +116,7 @@ class CardEnrollment:
         if len(self.sessions) >= MAX_SESSIONS:
             raise AccessError("capture_limit")
         session = CaptureSession(uuid4().hex, actor, station_id, user_id, revision, reader_id)
+        session.authorize = authorize
         self.sessions[session.id] = session
         session.timer = asyncio.get_running_loop().call_later(
             SESSION_SECONDS, self._expire, session.id
@@ -89,6 +124,8 @@ class CardEnrollment:
         session.task = self.manager._task_factory(
             self._collect(session), "Hikvision card collection"
         )
+        if authorize is not None:
+            self._check_permission(session.id)
         return session.public()
 
     async def _collect(self, session: CaptureSession) -> None:
@@ -96,11 +133,17 @@ class CardEnrollment:
             async with asyncio.timeout(70):
                 client = self._client(session.station_id)
                 caps = await client.async_capabilities()
+                if not self._authorized(session.authorize):
+                    self._drop(session)
+                    return
                 if session.reader_id not in caps.readers:
                     raise AccessError("capture_reader_invalid")
                 card = await client.async_capture(
                     caps, session.reader_id, on_waiting=lambda: setattr(session, "state", "waiting")
                 )
+                if not self._authorized(session.authorize):
+                    self._drop(session)
+                    return
                 if self.sessions.get(session.id) is session:
                     session.card, session.state = card, "captured"
         except asyncio.CancelledError:
@@ -132,8 +175,10 @@ class CardEnrollment:
         self.sessions.pop(session.id, None)
         if session.timer:
             session.timer.cancel()
+        if session.permission_timer:
+            session.permission_timer.cancel()
         session.card = None
-        if session.task:
+        if session.task and session.task is not asyncio.current_task():
             session.task.cancel()
         return session.task
 

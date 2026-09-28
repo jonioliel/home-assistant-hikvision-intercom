@@ -3,10 +3,12 @@
 import asyncio
 import json
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.client.capture import CaptureCapabilities, CapturedCard
 from custom_components.hikvision_intercom.const import DOMAIN
 from custom_components.hikvision_intercom.event_manager import get_events
 from custom_components.hikvision_intercom.events import normalize_event
@@ -89,7 +91,7 @@ async def test_admin_scope_settings_and_projected_directory(
         "audit/list",
         "users/adopt",
         "whatsapp/history",
-        "cards/capture_start",
+        "users/bulk_preview",
     ],
 )
 async def test_restricted_global_commands_fail_before_payload_or_device_io(
@@ -133,6 +135,8 @@ async def test_forged_station_id_cannot_bypass_scope(
     data = {"station_id": "outside"}
     if command == "stations/test_unlock":
         data["lock"] = 1
+    if command == "clock/station_sync":
+        data.update(revision=0, copy_system=True)
     result = await request(reader, command, **data)
     assert result["error"]["code"] == "unauthorized"
     device_io["unlock"].assert_not_called()
@@ -341,3 +345,151 @@ async def test_tts_scope_denial_does_not_synthesize_or_touch_device(
     assert denied["error"]["code"] == "unauthorized"
     tts_player[0].start.assert_not_called()
     tts_player[1].assert_not_called()
+
+
+async def start_capture(reader, station, person):
+    return await request(
+        reader,
+        "cards/capture_start",
+        station_id=station,
+        user_id=person.id,
+        revision=person.revision,
+        reader_id=0,
+    )
+
+
+@pytest.fixture
+def card_collector():
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capabilities",
+            AsyncMock(return_value=CaptureCapabilities(1, 32, (0,), frozenset())),
+        ) as caps,
+        patch(
+            "custom_components.hikvision_intercom.client.capture.CardCaptureClient.async_capture",
+            AsyncMock(return_value=CapturedCard("000012347788", "TypeA_M1", None)),
+        ) as collect,
+    ):
+        yield caps, collect
+
+
+async def test_scoped_operator_collects_and_explicitly_saves_card_for_local_person(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    card_collector,
+):
+    local, shared, _ = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="none")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await start_capture(reader, loaded_entry.entry_id, shared)
+    assert denied["error"]["code"] == "person_scope_shared"
+    card_collector[0].assert_not_called()
+    started = await start_capture(reader, loaded_entry.entry_id, local)
+    assert started["success"], started
+    key = started["result"]["session_id"]
+    await hass.async_block_till_done()
+    state = await request(reader, "cards/capture_status", session_id=key)
+    assert state["result"]["state"] == "captured"
+    assert not get_manager(hass).repository.get(local.id).cards
+    saved = await request(reader, "cards/capture_confirm", session_id=key, label="Collected")
+    assert saved["success"] and saved["result"]["phone"] == ""
+    assert "000012347788" not in json.dumps([started, state, saved])
+    assert get_manager(hass).repository.get(local.id).cards[0].card_no.value == "000012347788"
+    assert not get_manager(hass).enrollment.sessions
+
+
+@pytest.mark.parametrize("change", ["credentials", "station", "shared_person"])
+async def test_capture_is_discarded_when_current_scope_or_person_assignment_changes(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    card_collector,
+    monkeypatch,
+    change,
+):
+    manager = get_manager(hass)
+    local, _, _ = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    started = await start_capture(reader, loaded_entry.entry_id, local)
+    key = started["result"]["session_id"]
+    await hass.async_block_till_done()
+    ref = manager.enrollment.sessions[key]
+    assert ref.card is not None
+    dropped = asyncio.Event()
+    original_drop = manager.enrollment._drop
+
+    def notice_drop(session):
+        task = original_drop(session)
+        if session.id == key:
+            dropped.set()
+        return task
+
+    monkeypatch.setattr(manager.enrollment, "_drop", notice_drop)
+    if change == "credentials":
+        await grant(hass, hass_read_only_user, [loaded_entry.entry_id], credentials="view")
+    elif change == "station":
+        await grant(hass, hass_read_only_user, [])
+    else:
+        await manager.repository.async_update(
+            local.id,
+            {
+                "assignments": {
+                    loaded_entry.entry_id: {"allowed_locks": [1]},
+                    "outside": {"allowed_locks": [1]},
+                }
+            },
+            expected_revision=local.revision,
+        )
+    # No client polling is needed for server-side removal of the private card.
+    await asyncio.wait_for(dropped.wait(), 3)
+    assert ref.card is None and not manager.repository.get(local.id).cards
+    denied = await request(reader, "cards/capture_confirm", session_id=key, label="")
+    assert not denied["success"]
+
+
+async def test_card_capture_does_not_allow_another_operator_to_take_session(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    card_collector,
+):
+    local, _, _ = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    started = await start_capture(reader, loaded_entry.entry_id, local)
+    key = started["result"]["session_id"]
+    await hass.async_block_till_done()
+    admin = await hass_ws_client(hass)
+    for command, fields in (
+        ("cards/capture_status", {}),
+        ("cards/capture_cancel", {}),
+        ("cards/capture_confirm", {"label": ""}),
+    ):
+        reply = await request(admin, command, session_id=key, **fields)
+        assert reply["error"]["code"] == "capture_not_found"
+    assert (await request(reader, "cards/capture_cancel", session_id=key))["success"]
+
+
+async def test_credential_viewer_cannot_start_card_collection(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    card_collector,
+):
+    local, _, _ = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], credentials="view")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await start_capture(reader, loaded_entry.entry_id, local)
+    assert denied["error"]["code"] == "unauthorized"
+    card_collector[0].assert_not_called()
+    card_collector[1].assert_not_called()

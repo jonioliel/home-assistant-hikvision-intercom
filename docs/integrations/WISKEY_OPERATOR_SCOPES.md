@@ -59,6 +59,8 @@ Omit every patch field that is not `manage`. Even an unchanged read-only value r
 
 Global imports, person CSV export, bulk policy/approval jobs, global libraries, WhatsApp history/sending, audit/investigation and opaque review workflows are unavailable to restricted grants. Unrestricted grants and administrators keep these capabilities. Always consult `overview.api.commands`.
 
+Station-reader enrollment remains available with user management and credential management grants. `cards/capture_start` requires a local editable person and permitted station; status/cancel/confirm resolve their opaque session ID back to the same operator, station and person. Another operator cannot take the session. Collection is private and temporary until explicit confirmation. The server rechecks current grants and assignments during collection and while waiting, dropping the session and card after revocation; no UI polling is needed. A changed person revision still requires a fresh capture. Confirmation admitted before revocation may finish its durable save; inspect saved state rather than replaying it.
+
 ## Sessions, caches and failures
 
 MSE/RTC/audio/TTS startup checks station access. Active media rechecks ownership and closes after station removal; audio tokens cannot continue after revocation. Transport tests do not prove physical audibility.

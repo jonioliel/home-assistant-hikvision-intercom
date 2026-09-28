@@ -414,7 +414,9 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     ]
     data["api"] = contract(commands)
     data["version"] = VERSION
-    return project_overview(policy, data)
+    # Internal fleet observers have no authenticated panel operator. Their input
+    # must retain the full fleet; request handlers always supply the real user.
+    return project_overview(policy, data) if user is not None else data
 
 
 def _operator_policy(hass: HomeAssistant, user: Any | None) -> dict[str, Any] | None:
@@ -425,11 +427,23 @@ def _operator_policy(hass: HomeAssistant, user: Any | None) -> dict[str, Any] | 
 
 
 def _guard_operator(
-    hass: HomeAssistant, policy: dict[str, Any], command: str, msg: dict[str, Any]
+    hass: HomeAssistant,
+    policy: dict[str, Any],
+    command: str,
+    msg: dict[str, Any],
+    *,
+    actor: str = "",
 ) -> None:
     if not restricted(policy):
         return
+    manager = get_manager(hass)
+    uid = msg.get("user_id")
     sid = msg.get("station_id")
+    if command.startswith("cards/capture_") and "session_id" in msg:
+        session = manager.enrollment.sessions.get(msg["session_id"])
+        if session is None or session.actor != actor:
+            raise AccessError("capture_not_found")
+        sid, uid = session.station_id, session.user_id
     if sid is not None and (not sid or not contains_station(policy, sid)):
         raise AccessError("unauthorized")
     filters = msg.get("filters", {})
@@ -441,7 +455,6 @@ def _guard_operator(
             filters.get("current_profile") and not field_allowed(policy, "profile")
         ):
             raise AccessError("field_access_denied")
-    manager = get_manager(hass)
     if command == "users/create":
         guard_fields(policy, msg["data"])
         candidate = manager.repository.permission_data(msg["data"])
@@ -455,7 +468,6 @@ def _guard_operator(
             for item in assignments.values()
         ):
             raise AccessError("operator_scope_required")
-    uid = msg.get("user_id")
     person_writes = {
         "users/update",
         "users/delete",
@@ -464,6 +476,8 @@ def _guard_operator(
         "cards/add",
         "cards/remove",
         "sync/user",
+        "cards/capture_start",
+        "cards/capture_confirm",
     }
     if uid:
         try:
@@ -507,7 +521,7 @@ async def _dispatch(
         permissions = hass.data[DOMAIN].get("panel_permissions")
         revision = permissions.revision if isinstance(permissions, PanelPermissions) else 0
         if policy is not None:
-            _guard_operator(hass, policy, command, msg)
+            _guard_operator(hass, policy, command, msg, actor=actor)
         result = await _dispatch_inner(hass, command, msg, actor=actor, user=user)
         if policy is not None:
             if permissions.revision != revision:
@@ -520,6 +534,7 @@ async def _dispatch(
                 "cards/add",
                 "cards/remove",
                 "users/temporary_cancel",
+                "cards/capture_confirm",
             }:
                 result = project_person(policy, result)
             if command == "users/list":
@@ -677,8 +692,26 @@ async def _dispatch_inner(
             raise AccessError("unauthorized")
         enrollment = manager.enrollment
         if command == "cards/capture_start":
+
+            def authorize_capture() -> bool:
+                permissions = hass.data[DOMAIN].get("panel_permissions")
+                if not command_allowed(permissions, user, "cards/capture_confirm"):
+                    return False
+                current = _operator_policy(hass, user)
+                if current is not None:
+                    try:
+                        _guard_operator(hass, current, "cards/capture_start", msg, actor=actor)
+                    except AccessError:
+                        return False
+                return True
+
             return enrollment.start(
-                msg["station_id"], msg["user_id"], msg["revision"], msg["reader_id"], actor
+                msg["station_id"],
+                msg["user_id"],
+                msg["revision"],
+                msg["reader_id"],
+                actor,
+                authorize=authorize_capture if user is not None else None,
             )
         if command == "cards/capture_status":
             return enrollment.status(msg["session_id"], actor)
