@@ -1,4 +1,36 @@
 const en = {
+  visit_queue_next: "Next",
+  visit_queue_previous: "Previous",
+  visit_queue_scope: "Requests to show",
+  visit_scope_all: "All requests",
+  visit_scope_approver: "Awaiting my decision",
+  visit_scope_requester: "Requested by me",
+  visit_queue_search: "Search visitor, responsible person or purpose",
+  visit_queue_filter: "Filter requests",
+  investigation_download_report: "Download all investigation results",
+  investigation_export_progress: "Preparing report",
+  investigation_export_cancel: "Cancel report",
+  investigation_export_changed:
+    "Evidence changed while preparing the report. No file was downloaded. Refresh and try again.",
+  investigation_export_failed: "The report could not be completed. No partial file was downloaded.",
+  investigation_export_limits:
+    "Full report: up to 5,000 retained results under the applied filters. Apply any filter edits first. Changed evidence cancels the report; no partial file is downloaded.",
+  audio_output_title: "Listening output",
+  audio_output_default: "System default output",
+  audio_output_device: "Output device",
+  audio_output_refresh: "Refresh outputs",
+  audio_output_allow: "Choose output in browser",
+  audio_output_scope:
+    "This selection applies to this camera window only. It does not open the microphone or change the intercom speaker.",
+  audio_output_unsupported:
+    "This browser uses the system default output. Choose a speaker or headphones in the device's sound settings.",
+  audio_output_selected: "Listening output selected. Confirm audibility locally.",
+  audio_output_failed:
+    "The output could not be changed. Check the device and browser permission; the previous selection was retained or listening was stopped if it could not be restored.",
+  audio_output_permission: "Output selection was cancelled or not permitted by the browser.",
+  audio_output_missing:
+    "The selected output is unavailable. Choose the system default or reconnect the device; listening is not automatically redirected.",
+  audio_output_missing_label: "Selected output unavailable",
   investigations: "Access investigation",
   investigation_user: "User",
   investigation_user_details: "User details",
@@ -2221,6 +2253,37 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  visit_queue_next: "הבא",
+  visit_queue_previous: "הקודם",
+  visit_queue_scope: "בקשות להצגה",
+  visit_scope_all: "כל הבקשות",
+  visit_scope_approver: "באחריותי לאישור",
+  visit_scope_requester: "בקשות שיצרתי",
+  visit_queue_search: "חיפוש אורח, אחראי או מטרת הביקור",
+  visit_queue_filter: "סינון בקשות",
+  investigation_download_report: "הורדת כל תוצאות התחקור",
+  investigation_export_progress: "מכין דוח",
+  investigation_export_cancel: "ביטול הכנת הדוח",
+  investigation_export_changed: "הראיות השתנו במהלך הכנת הדוח. לא הורד קובץ. רענן ונסה שוב.",
+  investigation_export_failed: "לא ניתן להשלים את הדוח. לא הורד קובץ חלקי.",
+  investigation_export_limits:
+    "דוח מלא: עד 5,000 תוצאות שמורות לפי המסננים שהופעלו. הפעל תחילה שינויים במסננים. שינוי בראיות מבטל את הדוח; לא יורד קובץ חלקי.",
+  audio_output_title: "פלט להאזנה",
+  audio_output_default: "פלט ברירת המחדל של המכשיר",
+  audio_output_device: "התקן פלט",
+  audio_output_refresh: "רענון התקני פלט",
+  audio_output_allow: "בחירת פלט בדפדפן",
+  audio_output_scope:
+    "הבחירה חלה על חלון מצלמה זה בלבד. היא אינה פותחת מיקרופון ואינה משנה את רמקול האינטרקום.",
+  audio_output_unsupported:
+    "דפדפן זה משתמש בפלט ברירת המחדל של המכשיר. בחר רמקול או אוזניות בהגדרות השמע של המכשיר.",
+  audio_output_selected: "נבחר פלט להאזנה. יש לאשר שנשמע קול במכשיר שלך.",
+  audio_output_failed:
+    "לא ניתן לשנות את הפלט. בדוק את ההתקן ואת הרשאת הדפדפן; הבחירה הקודמת נשמרה, או שההאזנה הופסקה אם לא ניתן היה לשחזר אותה.",
+  audio_output_permission: "בחירת הפלט בוטלה או לא אושרה בדפדפן.",
+  audio_output_missing:
+    "הפלט שנבחר אינו זמין. בחר בברירת המחדל או חבר את ההתקן מחדש; ההאזנה אינה מנותבת אוטומטית להתקן אחר.",
+  audio_output_missing_label: "הפלט שנבחר אינו זמין",
   investigations: "תחקור גישה",
   investigation_user: "אדם",
   investigation_user_details: "פרטי אדם",

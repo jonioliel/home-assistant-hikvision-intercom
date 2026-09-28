@@ -1,6 +1,6 @@
 # smplwise access control (WisKey) ↔ VMS integration handoff
 
-**Code reviewed:** smplwise access control 2.0.0-rc.4 (27 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
+**Code reviewed:** smplwise access control 2.0.0-rc.14 (28 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
 
 For a VMS already running as a Home Assistant add-on, start with the [complete add-on and screen-parity implementation guide](SMPLWISE_VMS_ADDON_IMPLEMENTATION_GUIDE.md). It covers the Supervisor WebSocket route, identity boundary, every current screen, media gaps and acceptance criteria. This document remains the concise API/storage reference.
 
@@ -16,7 +16,7 @@ Build a **server-side HA WebSocket adapter** for this existing integration. Do n
 6. Keep camera viewing and talkback as separate integrations. HA camera entities are the first video route; the panel's MSE/RTC and audio bridges are stateful implementation endpoints, not general RTSP URLs.
 7. Test with a non-admin account: allowed read, denied write, one controlled action on a test station, stale revision, disconnect/reconnect, token revocation, and a real event. Never use production PIN/card data in test fixtures.
 
-**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.4 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
+**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.14 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
 
 ## Architecture decision
 
@@ -156,3 +156,5 @@ Until then, the current authenticated WebSocket commands are suitable for a cont
 ## Visit operations extension
 
 See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.
+
+See also [fleet alerts](FLEET_ALERTS_API.md), [investigation timeline and complete report](INVESTIGATION_TIMELINE_API.md), and [browser-local audio output](BROWSER_AUDIO_OUTPUT.md) for the new operations and their explicit permission/evidence boundaries.

@@ -91,7 +91,8 @@ const visitStyles = css`
     color: var(--muted, var(--secondary-text-color));
     font-size: 13px;
   }
-  select {
+  select,
+  input {
     max-width: 100%;
     min-width: 0;
   }
@@ -245,6 +246,8 @@ export class VisitRequestsPanel extends VisitContext {
     stations: { attribute: false },
     page: { state: true },
     filter: { state: true },
+    scope: { state: true },
+    search: { state: true },
     review: { state: true },
     uncertain: { state: true },
     notice: { state: true },
@@ -255,6 +258,8 @@ export class VisitRequestsPanel extends VisitContext {
   stations: Station[] = [];
   private page?: VisitPage;
   private filter = "pending";
+  private scope = "all";
+  private search = "";
   private review?: { row: VisitRequest; decision: string };
   private resubmitUser?: Person;
   private approver = "";
@@ -262,6 +267,9 @@ export class VisitRequestsPanel extends VisitContext {
   private notice = "";
   protected reset() {
     super.reset();
+    this.filter = "pending";
+    this.scope = "all";
+    this.search = "";
     this.page = undefined;
     this.review = undefined;
     this.resubmitUser = undefined;
@@ -275,7 +283,11 @@ export class VisitRequestsPanel extends VisitContext {
     this.busy = true;
     try {
       const [page, operators] = await Promise.all([
-        this.rpc<VisitPage>("visits/list", { offset, limit: 100 }),
+        this.rpc<VisitPage>("visits/list", {
+          offset,
+          limit: 100,
+          filters: { status: this.filter, scope: this.scope, query: this.search },
+        }),
         this.rpc<{ operators: Operator[] }>("visits/operators"),
       ]);
       if (epoch !== this.epoch || !this.isConnected) return;
@@ -400,8 +412,7 @@ export class VisitRequestsPanel extends VisitContext {
     </div>`;
   }
   render() {
-    const rows =
-      this.page?.items.filter((row) => this.filter === "all" || row.status === this.filter) ?? [];
+    const rows = this.page?.items ?? [];
     const actor = this.hass?.user?.id;
     const blocked = this.busy || this.uncertain || !this.canManage;
     return html`<div class="row heading">
@@ -411,16 +422,45 @@ export class VisitRequestsPanel extends VisitContext {
         </button>
       </div>
       <p class="sub">${this.t("visit_queue_hint")}</p>
-      <label
-        >${this.t("status")}<select
-          .value=${this.filter}
-          @change=${(e: Event) => {
-            this.filter = (e.target as HTMLSelectElement).value;
-          }}
+      <div class="row">
+        <label
+          >${this.t("status")}<select
+            .value=${this.filter}
+            ?disabled=${this.busy}
+            @change=${(e: Event) => {
+              this.filter = (e.target as HTMLSelectElement).value;
+              void this.load(0);
+            }}
+          >
+            ${["pending", "approved", "rejected", "cancelled", "superseded", "all"].map((status) => html`<option value=${status} ?selected=${this.filter === status}>${this.t("visit_status_" + status)}</option>`)}
+          </select></label
         >
-          ${["pending", "approved", "rejected", "cancelled", "superseded", "all"].map((status) => html`<option value=${status}>${this.t("visit_status_" + status)}</option>`)}
-        </select></label
-      >
+        <label
+          >${this.t("visit_queue_scope")}<select
+            .value=${this.scope}
+            ?disabled=${this.busy}
+            @change=${(e: Event) => {
+              this.scope = (e.target as HTMLSelectElement).value;
+              void this.load(0);
+            }}
+          >
+            ${["all", "approver", "requester"].map((value) => html`<option value=${value} ?selected=${this.scope === value}>${this.t("visit_scope_" + value)}</option>`)}
+          </select></label
+        >
+        <label
+          >${this.t("visit_queue_search")}<input
+            maxlength="128"
+            .value=${this.search}
+            ?disabled=${this.busy}
+            @input=${(e: Event) => (this.search = (e.target as HTMLInputElement).value)}
+            @keydown=${(e: KeyboardEvent) => {
+              if (e.key === "Enter") void this.load(0);
+            }}
+        /></label>
+        <button type="button" ?disabled=${this.busy} @click=${() => void this.load(0)}>
+          ${this.t("visit_queue_filter")}
+        </button>
+      </div>
       ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}${this.uncertain ? html`<p class="notice">${this.t("visit_refresh_before_retry")}</p>` : nothing}${this.notice ? html`<p role="status">${this.notice}</p>` : nothing}
       ${
         this.review
@@ -522,7 +562,7 @@ export class VisitRequestsPanel extends VisitContext {
             </article>`,
         )}
       </div>
-      ${this.page ? html`<div class="row actions"><span class="sub">${this.page.offset + 1}–${this.page.offset + this.page.items.length} / ${this.page.total}</span><button type="button" ?disabled=${this.busy || !this.page.offset} @click=${() => void this.load(Math.max(0, this.page!.offset - 100))}>${this.t("previous")}</button><button type="button" ?disabled=${this.busy || this.page.next_offset === null} @click=${() => void this.load(this.page!.next_offset!)}>${this.t("next")}</button></div>` : nothing}`;
+      ${this.page ? html`<div class="row actions"><span class="sub">${this.page.total ? this.page.offset + 1 : 0}–${this.page.offset + this.page.items.length} / ${this.page.total}</span><button type="button" ?disabled=${this.busy || !this.page.offset} @click=${() => void this.load(Math.max(0, this.page!.offset - 100))}>${this.t("visit_queue_previous")}</button><button type="button" ?disabled=${this.busy || this.page.next_offset === null} @click=${() => void this.load(this.page!.next_offset!)}>${this.t("visit_queue_next")}</button></div>` : nothing}`;
   }
 }
 customElements.define("wiskey-visit-requests", VisitRequestsPanel);

@@ -4,6 +4,16 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.14] - 2026-09-28
+
+- Add reusable visitor/contractor presets and a dedicated temporary-access cancellation action with a reason, audit record and revision-aware synchronization status. Preserve existing identities, credentials, door assignments and time rules.
+- Add optional approval by a selected second operator. Save the inactive visitor and pending request atomically; only the named approver can activate the unchanged, unexpired visit. Editing requires a fresh request, and ordinary or bulk activation cannot bypass approval. Filter approval queues on the server before paging, including own approvals, own requests and safe identity/purpose search.
+- Add cached fleet alerts for persistent disconnection, stalled/error/conflicting synchronization, event-stream gaps and repeatedly measured clock deviation. Store explicit snoozes and maintenance periods durably, with reasons, expiry and restoration; underlying station faults remain visible and no device action is performed.
+- Add an administrator-only investigation timeline combining access events, saved permission changes and retained synchronization evidence, with conservative identity attribution and personal saved filters. Download one page or a consistent full report of up to 5,000 retained matching records; changed evidence cancels the report without a partial file.
+- Add explicit, window-local listening output selection in supporting secure browsers. Route both camera and fallback receive audio to the selected output; preserve default mobile playback and all existing microphone, PTT, MSE/RTC/HLS, TTS and camera behavior. Failed selection restores the previous output or stops listening; no microphone or sound opens automatically.
+- Migrate the user repository to schema 11 before startup publishes data. Include the new template and fleet-alert policy stores in configuration backups; rollback requires the matching pre-upgrade backup. Keep the `hikvision_intercom` HACS domain/path, API contract 1 and all existing appearances.
+- Expand server, real-infrastructure transport, Chromium, Firefox and WebKit regression coverage; update VMS handoff documentation and provide a focused Hebrew owner checklist linked to earlier unreported physical and stability tests.
+
 ## [2.0.0-rc.13] - 2026-09-28
 
 - Add a visitor/contractor lifecycle section with bounded reports, complete summary counts, responsible person, purpose, validity dates and filters for upcoming, current, expiring, expired and disabled people. Classify expiry at the exact end instant consistently with the existing access model; validity status does not claim physical access or completed synchronization.

@@ -25,6 +25,12 @@ Events are retained according to reception time for 30 days, and changes accordi
 
 The projection omits PINs, complete or masked card values, photographs, fingerprints, private intent signatures, phone numbers and raw device payloads. Current page download exports only the same projected data and applied filters. No new database or device writes occur. Detached records are processed outside the event loop.
 
+## Complete report download
+
+The panel can download all matching retained records as `wiskey-investigation-report.json`, up to 5,000 rows. It uses the same read-only query with pages of 200 and the applied filter set and snapshot from the displayed investigation. Apply filter edits first. Every page must retain the snapshot, total and valid monotonic paging; changed evidence, duplicate IDs, unexpected pagination, a connection failure or an incomplete page aborts without a partial file. Progress and explicit cancellation are available. Detach, account/connection change and backgrounding discard late responses.
+
+The JSON contains `schema:1`, `complete:true`, `scope:all_matching_retained_records`, filters, total, snapshot, generated timestamp, retention, correlation disclaimer, source availability, actor names and the same safe record projection. `complete` refers to matching retained records in that snapshot, not an assertion that every device event was captured or that synchronization history is exhaustive. Source availability warnings are retained. This is a browser export, not a new archive or persistent database.
+
 ## Personal saved filters
 
 The panel saves up to twenty filter sets per authenticated operator in local browser storage (`wiskey:investigation-views:v1:<account-id>`). This is scoped to the browser origin and account. It saves filter criteria only, not result records or credentials. Relative periods are recomputed when applied. Existing saved data is preserved on corruption, storage errors or concurrent edits from another tab; the operator must reload before attempting another write. Account/connection changes and view detachment cancel browser waits and discard late responses. These local filters are not part of the server database backup.

@@ -58,6 +58,20 @@ async def test_host_approval_creates_inactive_guest_and_only_host_can_activate(
         assert created["success"] and not created["result"]["active"], created
         queued.assert_not_called()
         row = (await request(host, "visits/list", offset=0, limit=100))["result"]["items"][0]
+        own = await request(
+            host,
+            "visits/list",
+            offset=0,
+            limit=100,
+            filters={"status": "pending", "scope": "approver"},
+        )
+        assert own["success"] and own["result"]["total"] == 1
+        other = await request(
+            admin, "visits/list", offset=0, limit=100, filters={"scope": "approver"}
+        )
+        assert other["success"] and other["result"]["total"] == 0
+        spoof = await request(host, "visits/list", offset=0, limit=100, filters={"actor": "other"})
+        assert not spoof["success"] and spoof["error"]["code"] == "invalid_fields"
         assert "786453" not in str(row) and row["approver_id"] == hass_read_only_user.id
         denied = await request(
             admin, "visits/decide", request_id=row["id"], revision=1, decision="approve"

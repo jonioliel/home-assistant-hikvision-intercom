@@ -44,6 +44,14 @@ Editing the visitor while approval is pending makes the request stale. Read `use
 
 Requests are stored inside the existing private user repository, schema **11**, so creation, decisions and activation share one durable transaction. Older schemas are migrated and saved before startup publishes the new state. Include the repository in normal configuration backups. Restore the matching pre-upgrade backup when rolling back to a version that cannot read schema 11. History is bounded to 1000 requests, preserving the latest decision for every surviving user; obsolete closed history may be pruned. A full queue reports `visit_request_limit` instead of deleting pending approvals or bypassing a guard.
 
+## Server-side approval queue filters
+
+`visits/list` accepts optional `filters: {status, scope, query}` in addition to the original required `offset` and `limit`. Omitting filters preserves the original all-request result and out-of-range offset behavior. `status` defaults to `all` or is one of the request statuses above. `scope` is `all`, `approver` or `requester`; the latter two always use the authenticated socket actor, never a caller-supplied account ID. Unknown fields are rejected. `query` is at most 128 characters and searches only the snapshot's display name, employee number, responsible person and purpose, never PIN/card values.
+
+Filtering occurs before pagination and `total` counts matching requests. With explicit filters, an out-of-range offset is clamped to the last nonempty page. The response adds normalized `filters`. The UI defaults to pending requests and can show requests assigned to the current approver or created by the current requester. This is a convenience filter, not a new permission boundary: Users view/manage authorization and host-bound decision checks are unchanged. Changing filters reloads from page zero and closes any old decision review.
+
+The source-derived top-level command catalog records required fields; this optional nested filter is described here, like other command-specific optional fields.
+
 ## Client failure handling
 
 Use bounded waits and discard results after logout, permission revocation, detach or connection change. A lost connection does not prove that a write failed. Show an unconfirmed result and refresh before any next action; never automatically retry. An unavailable template library must not be treated as an empty library that is safe to overwrite.

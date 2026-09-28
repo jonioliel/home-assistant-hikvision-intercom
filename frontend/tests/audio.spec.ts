@@ -97,6 +97,216 @@ async function setup(page: Page, appearance = "current") {
   return page.locator("hikvision-intercom-audio-controls");
 }
 
+async function outputs(page: Page) {
+  const audio = await setup(page);
+  await page.evaluate(() => {
+    const w = window as any;
+    w.output = { calls: [], failure: "", permission: 0, delay: false, missing: false };
+    Object.defineProperty(AudioContext.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id: string) {
+        w.output.calls.push({ target: "context", id, rate: this.sampleRate });
+        if (id === w.output.failure && id) throw new DOMException("missing", "NotFoundError");
+        if (id === "headphones" && w.output.delay)
+          await new Promise<void>((resolve) => (w.output.resolve = resolve));
+      },
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", {
+      configurable: true,
+      value: async function (id: string) {
+        w.output.calls.push({ target: "element", id });
+        if (id === w.output.failure && id) throw new DOMException("missing", "NotFoundError");
+        if (id === "headphones" && w.output.delay)
+          await new Promise<void>((resolve) => (w.output.resolve = resolve));
+      },
+    });
+    navigator.mediaDevices.enumerateDevices = async () =>
+      [
+        { kind: "audioinput", deviceId: "mic", label: "Microphone" },
+        { kind: "audiooutput", deviceId: "default", label: "Default" },
+        { kind: "audiooutput", deviceId: "speaker", label: "Desk speaker" },
+        ...(!w.output.missing
+          ? [{ kind: "audiooutput", deviceId: "headphones", label: "Headphones" }]
+          : []),
+      ] as MediaDeviceInfo[];
+    Object.defineProperty(navigator.mediaDevices, "selectAudioOutput", {
+      configurable: true,
+      value: async () => {
+        w.output.permission++;
+        if (w.output.cancel) throw new DOMException("cancelled", "NotAllowedError");
+        if (w.output.delayPermission)
+          await new Promise<void>((resolve) => (w.output.permissionResolve = resolve));
+        return { kind: "audiooutput", deviceId: "headphones", label: "Headphones" };
+      },
+    });
+  });
+  await audio.locator(".audio-options > summary").click();
+  const output = audio.locator("wiskey-audio-output");
+  await output.evaluate((element: any) => element.requestUpdate());
+  return { audio, output };
+}
+
+test("output enumeration is local, never requests a microphone and selected sink routes later ISAPI playback", async ({
+  page,
+}) => {
+  const { audio, output } = await outputs(page);
+  expect(await page.evaluate(() => (window as any).output.calls)).toEqual([]);
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await expect(output.locator("select")).toHaveValue("");
+  await expect(output.getByRole("option", { name: "Headphones", exact: true })).toHaveCount(1);
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.includes("/audio/")).length),
+  ).toBe(0);
+  await output.locator("select").selectOption("headphones");
+  await expect(output).toContainText("Listening output selected");
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.includes("/audio/")).length),
+  ).toBe(0);
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
+  expect(
+    await page.evaluate(() =>
+      (window as any).output.calls.some(
+        (call: any) => call.target === "context" && call.rate === 8000 && call.id === "headphones",
+      ),
+    ),
+  ).toBe(true);
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+});
+
+test("failed output selection restores the displayed previous choice and listening remains available", async ({
+  page,
+}) => {
+  const { audio, output } = await outputs(page);
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await output.locator("select").selectOption("speaker");
+  await expect(output).toContainText("Listening output selected");
+  await page.evaluate(() => ((window as any).output.failure = "headphones"));
+  await output.locator("select").selectOption("headphones");
+  await expect(output.getByRole("alert")).toBeVisible();
+  await expect(output.locator("select")).toHaveValue("speaker");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
+  expect(
+    await page.evaluate(() =>
+      (window as any).output.calls.some(
+        (call: any) => call.target === "context" && call.rate === 8000 && call.id === "speaker",
+      ),
+    ),
+  ).toBe(true);
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
+});
+
+test("removed output warns and retains the choice without silently switching destinations", async ({
+  page,
+}) => {
+  const { output } = await outputs(page);
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await output.locator("select").selectOption("headphones");
+  await expect(output).toContainText("Listening output selected");
+  const before = await page.evaluate(() => (window as any).output.calls.length);
+  await page.evaluate(() => {
+    (window as any).output.missing = true;
+    navigator.mediaDevices.dispatchEvent(new Event("devicechange"));
+  });
+  await expect(output.getByRole("alert")).toContainText("unavailable");
+  await expect(output.locator("select")).toHaveValue("headphones");
+  expect(await page.evaluate(() => (window as any).output.calls.length)).toBe(before);
+});
+
+test("output selection blocks new listen and talk while routing and ignores completion after closing camera", async ({
+  page,
+}) => {
+  const { audio, output } = await outputs(page);
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await page.evaluate(() => ((window as any).output.delay = true));
+  await output.locator("select").selectOption("headphones");
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeDisabled();
+  await expect(audio.getByRole("button", { name: "Hold to talk", exact: true })).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.evaluate(() => (window as any).output.resolve());
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  expect(
+    await page.evaluate(
+      () => window.calls.filter((c) => c.type === "hikvision_intercom/audio/start").length,
+    ),
+  ).toBe(0);
+});
+
+test("changing the output during listening disables talk and backgrounding discards the pending choice", async ({
+  page,
+}) => {
+  const { audio, output } = await outputs(page);
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
+  await page.evaluate(() => ((window as any).output.delay = true));
+  await output.locator("select").selectOption("headphones");
+  const talk = audio.getByRole("button", { name: "Hold to talk", exact: true });
+  await expect(talk).toBeDisabled();
+  await talk.dispatchEvent("pointerdown", { pointerId: 11 });
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    (window as any).output.delay = false;
+    (window as any).output.resolve();
+  });
+  await expect(audio).toContainText("Listening is off");
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(output.locator("select")).toHaveValue("");
+  await expect(audio.getByRole("button", { name: "Start listening", exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+});
+
+test("native output permission cancellation and late approval never open sound or a microphone", async ({
+  page,
+}) => {
+  const { output } = await outputs(page);
+  await page.evaluate(() => ((window as any).output.cancel = true));
+  await output.getByRole("button", { name: "Choose output in browser", exact: true }).click();
+  await expect(output.getByRole("alert")).toContainText("cancelled");
+  expect(await page.evaluate(() => (window as any).output.calls)).toEqual([]);
+  await page.evaluate(() => {
+    (window as any).output.cancel = false;
+    (window as any).output.delayPermission = true;
+  });
+  await output.getByRole("button", { name: "Choose output in browser", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.evaluate(() => (window as any).output.permissionResolve());
+  expect(await page.evaluate(() => (window as any).output.calls)).toEqual([]);
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+});
+
+test("unsupported output routing preserves default listening on mobile without requesting permission", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { audio, output } = await outputs(page);
+  await page.evaluate(() => {
+    Object.defineProperty(AudioContext.prototype, "setSinkId", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  await output.evaluate((element: any) => element.requestUpdate());
+  await expect(output.locator("select")).toBeDisabled();
+  await expect(output).toContainText("sound settings");
+  await audio.getByRole("button", { name: "Start listening", exact: true }).click();
+  await expect(audio).toContainText("Listening is active");
+  expect(await page.evaluate(() => (window as any).output.permission)).toBe(0);
+  expect(await page.evaluate(() => (window as any).output.calls)).toEqual([]);
+  expect(await page.evaluate(() => window.audio.microphones)).toBe(0);
+  await audio.getByRole("button", { name: "Stop listening", exact: true }).click();
+});
+
 test("explicit listen and real audio worklet transmit only while held", async ({ page }) => {
   const audio = await setup(page);
   await audio.evaluate((element: any) => {

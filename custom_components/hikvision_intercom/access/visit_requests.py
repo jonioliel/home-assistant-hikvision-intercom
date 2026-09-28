@@ -311,12 +311,60 @@ def prepare_decision(
     return row, user
 
 
-def public(state: dict[str, Any], *, offset: int = 0, limit: int = 100) -> dict[str, Any]:
+def public(
+    state: dict[str, Any],
+    *,
+    offset: int = 0,
+    limit: int = 100,
+    filters: dict[str, Any] | None = None,
+    actor: str = "",
+) -> dict[str, Any]:
     if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 200:
         raise AccessError("invalid_fields")
+    criteria = {} if filters is None else filters
+    if not isinstance(criteria, dict) or set(criteria) - {"status", "scope", "query"}:
+        raise AccessError("invalid_fields")
+    status, scope = criteria.get("status", "all"), criteria.get("scope", "all")
+    if (
+        not isinstance(status, str)
+        or status not in STATUSES | {"all"}
+        or not isinstance(scope, str)
+        or scope not in {"all", "approver", "requester"}
+    ):
+        raise AccessError("invalid_fields")
+    search = text_field(criteria.get("query", ""), 128, empty=True).casefold()
+    if scope != "all":
+        text_field(actor, 128)
+
+    def matches(row: dict[str, Any]) -> bool:
+        return (
+            (status == "all" or row["status"] == status)
+            and (
+                scope == "all"
+                or row["approver_id" if scope == "approver" else "requested_by"] == actor
+            )
+            and (
+                not search
+                or search
+                in " ".join(
+                    str(row["snapshot"].get(key) or "")
+                    for key in (
+                        "display_name",
+                        "employee_no",
+                        "responsible_person",
+                        "access_purpose",
+                    )
+                ).casefold()
+            )
+        )
+
     rows = sorted(
-        state["visit_requests"]["items"].values(), key=lambda row: row["sequence"], reverse=True
+        (row for row in state["visit_requests"]["items"].values() if matches(row)),
+        key=lambda row: row["sequence"],
+        reverse=True,
     )
+    if filters is not None:
+        offset = min(offset, ((len(rows) - 1) // limit) * limit if rows else 0)
     projected = []
     for row in rows[offset : offset + limit]:
         user = state["users"].get(row["user_id"])
@@ -335,4 +383,5 @@ def public(state: dict[str, Any], *, offset: int = 0, limit: int = 100) -> dict[
         "total": len(rows),
         "offset": offset,
         "next_offset": offset + limit if offset + limit < len(rows) else None,
+        "filters": {"status": status, "scope": scope, "query": search},
     }

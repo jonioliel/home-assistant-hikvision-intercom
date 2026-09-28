@@ -548,8 +548,17 @@ class AccessRepository:
 
         return await self._commit(create)
 
-    def visit_requests(self, *, offset: int = 0, limit: int = 100) -> dict[str, Any]:
-        return visit_requests.public(self._state, offset=offset, limit=limit)
+    def visit_requests(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 100,
+        filters: dict[str, Any] | None = None,
+        actor: str = "",
+    ) -> dict[str, Any]:
+        return visit_requests.public(
+            self._state, offset=offset, limit=limit, filters=filters, actor=actor
+        )
 
     async def async_request_visit(
         self, user_id: str, *, expected_revision: int, actor: str, approver: str

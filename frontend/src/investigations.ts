@@ -46,6 +46,9 @@ interface TimelinePage {
   summary: Record<string, number>;
   sources: { access_available: boolean; access_storage_failed: boolean };
   actors: Record<string, string | null>;
+  generated_at?: string;
+  retention?: Record<string, unknown>;
+  correlation?: string;
 }
 const empty = (): Selection => ({
   source: "all",
@@ -191,6 +194,9 @@ export class Investigations extends LitElement {
     savedId: { state: true },
     savedName: { state: true },
     storageError: { state: true },
+    exporting: { state: true },
+    exportedRows: { state: true },
+    exportError: { state: true },
   };
   hass?: Hass;
   users: Person[] = [];
@@ -199,6 +205,7 @@ export class Investigations extends LitElement {
   authorized = false;
   private current = empty();
   private applied: Record<string, unknown> = {};
+  private appliedSelection?: Selection;
   private page?: TimelinePage;
   private busy = false;
   private error = "";
@@ -206,6 +213,13 @@ export class Investigations extends LitElement {
   private savedId = "";
   private savedName = "";
   private storageError = "";
+  private exporting = false;
+  private exportedRows = 0;
+  private exportError = "";
+  private exportEpoch = 0;
+  private visibility = () => {
+    if (document.hidden) this.cancelExport();
+  };
   private raw: string | null = null;
   private epoch = 0;
   private actor?: string;
@@ -235,15 +249,22 @@ export class Investigations extends LitElement {
   }
   connectedCallback() {
     super.connectedCallback();
+    document.addEventListener("visibilitychange", this.visibility);
     if (this.hasUpdated) void this.apply();
   }
   disconnectedCallback() {
+    document.removeEventListener("visibilitychange", this.visibility);
     this.reset();
     super.disconnectedCallback();
   }
   private reset() {
     this.epoch++;
     this.requests.cancel();
+    this.exportEpoch++;
+    this.exporting = false;
+    this.exportedRows = 0;
+    this.exportError = "";
+    this.appliedSelection = undefined;
     this.busy = false;
     this.error = "";
     this.page = undefined;
@@ -316,6 +337,8 @@ export class Investigations extends LitElement {
     if (!this.authorized || !this.hass || this.busy) return;
     const { period, ...filters } = this.current;
     this.applied = { ...filters };
+    this.appliedSelection = { ...this.current };
+    this.exportError = "";
     if (period !== "all")
       this.applied.start = new Date(Date.now() - Number(period) * 86400000).toISOString();
     this.page = undefined;
@@ -346,6 +369,109 @@ export class Investigations extends LitElement {
   }
   private updateFilter(key: keyof Selection, event: Event) {
     this.current = { ...this.current, [key]: (event.target as HTMLInputElement).value };
+  }
+  private cancelExport() {
+    if (!this.exporting) return;
+    this.exportEpoch++;
+    this.requests.cancel();
+    this.exporting = this.busy = false;
+    this.exportedRows = 0;
+  }
+  private async exportReport() {
+    if (
+      !this.authorized ||
+      !this.hass ||
+      !this.page ||
+      this.busy ||
+      this.page.stale ||
+      document.hidden
+    )
+      return;
+    const total = this.page.total;
+    if (total > 5000 || JSON.stringify(this.appliedSelection) !== JSON.stringify(this.current))
+      return;
+    const epoch = this.epoch,
+      generation = ++this.exportEpoch;
+    const valid = () =>
+      this.isConnected &&
+      this.authorized &&
+      !document.hidden &&
+      epoch === this.epoch &&
+      generation === this.exportEpoch;
+    const filters = { ...this.applied },
+      snapshot = this.page.snapshot;
+    const records: TimelineRow[] = [],
+      ids = new Set<string>();
+    const actors: Record<string, string | null> = {};
+    const sources = { ...this.page.sources };
+    this.busy = this.exporting = true;
+    this.exportedRows = 0;
+    this.exportError = "";
+    let offset = 0;
+    try {
+      let last: TimelinePage;
+      do {
+        last = await this.requests.run<TimelinePage>(
+          {
+            type: "hikvision_intercom/investigations/query",
+            filters,
+            offset,
+            limit: 200,
+            snapshot,
+          },
+          30000,
+        );
+        if (!valid()) return;
+        if (last.stale || last.snapshot !== snapshot || last.total !== total)
+          throw { code: "investigation_export_changed" };
+        if (
+          last.offset !== offset ||
+          last.records.length !== Math.min(200, total - offset) ||
+          last.next_offset !== (offset + 200 < total ? offset + 200 : null)
+        )
+          throw { code: "investigation_export_failed" };
+        for (const row of last.records) {
+          if (ids.has(row.id)) throw { code: "investigation_export_changed" };
+          ids.add(row.id);
+          records.push(row);
+        }
+        Object.assign(actors, last.actors);
+        sources.access_available &&= last.sources.access_available;
+        sources.access_storage_failed ||= last.sources.access_storage_failed;
+        this.exportedRows = records.length;
+        offset += 200;
+      } while (last.next_offset !== null);
+      if (valid())
+        downloadText(
+          JSON.stringify(
+            {
+              schema: 1,
+              complete: true,
+              scope: "all_matching_retained_records",
+              filters,
+              total,
+              snapshot,
+              generated_at: last.generated_at,
+              retention: last.retention,
+              correlation: last.correlation,
+              sources,
+              actors,
+              records,
+            },
+            null,
+            2,
+          ),
+          "wiskey-investigation-report.json",
+          "application/json",
+        );
+    } catch (error) {
+      if (valid())
+        this.exportError = this.t(
+          (error as { code?: string }).code ?? "investigation_export_failed",
+        );
+    } finally {
+      if (valid()) this.busy = this.exporting = false;
+    }
   }
   private name(sid: string) {
     return this.stations.find((item) => item.id === sid)?.name ?? this.t("unknown");
@@ -500,6 +626,9 @@ export class Investigations extends LitElement {
       </details>
       <p class="sub">${this.t("investigation_limits")}</p>
       ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
+      ${this.exportError ? html`<p class="error" role="alert">${this.exportError}</p>` : nothing}
+      ${this.exporting ? html`<div class="row" role="status"><span>${this.t("investigation_export_progress")}: ${this.exportedRows} / ${this.page?.total}</span><button type="button" @click=${() => this.cancelExport()}>${this.t("investigation_export_cancel")}</button></div>` : nothing}
+      <p class="sub">${this.t("investigation_export_limits")}</p>
       ${this.busy ? html`<p role="status">${this.t("loading")}</p>` : nothing}
       ${
         this.page
@@ -530,8 +659,16 @@ export class Investigations extends LitElement {
                 <button
                   type="button"
                   @click=${() => downloadText(JSON.stringify({ filters: this.applied, ...this.page }, null, 2), "wiskey-investigation-page.json", "application/json")}
+                  ?disabled=${this.busy}
                 >
                   ${this.t("investigation_download_page")}
+                </button>
+                <button
+                  type="button"
+                  ?disabled=${this.busy || this.page.stale || this.page.total > 5000 || JSON.stringify(this.appliedSelection) !== JSON.stringify(this.current)}
+                  @click=${() => void this.exportReport()}
+                >
+                  ${this.t("investigation_download_report")}
                 </button>
               </div>`
           : nothing

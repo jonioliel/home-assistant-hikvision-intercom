@@ -122,3 +122,154 @@ test("corrupt saved filters are preserved and late replies cannot reopen a detac
   await expect(view).toHaveCount(0);
   await expect(page.locator("hikvision-intercom-events")).toBeVisible();
 });
+
+test("complete report collects every matching page with stable filters and evidence", async ({
+  page,
+}) => {
+  await page.goto("/?investigations=1");
+  await page.evaluate(() => {
+    window.investigationRows = Array.from({ length: 450 }, (_, i) => ({
+      ...window.investigationRows[0],
+      id: `access/${i}`,
+    }));
+  });
+  await navigate(page, "Access investigation");
+  const view = page.locator("wiskey-investigations");
+  await expect(view.locator("article")).toHaveCount(50);
+  const waiting = page.waitForEvent("download");
+  await view
+    .getByRole("button", { name: "Download all investigation results", exact: true })
+    .click();
+  const download = await waiting;
+  expect(download.suggestedFilename()).toBe("wiskey-investigation-report.json");
+  const report = JSON.parse(
+    await (
+      await download.createReadStream()
+    )
+      .toArray()
+      .then((chunks) => Buffer.concat(chunks).toString()),
+  );
+  expect(report.complete).toBe(true);
+  expect(report.total).toBe(450);
+  expect(report.records).toHaveLength(450);
+  expect(new Set(report.records.map((row) => row.id)).size).toBe(450);
+  expect(report.filters.source).toBe("all");
+  const queries = await page.evaluate(() =>
+    window.calls.filter(
+      (call) => call.type === "hikvision_intercom/investigations/query" && call.limit === 200,
+    ),
+  );
+  expect(queries.map((call) => call.offset)).toEqual([0, 200, 400]);
+  expect(new Set(queries.map((call) => JSON.stringify(call.filters))).size).toBe(1);
+  expect(new Set(queries.map((call) => call.snapshot)).size).toBe(1);
+  await view.getByRole("combobox", { name: "Evidence source", exact: true }).selectOption("change");
+  await expect(
+    view.getByRole("button", { name: "Download all investigation results", exact: true }),
+  ).toBeDisabled();
+});
+
+test("a changed report snapshot aborts without downloading partial evidence", async ({ page }) => {
+  await page.goto("/?investigations=1");
+  await page.evaluate(() => {
+    window.investigationRows = Array.from({ length: 450 }, (_, i) => ({
+      ...window.investigationRows[0],
+      id: `access/${i}`,
+    }));
+    const base = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      if (
+        message.type === "hikvision_intercom/investigations/query" &&
+        message.limit === 200 &&
+        message.offset === 200
+      )
+        window.investigationRevision++;
+      return base(message);
+    };
+  });
+  let downloaded = false;
+  page.on("download", () => (downloaded = true));
+  await navigate(page, "Access investigation");
+  const view = page.locator("wiskey-investigations");
+  await expect(view.locator("article")).toHaveCount(50);
+  await view
+    .getByRole("button", { name: "Download all investigation results", exact: true })
+    .click();
+  await expect(view.getByRole("alert")).toContainText(
+    "Evidence changed while preparing the report",
+  );
+  expect(downloaded).toBe(false);
+  await expect(view.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+});
+
+test("report cancellation and backgrounding discard late pages without changing the visible investigation", async ({
+  page,
+}) => {
+  await page.goto("/?investigations=1");
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      if (message.type === "hikvision_intercom/investigations/query" && message.limit === 200)
+        await new Promise<void>((resolve) => (window.releaseInvestigationExport = resolve));
+      return base(message);
+    };
+  });
+  let downloaded = false;
+  page.on("download", () => (downloaded = true));
+  await navigate(page, "Access investigation");
+  const view = page.locator("wiskey-investigations");
+  await expect(view.locator("article")).toHaveCount(3);
+  await view
+    .getByRole("button", { name: "Download all investigation results", exact: true })
+    .click();
+  await view.getByRole("button", { name: "Cancel report", exact: true }).click();
+  await page.evaluate(() => window.releaseInvestigationExport());
+  await expect(view.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+  await view
+    .getByRole("button", { name: "Download all investigation results", exact: true })
+    .click();
+  await expect(view.getByRole("button", { name: "Cancel report", exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.releaseInvestigationExport();
+  });
+  await expect(view.getByRole("button", { name: "Cancel report", exact: true })).toHaveCount(0);
+  await expect(view.locator("article")).toHaveCount(3);
+  expect(downloaded).toBe(false);
+});
+
+test("large report requires narrower filters and malformed paging never creates a misleading file", async ({
+  page,
+}) => {
+  await page.goto("/?investigations=1");
+  await page.evaluate(() => {
+    window.investigationRows = Array.from({ length: 5001 }, (_, i) => ({
+      ...window.investigationRows[0],
+      id: `access/${i}`,
+    }));
+  });
+  await navigate(page, "Access investigation");
+  const view = page.locator("wiskey-investigations");
+  await expect(
+    view.getByRole("button", { name: "Download all investigation results", exact: true }),
+  ).toBeDisabled();
+  await page.evaluate(() => {
+    window.investigationRows = window.investigationRows.slice(0, 2);
+    const base = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = async (message) => {
+      const result = await base(message);
+      if (message.type === "hikvision_intercom/investigations/query" && message.limit === 200)
+        return { ...result, next_offset: 0 };
+      return result;
+    };
+  });
+  let downloaded = false;
+  page.on("download", () => (downloaded = true));
+  await view.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(view.locator("article")).toHaveCount(2);
+  await view
+    .getByRole("button", { name: "Download all investigation results", exact: true })
+    .click();
+  await expect(view.getByRole("alert")).toContainText("No partial file was downloaded");
+  expect(downloaded).toBe(false);
+});

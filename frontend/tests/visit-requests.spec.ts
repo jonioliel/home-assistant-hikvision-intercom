@@ -109,3 +109,51 @@ test("guest wizard keeps approval optional and sends an inactive request only on
   expect(calls[0].data.active).toBe(false);
   expect(calls[0].approver_id).toBe("demo-host");
 });
+
+test("visit status, own-request and search filters apply before paging and show matching counts", async ({
+  page,
+}) => {
+  await page.goto("/?visits=1");
+  await page.evaluate(() => {
+    const pending = window.visitRequests.items[0];
+    window.visitRequests.items = [
+      ...Array.from({ length: 125 }, (_, i) => ({
+        ...pending,
+        id: `closed-${i}`,
+        status: "approved",
+        snapshot: { ...pending.snapshot, display_name: `Closed ${i}` },
+      })),
+      pending,
+    ];
+  });
+  await navigate(page, "Visit approvals");
+  const view = page.locator("wiskey-visit-requests");
+  await expect(view.locator("article")).toHaveCount(1);
+  await expect(view.getByRole("button", { name: "Approve visit", exact: true })).toBeVisible();
+  await view
+    .getByRole("combobox", { name: "Requests to show", exact: true })
+    .selectOption("requester");
+  await expect(view.locator("article")).toHaveCount(0);
+  await view
+    .getByRole("combobox", { name: "Requests to show", exact: true })
+    .selectOption("approver");
+  await expect(view.locator("article")).toHaveCount(1);
+  await view.getByRole("combobox", { name: "Status", exact: true }).selectOption("approved");
+  await expect(view.locator("article")).toHaveCount(100);
+  await view.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(view.locator("article")).toHaveCount(25);
+  await view
+    .getByRole("textbox", { name: "Search visitor, responsible person or purpose", exact: true })
+    .fill("Closed 124");
+  await view.getByRole("button", { name: "Filter requests", exact: true }).click();
+  await expect(view.locator("article")).toHaveCount(1);
+  await expect(view.locator("article")).toContainText("Closed 124");
+  const query = await page.evaluate(() =>
+    window.calls.filter((c) => c.type.endsWith("visits/list")).at(-1),
+  );
+  expect(query.offset).toBe(0);
+  expect(query.filters).toEqual({ status: "approved", scope: "approver", query: "Closed 124" });
+  expect(
+    await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("visits/decide")).length),
+  ).toBe(0);
+});

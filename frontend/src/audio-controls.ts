@@ -1,4 +1,6 @@
 import "./microphone-input";
+import "./audio-output";
+import { routeOutput } from "./audio-output";
 import "./tts-controls";
 import { icon } from "./icons";
 import type { MicrophoneInput } from "./microphone-input";
@@ -231,6 +233,7 @@ export class IntercomAudioControls extends LitElement {
     lastBackend: { state: true },
     backendSampledAt: { state: true },
     _haConnected: { state: true },
+    outputBusy: { state: true },
   };
   dock = false;
   hideTts = false;
@@ -269,6 +272,9 @@ export class IntercomAudioControls extends LitElement {
   private epoch = 0;
   private micEpoch = 0;
   private context?: AudioContext;
+  private outputDevice = "";
+  private outputBusy = false;
+  private outputActor?: string;
   private connection?: Hass["connection"];
   private observedConnection?: Hass["connection"];
   private activeStationId = "";
@@ -338,12 +344,17 @@ export class IntercomAudioControls extends LitElement {
     if ((event as CustomEvent<{ station: string }>).detail?.station === this.station?.id)
       this.stop();
   };
+  private onOutputFailed = (event: Event) => {
+    const layout = this.closest(".camera-layout");
+    if (layout && event.composedPath().includes(layout)) this.stop("audio_output_failed");
+  };
   connectedCallback() {
     super.connectedCallback();
     this.bindConnection(this.hass?.user?.is_admin ? this.hass.connection : undefined);
     document.addEventListener("visibilitychange", this.onVisibility);
     window.addEventListener("pagehide", this.onPageHide);
     document.addEventListener("hikvision-call-ending", this.onCallEnding);
+    document.addEventListener("hikvision-output-failed", this.onOutputFailed);
     window.addEventListener("blur", this.onWindowBlur);
   }
   disconnectedCallback() {
@@ -352,11 +363,23 @@ export class IntercomAudioControls extends LitElement {
     document.removeEventListener("visibilitychange", this.onVisibility);
     window.removeEventListener("pagehide", this.onPageHide);
     document.removeEventListener("hikvision-call-ending", this.onCallEnding);
+    document.removeEventListener("hikvision-output-failed", this.onOutputFailed);
     window.removeEventListener("blur", this.onWindowBlur);
     super.disconnectedCallback();
   }
   protected updated(changed: PropertyValues) {
     if (!this.isConnected) return;
+    if (this.outputActor !== this.hass?.user?.id) {
+      if (this.outputActor && this.outputDevice) {
+        this.stop();
+        this.outputDevice = "";
+        void this.closest(".camera-layout")
+          ?.querySelector<IntercomCamera>("hikvision-intercom-camera")
+          ?.setOutputDevice("")
+          .catch(() => undefined);
+      }
+      this.outputActor = this.hass?.user?.id;
+    }
     if (changed.has("talkMode")) this.releaseTalk();
     if (
       changed.has("station") &&
@@ -400,6 +423,7 @@ export class IntercomAudioControls extends LitElement {
     this.renderRoot.querySelector<MicrophoneInput>("wiskey-microphone-input")?.stopTest();
     if (
       this._state !== "idle" ||
+      this.outputBusy ||
       !this.hass?.user?.is_admin ||
       !this.station?.online ||
       !this._haConnected ||
@@ -448,11 +472,49 @@ export class IntercomAudioControls extends LitElement {
       this.context = context;
       this.sampleRate = context.sampleRate;
       context.addEventListener("statechange", this.audioStateChanged);
+      if (this.outputDevice) await routeOutput(context, this.outputDevice);
     }
     if (context.sampleRate !== 8000) throw new Error("unsupported");
     if (context.state !== "running") await context.resume();
     if (!this.valid(epoch) || this.context !== context) throw new Error("audio_connection_lost");
     return context;
+  }
+  private async chooseOutput(id: string) {
+    if (this.outputBusy || this._talking || this._micPending || !this.hass?.user?.is_admin)
+      throw { code: "device_busy" };
+    this.outputBusy = true;
+    const previous = this.outputDevice,
+      context = this.context,
+      epoch = this.epoch,
+      actor = this.hass?.user?.id;
+    const camera = this.closest(".camera-layout")?.querySelector<IntercomCamera>(
+      "hikvision-intercom-camera",
+    );
+    try {
+      await camera?.setOutputDevice(id);
+      await routeOutput(context, id);
+      if (
+        !this.isConnected ||
+        epoch !== this.epoch ||
+        actor !== this.hass?.user?.id ||
+        !this.hass?.user?.is_admin ||
+        document.hidden
+      )
+        throw { code: "connection_lost" };
+      this.outputDevice = id;
+    } catch (error) {
+      if (this.isConnected && epoch === this.epoch) {
+        try {
+          await camera?.setOutputDevice(previous);
+          await routeOutput(context, previous);
+        } catch {
+          this.stop("audio_output_failed");
+        }
+      }
+      throw error;
+    } finally {
+      this.outputBusy = false;
+    }
   }
   private async openBackend(
     epoch: number,
@@ -625,6 +687,7 @@ export class IntercomAudioControls extends LitElement {
   private async talk() {
     if (
       this._state !== "listening" ||
+      this.outputBusy ||
       this.pressed ||
       !window.isSecureContext ||
       !navigator.mediaDevices?.getUserMedia
@@ -975,6 +1038,11 @@ export class IntercomAudioControls extends LitElement {
             this._error = "";
           }}
         ></wiskey-microphone-input>
+        <wiskey-audio-output
+          .hass=${this.hass}
+          .locked=${this.outputBusy || this._talking || this._micPending || this._state === "opening"}
+          .apply=${(id: string) => this.chooseOutput(id)}
+        ></wiskey-audio-output>
         <details
           .open=${this._diagnosticsOpen}
           @toggle=${(event: Event) => {
@@ -1096,13 +1164,13 @@ export class IntercomAudioControls extends LitElement {
         ${
           this._state === "idle"
             ? html`<button
-                ?disabled=${!this.station.online || !this._haConnected || this.hass.connection.connected === false}
+                ?disabled=${this.outputBusy || !this.station.online || !this._haConnected || this.hass.connection.connected === false}
                 @click=${() => this.start()}
               >
                 ${this.dock ? icon("speaker") : nothing}${this.t("audio_start")}
               </button>`
             : html` <button
-                  ?disabled=${this._state !== "listening" || !window.isSecureContext}
+                  ?disabled=${this.outputBusy || this._state !== "listening" || !window.isSecureContext}
                   class="talk-button"
                   aria-pressed=${this._talking}
                   @contextmenu=${(e: Event) => e.preventDefault()}

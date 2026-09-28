@@ -1049,6 +1049,7 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             vol.Required("id"): int,
             vol.Required("type"): str,
             **{vol.Required(key): kind for key, kind in fields.items()},
+            **({vol.Optional("filters"): dict} if command == "visits/list" else {}),
             **(
                 {vol.Optional("column_map"): dict}
                 if command in {"users/csv_preview", "users/csv_apply"}

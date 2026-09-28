@@ -1632,16 +1632,37 @@ const fake = {
           { id: "demo-host", name: "Reception host" },
         ],
       };
-    if (command === "visits/list")
+    if (command === "visits/list") {
+      const filters = message.filters ?? {};
+      const rows = visitRequests.items.filter(
+        (row) =>
+          (!filters.status || filters.status === "all" || row.status === filters.status) &&
+          (!filters.scope ||
+            filters.scope === "all" ||
+            row[filters.scope === "approver" ? "approver_id" : "requested_by"] === this.user.id) &&
+          (!filters.query ||
+            [
+              row.snapshot.display_name,
+              row.snapshot.employee_no,
+              row.snapshot.responsible_person,
+              row.snapshot.access_purpose,
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(filters.query.toLowerCase())),
+      );
+      const offset = Math.min(
+        message.offset,
+        rows.length ? Math.floor((rows.length - 1) / message.limit) * message.limit : 0,
+      );
       return {
         ...structuredClone(visitRequests),
-        items: structuredClone(
-          visitRequests.items.slice(message.offset, message.offset + message.limit),
-        ),
-        total: visitRequests.items.length,
-        offset: message.offset,
-        next_offset: null,
+        items: structuredClone(rows.slice(offset, offset + message.limit)),
+        total: rows.length,
+        offset,
+        next_offset: offset + message.limit < rows.length ? offset + message.limit : null,
       };
+    }
     if (command === "visits/create") {
       if (message.approver_id === this.user.id) throw { code: "visit_second_operator_required" };
       const source = structuredClone(message.data);

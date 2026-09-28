@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Verified WisKey source:** v2.0.0-rc.4, 27 September 2026.
+**Target WisKey source:** v2.0.0-rc.14, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
@@ -12,7 +12,18 @@
 
 ה־VMS יכול לרוץ כתוסף ב־Home Assistant ולהתחבר ל־WisKey דרך ה־WebSocket הפנימי של HA. אין צורך להסיר או להעביר את WisKey מהאינטגרציה הקיימת. המסמך ממפה את חמשת מסכי הניווט, כלי הניהול והפקודות שמפעילות אותם, יחד עם דוגמאות חיבור ובדיקות קבלה. הנתונים וההרשאות ממשיכים להישמר ולהיאכף ב־WisKey. וידאו, שיחה ושמע דורשים מתאם מדיה ובדיקות נפרדות כדי להגיע לשוויון מלא בממשק החדש.
 
-הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת 134 הפקודות נמצאת בקובץ JSON הנלווה.
+הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת הפקודות המעודכנת נמצאת בקובץ JSON הנלווה.
+
+## Additions in 2.0.0-rc.14
+
+Use the advertised installed commands and existing operator grants. Preserve the distinction between saved intent, synchronization evidence and physical access:
+
+- [Visit operations](VISIT_OPERATIONS_API.md): templates without credentials, temporary cancellation, atomic inactive guest creation, approval by a selected second operator and server-filtered queues. Decisions must run under the actual chosen operator identity; an add-on service account cannot impersonate the host by adding an actor field.
+- [Fleet alerts](FLEET_ALERTS_API.md): cached observations, durable snoozes/maintenance and restoration. These policies suppress alert presentation, not underlying faults or synchronization.
+- [Investigation timeline](INVESTIGATION_TIMELINE_API.md): administrator-only safe evidence query, conservative person matching, stable paging, browser-local saved filters and consistent complete JSON report. Ordinary management grants do not grant the combined endpoint.
+- [Local listening output](BROWSER_AUDIO_OUTPUT.md): a VMS media viewer must route its own media elements/audio contexts; this is not a backend preference or device command.
+
+Include the schema-11 user repository and the new guest-template and fleet-alert policy stores in normal configuration backups. Restore the matching pre-upgrade backup for software rollback. The namespace, API contract and existing screens/appearances are unchanged.
 
 ## 1. The intended ownership boundary
 

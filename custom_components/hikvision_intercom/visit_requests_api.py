@@ -24,7 +24,9 @@ async def dispatch_visits(
     if command == "visits/operators":
         return {"operators": [{"id": user.id, "name": user.name or ""} for user in directory]}
     if command == "visits/list":
-        return manager.repository.visit_requests(offset=msg["offset"], limit=msg["limit"])
+        return manager.repository.visit_requests(
+            offset=msg["offset"], limit=msg["limit"], filters=msg.get("filters"), actor=actor
+        )
     if command in {"visits/create", "visits/request"}:
         if msg["approver_id"] not in {user.id for user in directory}:
             raise AccessError("visit_approver_unavailable")

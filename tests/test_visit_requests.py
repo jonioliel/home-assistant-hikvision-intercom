@@ -42,6 +42,59 @@ async def requested(repo):
     return user, repo.visit_requests()["items"][0]
 
 
+async def test_server_filters_before_paging_so_older_pending_requests_cannot_be_hidden(repo):
+    from custom_components.hikvision_intercom.access.visit_requests import public
+
+    _, row = await requested(repo)
+    state = repo.snapshot()
+    for index in range(125):
+        fake = deepcopy(row)
+        fake.update(id=f"old-{index}", sequence=index + 2, status="approved")
+        state["visit_requests"]["items"][fake["id"]] = fake
+    assert not any(item["status"] == "pending" for item in public(state)["items"])
+    pending = public(state, filters={"status": "pending"}, limit=100)
+    assert pending["total"] == 1 and pending["items"][0]["id"] == row["id"]
+    assert pending["next_offset"] is None
+    assert public(state, filters={"status": "pending"}, offset=100)["offset"] == 0
+
+
+async def test_visit_filters_use_authenticated_actor_and_search_only_safe_snapshot_fields(repo):
+    _, row = await requested(repo)
+    assert repo.visit_requests(filters={"scope": "approver"}, actor="host")["total"] == 1
+    assert repo.visit_requests(filters={"scope": "requester"}, actor="host")["total"] == 0
+    assert (
+        repo.visit_requests(
+            filters={"scope": "requester", "query": "MAINTENANCE"}, actor="requester"
+        )["total"]
+        == 1
+    )
+    assert repo.visit_requests(filters={"query": "768451"})["total"] == 0
+    assert repo.visit_requests(filters={"query": "000034568911"})["total"] == 0
+    assert repo.visit_requests(filters={"status": "approved"})["total"] == 0
+    assert repo.visit_requests()["items"][0]["id"] == row["id"]
+
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        [],
+        {"actor": "host"},
+        {"status": []},
+        {"status": "bad"},
+        {"scope": []},
+        {"scope": "anybody"},
+        {"query": 7},
+        {"query": "x" * 129},
+    ],
+)
+async def test_malformed_visit_filters_are_rejected_without_changing_state(repo, filters):
+    await requested(repo)
+    before = repo.snapshot()
+    with pytest.raises(AccessError, match="invalid_fields|invalid_text"):
+        repo.visit_requests(filters=filters, actor="host")
+    assert repo.snapshot() == before
+
+
 async def decide(repo, row, **extra):
     return await repo.async_decide_visit(
         row["id"], expected_revision=row["revision"], actor="host", decision="approve", **extra
