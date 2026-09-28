@@ -56,6 +56,28 @@ def person(uid="visible", assignments=None):
     }
 
 
+@pytest.mark.parametrize("stations", [None, [], ["front"]])
+@pytest.mark.parametrize("credentials", ["none", "view", "manage"])
+def test_operational_preview_matches_command_enforcement(stations, credentials):
+    policy = grant(
+        station_ids=stations,
+        fields={key: credentials if key == "credentials" else "manage" for key in FIELDS},
+    )
+    permissions = PanelPermissions(AsyncMock(), Mock())
+    permissions.load({"schema": 2, "revision": 1, "users": {"operator": policy}})
+    preview = preview_policy(policy)["actions"]
+    for action, command in {
+        "card_capture": "cards/capture_start",
+        "station_maintenance": "fleet/alerts_action",
+        "station_clock": "clock/station_sync",
+        "tts_broadcast": "tts/start",
+    }.items():
+        assert preview[action] is command_allowed(permissions, actor(), command)
+    assert preview["card_capture"] is (stations != [] and credentials == "manage")
+    for action in ("station_maintenance", "station_clock", "tts_broadcast"):
+        assert preview[action] is (stations != [])
+
+
 @pytest.mark.parametrize(
     "value",
     [

@@ -84,6 +84,8 @@ export class WiskeyAccessControl extends LitElement {
     _saved: { state: true },
     _previews: { state: true },
     _previewBusy: { state: true },
+    _query: { state: true },
+    _grantFilter: { state: true },
   };
   hass?: Hass;
   private _settings?: PermissionSettings;
@@ -93,6 +95,8 @@ export class WiskeyAccessControl extends LitElement {
   private _saved = false;
   private _previews: Record<string, PermissionPreview> = {};
   private _previewBusy = "";
+  private _query = "";
+  private _grantFilter = "all";
   private previewGeneration = 0;
   private mounted = false;
 
@@ -343,8 +347,12 @@ export class WiskeyAccessControl extends LitElement {
       door_unlock: ["Open doors", "פתיחת דלתות"],
       station_view: ["View stations", "צפייה בתחנות"],
       station_settings: ["Change station settings", "שינוי הגדרות תחנות"],
+      station_maintenance: ["Manage station alert periods", "ניהול תקופות תחזוקה והתראות"],
+      station_clock: ["Synchronize station clocks", "סנכרון שעוני תחנות"],
+      tts_broadcast: ["Broadcast a spoken message", "הקראת הודעה בתחנה"],
       people_view: ["View people", "צפייה במשתמשים"],
-      people_edit: ["Change people and access", "שינוי משתמשים והרשאות"],
+      people_edit: ["Edit general person details", "עריכת פרטים כלליים של משתמש"],
+      card_capture: ["Enroll cards from a station", "קריאת כרטיס מהתחנה למשתמש"],
       people_export: ["Export people", "ייצוא משתמשים"],
       whatsapp_send: ["Send WhatsApp messages", "שליחת הודעות WhatsApp"],
       events_view: ["View events", "צפייה באירועים"],
@@ -354,9 +362,28 @@ export class WiskeyAccessControl extends LitElement {
     };
     return labels[action] ? this.text(...labels[action]) : action;
   }
+  private matchesAccount(user: DirectoryUser) {
+    const query = this._query.trim().toLocaleLowerCase();
+    if (query && !`${user.name} ${user.id}`.toLocaleLowerCase().includes(query)) return false;
+    const policy = this.policy(user.id);
+    const granted =
+      user.active &&
+      (user.admin ||
+        (policy.enabled && Object.values(policy.areas).some((level) => level !== "none")));
+    if (this._grantFilter === "granted") return granted;
+    if (this._grantFilter === "denied") return !granted;
+    if (this._grantFilter === "restricted")
+      return (
+        !user.admin &&
+        (policy.station_ids != null ||
+          Object.values(policy.fields ?? {}).some((level) => level !== "manage"))
+      );
+    return true;
+  }
   render() {
     if (!this.hass?.user?.is_admin) return nothing;
-    const users = this._settings?.directory ?? [];
+    const directory = this._settings?.directory ?? [];
+    const users = directory.filter((user) => this.matchesAccount(user));
     return html`<style>
         :host {
           display: block;
@@ -382,6 +409,31 @@ export class WiskeyAccessControl extends LitElement {
           display: grid;
           gap: 12px;
           margin-top: 18px;
+        }
+        .directory-tools {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: end;
+          margin-top: 16px;
+        }
+        .operator-query {
+          flex: 1;
+          min-width: min(100%, 220px);
+        }
+        .directory-tools input {
+          min-height: 42px;
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid var(--divider-color, #ccd7e5);
+          border-radius: 10px;
+          background: var(--card-background-color, #fff);
+          color: inherit;
+          padding: 0 10px;
+          font: inherit;
+        }
+        .account-count {
+          font-size: 0.88rem;
         }
         article {
           background: var(--card-background-color, #fff);
@@ -550,6 +602,39 @@ export class WiskeyAccessControl extends LitElement {
           </div>
         </div>
         ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${this._saved ? html`<p class="notice" role="status">${this.text("Permissions saved and applied immediately.", "ההרשאות נשמרו והוחלו מיד.")}</p>` : nothing}
+        <div class="directory-tools">
+          <label class="operator-query"
+            >${this.text("Find an account", "חיפוש חשבון")}
+            <input
+              type="search"
+              aria-label=${this.text("Find an account", "חיפוש חשבון")}
+              .value=${this._query}
+              @input=${(event: Event) => {
+                this._query = (event.target as HTMLInputElement).value;
+              }}
+              placeholder=${this.text("Name or account ID", "שם או מזהה חשבון")}
+            />
+          </label>
+          <label
+            >${this.text("Account access", "גישה לחשבון")}
+            <select
+              aria-label=${this.text("Account access", "גישה לחשבון")}
+              .value=${this._grantFilter}
+              @change=${(event: Event) => {
+                this._grantFilter = (event.target as HTMLSelectElement).value;
+              }}
+            >
+              <option value="all">${this.text("All accounts", "כל החשבונות")}</option>
+              <option value="granted">${this.text("With access", "בעלי גישה")}</option>
+              <option value="restricted">${this.text("With restrictions", "עם הגבלות")}</option>
+              <option value="denied">${this.text("Without access", "ללא גישה")}</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint account-count" aria-live="polite">
+          ${this.text(`${users.length} of ${directory.length} accounts · Saving includes hidden accounts and their changes.`, `${users.length} מתוך ${directory.length} חשבונות · השמירה כוללת גם חשבונות שהוסתרו במסנן והשינויים בהם.`)}
+        </p>
+        ${this._settings && !users.length ? html`<p class="hint">${this.text("No accounts match this search and filter.", "אין חשבונות התואמים לחיפוש ולסינון.")}</p>` : nothing}
         <div class="grid">
           ${users.map((user) => {
             const policy = this.policy(user.id);

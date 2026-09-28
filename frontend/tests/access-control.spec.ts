@@ -67,7 +67,7 @@ test("administrator previews unsaved effective actions and edits invalidate the 
     "true",
   );
   await expect(
-    preview.locator("span").filter({ hasText: "שינוי משתמשים והרשאות" }),
+    preview.locator("span").filter({ hasText: "עריכת פרטים כלליים של משתמש" }),
   ).toHaveAttribute("data-allowed", "false");
   expect(
     await page.evaluate(() =>
@@ -78,6 +78,6 @@ test("administrator previews unsaved effective actions and edits invalidate the 
   await expect(preview).toHaveCount(0);
   await reception.getByRole("button", { name: "תצוגה מקדימה של ההרשאות" }).click();
   await expect(
-    preview.locator("span").filter({ hasText: "שינוי משתמשים והרשאות" }),
+    preview.locator("span").filter({ hasText: "עריכת פרטים כלליים של משתמש" }),
   ).toHaveAttribute("data-allowed", "true");
 });

@@ -12,6 +12,8 @@ Semantic Versioning is used throughout the project.
 - Retain station-reader card enrollment for permitted local identities. Bind collection to the operator, station and person, discard the private captured card after permission or assignment changes, and require a fresh authorized confirmation before saving.
 - Keep fleet alerts and maintenance controls usable for scoped operators, deriving counts and policy lists only from permitted stations while preserving outside presentation policies and device state.
 - Allow authorized scoped operators to synchronize a permitted station using saved NTP settings. Gate the compact clock controls by discovered commands; keep central NTP and host configuration outside restricted grants.
+- Extend the unsaved role preview with card enrollment, spoken broadcasts, station maintenance and clock synchronization, using the command enforcement rules. Distinguish general identity editing from read-only access or credential fields.
+- Add account search and granted/restricted/denied filters to operator administration. Preserve unsaved changes and all hidden accounts in the complete revision-checked permission save.
 - Accept legacy permission storage and persist extended schema 2 on the next change. Shield permission commits against cancellation so durable and live grants cannot diverge. Add strict typing and transport/browser regressions, VMS scope documentation and focused owner checks. Infrastructure entity permissions remain a separate authorization layer.
 
 ## [2.0.0-rc.15] - 2026-09-28

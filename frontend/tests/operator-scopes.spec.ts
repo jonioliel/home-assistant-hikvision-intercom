@@ -1,6 +1,80 @@
 import { test, expect, type Page } from "@playwright/test";
 import { navigate } from "./navigation";
 
+test("account filters retain edits to hidden operators when saving the full grant map", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?lang=he");
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.demoHass.callWS = async function (message) {
+      const result = await base.call(this, message);
+      if (
+        message.type.endsWith("authorization/settings_get") ||
+        message.type.endsWith("authorization/settings_update")
+      ) {
+        result.directory.push({
+          id: "technician",
+          name: "Technician",
+          active: true,
+          admin: false,
+          owner: false,
+        });
+        if (message.type.endsWith("authorization/settings_get"))
+          result.users.technician = {
+            enabled: true,
+            areas: {
+              overview: "view",
+              users: "none",
+              events: "view",
+              stations: "manage",
+              management: "none",
+            },
+            station_ids: ["station-0"],
+            fields: {
+              phone: "manage",
+              photo: "manage",
+              credentials: "manage",
+              profile: "manage",
+              access: "manage",
+            },
+          };
+      }
+      return result;
+    };
+  });
+  await navigate(page, "הרשאות משתמשי תשתית המערכת");
+  const view = page.locator("wiskey-access-control");
+  await expect(view.locator("article")).toHaveCount(3);
+  await view.getByLabel("גישה לחשבון", { exact: true }).selectOption("denied");
+  await expect(view.locator("article")).toHaveCount(1);
+  await view.getByLabel("תבנית תפקיד עבור Reception").selectOption("security");
+  await expect(view.locator("article")).toHaveCount(0);
+  await expect(view.getByText("אין חשבונות התואמים לחיפוש ולסינון.")).toBeVisible();
+  await view.getByLabel("גישה לחשבון", { exact: true }).selectOption("restricted");
+  await expect(view.locator("article")).toHaveCount(1);
+  await expect(view.locator("article")).toContainText("Technician");
+  await view.getByRole("searchbox", { name: "חיפוש חשבון" }).fill("missing account");
+  await expect(view.locator("article")).toHaveCount(0);
+  await view.getByRole("searchbox", { name: "חיפוש חשבון" }).fill("tech");
+  await expect(view.locator("article")).toHaveCount(1);
+  expect(
+    await view.evaluate((element) => element.scrollWidth - element.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  await view.getByRole("button", { name: "שמירת הרשאות" }).click();
+  await expect(view.getByRole("status")).toContainText("ההרשאות נשמרו והוחלו מיד.");
+  const saved = await page.evaluate(
+    () => window.calls.find((call) => call.type.endsWith("authorization/settings_update")).users,
+  );
+  expect(saved["reader-user"].areas.overview).toBe("manage");
+  expect(saved["reader-user"].areas.users).toBe("view");
+  expect(saved.technician.station_ids).toEqual(["station-0"]);
+  await view.getByRole("searchbox", { name: "חיפוש חשבון" }).fill("");
+  await view.getByLabel("גישה לחשבון", { exact: true }).selectOption("granted");
+  await expect(view.locator("article")).toHaveCount(3);
+});
+
 async function scopedOperator(page: Page, shared = false) {
   await page.goto(
     "/?reader=1&grant=overview:manage,users:manage,events:view,stations:view,management:view",
@@ -62,6 +136,18 @@ for (const width of [1440, 390]) {
     expect(
       await operator.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(1);
+    await operator.getByRole("button", { name: "תצוגה מקדימה של ההרשאות" }).click();
+    const preview = operator.locator(".permission-preview");
+    for (const [label, allowed] of [
+      ["קריאת כרטיס מהתחנה למשתמש", "false"],
+      ["ניהול תקופות תחזוקה והתראות", "false"],
+      ["סנכרון שעוני תחנות", "false"],
+      ["הקראת הודעה בתחנה", "true"],
+    ])
+      await expect(preview.locator("span").filter({ hasText: label })).toHaveAttribute(
+        "data-allowed",
+        allowed,
+      );
     await page.getByRole("button", { name: "שמירת הרשאות" }).click();
     await expect(page.getByText("ההרשאות נשמרו והוחלו מיד.")).toBeVisible();
     const saved = await page.evaluate(

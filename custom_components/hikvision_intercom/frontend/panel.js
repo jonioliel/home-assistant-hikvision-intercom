@@ -5616,7 +5616,7 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
                 >
                   ${this.t("next")}
                 </button>
-              </div>`:g}`:g}};customElements.define("hikvision-permission-directory",Uo);var av=["overview","users","events","stations","management"],$u=["phone","photo","credentials","profile","access"],ku=()=>Object.fromEntries($u.map(n=>[n,"manage"])),rv=()=>({enabled:!1,areas:{overview:"none",users:"none",events:"none",stations:"none",management:"none"},station_ids:null,fields:ku()}),wu={reception:{overview:"manage",users:"view",events:"view",stations:"none",management:"none"},security:{overview:"manage",users:"view",events:"manage",stations:"view",management:"none"},personnel:{overview:"view",users:"manage",events:"view",stations:"none",management:"none"},maintenance:{overview:"view",users:"none",events:"view",stations:"manage",management:"none"},auditor:{overview:"view",users:"view",events:"view",stations:"view",management:"view"}},Bo=class extends U{constructor(){super(...arguments);this._draft={};this._busy=!1;this._error="";this._saved=!1;this._previews={};this._previewBusy="";this.previewGeneration=0;this.mounted=!1}static{this.properties={hass:{attribute:!1},_settings:{state:!0},_draft:{state:!0},_busy:{state:!0},_error:{state:!0},_saved:{state:!0},_previews:{state:!0},_previewBusy:{state:!0}}}connectedCallback(){super.connectedCallback(),this.mounted=!0,this.load()}disconnectedCallback(){this.mounted=!1,this.previewGeneration++,this._previewBusy="",super.disconnectedCallback()}updated(e){e.has("hass")&&this.hass?.user?.is_admin&&!this._settings&&this.load()}he(){return this.hass?.language?.startsWith("he")??!1}text(e,i){return this.he()?i:e}async request(e,i={}){if(!this.hass?.user?.is_admin)throw{code:"unauthorized"};return this.hass.callWS({type:`hikvision_intercom/${e}`,...i})}clone(e){return structuredClone(e)}async load(){if(!(!this.hass?.user?.is_admin||this._busy)){this._busy=!0,this._error="";try{let e=await this.request("authorization/settings_get");if(!this.mounted)return;this._settings=e,this._draft=this.clone(e.users),this._previews={},this.previewGeneration++,this._previewBusy="",this._saved=!1}catch(e){this._error=String(e?.code??"failed")}finally{this._busy=!1}}}policy(e){return this._draft[e]??rv()}changeEnabled(e,i){this.invalidatePreview(e);let s=structuredClone(this.policy(e));s.enabled=i,i&&Object.values(s.areas).every(a=>a==="none")&&(s.areas.overview="view"),this._draft={...this._draft,[e]:s},this._saved=!1}changeLevel(e,i,s){this.invalidatePreview(e);let a=structuredClone(this.policy(e));a.areas[i]=s,a.enabled=Object.values(a.areas).some(r=>r!=="none"),this._draft={...this._draft,[e]:a},this._saved=!1}applyPreset(e,i){let s=wu[i];s&&(this.invalidatePreview(e),this._draft={...this._draft,[e]:{...structuredClone(this.policy(e)),enabled:!0,areas:{...s}}},this._saved=!1)}async save(){if(!(!this._settings||this._busy)){this._busy=!0,this._error="",this._saved=!1;try{let e=await this.request("authorization/settings_update",{revision:this._settings.revision,users:this._draft});this._settings=e,this._draft=this.clone(e.users),this._previews={},this.previewGeneration++,this._previewBusy="",this._saved=!0}catch(e){let i=String(e?.code??"failed");this._error=i==="revision_conflict"?this.text("Permissions changed in another session. Reload and review before saving.","\u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05E9\u05EA\u05E0\u05D5 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D9\u05E9 \u05DC\u05E8\u05E2\u05E0\u05DF \u05D5\u05DC\u05D1\u05D3\u05D5\u05E7 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D9\u05E8\u05D4."):i}finally{this._busy=!1}}}areaLabel(e){let i={overview:["Overview and door control","\u05E1\u05E7\u05D9\u05E8\u05D4 \u05D5\u05E9\u05DC\u05D9\u05D8\u05D4 \u05D1\u05D3\u05DC\u05EA\u05D5\u05EA"],users:["Users","\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],events:["Events and reports","\u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD \u05D5\u05D3\u05D5\u05D7\u05D5\u05EA"],stations:["Intercom stations","\u05EA\u05D7\u05E0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05E8\u05E7\u05D5\u05DD"],management:["Management tools","\u05DB\u05DC\u05D9 \u05E0\u05D9\u05D4\u05D5\u05DC"]};return this.text(...i[e])}changeScope(e,i){this.invalidatePreview(e),this._draft={...this._draft,[e]:{...structuredClone(this.policy(e)),station_ids:i}},this._saved=!1}changeField(e,i,s){this.invalidatePreview(e);let a=structuredClone(this.policy(e));a.fields={...a.fields??ku(),[i]:s},this._draft={...this._draft,[e]:a},this._saved=!1}fieldLabel(e){let i={phone:["Contact phone","\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8"],photo:["Person photo","\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9"],credentials:["PIN and cards","\u05E7\u05D5\u05D3 \u05D0\u05D9\u05E9\u05D9 \u05D5\u05DB\u05E8\u05D8\u05D9\u05E1\u05D9\u05DD"],profile:["Custom person fields","\u05E9\u05D3\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9 \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD"],access:["Access rights and validity","\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05DB\u05E0\u05D9\u05E1\u05D4 \u05D5\u05EA\u05D5\u05E7\u05E3"]};return this.text(...i[e])}scopeEditor(e,i){let s=this._settings?.stations;if(!s)return g;let a=i.station_ids,r=this._busy||!e.active||!i.enabled;return u`<details class="scope-editor">
+              </div>`:g}`:g}};customElements.define("hikvision-permission-directory",Uo);var av=["overview","users","events","stations","management"],$u=["phone","photo","credentials","profile","access"],ku=()=>Object.fromEntries($u.map(n=>[n,"manage"])),rv=()=>({enabled:!1,areas:{overview:"none",users:"none",events:"none",stations:"none",management:"none"},station_ids:null,fields:ku()}),wu={reception:{overview:"manage",users:"view",events:"view",stations:"none",management:"none"},security:{overview:"manage",users:"view",events:"manage",stations:"view",management:"none"},personnel:{overview:"view",users:"manage",events:"view",stations:"none",management:"none"},maintenance:{overview:"view",users:"none",events:"view",stations:"manage",management:"none"},auditor:{overview:"view",users:"view",events:"view",stations:"view",management:"view"}},Bo=class extends U{constructor(){super(...arguments);this._draft={};this._busy=!1;this._error="";this._saved=!1;this._previews={};this._previewBusy="";this._query="";this._grantFilter="all";this.previewGeneration=0;this.mounted=!1}static{this.properties={hass:{attribute:!1},_settings:{state:!0},_draft:{state:!0},_busy:{state:!0},_error:{state:!0},_saved:{state:!0},_previews:{state:!0},_previewBusy:{state:!0},_query:{state:!0},_grantFilter:{state:!0}}}connectedCallback(){super.connectedCallback(),this.mounted=!0,this.load()}disconnectedCallback(){this.mounted=!1,this.previewGeneration++,this._previewBusy="",super.disconnectedCallback()}updated(e){e.has("hass")&&this.hass?.user?.is_admin&&!this._settings&&this.load()}he(){return this.hass?.language?.startsWith("he")??!1}text(e,i){return this.he()?i:e}async request(e,i={}){if(!this.hass?.user?.is_admin)throw{code:"unauthorized"};return this.hass.callWS({type:`hikvision_intercom/${e}`,...i})}clone(e){return structuredClone(e)}async load(){if(!(!this.hass?.user?.is_admin||this._busy)){this._busy=!0,this._error="";try{let e=await this.request("authorization/settings_get");if(!this.mounted)return;this._settings=e,this._draft=this.clone(e.users),this._previews={},this.previewGeneration++,this._previewBusy="",this._saved=!1}catch(e){this._error=String(e?.code??"failed")}finally{this._busy=!1}}}policy(e){return this._draft[e]??rv()}changeEnabled(e,i){this.invalidatePreview(e);let s=structuredClone(this.policy(e));s.enabled=i,i&&Object.values(s.areas).every(a=>a==="none")&&(s.areas.overview="view"),this._draft={...this._draft,[e]:s},this._saved=!1}changeLevel(e,i,s){this.invalidatePreview(e);let a=structuredClone(this.policy(e));a.areas[i]=s,a.enabled=Object.values(a.areas).some(r=>r!=="none"),this._draft={...this._draft,[e]:a},this._saved=!1}applyPreset(e,i){let s=wu[i];s&&(this.invalidatePreview(e),this._draft={...this._draft,[e]:{...structuredClone(this.policy(e)),enabled:!0,areas:{...s}}},this._saved=!1)}async save(){if(!(!this._settings||this._busy)){this._busy=!0,this._error="",this._saved=!1;try{let e=await this.request("authorization/settings_update",{revision:this._settings.revision,users:this._draft});this._settings=e,this._draft=this.clone(e.users),this._previews={},this.previewGeneration++,this._previewBusy="",this._saved=!0}catch(e){let i=String(e?.code??"failed");this._error=i==="revision_conflict"?this.text("Permissions changed in another session. Reload and review before saving.","\u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05E9\u05EA\u05E0\u05D5 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D0\u05D7\u05E8. \u05D9\u05E9 \u05DC\u05E8\u05E2\u05E0\u05DF \u05D5\u05DC\u05D1\u05D3\u05D5\u05E7 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D9\u05E8\u05D4."):i}finally{this._busy=!1}}}areaLabel(e){let i={overview:["Overview and door control","\u05E1\u05E7\u05D9\u05E8\u05D4 \u05D5\u05E9\u05DC\u05D9\u05D8\u05D4 \u05D1\u05D3\u05DC\u05EA\u05D5\u05EA"],users:["Users","\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],events:["Events and reports","\u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD \u05D5\u05D3\u05D5\u05D7\u05D5\u05EA"],stations:["Intercom stations","\u05EA\u05D7\u05E0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05E8\u05E7\u05D5\u05DD"],management:["Management tools","\u05DB\u05DC\u05D9 \u05E0\u05D9\u05D4\u05D5\u05DC"]};return this.text(...i[e])}changeScope(e,i){this.invalidatePreview(e),this._draft={...this._draft,[e]:{...structuredClone(this.policy(e)),station_ids:i}},this._saved=!1}changeField(e,i,s){this.invalidatePreview(e);let a=structuredClone(this.policy(e));a.fields={...a.fields??ku(),[i]:s},this._draft={...this._draft,[e]:a},this._saved=!1}fieldLabel(e){let i={phone:["Contact phone","\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8"],photo:["Person photo","\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9"],credentials:["PIN and cards","\u05E7\u05D5\u05D3 \u05D0\u05D9\u05E9\u05D9 \u05D5\u05DB\u05E8\u05D8\u05D9\u05E1\u05D9\u05DD"],profile:["Custom person fields","\u05E9\u05D3\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9 \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD"],access:["Access rights and validity","\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05DB\u05E0\u05D9\u05E1\u05D4 \u05D5\u05EA\u05D5\u05E7\u05E3"]};return this.text(...i[e])}scopeEditor(e,i){let s=this._settings?.stations;if(!s)return g;let a=i.station_ids,r=this._busy||!e.active||!i.enabled;return u`<details class="scope-editor">
       <summary>
         ${this.text("Stations and person fields","\u05EA\u05D7\u05E0\u05D5\u05EA \u05D5\u05E9\u05D3\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9")} ·
         ${a==null?this.text("All stations","\u05DB\u05DC \u05D4\u05EA\u05D7\u05E0\u05D5\u05EA"):this.text(`${a.length} selected`,`${a.length} \u05EA\u05D7\u05E0\u05D5\u05EA \u05E0\u05D1\u05D7\u05E8\u05D5\u05EA`)}
@@ -5657,7 +5657,7 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
       <p class="hint">
         ${this.text("Field permissions further limit the Users screen grant; they never grant access to a screen by themselves.","\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05E9\u05D3\u05D5\u05EA \u05DE\u05E6\u05DE\u05E6\u05DE\u05D5\u05EA \u05D0\u05EA \u05D4\u05E8\u05E9\u05D0\u05EA \u05DE\u05E1\u05DA \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD; \u05D4\u05DF \u05D0\u05D9\u05E0\u05DF \u05DE\u05E2\u05E0\u05D9\u05E7\u05D5\u05EA \u05D2\u05D9\u05E9\u05D4 \u05DC\u05DE\u05E1\u05DA \u05D1\u05E2\u05E6\u05DE\u05DF.")}
       </p>
-    </details>`}levelLabel(e){let i={none:["No access","\u05DC\u05DC\u05D0 \u05D2\u05D9\u05E9\u05D4"],view:["View only","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DC\u05D1\u05D3"],manage:["View and manage","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D5\u05E0\u05D9\u05D4\u05D5\u05DC"]};return this.text(...i[e])}invalidatePreview(e){if(this.previewGeneration++,this._previewBusy="",this._previews[e]){let i={...this._previews};delete i[e],this._previews=i}}async preview(e){if(this._busy||this._previewBusy)return;let i=++this.previewGeneration;this._previewBusy=e,this._error="";try{let s=await this.request("authorization/preview",{policy:this.policy(e)});this.mounted&&this.hass?.user?.is_admin&&i===this.previewGeneration&&(this._previews={...this._previews,[e]:s})}catch{this.mounted&&i===this.previewGeneration&&(this._error=this.text("Could not preview these permissions.","\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E6\u05D9\u05D2 \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D0\u05DC\u05D5."))}finally{i===this.previewGeneration&&(this._previewBusy="")}}actionLabel(e){let i={door_unlock:["Open doors","\u05E4\u05EA\u05D9\u05D7\u05EA \u05D3\u05DC\u05EA\u05D5\u05EA"],station_view:["View stations","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05EA\u05D7\u05E0\u05D5\u05EA"],station_settings:["Change station settings","\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05EA\u05D7\u05E0\u05D5\u05EA"],people_view:["View people","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],people_edit:["Change people and access","\u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D5\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA"],people_export:["Export people","\u05D9\u05D9\u05E6\u05D5\u05D0 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],whatsapp_send:["Send WhatsApp messages","\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA WhatsApp"],events_view:["View events","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],events_export:["Export events","\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],event_capture:["Capture event traces","\u05DC\u05DB\u05D9\u05D3\u05EA \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],system_settings:["Change system settings","\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA"]};return i[e]?this.text(...i[e]):e}render(){if(!this.hass?.user?.is_admin)return g;let e=this._settings?.directory??[];return u`<style>
+    </details>`}levelLabel(e){let i={none:["No access","\u05DC\u05DC\u05D0 \u05D2\u05D9\u05E9\u05D4"],view:["View only","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DC\u05D1\u05D3"],manage:["View and manage","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D5\u05E0\u05D9\u05D4\u05D5\u05DC"]};return this.text(...i[e])}invalidatePreview(e){if(this.previewGeneration++,this._previewBusy="",this._previews[e]){let i={...this._previews};delete i[e],this._previews=i}}async preview(e){if(this._busy||this._previewBusy)return;let i=++this.previewGeneration;this._previewBusy=e,this._error="";try{let s=await this.request("authorization/preview",{policy:this.policy(e)});this.mounted&&this.hass?.user?.is_admin&&i===this.previewGeneration&&(this._previews={...this._previews,[e]:s})}catch{this.mounted&&i===this.previewGeneration&&(this._error=this.text("Could not preview these permissions.","\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E6\u05D9\u05D2 \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05DC\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D0\u05DC\u05D5."))}finally{i===this.previewGeneration&&(this._previewBusy="")}}actionLabel(e){let i={door_unlock:["Open doors","\u05E4\u05EA\u05D9\u05D7\u05EA \u05D3\u05DC\u05EA\u05D5\u05EA"],station_view:["View stations","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05EA\u05D7\u05E0\u05D5\u05EA"],station_settings:["Change station settings","\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05EA\u05D7\u05E0\u05D5\u05EA"],station_maintenance:["Manage station alert periods","\u05E0\u05D9\u05D4\u05D5\u05DC \u05EA\u05E7\u05D5\u05E4\u05D5\u05EA \u05EA\u05D7\u05D6\u05D5\u05E7\u05D4 \u05D5\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA"],station_clock:["Synchronize station clocks","\u05E1\u05E0\u05DB\u05E8\u05D5\u05DF \u05E9\u05E2\u05D5\u05E0\u05D9 \u05EA\u05D7\u05E0\u05D5\u05EA"],tts_broadcast:["Broadcast a spoken message","\u05D4\u05E7\u05E8\u05D0\u05EA \u05D4\u05D5\u05D3\u05E2\u05D4 \u05D1\u05EA\u05D7\u05E0\u05D4"],people_view:["View people","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],people_edit:["Edit general person details","\u05E2\u05E8\u05D9\u05DB\u05EA \u05E4\u05E8\u05D8\u05D9\u05DD \u05DB\u05DC\u05DC\u05D9\u05D9\u05DD \u05E9\u05DC \u05DE\u05E9\u05EA\u05DE\u05E9"],card_capture:["Enroll cards from a station","\u05E7\u05E8\u05D9\u05D0\u05EA \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05D4\u05EA\u05D7\u05E0\u05D4 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9"],people_export:["Export people","\u05D9\u05D9\u05E6\u05D5\u05D0 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD"],whatsapp_send:["Send WhatsApp messages","\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA WhatsApp"],events_view:["View events","\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],events_export:["Export events","\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],event_capture:["Capture event traces","\u05DC\u05DB\u05D9\u05D3\u05EA \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD"],system_settings:["Change system settings","\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA"]};return i[e]?this.text(...i[e]):e}matchesAccount(e){let i=this._query.trim().toLocaleLowerCase();if(i&&!`${e.name} ${e.id}`.toLocaleLowerCase().includes(i))return!1;let s=this.policy(e.id),a=e.active&&(e.admin||s.enabled&&Object.values(s.areas).some(r=>r!=="none"));return this._grantFilter==="granted"?a:this._grantFilter==="denied"?!a:this._grantFilter==="restricted"?!e.admin&&(s.station_ids!=null||Object.values(s.fields??{}).some(r=>r!=="manage")):!0}render(){if(!this.hass?.user?.is_admin)return g;let e=this._settings?.directory??[],i=e.filter(s=>this.matchesAccount(s));return u`<style>
         :host {
           display: block;
           color: var(--primary-text-color, #172633);
@@ -5682,6 +5682,31 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
           display: grid;
           gap: 12px;
           margin-top: 18px;
+        }
+        .directory-tools {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: end;
+          margin-top: 16px;
+        }
+        .operator-query {
+          flex: 1;
+          min-width: min(100%, 220px);
+        }
+        .directory-tools input {
+          min-height: 42px;
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid var(--divider-color, #ccd7e5);
+          border-radius: 10px;
+          background: var(--card-background-color, #fff);
+          color: inherit;
+          padding: 0 10px;
+          font: inherit;
+        }
+        .account-count {
+          font-size: 0.88rem;
         }
         article {
           background: var(--card-background-color, #fff);
@@ -5850,24 +5875,53 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
           </div>
         </div>
         ${this._error?u`<p class="notice error" role="alert">${this._error}</p>`:g}${this._saved?u`<p class="notice" role="status">${this.text("Permissions saved and applied immediately.","\u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5 \u05D5\u05D4\u05D5\u05D7\u05DC\u05D5 \u05DE\u05D9\u05D3.")}</p>`:g}
+        <div class="directory-tools">
+          <label class="operator-query"
+            >${this.text("Find an account","\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D7\u05E9\u05D1\u05D5\u05DF")}
+            <input
+              type="search"
+              aria-label=${this.text("Find an account","\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D7\u05E9\u05D1\u05D5\u05DF")}
+              .value=${this._query}
+              @input=${s=>{this._query=s.target.value}}
+              placeholder=${this.text("Name or account ID","\u05E9\u05DD \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF")}
+            />
+          </label>
+          <label
+            >${this.text("Account access","\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF")}
+            <select
+              aria-label=${this.text("Account access","\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF")}
+              .value=${this._grantFilter}
+              @change=${s=>{this._grantFilter=s.target.value}}
+            >
+              <option value="all">${this.text("All accounts","\u05DB\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA")}</option>
+              <option value="granted">${this.text("With access","\u05D1\u05E2\u05DC\u05D9 \u05D2\u05D9\u05E9\u05D4")}</option>
+              <option value="restricted">${this.text("With restrictions","\u05E2\u05DD \u05D4\u05D2\u05D1\u05DC\u05D5\u05EA")}</option>
+              <option value="denied">${this.text("Without access","\u05DC\u05DC\u05D0 \u05D2\u05D9\u05E9\u05D4")}</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint account-count" aria-live="polite">
+          ${this.text(`${i.length} of ${e.length} accounts \xB7 Saving includes hidden accounts and their changes.`,`${i.length} \u05DE\u05EA\u05D5\u05DA ${e.length} \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \xB7 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DB\u05D5\u05DC\u05DC\u05EA \u05D2\u05DD \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E9\u05D4\u05D5\u05E1\u05EA\u05E8\u05D5 \u05D1\u05DE\u05E1\u05E0\u05DF \u05D5\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05D4\u05DD.`)}
+        </p>
+        ${this._settings&&!i.length?u`<p class="hint">${this.text("No accounts match this search and filter.","\u05D0\u05D9\u05DF \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05D4\u05EA\u05D5\u05D0\u05DE\u05D9\u05DD \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D5\u05DC\u05E1\u05D9\u05E0\u05D5\u05DF.")}</p>`:g}
         <div class="grid">
-          ${e.map(i=>{let s=this.policy(i.id);return u`<article>
+          ${i.map(s=>{let a=this.policy(s.id);return u`<article>
               <div class="person-head">
                 <div>
-                  <span class="person">${i.name||i.id}</span>
-                  ${i.owner?u`<span class="badge">${this.text("Owner","\u05D1\u05E2\u05DC\u05D9\u05DD")}</span>`:g}
-                  ${i.admin?u`<span class="badge">${this.text("Administrator","\u05DE\u05E0\u05D4\u05DC")}</span>`:g}
-                  ${i.active?g:u`<span class="badge inactive">${this.text("Inactive","\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC")}</span>`}
+                  <span class="person">${s.name||s.id}</span>
+                  ${s.owner?u`<span class="badge">${this.text("Owner","\u05D1\u05E2\u05DC\u05D9\u05DD")}</span>`:g}
+                  ${s.admin?u`<span class="badge">${this.text("Administrator","\u05DE\u05E0\u05D4\u05DC")}</span>`:g}
+                  ${s.active?g:u`<span class="badge inactive">${this.text("Inactive","\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC")}</span>`}
                 </div>
-                ${i.admin?u`<span class="hint">${this.text("Full access from system infrastructure","\u05D2\u05D9\u05E9\u05D4 \u05DE\u05DC\u05D0\u05D4 \u05DE\u05DB\u05D5\u05D7 \u05D4\u05E8\u05E9\u05D0\u05EA \u05DE\u05E0\u05D4\u05DC \u05D1\u05EA\u05E9\u05EA\u05D9\u05EA \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA")}</span>`:u`<label class="switch"><input type="checkbox" .checked=${s.enabled} ?disabled=${this._busy||!i.active} @change=${a=>this.changeEnabled(i.id,a.target.checked)} />${this.text("Allow WisKey access","\u05DE\u05EA\u05DF \u05D2\u05D9\u05E9\u05D4 \u05DC\u05BEWisKey")}</label>`}
+                ${s.admin?u`<span class="hint">${this.text("Full access from system infrastructure","\u05D2\u05D9\u05E9\u05D4 \u05DE\u05DC\u05D0\u05D4 \u05DE\u05DB\u05D5\u05D7 \u05D4\u05E8\u05E9\u05D0\u05EA \u05DE\u05E0\u05D4\u05DC \u05D1\u05EA\u05E9\u05EA\u05D9\u05EA \u05D4\u05DE\u05E2\u05E8\u05DB\u05EA")}</span>`:u`<label class="switch"><input type="checkbox" .checked=${a.enabled} ?disabled=${this._busy||!s.active} @change=${r=>this.changeEnabled(s.id,r.target.checked)} />${this.text("Allow WisKey access","\u05DE\u05EA\u05DF \u05D2\u05D9\u05E9\u05D4 \u05DC\u05BEWisKey")}</label>`}
               </div>
-              ${i.admin?g:u`<label class="hint"
+              ${s.admin?g:u`<label class="hint"
                         >${this.text("Role template","\u05EA\u05D1\u05E0\u05D9\u05EA \u05EA\u05E4\u05E7\u05D9\u05D3")}
                         <select
-                          aria-label=${this.text("Role template for ","\u05EA\u05D1\u05E0\u05D9\u05EA \u05EA\u05E4\u05E7\u05D9\u05D3 \u05E2\u05D1\u05D5\u05E8 ")+(i.name||i.id)}
-                          ?disabled=${this._busy||!i.active}
-                          .value=${Object.entries(wu).find(([,a])=>JSON.stringify(a)===JSON.stringify(s.areas))?.[0]??"custom"}
-                          @change=${a=>this.applyPreset(i.id,a.target.value)}
+                          aria-label=${this.text("Role template for ","\u05EA\u05D1\u05E0\u05D9\u05EA \u05EA\u05E4\u05E7\u05D9\u05D3 \u05E2\u05D1\u05D5\u05E8 ")+(s.name||s.id)}
+                          ?disabled=${this._busy||!s.active}
+                          .value=${Object.entries(wu).find(([,r])=>JSON.stringify(r)===JSON.stringify(a.areas))?.[0]??"custom"}
+                          @change=${r=>this.applyPreset(s.id,r.target.value)}
                         >
                           <option value="custom">${this.text("Custom","\u05DE\u05D5\u05EA\u05D0\u05DD \u05D0\u05D9\u05E9\u05D9\u05EA")}</option>
                           <option value="reception">${this.text("Reception","\u05E7\u05D1\u05DC\u05D4")}</option>
@@ -5878,25 +5932,25 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
                         </select></label
                       >
                       <div class="areas">
-                        ${av.map(a=>u`<label
-                              >${this.areaLabel(a)}<select
-                                .value=${s.areas[a]}
-                                ?disabled=${this._busy||!i.active||!s.enabled}
-                                @change=${r=>this.changeLevel(i.id,a,r.target.value)}
+                        ${av.map(r=>u`<label
+                              >${this.areaLabel(r)}<select
+                                .value=${a.areas[r]}
+                                ?disabled=${this._busy||!s.active||!a.enabled}
+                                @change=${o=>this.changeLevel(s.id,r,o.target.value)}
                               >
-                                ${["none","view","manage"].map(r=>u`<option value=${r}>${this.levelLabel(r)}</option>`)}
+                                ${["none","view","manage"].map(o=>u`<option value=${o}>${this.levelLabel(o)}</option>`)}
                               </select></label
                             >`)}
                       </div>
-                      ${this.scopeEditor(i,s)}
+                      ${this.scopeEditor(s,a)}
                       <button
                         type="button"
-                        ?disabled=${this._busy||!!this._previewBusy||!i.active}
-                        @click=${()=>this.preview(i.id)}
+                        ?disabled=${this._busy||!!this._previewBusy||!s.active}
+                        @click=${()=>this.preview(s.id)}
                       >
-                        ${this._previewBusy===i.id?this.text("Checking\u2026","\u05D1\u05D5\u05D3\u05E7\u2026"):this.text("Preview effective access","\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA")}
+                        ${this._previewBusy===s.id?this.text("Checking\u2026","\u05D1\u05D5\u05D3\u05E7\u2026"):this.text("Preview effective access","\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA")}
                       </button>
-                      ${this._previews[i.id]?u`<div
+                      ${this._previews[s.id]?u`<div
                               class="permission-preview"
                               aria-label=${this.text("Effective access preview","\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D2\u05D9\u05E9\u05D4 \u05D1\u05E4\u05D5\u05E2\u05DC")}
                             >
@@ -5907,7 +5961,7 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),c.length&&this.log(`Remo
                                 ${this.text("Based on the unsaved selection. Changes take effect only after saving; the user must also be active.","\u05DC\u05E4\u05D9 \u05D4\u05D1\u05D7\u05D9\u05E8\u05D4 \u05E9\u05D8\u05E8\u05DD \u05E0\u05E9\u05DE\u05E8\u05D4. \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D9\u05D7\u05D5\u05DC \u05E8\u05E7 \u05DC\u05D0\u05D7\u05E8 \u05E9\u05DE\u05D9\u05E8\u05D4, \u05D5\u05D1\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D4\u05DE\u05E9\u05EA\u05DE\u05E9 \u05E4\u05E2\u05D9\u05DC.")}
                               </p>
                               <div class="preview-actions">
-                                ${Object.entries(this._previews[i.id].actions).map(([a,r])=>u`<span data-allowed=${r?"true":"false"}>${r?"\u2713":"\u2014"} ${this.actionLabel(a)}</span>`)}
+                                ${Object.entries(this._previews[s.id].actions).map(([r,o])=>u`<span data-allowed=${o?"true":"false"}>${o?"\u2713":"\u2014"} ${this.actionLabel(r)}</span>`)}
                               </div>
                             </div>`:g}`}
             </article>`})}

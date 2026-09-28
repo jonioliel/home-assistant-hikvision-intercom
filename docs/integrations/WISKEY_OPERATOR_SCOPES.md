@@ -39,6 +39,10 @@ Call `authorization/session`, then `overview`. Both return the scope and permiss
 
 `authorization/preview` accepts an unsaved policy and returns effective actions, station IDs, fields and restriction state. Preview grants nothing. `authorization/settings_update` remains administrator-only, replacing the complete policy map with the current revision. Refetch and preserve other users; stale saves return `revision_conflict`.
 
+The action map also covers station card enrollment (`card_capture`), alert maintenance periods (`station_maintenance`), station clock synchronization (`station_clock`) and spoken broadcasts (`tts_broadcast`). These use the same field, station-scope and area rules as their commands. A permitted command is still subject to its target identity, station availability and revision checks. `people_edit` describes general identity edits; it does not override read-only access or credential fields.
+
+The administration screen can filter the eligible directory by name/ID and granted, restricted or denied access. These are presentation filters only: they do not remove grants or draft edits, and saving still submits the complete policy map. A VMS replica must preserve hidden accounts in exactly the same way.
+
 Persistence completes before publishing live rules. Cancellation cannot release the permission lock during saving; a failed save preserves old live grants. This ensures coherent durable/live authorization, not rollback of already-admitted device actions.
 
 ## Data projections
