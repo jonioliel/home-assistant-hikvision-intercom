@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: "./tests",
   testMatch: [
     "station-onboarding.spec.ts",
+    "station-lifecycle-review.spec.ts",
     "job-approval.spec.ts",
     "quality-metrics.spec.ts",
     "overview-summary.spec.ts",

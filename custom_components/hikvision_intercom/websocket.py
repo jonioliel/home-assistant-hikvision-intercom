@@ -82,6 +82,7 @@ COMMANDS = {
     "platform/save": {"collection": str, "record_id": str, "revision": int, "values": dict},
     "platform/delete": {"collection": str, "record_id": str, "revision": int},
     "platform/config_read": {"station_ids": list, "door": int},
+    "platform/lifecycle_review": {"source_id": str, "target_id": str},
     "platform/config_preview": {"station_ids": list, "door": int, "changes": dict},
     "platform/config_apply": {"review_id": str, "confirmed": bool},
     "platform/retention_preview": {"values": dict},

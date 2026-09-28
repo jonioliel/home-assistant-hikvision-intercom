@@ -1,4 +1,5 @@
 import "./station-onboarding";
+import "./station-lifecycle-review";
 import { LitElement, html, css, nothing, type PropertyValues } from "lit";
 import { styles } from "./styles";
 import { ScopedRequests } from "./request";
@@ -557,6 +558,7 @@ export class PlatformCenter extends LitElement {
       <article>
         <h3>${this.copy("Adding or replacing a station", "הוספת תחנה או החלפת ציוד")}</h3>
         <wiskey-station-onboarding .hass=${this.hass}></wiskey-station-onboarding>
+        ${this.data?.capabilities?.includes("station_lifecycle_review") ? html`<wiskey-station-lifecycle-review .hass=${this.hass} .catalog=${this.data.catalog}></wiskey-station-lifecycle-review>` : nothing}
         <ol>
           <li>
             ${this.copy("Add the station using the integration's existing setup wizard; it validates address and serial number.", "הוסף תחנה באשף ההתקנה הקיים; הוא מאמת כתובת ומספר סידורי.")}
