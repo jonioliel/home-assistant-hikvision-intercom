@@ -18,7 +18,7 @@ from typing import Any, TypeVar
 from uuid import uuid4
 
 from . import sync_tracking
-from .admin_audit import append_changes, current_actor, validate_storage
+from .admin_audit import append_changes, current_actor, current_reason_code, validate_storage
 from .models import AccessError, ManagedUser, build_user, utc_now
 
 T = TypeVar("T")
@@ -263,6 +263,7 @@ class AccessRepository:
 
     async def _commit(self, change: Callable[[dict[str, Any]], T], *, offload: bool = False) -> T:
         actor, action = current_actor()
+        reason_code = current_reason_code()
         async with self._lock:
 
             def prepare() -> tuple[dict[str, Any], T]:
@@ -270,7 +271,7 @@ class AccessRepository:
                 result = change(candidate)
                 self._validate_collisions(candidate)
                 sync_tracking.update(candidate)
-                append_changes(self._state, candidate, actor, action)
+                append_changes(self._state, candidate, actor, action, reason_code=reason_code)
                 return candidate, result
 
             offload = (
@@ -538,6 +539,23 @@ class AccessRepository:
         return await self._commit(
             lambda state: self._update_user(state, user_id, data, expected_revision)
         )
+
+    async def async_cancel_temporary(self, user_id: str, *, expected_revision: int) -> ManagedUser:
+        """Persist only disable intent, preserving credentials and all door/time rules."""
+
+        def cancel(state: dict[str, Any]) -> ManagedUser:
+            if user_id not in state["users"]:
+                raise AccessError("user_not_found")
+            previous = ManagedUser.from_private(state["users"][user_id])
+            if type(expected_revision) is not int or previous.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            if previous.access_category not in {"visitor", "contractor"}:
+                raise AccessError("temporary_user_required")
+            if not previous.active:
+                raise AccessError("temporary_already_inactive")
+            return self._update_user(state, user_id, {"active": False}, expected_revision)
+
+        return await self._commit(cancel)
 
     def _update_user(
         self, state: dict[str, Any], user_id: str, data: dict[str, Any], expected_revision: int

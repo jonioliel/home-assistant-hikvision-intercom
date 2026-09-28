@@ -6,7 +6,7 @@ For a VMS already running as a Home Assistant add-on, start with the [complete a
 
 ## Instructions for Claude implementing the VMS client
 
-Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all 134 panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.
+Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all registered panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.
 
 1. Create a dedicated, active **non-admin** Home Assistant account for the VMS, configure only the necessary WisKey area grants, and keep its token in the VMS backend secret store.
 2. Connect to `wss://<HA-host>/api/websocket`; answer `auth_required` with the token; correlate each command by its integer `id`. On reconnect, authenticate again and resubscribe.
@@ -52,7 +52,7 @@ Connection flow (the token is a placeholder, never commit it):
 {"id":2,"type":"hikvision_intercom/overview"}
 ```
 
-HA command replies have the standard envelope `{"id":2,"type":"result","success":true,"result":{...}}`. Failed commands use `success:false` and an `error.code`; never treat a WebSocket acknowledgement as proof that a physical action happened. `overview.result.api` contains the current `version`, `min_client`, `capabilities`, and **the commands authorized for the connected HA user**. The panel contract is currently version `1`; include `"api_contract":1` on write commands. The [source-derived catalog of all 134 panel commands and their required top-level fields](WISKEY_VMS_PANEL_COMMANDS.json) accompanies this document. Nested object schemas, allowed enum values, workflow tokens, and responses still require the WisKey source (`websocket.py`, `audio_api.py`, `audio_tts.py`); the catalog is not a standalone OpenAPI specification.
+HA command replies have the standard envelope `{"id":2,"type":"result","success":true,"result":{...}}`. Failed commands use `success:false` and an `error.code`; never treat a WebSocket acknowledgement as proof that a physical action happened. `overview.result.api` contains the current `version`, `min_client`, `capabilities`, and **the commands authorized for the connected HA user**. The panel contract is currently version `1`; include `"api_contract":1` on write commands. The [source-derived catalog of all registered panel commands and their required top-level fields](WISKEY_VMS_PANEL_COMMANDS.json) accompanies this document. Nested object schemas, allowed enum values, workflow tokens, and responses still require the WisKey source (`websocket.py`, `audio_api.py`, `audio_tts.py`); the catalog is not a standalone OpenAPI specification.
 
 ## Existing operations the VMS can call now
 
@@ -152,3 +152,7 @@ Until then, the current authenticated WebSocket commands are suitable for a cont
 - [Home Assistant apps/add-ons](https://developers.home-assistant.io/docs/apps/)
 - [Home Assistant camera entity](https://developers.home-assistant.io/docs/core/entity/camera)
 - [Home Assistant Recorder](https://www.home-assistant.io/integrations/recorder/)
+
+## Visit operations extension
+
+See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.

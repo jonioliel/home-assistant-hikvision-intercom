@@ -781,6 +781,14 @@ class AccessManager:
                 self.request(key)
         self._changed()
 
+    async def async_cancel_temporary(self, user_id: str, *, revision: int) -> dict[str, Any]:
+        # Disabling existing access does not require fresh firmware capability reads.
+        # Desired disable intent must be saved even when a station is disconnected.
+        user = await self.repository.async_cancel_temporary(user_id, expected_revision=revision)
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
     @staticmethod
     def _pending_users(state: dict[str, Any], station_id: str) -> set[str]:
         from .sync_tracking import pending_users

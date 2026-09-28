@@ -259,6 +259,7 @@ if (query.has("lifecycle")) {
       "users/duplicate_check",
       "users/create",
       "users/update",
+      ...(!query.has("legacy-cancellation") ? ["users/temporary_cancel"] : []),
       "support/bundle",
     ],
   };
@@ -299,6 +300,36 @@ if (query.has("paged")) {
   }
 }
 data.user_count = data.users.length;
+if (query.has("guest-templates")) {
+  data.api.capabilities.push("guest_visit_templates", "user_timing_enforcement");
+  data.api.commands.push("guest_templates/get", "guest_templates/upsert", "guest_templates/delete");
+}
+const guestTemplates = {
+  revision: 0,
+  items: query.has("guest-templates")
+    ? [
+        {
+          id: "a".repeat(32),
+          label: hebrew ? "תחזוקת שבוע" : "Weekly maintenance",
+          access_category: "contractor",
+          responsible_person: hebrew ? "מנהל אחזקה" : "Facilities",
+          access_purpose: hebrew ? "ביקורת" : "Inspection",
+          duration_minutes: 180,
+          doors: { "station-0": [1], "station-1": [1] },
+          weekly_timing: {
+            mode: "weekly",
+            timezone: "Asia/Jerusalem",
+            days: ["Monday", "Thursday"],
+            dates: [],
+            periods: [{ start: "12:00", end: "18:00" }],
+          },
+          updated_at: "2026-09-28T00:00:00Z",
+          updated_by: "admin",
+        },
+      ]
+    : [],
+};
+window.guestTemplates = guestTemplates;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -1032,6 +1063,7 @@ const fake = {
               (assignment) => assignment.enabled,
             ).length,
             timing_policy_configured: !!user.access_timing_policy,
+            assignment_states: structuredClone(user.assignments),
           };
         });
       const temporarySummary = Object.fromEntries(
@@ -1365,6 +1397,41 @@ const fake = {
       const user = data.users.find((item) => item.id === message.user_id);
       user.active = message.active;
       user.revision++;
+    }
+    if (command === "users/temporary_cancel") {
+      const user = data.users.find((item) => item.id === message.user_id);
+      if (message.revision !== user.revision) throw { code: "revision_conflict" };
+      if (!["visitor", "contractor"].includes(user.access_category))
+        throw { code: "temporary_user_required" };
+      if (!user.active) throw { code: "temporary_already_inactive" };
+      user.active = false;
+      user.revision++;
+      for (const assignment of Object.values(user.assignments)) {
+        assignment.sync_state = "pending";
+        assignment.desired_revision = user.revision;
+      }
+      callbacks.forEach((callback) => callback({ kind: "refresh" }));
+      return structuredClone(user);
+    }
+    if (command === "guest_templates/get") return structuredClone(guestTemplates);
+    if (command === "guest_templates/upsert" || command === "guest_templates/delete") {
+      if (message.revision !== guestTemplates.revision) throw { code: "revision_conflict" };
+      if (command.endsWith("delete"))
+        guestTemplates.items = guestTemplates.items.filter(
+          (item) => item.id !== message.template_id,
+        );
+      else {
+        const id = message.template_id || crypto.randomUUID().replaceAll("-", "");
+        guestTemplates.items = guestTemplates.items.filter((item) => item.id !== id);
+        guestTemplates.items.push({
+          ...structuredClone(message.values),
+          id,
+          updated_at: new Date().toISOString(),
+          updated_by: "admin",
+        });
+      }
+      guestTemplates.revision++;
+      return structuredClone(guestTemplates);
     }
     if (command === "stations/inventory")
       return [

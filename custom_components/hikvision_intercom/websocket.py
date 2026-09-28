@@ -67,6 +67,9 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "guest_templates/get": {},
+    "guest_templates/upsert": {"revision": int, "template_id": str, "values": dict},
+    "guest_templates/delete": {"revision": int, "template_id": str},
     "appearance/settings_get": {},
     "appearance/settings_update": {"revision": int, "default": str},
     "authorization/session": {},
@@ -226,6 +229,7 @@ COMMANDS = {
     "users/update": {"user_id": str, "revision": int, "data": dict},
     "users/delete": {"user_id": str, "revision": int},
     "users/set_active": {"user_id": str, "revision": int, "active": bool},
+    "users/temporary_cancel": {"user_id": str, "revision": int, "reason_code": str},
     "cards/add": {"user_id": str, "revision": int, "data": dict},
     "cards/remove": {"user_id": str, "revision": int, "card_id": str},
     "stations/clock_refresh": {"station_id": str},
@@ -388,7 +392,11 @@ async def _dispatch(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
-    with audit_actor(actor, command):
+    with audit_actor(
+        actor,
+        command,
+        reason_code=msg.get("reason_code") if command == "users/temporary_cancel" else None,
+    ):
         return await _dispatch_inner(hass, command, msg, actor=actor, user=user)
 
 
@@ -826,6 +834,12 @@ async def _dispatch_inner(
         return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command.startswith("guest_templates/"):
+        from .guest_templates_api import dispatch_templates
+
+        return await dispatch_templates(hass, command, msg, actor)
+    if command == "users/temporary_cancel":
+        return await manager.async_cancel_temporary(msg["user_id"], revision=msg["revision"])
     if command == "users/lifecycle":
         from .access.identity_lifecycle import report
 

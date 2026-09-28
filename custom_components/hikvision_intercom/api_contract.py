@@ -5,6 +5,7 @@ from .access.models import AccessError
 API_VERSION = 1
 MIN_CLIENT = 0  # Legacy clients remain compatible with the existing command shapes.
 CAPABILITIES = [
+    "guest_visit_templates",
     "employee_phone",
     "talk_mode",
     "event_portraits",
@@ -18,6 +19,7 @@ CAPABILITIES = [
     "operations_query",
     "intercom_tts",
     "identity_lifecycle",
+    "temporary_access_cancellation",
     "operational_readiness",
 ]
 
@@ -33,6 +35,7 @@ def contract(commands: list[str]) -> dict:
 
 READ_COMMANDS = frozenset(
     {
+        "guest_templates/get",
         "authorization/session",
         "appearance/settings_get",
         "authorization/settings_get",

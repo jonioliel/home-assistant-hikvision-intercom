@@ -96,7 +96,7 @@ The current API is the **WisKey panel contract v1**, not a frozen VMS v1 API. It
 }
 ~~~
 
-The arrays above are shortened examples. Call authorization/session and overview at login, check access.allowed and access.areas, then enable a control only if the matching command appears in api.commands. Most write requests carry api_contract:1. The complete, source-derived inventory of **134 management commands with required top-level field types** is [WISKEY_VMS_PANEL_COMMANDS.json](WISKEY_VMS_PANEL_COMMANDS.json). Separate handlers implement subscribe, audio/* and tts/*; their schemas and stateful behavior are not fully described by that JSON.
+The arrays above are shortened examples. Call authorization/session and overview at login, check access.allowed and access.areas, then enable a control only if the matching command appears in api.commands. Most write requests carry api_contract:1. The complete, source-derived inventory of **management commands with required top-level field types** is [WISKEY_VMS_PANEL_COMMANDS.json](WISKEY_VMS_PANEL_COMMANDS.json). Separate handlers implement subscribe, audio/* and tts/*; their schemas and stateful behavior are not fully described by that JSON.
 
 Use the response from the installed instance as the runtime authority. A command in this guide or catalog is not necessarily available to a low-privilege account or supported by every station.
 
@@ -253,8 +253,12 @@ For pixel-level matching, use current frontend components and CSS as the source 
 ## 12. Source index and companion documents
 
 - [Existing English VMS/API handoff](WISKEY_VMS_HANDOFF.md): architecture, storage and key command recipes.
-- [Full source-derived management command catalog](WISKEY_VMS_PANEL_COMMANDS.json): all 134 command names and required top-level fields.
+- [Full source-derived management command catalog](WISKEY_VMS_PANEL_COMMANDS.json): all registered command names and required top-level fields.
 - [WebSocket registry, dispatch and projections](../../custom_components/hikvision_intercom/websocket.py), [contract](../../custom_components/hikvision_intercom/api_contract.py), [permissions](../../custom_components/hikvision_intercom/panel_permissions.py).
 - [Frontend shell and screen router](../../frontend/src/panel.ts), [frontend data types](../../frontend/src/types.ts), [WisKey 04 style](../../frontend/src/wiskey-v4-styles.ts), [Hebrew strings](../../frontend/src/i18n.ts).
 - [MSE bridge](../../custom_components/hikvision_intercom/mse_api.py), [RTC bridge](../../custom_components/hikvision_intercom/rtc_api.py), [audio RPC](../../custom_components/hikvision_intercom/audio_api.py), [TTS RPC](../../custom_components/hikvision_intercom/audio_tts.py).
 - [Event retention and query](../../custom_components/hikvision_intercom/events.py), [safe user projection](../../custom_components/hikvision_intercom/access/models.py), [shared media settings](../../custom_components/hikvision_intercom/media_settings.py).
+
+## Visit operations extension
+
+See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.

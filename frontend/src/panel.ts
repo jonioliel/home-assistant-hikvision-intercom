@@ -74,6 +74,8 @@ import "./bulk-users";
 import "./admin-audit";
 import "./operations-center";
 import "./identity-lifecycle";
+import "./guest-templates";
+import { visitTimingSummary, type GuestTemplate } from "./guest-templates";
 import { matchingUsers, defaultFilters, type UserFilters } from "./user-filters";
 
 const settingsPath = "/config/integrations/integration/hikvision_intercom";
@@ -113,6 +115,9 @@ const managementWrites = new Set([
   "users/update",
   "users/delete",
   "users/set_active",
+  "users/temporary_cancel",
+  "guest_templates/upsert",
+  "guest_templates/delete",
   "users/csv_apply",
   "users/adopt",
   "users/delete_unmanaged",
@@ -1168,6 +1173,67 @@ export class IntercomManagerPanel extends LitElement {
   }
   private guestHasCredential() {
     return !!this._draft?.pin || !!this._draft?.cards.some((card) => card.enabled && card.card_no);
+  }
+  private applyGuestTemplate(template: GuestTemplate) {
+    const draft = this._draft;
+    if (!draft || this._dialog !== "guest" || !this.canManage("users") || this._busy) return;
+    const stations = this._data?.stations ?? [];
+    if (
+      Object.entries(template.doors).some(
+        ([id, locks]) =>
+          !stations.some(
+            (station) =>
+              station.id === id &&
+              station.lock_enabled &&
+              locks.every((lock) =>
+                station.integrated_locks.some((configured) => configured.physical_index === lock),
+              ),
+          ),
+      )
+    ) {
+      this._error = this.t("guest_template_stale");
+      return;
+    }
+    if (
+      template.weekly_timing &&
+      !this._data?.api?.capabilities.includes("user_timing_enforcement")
+    ) {
+      this._error = this.t("operation_unsupported");
+      return;
+    }
+    try {
+      const zone = this.validityZone();
+      const start = fromLocalInput(this._validityFrom, zone);
+      if (!start) throw new Error("invalid_validity");
+      const end = new Date(Date.parse(start) + template.duration_minutes * 60000).toISOString();
+      if (end > "2037-12-31T23:59:59.000Z") throw new Error("invalid_validity");
+      draft.access_category = template.access_category;
+      draft.responsible_person = template.responsible_person;
+      draft.access_purpose = template.access_purpose;
+      draft.timed = true;
+      draft.valid_from = start;
+      draft.valid_until = end;
+      this._validityUntil = localInput(end, zone);
+      draft.assignments = Object.fromEntries(
+        Object.entries(template.doors).map(([id, locks]) => [
+          id,
+          { enabled: true, allowed_locks: [...locks], sync_state: "pending" },
+        ]),
+      );
+      draft.permission_overrides = Object.fromEntries(
+        stations.map((station) => [station.id, template.doors[station.id] ? "allow" : "deny"]),
+      );
+      draft.access_timing_draft = template.weekly_timing
+        ? structuredClone(template.weekly_timing)
+        : undefined;
+      draft.access_timing_policy = null;
+      this._timingEnforcement = template.weekly_timing ? "ha" : "draft";
+      this._error = "";
+      this._notice = this.t("guest_template_applied");
+      this.requestUpdate();
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+    }
   }
   private guestToggleLock(stationId: string, physicalIndex: number, enabled: boolean) {
     const assignment = this._draft?.assignments[stationId];
@@ -2710,7 +2776,7 @@ export class IntercomManagerPanel extends LitElement {
       }`;
   }
   private tabArea(tab = this._tab): WiskeyArea {
-    if (["users", "identity_lifecycle"].includes(tab)) return "users";
+    if (["users", "identity_lifecycle", "guest_templates"].includes(tab)) return "users";
     if (["events", "audit"].includes(tab)) return "events";
     if (["devices", "sync", "health"].includes(tab)) return "stations";
     if (
@@ -2782,6 +2848,7 @@ export class IntercomManagerPanel extends LitElement {
           "operations_center",
           "camera_wall",
           "identity_lifecycle",
+          "guest_templates",
           "users",
           "devices",
           "sync",
@@ -2793,6 +2860,8 @@ export class IntercomManagerPanel extends LitElement {
           .filter(
             (tab) =>
               this.canView(this.tabArea(tab)) &&
+              (tab !== "guest_templates" ||
+                !!this._data?.api?.commands.includes("guest_templates/get")) &&
               (tab !== "access_control" || !!this._session?.is_admin),
           )
           .map(
@@ -4383,7 +4452,8 @@ export class IntercomManagerPanel extends LitElement {
       <p class="field-note">${this.t("guest_step").replace("{step}", String(this._guestStep))}</p>
       ${
         this._guestStep === 1
-          ? html` <div class="fields">
+          ? html` ${this._data?.api?.commands.includes("guest_templates/get") ? html`<wiskey-guest-templates picker .hass=${this.protectedHass} .stations=${this._data.stations} .canManage=${this.canManage("users")} .timezone=${this._data.default_zone?.name ?? "UTC"} @guest-template-apply=${(event: CustomEvent<GuestTemplate>) => this.applyGuestTemplate(event.detail)}></wiskey-guest-templates>` : nothing}
+              <div class="fields">
                 <label
                   >${this.t("name")}<input
                     required
@@ -4463,6 +4533,20 @@ export class IntercomManagerPanel extends LitElement {
               </fieldset>
               <fieldset>
                 <legend>${this.t("guest_credential")}</legend>
+                ${
+                  draft.access_timing_draft
+                    ? html`<section>
+                        <h4>${this.t("guest_template_weekly")}</h4>
+                        <hikvision-user-timing
+                          .value=${draft.access_timing_draft}
+                          .language=${this.hass?.language ?? "en"}
+                          .enforcement=${this._timingEnforcement}
+                          .canEnforce=${true}
+                          @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
+                        ></hikvision-user-timing>
+                      </section>`
+                    : nothing
+                }
                 <p class="field-note">${this.t("guest_credential_hint")}</p>
                 <div class="fields">
                   <label
@@ -4573,6 +4657,7 @@ export class IntercomManagerPanel extends LitElement {
                 </p>
                 ${draft.access_purpose ? html`<p>${this.t("access_purpose")}: ${draft.access_purpose}</p>` : nothing}
                 <p>${this.t("guest_credential")}: ${draft.pin ? this.t("pin") : this.t("cards")}</p>
+                ${draft.access_timing_draft ? html`<p>${visitTimingSummary(draft.access_timing_draft, this.hass?.language ?? "en")}</p>` : nothing}
                 <p>
                   ${this.t("selected_stations")}:
                   ${
@@ -5158,68 +5243,78 @@ export class IntercomManagerPanel extends LitElement {
                               .hass=${this.protectedHass}
                               .stations=${this._data.stations}
                             ></hikvision-clock-settings>`
-                          : this._tab === "identity_lifecycle"
-                            ? html`<wiskey-identity-lifecycle
+                          : this._tab === "guest_templates"
+                            ? html`<wiskey-guest-templates
                                 .hass=${this.protectedHass}
-                                .zone=${this._data.default_zone ?? UTC_ZONE}
+                                .stations=${this._data.stations}
                                 .canManage=${this.canManage("users")}
-                                @access-renewed=${() => void this.refresh()}
-                                @open-user=${(event: CustomEvent<string>) => {
+                                .timezone=${this._data.default_zone?.name ?? "UTC"}
+                              ></wiskey-guest-templates>`
+                            : this._tab === "identity_lifecycle"
+                              ? html`<wiskey-identity-lifecycle
+                                  .hass=${this.protectedHass}
+                                  .zone=${this._data.default_zone ?? UTC_ZONE}
+                                  .canManage=${this.canManage("users")}
+                                  .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
+                                  .stations=${this._data.stations}
+                                  @access-renewed=${() => void this.refresh()}
+                                  @access-cancelled=${() => void this.refresh()}
+                                  @open-user=${(event: CustomEvent<string>) => {
                                   const user = this._data?.users.find(
                                     (item) => item.id === event.detail,
                                   );
                                   if (user) this.openPersonDetails(user);
                                 }}
-                              ></wiskey-identity-lifecycle>`
-                            : this._tab === "operations_center"
-                              ? html`<wiskey-operations-center
-                                  .hass=${this.protectedHass}
-                                  .users=${this._data.users}
-                                  .stations=${this._data.stations}
-                                  .canRetryUser=${this.canManage("users")}
-                                  .canRetryStation=${this.canManage("stations")}
-                                ></wiskey-operations-center>`
-                              : this._tab === "tools"
-                                ? this.toolsView()
-                                : this._tab === "overview"
-                                  ? this.overviewView()
-                                  : this._tab === "users"
-                                    ? this.usersView()
-                                    : this._tab === "devices"
-                                      ? this.devicesView()
-                                      : this._tab === "sync"
-                                        ? this.syncView()
-                                        : this._tab === "audit"
-                                          ? html`<hikvision-admin-audit
-                                              .hass=${this.protectedHass}
-                                              .users=${this._data.users}
-                                              .stations=${this._data.stations}
-                                              .focusUser=${this._auditUser}
-                                              .zone=${this._data.default_zone ?? UTC_ZONE}
-                                              @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                            ></hikvision-admin-audit>`
-                                          : this._tab === "health"
-                                            ? html`<hikvision-intercom-health
-                                                .callBusy=${this._callBusy}
-                                                .onCallBusy=${this.setCallBusy}
+                                ></wiskey-identity-lifecycle>`
+                              : this._tab === "operations_center"
+                                ? html`<wiskey-operations-center
+                                    .hass=${this.protectedHass}
+                                    .users=${this._data.users}
+                                    .stations=${this._data.stations}
+                                    .canRetryUser=${this.canManage("users")}
+                                    .canRetryStation=${this.canManage("stations")}
+                                  ></wiskey-operations-center>`
+                                : this._tab === "tools"
+                                  ? this.toolsView()
+                                  : this._tab === "overview"
+                                    ? this.overviewView()
+                                    : this._tab === "users"
+                                      ? this.usersView()
+                                      : this._tab === "devices"
+                                        ? this.devicesView()
+                                        : this._tab === "sync"
+                                          ? this.syncView()
+                                          : this._tab === "audit"
+                                            ? html`<hikvision-admin-audit
                                                 .hass=${this.protectedHass}
+                                                .users=${this._data.users}
                                                 .stations=${this._data.stations}
-                                                .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
-                                                .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
-                                                .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
-                                              ></hikvision-intercom-health>`
-                                            : this._tab === "schedules"
-                                              ? html`<hikvision-intercom-schedules
+                                                .focusUser=${this._auditUser}
+                                                .zone=${this._data.default_zone ?? UTC_ZONE}
+                                                @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                              ></hikvision-admin-audit>`
+                                            : this._tab === "health"
+                                              ? html`<hikvision-intercom-health
+                                                  .callBusy=${this._callBusy}
+                                                  .onCallBusy=${this.setCallBusy}
                                                   .hass=${this.protectedHass}
                                                   .stations=${this._data.stations}
-                                                ></hikvision-intercom-schedules>`
-                                              : html`<hikvision-intercom-events
-                                                  .policy=${this._data.profile_settings}
-                                                  .hass=${this.protectedHass}
-                                                  .stations=${this._data.stations}
-                                                  .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                                  .v4=${isWiskeyAppearance(this._appearance)}
-                                                ></hikvision-intercom-events>`
+                                                  .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
+                                                  .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
+                                                  .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
+                                                ></hikvision-intercom-health>`
+                                              : this._tab === "schedules"
+                                                ? html`<hikvision-intercom-schedules
+                                                    .hass=${this.protectedHass}
+                                                    .stations=${this._data.stations}
+                                                  ></hikvision-intercom-schedules>`
+                                                : html`<hikvision-intercom-events
+                                                    .policy=${this._data.profile_settings}
+                                                    .hass=${this.protectedHass}
+                                                    .stations=${this._data.stations}
+                                                    .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                    .v4=${isWiskeyAppearance(this._appearance)}
+                                                  ></hikvision-intercom-events>`
         }
       </main>
       ${

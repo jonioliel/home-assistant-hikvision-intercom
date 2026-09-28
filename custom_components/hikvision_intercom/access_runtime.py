@@ -100,7 +100,18 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     else:
         hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = templates
 
+    from .access.guest_templates import GuestTemplates
     from .ntp_settings import NtpSettings
+
+    guest_template_store = AccessStore(hass, key=f"{DOMAIN}.guest_templates")
+    guest_templates = GuestTemplates(guest_template_store.async_save, changed)
+    try:
+        guest_templates.load(await guest_template_store.async_load())
+    except AccessError:
+        # Preserve a corrupt file; an unrelated user update must not replace it.
+        hass.data.setdefault(DOMAIN, {})["guest_templates"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["guest_templates"] = guest_templates
 
     ntp_store = AccessStore(hass, key=f"{DOMAIN}.ntp_settings")
     ntp = NtpSettings(ntp_store.async_save, changed)

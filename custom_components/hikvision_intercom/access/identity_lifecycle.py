@@ -126,6 +126,15 @@ def report(
                     "state": temporary_state,
                     "expiring_soon": expiring_soon,
                     "timing_policy_configured": user.access_timing_policy is not None,
+                    "assignment_states": {
+                        station_id: {
+                            "sync_state": assignment.sync_state,
+                            "last_error": assignment.last_error,
+                            "desired_revision": assignment.desired_revision,
+                            "applied_revision": assignment.applied_revision,
+                        }
+                        for station_id, assignment in user.assignments.items()
+                    },
                 }
             )
         if not user.valid_until:
