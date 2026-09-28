@@ -462,7 +462,15 @@ for (const scenario of [
         onWaiting: () => (window as any).adapterEvents.push("waiting"),
       });
     });
-    await expect(page.frameLocator("iframe").locator("body")).toBeVisible();
+    const embedded = page.frames().find((frame) => frame.parentFrame() === page.mainFrame());
+    expect(embedded).toBeDefined();
+    await embedded!.waitForURL(
+      (url) => url.searchParams.get("embed") === "1" && url.searchParams.get("tab") === "overview",
+      { waitUntil: "load" },
+    );
+    // Empty old-panel fixtures can have zero height in Firefox; load, not paint,
+    // is the condition that starts the adapter's fallback timer.
+    await expect(embedded!.locator("body")).toBeAttached();
     await page.clock.fastForward(13000);
     await expect
       .poll(() => page.evaluate(() => (window as any).adapterEvents))
