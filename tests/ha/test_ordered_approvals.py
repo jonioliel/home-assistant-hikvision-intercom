@@ -157,14 +157,14 @@ async def test_fleet_approval_is_read_only_then_rechecked_before_write(
             assert result["success"], result
             assert result["result"]["receipts"][0]["state"] == "verified"
             write.assert_awaited_once()
-    await second.close()
-    await owner.close()
-    await hass.async_block_till_done()
             repeated = await request(
                 owner, "platform/config_apply", review_id=token, confirmed=True
             )
             assert repeated["error"]["code"] == "approval_required"
             write.assert_awaited_once()
+    await second.close()
+    await owner.close()
+    await hass.async_block_till_done()
 
 
 async def test_foreground_csv_approval_uses_the_existing_csv_contract(
