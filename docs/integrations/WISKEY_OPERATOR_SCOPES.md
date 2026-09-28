@@ -29,6 +29,8 @@ An administrator obtains `authorization/settings_get`: `revision`, eligible `dir
 
 `station_ids: null` means all current and future stations. An explicit list allows only those entry IDs, including later reconnects. An empty list means no stations or people/door actions. Removed IDs remain selectable for removal and never expand to all stations. Lists allow at most 1,000 unique nonempty IDs; invalid policies fail closed.
 
+Station scope includes every configured managed relay at a permitted station. It does not provide an independent operator grant for relay 1 versus relay 2. The station's existing managed-lock mapping and ordinary command checks still apply.
+
 Field categories: `phone`, `photo`, `credentials` (PIN/cards), `profile` (all custom person fields), and `access` (rights/groups/validity/timing/category/host/purpose). Levels are `none`, `view`, `manage`. Field grants intersect screen grants; they never grant a screen by themselves. Names, employee IDs and active/inactive identity status remain basic identity data. Custom fields are controlled as a category, not individually by custom-field ID.
 
 Legacy grants with only `enabled` and `areas` preserve all stations and editable fields, intersected with existing area grants. Strict schema 1 is accepted and converted in memory to schema 2; the next changed grant/recovery save persists schema 2. Invalid/future schemas fail closed. User, credential and event storage is unchanged.
