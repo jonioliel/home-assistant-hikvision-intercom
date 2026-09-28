@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from "lit";
 import { translate } from "./i18n";
+import { accents, accentPairs, type Accent } from "./accent";
 export const appearances = [
   "current",
   "modern",
@@ -50,10 +51,12 @@ export class AppearancePicker extends LitElement {
     shared: { state: true },
     busy: { state: true },
     error: { state: true },
+    accent: { state: true },
   };
-  settings?: { revision: number; default: Appearance } | null;
+  settings?: { revision: number; default: Appearance; accent?: Accent } | null;
   canSetDefault = false;
-  saveDefault?: (revision: number, choice: Appearance) => Promise<unknown>;
+  saveDefault?: (revision: number, choice: Appearance, accent: Accent) => Promise<unknown>;
+  private accent: Accent = "green";
   private revision = 0;
   private useDefault = false;
   private shared = false;
@@ -187,7 +190,7 @@ export class AppearancePicker extends LitElement {
       background: #ffffff;
     }
     .wiskey-light .tiles i {
-      background: linear-gradient(#e8f4ef 65%, #087e70 65%);
+      background: linear-gradient(#e8f4ef 65%, var(--mini-accent, #087e70) 65%);
     }
     .mini.wiskey-dark {
       background: #101c20;
@@ -197,7 +200,7 @@ export class AppearancePicker extends LitElement {
     }
     .wiskey-dark .tiles i {
       border-color: #203338;
-      background: linear-gradient(#30444a 65%, #8bddbc 65%);
+      background: linear-gradient(#30444a 65%, var(--mini-accent, #8bddbc) 65%);
     }
     .scope {
       display: flex;
@@ -250,9 +253,15 @@ export class AppearancePicker extends LitElement {
       }
     }
   `;
-  async show(choice: Appearance, opener: HTMLElement, useDefault = false) {
+  async show(
+    choice: Appearance,
+    opener: HTMLElement,
+    useDefault = false,
+    accent: Accent = "green",
+  ) {
     this.opened = true;
     this.choice = choice;
+    this.accent = accent;
     this.useDefault = useDefault;
     this.shared = false;
     this.error = "";
@@ -285,7 +294,11 @@ export class AppearancePicker extends LitElement {
         ${appearances.map(
           (choice) =>
             html`<label>
-              <div class="mini ${choice}" aria-hidden="true">
+              <div
+                class="mini ${choice}"
+                aria-hidden="true"
+                style=${isWiskeyAppearance(choice) ? `--mini-accent:${accentPairs[this.accent][choice === "wiskey-dark" ? "dark" : "light"][0]}` : ""}
+              >
                 <aside></aside>
                 <div class="tiles"><i></i><i></i><i></i><i></i></div>
               </div>
@@ -304,6 +317,33 @@ export class AppearancePicker extends LitElement {
             </label>`,
         )}
       </fieldset>
+      ${
+        isWiskeyAppearance(this.choice)
+          ? html`<fieldset class="accents">
+              <legend>${this.t("appearance_accent")}</legend>
+              ${accents.map(
+                (accent) =>
+                  html`<label>
+                    <input
+                      type="radio"
+                      name="accent"
+                      .checked=${this.accent === accent}
+                      ?disabled=${this.busy}
+                      @change=${() => {
+                        this.accent = accent;
+                        this.useDefault = false;
+                      }}
+                    />
+                    <span
+                      style=${`display:inline-block;width:18px;height:18px;border-radius:50%;vertical-align:middle;background:${accentPairs[accent][this.choice === "wiskey-dark" ? "dark" : "light"][0]}`}
+                      aria-hidden="true"
+                    ></span>
+                    ${this.t(`accent_${accent}`)}
+                  </label>`,
+              )}
+            </fieldset>`
+          : nothing
+      }
       <p>${this.t("appearance_theme")}</p>
       <label class="scope"
         ><input
@@ -313,7 +353,10 @@ export class AppearancePicker extends LitElement {
           @change=${(e: Event) => {
             this.useDefault = (e.target as HTMLInputElement).checked;
             this.shared = false;
-            if (this.useDefault) this.choice = this.settings?.default ?? "current";
+            if (this.useDefault) {
+              this.choice = this.settings?.default ?? "current";
+              this.accent = this.settings?.accent ?? "green";
+            }
           }}
         />${this.t("appearance_follow")}</label
       >
@@ -342,11 +385,16 @@ export class AppearancePicker extends LitElement {
             try {
               if (this.shared) {
                 if (!this.saveDefault) throw { code: "appearance_settings_unavailable" };
-                await this.saveDefault(this.revision, this.choice);
+                await this.saveDefault(this.revision, this.choice, this.accent);
               }
               this.dispatchEvent(
                 new CustomEvent("appearance-change", {
                   detail: this.shared || this.useDefault ? "default" : this.choice,
+                }),
+              );
+              this.dispatchEvent(
+                new CustomEvent("accent-change", {
+                  detail: this.shared || this.useDefault ? "default" : this.accent,
                 }),
               );
               this.busy = false;

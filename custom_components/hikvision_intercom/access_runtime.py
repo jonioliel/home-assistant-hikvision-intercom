@@ -303,11 +303,34 @@ async def async_setup_access(hass: HomeAssistant) -> None:
 
         manager.engine.native_timing = NativeTiming(journal, repository)
     hass.data.setdefault(DOMAIN, {})["access"] = manager
+    from .access.encrypted_backup import Backups
+    from .access.workflows import Workflows
+    from .panel_security import PanelSecurity
+
+    workflows_center = Workflows(manager)
+    hass.data[DOMAIN]["workflows"] = workflows_center
+    hass.data[DOMAIN]["backups"] = Backups(manager)
+    hass.data[DOMAIN]["panel_security"] = PanelSecurity(hass, workflows_center)
+
+    from .access.checkpoint_jobs import CheckpointJobs
+
+    async def authorize_job(actor: str) -> bool:
+        user = await hass.auth.async_get_user(actor)
+        return bool(
+            user
+            and user.is_active
+            and user.is_admin
+            and not workflows_center.data["settings"]["dual_approval"]
+        )
+
+    checkpoint_jobs = CheckpointJobs(manager, authorize_job)
+    hass.data[DOMAIN]["checkpoint_jobs"] = checkpoint_jobs
     for entry in hass.config_entries.async_entries(DOMAIN):
         manager.register(entry.entry_id, entry.title, bool(managed_locks(entry.data)))
 
     async def stop(_event: Event) -> None:
         stop_program_timer()
+        await checkpoint_jobs.close()
         if hass.data[DOMAIN].get("fleet_health") is not None:
             await fleet_health.async_flush()
         await queue.close()

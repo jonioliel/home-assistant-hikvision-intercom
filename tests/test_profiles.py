@@ -94,6 +94,8 @@ async def test_schema_three_profile_defaults_and_failed_migration():
     raw = original.snapshot()
     raw["schema"] = 3
     raw.pop("visit_requests")
+    raw.pop("checkpoint_jobs")
+    raw.pop("workflows")
     raw.pop("sync_operations")
     raw.pop("profile_settings")
     for key in ("profile", "group_ids", "photo"):
@@ -104,7 +106,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
         await repo.async_load(raw)
     save.side_effect = None
     await repo.async_load(raw)
-    assert repo.snapshot()["schema"] == 11
+    assert repo.snapshot()["schema"] == 13
     assert repo.get(user.id).profile == {} and repo.get(user.id).photo is None
 
 

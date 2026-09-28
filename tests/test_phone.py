@@ -60,6 +60,8 @@ async def test_schema_six_phone_migration_is_atomic():
     raw = repo.snapshot()
     raw["schema"] = 6
     raw.pop("visit_requests")
+    raw.pop("checkpoint_jobs")
+    raw.pop("workflows")
     raw.pop("sync_operations")
     raw["users"][user.id].pop("phone")
     save = AsyncMock(side_effect=OSError("disk"))
@@ -69,4 +71,4 @@ async def test_schema_six_phone_migration_is_atomic():
     save.side_effect = None
     await restored.async_load(raw)
     assert restored.get(user.id).phone == ""
-    assert restored.snapshot()["schema"] == 11
+    assert restored.snapshot()["schema"] == 13

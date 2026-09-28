@@ -154,7 +154,11 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
-  appearance_settings?: { revision: number; default: import("./appearance").Appearance } | null;
+  appearance_settings?: {
+    revision: number;
+    default: import("./appearance").Appearance;
+    accent?: import("./accent").Accent;
+  } | null;
   access: AuthorizationSession;
   user_count: number;
   api?: ApiContract;
@@ -253,12 +257,19 @@ export type WiskeyArea = "overview" | "users" | "events" | "stations" | "managem
 export type WiskeyAccessLevel = "none" | "view" | "manage";
 export type WiskeyPersonField = "phone" | "photo" | "credentials" | "profile" | "access";
 export interface AuthorizationSession {
+  security?: {
+    locked: boolean;
+    idle_minutes: number;
+    reauth_sensitive: boolean;
+    elevated: boolean;
+  };
   allowed: boolean;
   is_admin: boolean;
   revision: number;
   areas: Record<WiskeyArea, WiskeyAccessLevel>;
   station_ids?: string[] | null;
   fields?: Record<WiskeyPersonField, WiskeyAccessLevel>;
+  profile_fields?: Record<string, WiskeyAccessLevel>;
 }
 export interface Hass {
   themes?: { darkMode: boolean };

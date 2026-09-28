@@ -19,11 +19,53 @@ def _empty() -> dict[str, str]:
     return {area: "none" for area in AREAS}
 
 
+def normalize_station_groups(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or len(value) > 64:
+        raise AccessError("invalid_fields")
+    result = []
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"id", "label", "station_ids"}:
+            raise AccessError("invalid_fields")
+        for key in ("id", "label"):
+            if (
+                not isinstance(item[key], str)
+                or not 1 <= len(item[key]) <= 64
+                or any(ord(c) < 32 for c in item[key])
+            ):
+                raise AccessError("invalid_fields")
+        # Reuse station ID validation; groups never imply access to future unknown stations.
+        normalized = normalize_policy(
+            {"enabled": True, "areas": _empty(), "station_ids": item["station_ids"]}
+        )
+        if normalized["station_ids"] is None:
+            raise AccessError("invalid_fields")
+        result.append(
+            {"id": item["id"], "label": item["label"], "station_ids": normalized["station_ids"]}
+        )
+    if len({item["id"] for item in result}) != len(result):
+        raise AccessError("invalid_fields")
+    return result
+
+
+def effective_stations(policy: dict[str, Any], groups: list[dict[str, Any]]) -> list[str] | None:
+    if policy["station_ids"] is None:
+        return None
+    ids = set(policy.get("station_group_ids", []))
+    known = {item["id"] for item in groups}
+    if ids - known:
+        raise AccessError("invalid_fields")
+    return sorted(
+        set(policy["station_ids"])
+        | {sid for group in groups if group["id"] in ids for sid in group["station_ids"]}
+    )
+
+
 def normalize_policy(value: Any) -> dict[str, Any]:
     if (
         not isinstance(value, dict)
         or not {"enabled", "areas"} <= set(value)
-        or set(value) - {"enabled", "areas", "station_ids", "fields"}
+        or set(value)
+        - {"enabled", "areas", "station_ids", "fields", "profile_fields", "station_group_ids"}
     ):
         raise AccessError("invalid_fields")
     if type(value["enabled"]) is not bool:
@@ -51,11 +93,31 @@ def normalize_policy(value: Any) -> dict[str, Any]:
         or any(not isinstance(level, str) or level not in LEVELS for level in fields.values())
     ):
         raise AccessError("invalid_fields")
+    profile_fields = value.get("profile_fields", {})
+    group_ids = value.get("station_group_ids", [])
+    if (
+        not isinstance(profile_fields, dict)
+        or len(profile_fields) > 12
+        or any(
+            not isinstance(key, str)
+            or not 1 <= len(key) <= 48
+            or not isinstance(level, str)
+            or level not in LEVELS
+            for key, level in profile_fields.items()
+        )
+        or not isinstance(group_ids, list)
+        or len(group_ids) > 64
+        or any(not isinstance(key, str) or not 1 <= len(key) <= 64 for key in group_ids)
+        or len(set(group_ids)) != len(group_ids)
+    ):
+        raise AccessError("invalid_fields")
     return {
         "enabled": value["enabled"],
         "areas": dict(areas),
         "station_ids": sorted(stations) if stations is not None else None,
         "fields": dict(fields),
+        **({"profile_fields": dict(profile_fields)} if profile_fields else {}),
+        **({"station_group_ids": sorted(group_ids)} if group_ids else {}),
     }
 
 
@@ -68,7 +130,7 @@ class PanelPermissions:
         self._save = save
         self._changed = changed
         self._lock = asyncio.Lock()
-        self._data: dict[str, Any] = {"schema": 2, "revision": 0, "users": {}}
+        self._data: dict[str, Any] = {"schema": 3, "revision": 0, "users": {}, "station_groups": []}
         self._recovery = False
 
     def recover_from_invalid_storage(self) -> None:
@@ -82,9 +144,14 @@ class PanelPermissions:
         try:
             if (
                 not isinstance(data, dict)
-                or set(data) != {"schema", "revision", "users"}
+                or set(data)
+                != (
+                    {"schema", "revision", "users", "station_groups"}
+                    if data.get("schema") == 3
+                    else {"schema", "revision", "users"}
+                )
                 or type(data["schema"]) is not int
-                or data["schema"] not in {1, 2}
+                or data["schema"] not in {1, 2, 3}
                 or type(data["revision"]) is not int
                 or data["revision"] < 0
                 or not isinstance(data["users"], dict)
@@ -107,7 +174,21 @@ class PanelPermissions:
                 users[user_id] = normalize_policy(raw)
         except (AccessError, KeyError, TypeError, ValueError):
             raise AccessError("invalid_storage") from None
-        self._data = {"schema": 2, "revision": data["revision"], "users": users}
+        try:
+            groups = normalize_station_groups(data.get("station_groups", []))
+        except AccessError:
+            raise AccessError("invalid_storage") from None
+        if any(
+            set(item.get("station_group_ids", [])) - {g["id"] for g in groups}
+            for item in users.values()
+        ):
+            raise AccessError("invalid_storage")
+        self._data = {
+            "schema": 3,
+            "revision": data["revision"],
+            "users": users,
+            "station_groups": groups,
+        }
 
     @property
     def revision(self) -> int:
@@ -132,8 +213,13 @@ class PanelPermissions:
             "allowed": any(level != "none" for level in areas.values()),
             "is_admin": False,
             "areas": areas,
-            "station_ids": deepcopy(stored["station_ids"]),
+            "station_ids": effective_stations(stored, self._data["station_groups"]),
             "fields": dict(stored["fields"]),
+            **(
+                {"profile_fields": dict(stored["profile_fields"])}
+                if stored.get("profile_fields")
+                else {}
+            ),
         }
 
     @staticmethod
@@ -162,10 +248,15 @@ class PanelPermissions:
             "levels": list(LEVELS),
             "fields": list(FIELDS),
             "users": deepcopy(self._data["users"]),
+            "station_groups": deepcopy(self._data["station_groups"]),
         }
 
     async def update(
-        self, revision: int, users: dict[str, Any], valid_user_ids: Iterable[str]
+        self,
+        revision: int,
+        users: dict[str, Any],
+        valid_user_ids: Iterable[str],
+        station_groups: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         async with self._lock:
             if type(revision) is not int or revision != self._data["revision"]:
@@ -173,18 +264,28 @@ class PanelPermissions:
             if not isinstance(users, dict) or len(users) > 1000:
                 raise AccessError("invalid_fields")
             valid = set(valid_user_ids)
+            groups = normalize_station_groups(
+                self._data["station_groups"] if station_groups is None else station_groups
+            )
             normalized: dict[str, Any] = {}
             for user_id, raw in users.items():
                 if user_id not in valid:
                     raise AccessError("user_not_found")
                 policy = normalize_policy(raw)
+                if set(policy.get("station_group_ids", [])) - {g["id"] for g in groups}:
+                    raise AccessError("invalid_fields")
                 if policy["enabled"] or any(level != "none" for level in policy["areas"].values()):
                     normalized[user_id] = policy
-            if normalized != self._data["users"] or self._recovery:
+            if (
+                normalized != self._data["users"]
+                or groups != self._data["station_groups"]
+                or self._recovery
+            ):
                 draft = {
-                    "schema": 2,
+                    "schema": 3,
                     "revision": revision + 1,
                     "users": normalized,
+                    "station_groups": groups,
                 }
                 # Do not let connection cancellation split durable and live authorization.
                 task = asyncio.create_task(self._commit(draft))
@@ -228,6 +329,7 @@ _READ_USERS = {
     "whatsapp/media",
 }
 _WRITE_USERS = {
+    "workflows/renew_request",
     "visits/create",
     "visits/request",
     "visits/decide",
@@ -367,7 +469,15 @@ _WRITE_MANAGEMENT = {
 def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
     """Return alternative area/level grants; None means administrator-only."""
 
-    if command in {"overview", "appearance/settings_get"}:
+    if command in {
+        "overview",
+        "appearance/settings_get",
+        "security/session",
+        "security/touch",
+        "security/lock",
+        "security/reauth_start",
+        "security/reauth_step",
+    }:
         return tuple((area, "view") for area in AREAS)
     if command in {"stations/test_unlock", "media/signal", "tts/engines", "tts/start"}:
         return (("overview", "manage"), ("stations", "manage"))
@@ -455,6 +565,7 @@ SCOPED_STATION_COMMANDS = frozenset(
 )
 SCOPED_COMMON_COMMANDS = frozenset(
     {
+        "workflows/renew_request",
         "fleet/alerts",
         "clock/settings_get",
         "overview",
@@ -538,9 +649,22 @@ def field_allowed(policy: dict[str, Any], field: str, level: str = "view") -> bo
     )
 
 
+def profile_field_allowed(policy: dict[str, Any], identity: str, level: str = "view") -> bool:
+    return bool(
+        field_allowed(policy, "profile", level)
+        and level in _LEVEL_VALUE
+        and _LEVEL_VALUE[policy.get("profile_fields", {}).get(identity, "manage")]
+        >= _LEVEL_VALUE[level]
+    )
+
+
 def policy_command_allowed(policy: dict[str, Any], command: str) -> bool:
+    if command.startswith("security/"):
+        return True
     station_restricted = policy.get("station_ids") is not None
-    fields_restricted = any(not field_allowed(policy, field, "manage") for field in FIELDS)
+    fields_restricted = any(not field_allowed(policy, field, "manage") for field in FIELDS) or any(
+        level != "manage" for level in policy.get("profile_fields", {}).values()
+    )
     if station_restricted and command not in SCOPED_COMMON_COMMANDS | SCOPED_STATION_COMMANDS:
         return False
     if fields_restricted and command not in SCOPED_COMMON_COMMANDS | FIELD_SCOPED_STATION_COMMANDS:
@@ -557,10 +681,15 @@ def policy_command_allowed(policy: dict[str, Any], command: str) -> bool:
     return True
 
 
-def preview_policy(value: Any) -> dict[str, Any]:
+def preview_policy(
+    value: Any, station_groups: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     """Explain a proposed grant using the same command classification as enforcement."""
 
     policy = normalize_policy(value)
+    policy["station_ids"] = effective_stations(
+        policy, normalize_station_groups(station_groups or [])
+    )
 
     def grants(command: str) -> bool:
         required = requirements(command)
@@ -580,7 +709,8 @@ def preview_policy(value: Any) -> dict[str, Any]:
         "station_ids": policy["station_ids"],
         "fields": policy["fields"],
         "restricted": policy["station_ids"] is not None
-        or any(level != "manage" for level in policy["fields"].values()),
+        or any(level != "manage" for level in policy["fields"].values())
+        or any(level != "manage" for level in policy.get("profile_fields", {}).values()),
     }
 
 

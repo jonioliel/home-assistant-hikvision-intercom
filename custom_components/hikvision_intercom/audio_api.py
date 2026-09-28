@@ -22,6 +22,13 @@ MAX_SECONDS = 180
 IDLE_SECONDS = 12
 
 
+def _screen_open(hass: HomeAssistant, connection: Any) -> bool:
+    from .panel_security import get_security
+
+    security = get_security(hass)
+    return not security or not security.public(connection)["locked"]
+
+
 def _authorized(hass: HomeAssistant, user: Any, station_id: str | None = None) -> bool:
     permissions = hass.data[DOMAIN].get("panel_permissions")
     return (station_id is None or station_allowed(permissions, user, station_id)) and (
@@ -49,6 +56,7 @@ class AudioBridge:
         entry = self.hass.config_entries.async_get_entry(self.runtime.station_id)
         return bool(
             not self.stopped
+            and _screen_open(self.hass, self.connection)
             and _authorized(self.hass, self.connection.user, self.runtime.station_id)
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
@@ -186,7 +194,7 @@ class AudioBridge:
 def start(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    if not _authorized(hass, connection.user):
+    if not _screen_open(hass, connection) or not _authorized(hass, connection.user):
         connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
         return
     station = msg.get("station_id")
@@ -198,7 +206,7 @@ def start(
         connection.send_error(msg["id"], "invalid_fields", "Invalid audio request")
         return
     entry = hass.config_entries.async_get_entry(station)
-    if not _authorized(hass, connection.user, station):
+    if not _screen_open(hass, connection) or not _authorized(hass, connection.user, station):
         connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
         return
     runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
@@ -244,7 +252,7 @@ def packet_handler(operation: str) -> Any:
         hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
     ) -> None:
         try:
-            if not _authorized(hass, connection.user):
+            if not _screen_open(hass, connection) or not _authorized(hass, connection.user):
                 raise AudioError("unauthorized")
             fields = {"id", "type", "token"}
             if operation == "send":

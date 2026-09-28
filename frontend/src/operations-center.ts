@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
+import "./checkpoint-jobs";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { boundedRequest } from "./request";
@@ -325,7 +326,8 @@ export class OperationsCenter extends LitElement {
   }
   render() {
     const summary = this._page?.summary ?? {};
-    return html`<div class="heading">
+    return html`<wiskey-checkpoint-jobs .hass=${this.hass}></wiskey-checkpoint-jobs>
+      <div class="heading">
         <div>
           <h2>${this.t("jobs_title")}</h2>
           <p class="sub">${this.t("jobs_intro")}</p>

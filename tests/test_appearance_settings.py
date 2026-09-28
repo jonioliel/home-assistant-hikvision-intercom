@@ -11,7 +11,7 @@ from custom_components.hikvision_intercom.appearance_settings import AppearanceS
 async def test_default_reload_conflict_and_noop():
     save, changed = AsyncMock(), Mock()
     settings = AppearanceSettings(save, changed)
-    assert settings.public() == {"revision": 0, "default": "current"}
+    assert settings.public() == {"revision": 0, "default": "current", "accent": "green"}
     result = await settings.update(0, "access-dark")
     restored = AppearanceSettings(AsyncMock(), Mock())
     restored.load(save.call_args.args[0])
@@ -58,9 +58,34 @@ async def test_v4_appearance_is_persisted_without_changing_existing_schema(choic
     save, changed = AsyncMock(), Mock()
     settings = AppearanceSettings(save, changed)
     result = await settings.update(0, choice)
-    assert result == {"revision": 1, "default": choice}
+    assert result == {"revision": 1, "default": choice, "accent": "green"}
     stored = save.await_args.args[0]
-    assert stored["schema"] == 1
+    assert stored["schema"] == 2
     restored = AppearanceSettings(AsyncMock(), Mock())
     restored.load(stored)
     assert restored.public() == result
+
+
+async def test_legacy_migration_accent_preservation_and_atomic_failure():
+    save = AsyncMock()
+    settings = AppearanceSettings(save, Mock())
+    settings.load({"schema": 1, "revision": 3, "default": "wiskey-dark"})
+    assert settings.public()["accent"] == "green"
+    await settings.update(3, "wiskey-dark", "blue")
+    await settings.update(4, "wiskey-light")
+    assert settings.public()["accent"] == "blue"
+    restored = AppearanceSettings(AsyncMock(), Mock())
+    restored.load(save.await_args.args[0])
+    assert restored.public() == settings.public()
+    save.side_effect = OSError
+    with pytest.raises(OSError):
+        await settings.update(5, "wiskey-light", "rose")
+    assert settings.public()["accent"] == "blue"
+
+
+@pytest.mark.parametrize("accent", ["invalid", "#ff0000", "url(secret)", [], True])
+async def test_untrusted_accents_are_rejected(accent):
+    save = AsyncMock()
+    with pytest.raises(AccessError, match="invalid_fields"):
+        await AppearanceSettings(save, Mock()).update(0, "wiskey-light", accent)
+    save.assert_not_awaited()

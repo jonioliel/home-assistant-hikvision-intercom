@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from .access.models import AccessError
-from .panel_permissions import FIELDS, field_allowed
+from .panel_permissions import FIELDS, field_allowed, profile_field_allowed
 
 WRITE_FIELDS = {
     "phone": "phone",
@@ -31,8 +31,10 @@ WRITE_FIELDS = {
 
 
 def restricted(policy: dict[str, Any]) -> bool:
-    return policy.get("station_ids") is not None or any(
-        not field_allowed(policy, field, "manage") for field in FIELDS
+    return (
+        any(level != "manage" for level in policy.get("profile_fields", {}).values())
+        or policy.get("station_ids") is not None
+        or any(not field_allowed(policy, field, "manage") for field in FIELDS)
     )
 
 
@@ -87,6 +89,12 @@ def project_person(
         result["cards"], result["pin_configured"] = [], False
     if not field_allowed(policy, "profile"):
         result["profile"] = {}
+    else:
+        result["profile"] = {
+            key: value
+            for key, value in result.get("profile", {}).items()
+            if profile_field_allowed(policy, key)
+        }
     if not field_allowed(policy, "access"):
         result.update(
             assignments={},
@@ -125,6 +133,12 @@ def project_profiles(policy: dict[str, Any], value: dict[str, Any]) -> dict[str,
     result["templates"] = []
     if not field_allowed(policy, "profile"):
         result["fields"] = []
+    else:
+        result["fields"] = [
+            field
+            for field in result.get("fields", [])
+            if profile_field_allowed(policy, field["id"])
+        ]
     if not field_allowed(policy, "photo"):
         result["photo_enabled"] = False
     if not field_allowed(policy, "access"):
@@ -170,6 +184,10 @@ def project_overview(
 
 
 def guard_fields(policy: dict[str, Any], patch: dict[str, Any]) -> None:
+    if isinstance(patch.get("profile"), dict) and any(
+        not profile_field_allowed(policy, key, "manage") for key in patch["profile"]
+    ):
+        raise AccessError("field_access_denied")
     if any(
         key in patch and not field_allowed(policy, field, "manage")
         for key, field in WRITE_FIELDS.items()

@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.16",
+  "integration_version": "2.0.0-rc.17",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -33,7 +33,8 @@
     "hikvision_intercom/appearance/settings_update": {
       "required": {
         "revision": "int",
-        "default": "str"
+        "default": "str",
+        "accent": "str"
       },
       "optional_common": {
         "api_contract": "int"
@@ -57,7 +58,8 @@
     },
     "hikvision_intercom/authorization/preview": {
       "required": {
-        "policy": "dict"
+        "policy": "dict",
+        "station_groups": "list"
       },
       "optional_common": {
         "api_contract": "int"
@@ -78,7 +80,36 @@
     "hikvision_intercom/authorization/settings_update": {
       "required": {
         "revision": "int",
-        "users": "dict"
+        "users": "dict",
+        "station_groups": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/export": {
+      "required": {
+        "passphrase": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/preview": {
+      "required": {
+        "content": "str",
+        "passphrase": "str",
+        "mapping": "dict",
+        "mode": "str"
       },
       "optional_common": {
         "api_contract": "int"
@@ -396,6 +427,51 @@
         "limit": "int",
         "snapshot": "str"
       },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/action": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/bulk_create": {
+      "required": {
+        "operation_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/csv_create": {
+      "required": {
+        "content": "str",
+        "mode": "str",
+        "review_token": "str",
+        "column_map": "dict",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/errors": {
+      "required": {
+        "job_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/list": {
+      "required": {},
       "optional_common": {
         "api_contract": "int"
       }
@@ -731,6 +807,39 @@
         "revision": "int",
         "data": "dict"
       },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/lock": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/reauth_start": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/reauth_step": {
+      "required": {
+        "flow_id": "str",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/session": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/touch": {
+      "required": {},
       "optional_common": {
         "api_contract": "int"
       }
@@ -1260,6 +1369,186 @@
       "required": {
         "revision": "int",
         "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/apply": {
+      "required": {
+        "request_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/decide": {
+      "required": {
+        "request_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/get": {
+      "required": {
+        "days": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_issue": {
+      "required": {
+        "card_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_return": {
+      "required": {
+        "card_id": "str",
+        "revision": "int",
+        "delete": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_save": {
+      "required": {
+        "card_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/reminder_action": {
+      "required": {
+        "reminder_id": "str",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/renew_decide": {
+      "required": {
+        "request_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/renew_request": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "until": "str",
+        "reason": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/submit": {
+      "required": {
+        "command": "str",
+        "values": "dict",
+        "label": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/template_delete": {
+      "required": {
+        "template_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/template_save": {
+      "required": {
+        "template_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_begin": {
+      "required": {
+        "transfer_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_finish": {
+      "required": {
+        "transfer_id": "str",
+        "cancel": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_recheck": {
+      "required": {
+        "transfer_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_review": {
+      "required": {
+        "transfer_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_start": {
+      "required": {
+        "kind": "str",
+        "source": "str",
+        "target": "str",
+        "revision": "int",
+        "value": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/withdraw": {
+      "required": {
+        "request_id": "str"
       },
       "optional_common": {
         "api_contract": "int"

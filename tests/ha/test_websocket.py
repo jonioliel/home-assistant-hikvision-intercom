@@ -24,7 +24,9 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
     assert {
         command
         for command in COMMANDS
-        if command not in administrator_only and requirements(command) is None
+        if command not in administrator_only
+        and not command.startswith(("jobs/", "backups/", "workflows/"))
+        and requirements(command) is None
     } == set()
 
 

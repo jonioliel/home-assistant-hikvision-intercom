@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .audio_api import _screen_open
 from .client.audio import AudioError, AudioSession
 from .client.tts_audio import TtsCodecError, wav_to_mulaw_packets
 from .const import DOMAIN
@@ -145,6 +146,7 @@ class TtsPlayback:
         entry = self.hass.config_entries.async_get_entry(self.runtime.station_id)
         return bool(
             not self.stopped
+            and _screen_open(self.hass, self.connection)
             and _authorized(self.hass, self.connection.user, self.runtime.station_id)
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
@@ -261,7 +263,7 @@ class TtsPlayback:
 def engines(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    if not _authorized(hass, connection.user):
+    if not _screen_open(hass, connection) or not _authorized(hass, connection.user):
         connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
         return
     if set(msg) != {"id", "type"}:
@@ -277,7 +279,7 @@ def engines(
 def start(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    if not _authorized(hass, connection.user):
+    if not _screen_open(hass, connection) or not _authorized(hass, connection.user):
         connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
         return
     allowed = {"id", "type", "station_id", "engine_id", "language", "message"}
@@ -300,7 +302,7 @@ def start(
         connection.send_error(msg["id"], "invalid_fields", "Invalid TTS request")
         return
     configured = available_engines(hass)
-    if not _authorized(hass, connection.user, station):
+    if not _screen_open(hass, connection) or not _authorized(hass, connection.user, station):
         connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
         return
     if engine not in {row["engine_id"] for row in configured["engines"]}:
