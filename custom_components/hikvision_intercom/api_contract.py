@@ -5,6 +5,7 @@ from .access.models import AccessError
 API_VERSION = 1
 MIN_CLIENT = 0  # Legacy clients remain compatible with the existing command shapes.
 CAPABILITIES = [
+    "operations_center",
     "appearance_accent",
     "checkpoint_jobs",
     "encrypted_access_backup",
@@ -46,6 +47,10 @@ def contract(commands: list[str]) -> dict:
 
 READ_COMMANDS = frozenset(
     {
+        "platform/get",
+        "platform/config_read",
+        "platform/integrity",
+        "platform/demo",
         "workflows/get",
         "security/session",
         "security/touch",

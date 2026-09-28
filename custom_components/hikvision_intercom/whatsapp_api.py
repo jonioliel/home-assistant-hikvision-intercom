@@ -9,6 +9,7 @@ from importlib import import_module
 
 from .access.models import AccessError
 from .const import DOMAIN
+from .operations_center import message_warnings
 from .phone import whatsapp_number
 from .whatsapp_messages import project_messages
 from .whatsapp_templates import DEFAULTS, render_template
@@ -21,7 +22,7 @@ def _display_date(value: str, he: bool) -> str:
     return date
 
 
-def access_message(user, stations, language: str, settings=None) -> str:
+def access_message(user, stations, language: str, settings=None, variant=None) -> str:
     he = language.startswith("he")
     values = settings or DEFAULTS
     door_lines: list[str] = []
@@ -138,7 +139,7 @@ def access_message(user, stations, language: str, settings=None) -> str:
         "timezone": str(schedule.get("timezone", "")),
         "access_window_section": access_window_section,
     }
-    message = render_template(values[template_key], variables)
+    message = render_template(variant["body"] if variant else values[template_key], variables)
     if not user.pin:
         message = message.replace(
             f"קוד הגישה האישי שלך:\n📟 {pin_text} 📟", credential_section
@@ -209,6 +210,10 @@ async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
         "revision": user.revision,
         "phone": number,
         "account": msg["account"],
+        "template_revision": templates.public()["revision"] if templates else 0,
+        "variant_revision": hass.data[DOMAIN]["operations_center"].data["revision"]
+        if hass.data[DOMAIN].get("operations_center")
+        else 0,
     }
 
     def issue(kind, **extra):
@@ -233,7 +238,11 @@ async def dispatch_whatsapp(hass, command: str, msg: dict, actor: str):
                 manager.stations,
                 msg["language"],
                 templates.public() if templates else DEFAULTS,
+                hass.data[DOMAIN]["operations_center"].variant(user, msg["language"])
+                if hass.data[DOMAIN].get("operations_center")
+                else None,
             ),
+            "warnings": message_warnings(user),
         }
     if command == "whatsapp/send":
         if (

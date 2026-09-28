@@ -1,4 +1,22 @@
 const en = {
+  platform_center: "Fleet and reporting",
+  tools_platform_center:
+    "Station metadata, reviewed fleet changes, retention, reports, notifications and integrity.",
+  message_credential_missing: "No personal PIN or active access card is configured.",
+  message_doors_missing: "No station access is enabled for this person.",
+  message_phone_missing: "A mobile number is missing.",
+  message_user_inactive: "This person's access is inactive.",
+  operations_unavailable:
+    "Operations settings are unavailable. Restore a verified backup before retrying.",
+  template_placeholders_invalid:
+    "Include name, credential_section, access_window_section and security_notice placeholders.",
+  template_selection_duplicate:
+    "A variant already exists for this language, category and credential combination.",
+  webhook_https_required:
+    "Use an HTTPS endpoint without embedded credentials, query parameters or redirects.",
+  maintenance_window_closed: "The configured maintenance window is closed.",
+  review_expired: "This review expired or its settings changed. Review again before applying.",
+  configuration_invalid: "The preferences file is invalid. Existing settings were preserved.",
   select: "Choose",
   employee_no: "Employee ID",
   confirmation_required: "Review and confirm before applying.",
@@ -2372,6 +2390,20 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  platform_center: "תפעול צי ודוחות",
+  tools_platform_center: "פרטי תחנות, החלה מבוקרת, שמירת אירועים, דוחות, חיבורים ובדיקת שלמות.",
+  message_credential_missing: "לא מוגדר קוד אישי או כרטיס פתיחה פעיל.",
+  message_doors_missing: "לא הוגדרה למשתמש הרשאה לתחנה.",
+  message_phone_missing: "חסר מספר נייד.",
+  message_user_inactive: "הרשאת המשתמש אינה פעילה.",
+  operations_unavailable: "הגדרות התפעול אינן זמינות. שחזר גיבוי מאומת לפני ניסיון חוזר.",
+  template_placeholders_invalid:
+    "יש לכלול מצייני name, credential_section, access_window_section ו־security_notice.",
+  template_selection_duplicate: "קיימת תבנית לצירוף הזה של שפה, סוג אדם ואמצעי גישה.",
+  webhook_https_required: "נדרשת כתובת HTTPS ללא פרטי התחברות, פרמטרים או הפניות ליעד אחר.",
+  maintenance_window_closed: "חלון התחזוקה שהוגדר סגור כעת.",
+  review_expired: "הסקירה פגה או שההגדרות השתנו. סקור שוב לפני ההחלה.",
+  configuration_invalid: "קובץ ההגדרות אינו תקין. ההגדרות הקיימות נשמרו.",
   select: "בחר",
   employee_no: "מזהה עובד",
   confirmation_required: "יש לבדוק ולאשר לפני ההפעלה.",

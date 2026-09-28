@@ -12,6 +12,7 @@ import type { Hass, Station } from "./types";
 
 interface AuditEvent {
   portrait?: { user_id: string; revision: number } | null;
+  person_link?: { user_id: string; revision: number } | null;
   received_at?: string;
   time_source?: string;
   evidence?: { identity_state: string; origin: string; arrival_delay_seconds: number | null };
@@ -845,6 +846,24 @@ export class IntercomEvents extends LitElement {
         </button>
       </details>`;
   }
+  private personLink(row: AuditEvent) {
+    return row.person_link
+      ? html`<button
+          @click=${(event: Event) => {
+            event.stopPropagation();
+            this.dispatchEvent(
+              new CustomEvent("event-person", {
+                detail: row.person_link,
+                bubbles: true,
+                composed: true,
+              }),
+            );
+          }}
+        >
+          ${this.t("investigation_user_details")}
+        </button>`
+      : nothing;
+  }
   private v4ListView() {
     const records = this._data?.records ?? [];
     const selected = records.find((row) => row.id === this._selectedEvent) ?? records[0];
@@ -914,6 +933,7 @@ export class IntercomEvents extends LitElement {
               <div class="wk4-event-person">
                 ${selected.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${selected.portrait.user_id} .revision=${selected.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
                 <span>${selected.person_name ?? this.t("unknown")}</span>
+                ${this.personLink(selected)}
               </div>
               <dl>
                 <dt>${this.t("report_date")}</dt>
@@ -1191,6 +1211,7 @@ export class IntercomEvents extends LitElement {
                         ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
                         ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
                         · ${this.t("door")}: ${row.door ?? this.t("unknown")}
+                        ${this.personLink(row)}
                       </div>
                       <p>
                         ${this.t(row.authentication)} ·

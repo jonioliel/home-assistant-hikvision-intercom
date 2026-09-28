@@ -403,6 +403,14 @@
     "panel_permissions_storage_corrupt": {
       "title": "WisKey user permissions are unavailable",
       "description": "The stored system infrastructure user permissions failed validation. Non-administrators are denied access until a valid backup is restored and the integration is reloaded. System infrastructure administrators retain recovery access."
+    },
+    "operations_storage_corrupt": {
+      "title": "Operations preferences are unavailable",
+      "description": "The operations store failed validation and was not overwritten. Restore a trusted operations_center backup before restarting. User access and station ownership are stored separately."
+    },
+    "operations_center_storage_write": {
+      "title": "Operations preferences could not be saved",
+      "description": "The mutation was not committed. Check free storage and configuration write permissions, then retry."
     }
   }
 }

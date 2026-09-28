@@ -1,6 +1,6 @@
 import "./microphone-input";
 import "./audio-output";
-import { routeOutput } from "./audio-output";
+import { routeOutput, availableSavedOutput, rememberOutput } from "./audio-output";
 import "./tts-controls";
 import { icon } from "./icons";
 import type { MicrophoneInput } from "./microphone-input";
@@ -456,10 +456,12 @@ export class IntercomAudioControls extends LitElement {
     this.startedAt = new Date().toISOString();
     if (this.cameraAudioAvailable) {
       this._state = "listening";
+      await this.restoreOutput(epoch);
       return;
     }
     try {
       const context = await this.ensureAudioContext(epoch);
+      await this.restoreOutput(epoch);
       await this.openBackend(epoch, context, true);
     } catch (error) {
       if (this.valid(epoch)) this.stop(this.errorCode(error));
@@ -502,6 +504,7 @@ export class IntercomAudioControls extends LitElement {
       )
         throw { code: "connection_lost" };
       this.outputDevice = id;
+      rememberOutput(actor, id);
     } catch (error) {
       if (this.isConnected && epoch === this.epoch) {
         try {
@@ -514,6 +517,17 @@ export class IntercomAudioControls extends LitElement {
       throw error;
     } finally {
       this.outputBusy = false;
+    }
+  }
+  private async restoreOutput(epoch: number) {
+    const actor = this.hass?.user?.id;
+    if (this.outputDevice) return;
+    const id = await availableSavedOutput(actor);
+    if (!id || !this.valid(epoch) || actor !== this.hass?.user?.id) return;
+    try {
+      await this.chooseOutput(id);
+    } catch {
+      /* Keep the system output usable if a saved sink disappeared. */
     }
   }
   private async openBackend(

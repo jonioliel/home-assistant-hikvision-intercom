@@ -78,6 +78,23 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "platform/get": {},
+    "platform/save": {"collection": str, "record_id": str, "revision": int, "values": dict},
+    "platform/delete": {"collection": str, "record_id": str, "revision": int},
+    "platform/config_read": {"station_ids": list, "door": int},
+    "platform/config_preview": {"station_ids": list, "door": int, "changes": dict},
+    "platform/config_apply": {"review_id": str, "confirmed": bool},
+    "platform/retention_preview": {"values": dict},
+    "platform/retention_apply": {"review_id": str, "confirmed": bool},
+    "platform/archive": {"month": str},
+    "platform/report": {"collection": str, "record_id": str},
+    "platform/export": {},
+    "platform/import_preview": {"content": str, "mapping": dict},
+    "platform/import_apply": {"review_id": str, "confirmed": bool},
+    "platform/webhook_save": {"revision": int, "values": dict, "confirmed": bool},
+    "platform/webhook_key": {"confirmed": bool},
+    "platform/integrity": {},
+    "platform/demo": {},
     "security/session": {},
     "security/touch": {},
     "security/lock": {},
@@ -662,6 +679,10 @@ async def _dispatch_inner(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
+    if command.startswith("platform/"):
+        from .operations_api import dispatch_operations as dispatch_platform
+
+        return await dispatch_platform(hass, command, msg, actor, user)
     if command.startswith(("workflows/", "backups/")):
         from .workflows_api import dispatch_workflows
 
@@ -1081,6 +1102,13 @@ async def _dispatch_inner(
                     )
                     if row.get("employee_no") and row.get("time_source") == "device"
                     else None,
+                    "person_link": manager.repository.event_person_ref(
+                        row["station_id"], row["employee_no"], row["timestamp"]
+                    )
+                    if user.is_admin
+                    and row.get("employee_no")
+                    and row.get("time_source") == "device"
+                    else None,
                 }
                 for row in result["records"]
             ]
@@ -1418,8 +1446,16 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             finally:
                 limiter.release(admitted)
         except vol.Invalid:
+            from .operations_runtime import audit_denial
+
+            await audit_denial(
+                hass, getattr(connection.user, "id", "") or "", command, "invalid_fields"
+            )
             connection.send_error(msg["id"], "invalid_fields", "Invalid command fields")
         except AccessError as err:
+            from .operations_runtime import audit_denial
+
+            await audit_denial(hass, getattr(connection.user, "id", "") or "", command, err.code)
             connection.send_error(
                 msg["id"],
                 err.code,

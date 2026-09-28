@@ -56,4 +56,11 @@ async def dispatch_alerts(
         station_id=msg["station_id"],
         kind=msg["kind"],
         include_suppressed=msg["include_suppressed"],
+        thresholds={
+            key: row["values"]["thresholds"]
+            for key, row in hass.data[DOMAIN]["operations_center"].data["stations"].items()
+            if key in {station["id"] for station in stations}
+        }
+        if hass.data[DOMAIN].get("operations_center")
+        else None,
     )

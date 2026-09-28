@@ -5,6 +5,36 @@ import type { Hass } from "./types";
 type SinkTarget = { setSinkId?: (id: string) => Promise<void> };
 type OutputDevices = MediaDevices & { selectAudioOutput?: () => Promise<MediaDeviceInfo> };
 
+export function savedOutput(actor?: string): string {
+  if (!actor) return "";
+  try {
+    return localStorage.getItem("wiskey-output:" + actor)?.slice(0, 1024) ?? "";
+  } catch {
+    return "";
+  }
+}
+export function rememberOutput(actor: string | undefined, id: string) {
+  if (!actor) return;
+  try {
+    if (id) localStorage.setItem("wiskey-output:" + actor, id);
+    else localStorage.removeItem("wiskey-output:" + actor);
+  } catch {
+    /* Private browsing can disable persistence. */
+  }
+}
+export async function availableSavedOutput(actor?: string): Promise<string> {
+  const saved = savedOutput(actor);
+  if (!saved || !outputSelectionSupported() || !navigator.mediaDevices?.enumerateDevices) return "";
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.some((device) => device.kind === "audiooutput" && device.deviceId === saved)
+      ? saved
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 export function outputSelectionSupported() {
   return (
     window.isSecureContext &&
@@ -111,9 +141,10 @@ export class AudioOutput extends LitElement {
       this.actor = this.hass?.user?.id;
       this.authorized = !!this.hass?.user?.is_admin;
       this.devices = [];
-      this.selected = "";
+      this.selected = savedOutput(this.actor);
       this.busy = false;
       this.error = this.message = "";
+      if (this.authorized && this.selected) void this.refresh();
     }
   }
   private valid(epoch: number) {
@@ -141,9 +172,10 @@ export class AudioOutput extends LitElement {
           (item) => item.kind === "audiooutput" && item.deviceId !== "default" && item.deviceId,
         )
         .slice(0, 64);
-      if (this.selected && !this.devices.some((item) => item.deviceId === this.selected))
+      if (this.selected && !this.devices.some((item) => item.deviceId === this.selected)) {
         this.error = this.t("audio_output_missing");
-      else this.error = "";
+        this.selected = "";
+      } else this.error = "";
     } catch {
       if (this.valid(epoch)) this.error = this.t("audio_output_failed");
     }
@@ -157,6 +189,7 @@ export class AudioOutput extends LitElement {
       await this.apply(id);
       if (this.valid(epoch)) {
         this.selected = id;
+        rememberOutput(this.actor, id);
         this.message = this.t("audio_output_selected");
       }
     } catch {

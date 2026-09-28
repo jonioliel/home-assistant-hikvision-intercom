@@ -96,6 +96,27 @@ async def read_door(client: HikvisionClient, door: int) -> dict[str, Any]:
     }
 
 
+def validate_changes(changes: Any, advertised: dict[str, Any]) -> None:
+    if not isinstance(changes, dict) or not changes or set(changes) - set(FIELDS):
+        raise HikvisionValidationError("Unsupported technical change")
+    for key, value in changes.items():
+        cap = advertised.get(key)
+        if cap is None:
+            raise HikvisionValidationError("Technical field not advertised")
+        if cap["type"] == "boolean":
+            valid = type(value) is bool
+        elif cap["type"] == "integer":
+            valid = type(value) is int and cap["min"] <= value <= cap["max"]
+        else:
+            valid = (
+                isinstance(value, str)
+                and cap["min"] <= len(value) <= cap["max"]
+                and not any(ord(c) < 32 for c in value)
+            )
+        if not valid:
+            raise HikvisionValidationError("Technical field outside advertised bounds")
+
+
 async def update_door(
     client: HikvisionClient, door: int, expected: Any, changes: Any
 ) -> dict[str, Any]:
@@ -106,22 +127,7 @@ async def update_door(
         current = await read_door(client, door)
         if expected != current["values"]:
             raise HikvisionValidationError("Door parameters changed; reload before saving")
-        for key, value in changes.items():
-            cap = current["constraints"].get(key)
-            if cap is None:
-                raise HikvisionValidationError("Technical field not advertised")
-            if cap["type"] == "boolean":
-                valid = type(value) is bool
-            elif cap["type"] == "integer":
-                valid = type(value) is int and cap["min"] <= value <= cap["max"]
-            else:
-                valid = (
-                    isinstance(value, str)
-                    and cap["min"] <= len(value) <= cap["max"]
-                    and not any(ord(c) < 32 for c in value)
-                )
-            if not valid:
-                raise HikvisionValidationError("Technical field outside advertised bounds")
+        validate_changes(changes, current["constraints"])
         desired = {**current["values"], **changes}
         if desired != current["values"]:
             root = Element(

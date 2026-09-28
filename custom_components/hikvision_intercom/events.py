@@ -181,8 +181,14 @@ def normalize_event(
 class EventCache:
     """At most 5,000 safe records / 30 days. Dedupe survives restarts via stored IDs."""
 
-    def __init__(self, *, limit: int = 5000) -> None:
+    def __init__(
+        self, *, limit: int = 5000, days: int = 30, maximum_bytes: int | None = None
+    ) -> None:
         self.limit = limit
+        self.days = days
+        self.maximum_bytes = maximum_bytes
+        self._sizes: dict[str, int] = {}
+        self._bytes = 0
         self.rows: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self._expires_at: datetime | None = None
 
@@ -225,31 +231,56 @@ class EventCache:
             if row["door"] not in {None, 1, 2} or row["api_door"] not in {None, 1, 2}:
                 raise HikvisionValidationError("Invalid audit door")
             self.rows[row["id"]] = copy.deepcopy(row)
+        self._measure()
         self.prune(now)
+
+    def _measure(self) -> None:
+        self._sizes = {
+            key: len(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode()) + 1
+            for key, row in self.rows.items()
+        }
+        self._bytes = sum(self._sizes.values())
+
+    def configure(self, policy: dict[str, int], now: datetime) -> None:
+        self.days, self.limit, self.maximum_bytes = policy["days"], policy["count"], policy["bytes"]
+        self._expires_at = None
+        self._measure()
+        self.prune(now)
+
+    def _remove(self, key: str) -> None:
+        self.rows.pop(key)
+        self._bytes -= self._sizes.pop(key, 0)
 
     def prune(self, now: datetime, *, cached: bool = False) -> None:
         # Received timestamps determine retention; arrival order need not be sorted.
         # Cache the earliest expiry instead of scanning all 5,000 rows per packet.
         if not cached or self._expires_at is None or now > self._expires_at:
-            cutoff = now - timedelta(days=30)
+            cutoff = now - timedelta(days=self.days)
             expires = []
             for key, row in list(self.rows.items()):
                 received = timestamp(row["received_at"])
                 if received is None or received < cutoff:
-                    self.rows.pop(key)
+                    self._remove(key)
                 else:
-                    expires.append(received + timedelta(days=30))
+                    expires.append(received + timedelta(days=self.days))
             self._expires_at = min(expires) if expires else None
-        while len(self.rows) > self.limit:
-            self.rows.popitem(last=False)
+        while self.rows and (
+            len(self.rows) > self.limit
+            or self.maximum_bytes is not None
+            and self._bytes > self.maximum_bytes
+        ):
+            self._remove(next(iter(self.rows)))
 
     def add(self, row: dict[str, Any], now: datetime) -> bool:
         self.prune(now, cached=True)
         if row["id"] in self.rows:
             return False
         self.rows[row["id"]] = copy.deepcopy(row)
+        size = len(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode()) + 1
+        self._sizes[row["id"]] = size
+        self._bytes += size
         received = timestamp(row["received_at"])
-        expiry = received + timedelta(days=30) if received else now - timedelta(seconds=1)
+        expiry = received + timedelta(days=self.days) if received else now - timedelta(seconds=1)
         self._expires_at = min(self._expires_at, expiry) if self._expires_at else expiry
         self.prune(now, cached=True)
         return True
@@ -383,6 +414,6 @@ class EventCache:
         return {
             "records": copy.deepcopy(page),
             "next": page[-1]["id"] if not all_records and len(matches) > limit else None,
-            "retention_days": 30,
+            "retention_days": self.days,
             "capacity": self.limit,
         }

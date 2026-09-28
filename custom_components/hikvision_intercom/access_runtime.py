@@ -312,6 +312,10 @@ async def async_setup_access(hass: HomeAssistant) -> None:
     hass.data[DOMAIN]["backups"] = Backups(manager)
     hass.data[DOMAIN]["panel_security"] = PanelSecurity(hass, workflows_center)
 
+    from .operations_runtime import async_setup_operations
+
+    await async_setup_operations(hass)
+
     from .access.checkpoint_jobs import CheckpointJobs
 
     async def authorize_job(actor: str) -> bool:
