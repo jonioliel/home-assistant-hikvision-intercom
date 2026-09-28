@@ -26,6 +26,8 @@ export interface UserTimingDraft {
   periods: { start: string; end: string }[];
 }
 export interface Person {
+  operator_editable?: boolean;
+  redacted_fields?: WiskeyPersonField[];
   timing_readbacks?: Record<
     string,
     {
@@ -249,11 +251,14 @@ export interface Review {
 }
 export type WiskeyArea = "overview" | "users" | "events" | "stations" | "management";
 export type WiskeyAccessLevel = "none" | "view" | "manage";
+export type WiskeyPersonField = "phone" | "photo" | "credentials" | "profile" | "access";
 export interface AuthorizationSession {
   allowed: boolean;
   is_admin: boolean;
   revision: number;
   areas: Record<WiskeyArea, WiskeyAccessLevel>;
+  station_ids?: string[] | null;
+  fields?: Record<WiskeyPersonField, WiskeyAccessLevel>;
 }
 export interface Hass {
   themes?: { darkMode: boolean };

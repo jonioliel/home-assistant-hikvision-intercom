@@ -1,0 +1,343 @@
+"""Enforce operator station and field scopes at real HA transport boundaries."""
+
+import asyncio
+import json
+from datetime import UTC, datetime
+
+import pytest
+
+from custom_components.hikvision_intercom.access_runtime import get_manager
+from custom_components.hikvision_intercom.const import DOMAIN
+from custom_components.hikvision_intercom.event_manager import get_events
+from custom_components.hikvision_intercom.events import normalize_event
+from custom_components.hikvision_intercom.panel_permissions import AREAS, FIELDS
+
+from . import test_audio, test_profiles_rtc, test_tts_audio
+from .test_audio import started
+from .test_events import live
+from .test_profiles_rtc import OFFER
+from .test_tts_audio import start_tts
+from .test_websocket import request
+
+# Reuse mocked device and loopback provider fixtures; all authorization is real HA.
+audio_driver = test_audio.audio_driver
+rtc_server = test_profiles_rtc.rtc_server
+tts_player = test_tts_audio.tts_player
+
+
+async def grant(hass, user, station_ids, **field_levels):
+    permissions = hass.data[DOMAIN]["panel_permissions"]
+    policy = {
+        "enabled": True,
+        "areas": dict.fromkeys(AREAS, "manage"),
+        "station_ids": station_ids,
+        "fields": {field: field_levels.get(field, "manage") for field in FIELDS},
+    }
+    await permissions.update(permissions.revision, {user.id: policy}, [user.id])
+
+
+async def people(hass, station):
+    manager = get_manager(hass)
+    manager.register("outside", "Outside station", True)
+    users = []
+    for name, assignments in (
+        ("Local", {station: {"allowed_locks": [1]}}),
+        ("Shared", {station: {"allowed_locks": [1]}, "outside": {"allowed_locks": [1]}}),
+        ("Outside", {"outside": {"allowed_locks": [1]}}),
+    ):
+        users.append(
+            await manager.repository.async_create(
+                {"display_name": name, "phone": "0501234567", "assignments": assignments}
+            )
+        )
+    return users
+
+
+async def test_admin_scope_settings_and_projected_directory(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    local, shared, outside = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="none")
+    admin = await hass_ws_client(hass)
+    settings = (await request(admin, "authorization/settings_get"))["result"]
+    assert set(settings["fields"]) == set(FIELDS)
+    assert {item["id"] for item in settings["stations"]} == {loaded_entry.entry_id, "outside"}
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    overview = (await request(reader, "overview"))["result"]
+    assert [item["id"] for item in overview["stations"]] == [loaded_entry.entry_id]
+    assert {item["id"] for item in overview["users"]} == {local.id, shared.id}
+    assert overview["user_count"] == 2
+    assert "users/csv_export" not in overview["api"]["commands"]
+    assert "outside" not in json.dumps(overview)
+    users = (await request(reader, "users/list"))["result"]
+    assert all(item["phone"] == "" for item in users)
+    assert next(item for item in users if item["id"] == shared.id)["operator_editable"] is False
+    hidden = await request(reader, "users/get", user_id=outside.id)
+    assert hidden["error"]["code"] == "unauthorized"
+    query = await request(
+        reader, "users/query", query="0501234567", filters={}, offset=0, limit=25, snapshot=""
+    )
+    assert query["result"]["total"] == 0
+    assert query["result"]["total_all"] == 2
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "users/csv_export",
+        "sync/all",
+        "audit/list",
+        "users/adopt",
+        "whatsapp/history",
+        "cards/capture_start",
+    ],
+)
+async def test_restricted_global_commands_fail_before_payload_or_device_io(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    device_io,
+    command,
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await request(reader, command)
+    assert denied["error"]["code"] == "unauthorized"
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "stations/get",
+        "stations/test_unlock",
+        "sync/station",
+        "stations/technical_get",
+        "clock/station_sync",
+    ],
+)
+async def test_forged_station_id_cannot_bypass_scope(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    device_io,
+    command,
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    data = {"station_id": "outside"}
+    if command == "stations/test_unlock":
+        data["lock"] = 1
+    result = await request(reader, command, **data)
+    assert result["error"]["code"] == "unauthorized"
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
+async def test_person_edit_preserves_read_only_fields_and_rejects_shared_identity(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    local, shared, _ = await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="view")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await request(
+        reader,
+        "users/update",
+        user_id=local.id,
+        revision=local.revision,
+        data={"phone": ""},
+        sync_now=False,
+    )
+    assert denied["error"]["code"] == "field_access_denied"
+    denied = await request(
+        reader,
+        "users/update",
+        user_id=shared.id,
+        revision=shared.revision,
+        data={"display_name": "Changed"},
+        sync_now=False,
+    )
+    assert denied["error"]["code"] == "person_scope_shared"
+    denied = await request(
+        reader,
+        "users/update",
+        user_id=local.id,
+        revision=local.revision,
+        data={"assignments": {"outside": {"allowed_locks": [1]}}},
+        sync_now=False,
+    )
+    assert denied["error"]["code"] == "unauthorized"
+    changed = await request(
+        reader,
+        "users/update",
+        user_id=local.id,
+        revision=local.revision,
+        data={"display_name": "Renamed"},
+        sync_now=False,
+    )
+    assert changed["success"], changed
+    assert changed["result"]["display_name"] == "Renamed"
+    assert changed["result"]["phone"] == "050-123-4567"
+    assert get_manager(hass).repository.get(local.id).phone == "050-123-4567"
+
+
+@pytest.mark.parametrize(
+    ("data", "error"),
+    [
+        ({"display_name": "Unassigned"}, "operator_scope_required"),
+        (
+            {"display_name": "Outside", "assignments": {"outside": {"allowed_locks": [1]}}},
+            "unauthorized",
+        ),
+        ({"display_name": "Hidden contact", "phone": "0501234567"}, "field_access_denied"),
+    ],
+)
+async def test_scoped_creation_cannot_make_an_outside_or_hidden_field_grant(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    data,
+    error,
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="none")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    result = await request(reader, "users/create", data=data, sync_now=False)
+    assert result["error"]["code"] == error
+    assert not get_manager(hass).repository.users()
+
+
+async def test_scoped_creation_is_visible_and_respects_permission_snapshot_changes(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="none")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    created = await request(
+        reader,
+        "users/create",
+        sync_now=False,
+        data={
+            "display_name": "Scoped new person",
+            "assignments": {loaded_entry.entry_id: {"allowed_locks": [1]}},
+        },
+    )
+    assert created["success"], created
+    assert created["result"]["operator_editable"]
+    page = (
+        await request(reader, "users/query", query="", filters={}, offset=0, limit=25, snapshot="")
+    )["result"]
+    assert page["total"] == 1
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="view")
+    refreshed = (
+        await request(
+            reader,
+            "users/query",
+            query="",
+            filters={},
+            offset=0,
+            limit=25,
+            snapshot=page["snapshot"],
+        )
+    )["result"]
+    assert refreshed["stale"] and refreshed["snapshot"] != page["snapshot"]
+
+
+async def test_hidden_credentials_redacted_before_event_pagination_and_export(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    await grant(
+        hass, hass_read_only_user, [loaded_entry.entry_id], credentials="none", photo="none"
+    )
+    monitor = loaded_entry.runtime_data.events
+    monitor.ingest(live(cardNo="9876543210", name="Allowed person", serialNo=800))
+    events = get_events(hass)
+    outside = normalize_event(
+        live(name="Outside secret", serialNo=801),
+        "outside",
+        b"x" * 32,
+        received=datetime.now(UTC),
+        selected_api=1,
+    )
+    assert events.cache.add(outside, datetime.now(UTC))
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    result = (await request(reader, "events/list", filters={"limit": 1}))["result"]
+    assert len(result["records"]) == 1
+    assert result["records"][0]["card"] is None and result["records"][0]["portrait"] is None
+    for command in ("events/report", "events/print", "events/export"):
+        reply = await request(reader, command, filters={})
+        assert reply["success"], reply
+        assert reply["result"]["totals"]["records"] == 1
+        assert "Outside secret" not in json.dumps(reply)
+        assert "3210" not in json.dumps(reply)
+    denied = await request(reader, "events/list", filters={"station": "outside"})
+    assert denied["error"]["code"] == "unauthorized"
+
+
+@pytest.mark.parametrize("route", ["mse", "rtc"])
+async def test_media_http_scope_denied_before_lookup(
+    hass, loaded_entry, hass_client, hass_read_only_user, hass_read_only_access_token, route
+):
+    await grant(hass, hass_read_only_user, ["other"])
+    client = await hass_client(hass)
+    reply = await client.get(
+        f"/api/{DOMAIN}/{route}/{loaded_entry.entry_id}",
+        headers={"Authorization": f"Bearer {hass_read_only_access_token}"},
+    )
+    assert reply.status == 403
+
+
+async def test_station_scope_revocation_closes_live_rtc(
+    hass, loaded_entry, hass_client, hass_read_only_user, hass_read_only_access_token, rtc_server
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    client = await hass_client(hass)
+    ws = await client.ws_connect(
+        f"/api/{DOMAIN}/rtc/{loaded_entry.entry_id}",
+        headers={"Authorization": f"Bearer {hass_read_only_access_token}"},
+    )
+    await ws.send_json({"offer": OFFER})
+    assert (await ws.receive_json())["type"] == "answer"
+    await ws.receive_json()
+    await grant(hass, hass_read_only_user, [])
+    event = await asyncio.wait_for(ws.receive_json(), 3)
+    assert event["type"] == "error"
+    await ws.close()
+    await asyncio.wait_for(rtc_server["closed"].wait(), 3)
+
+
+async def test_station_scope_revocation_ends_audio_and_invalidates_token(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    audio_driver,
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    _, token = await started(reader, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [])
+    closed = await asyncio.wait_for(reader.receive_json(), 3)
+    assert closed["event"]["state"] == "closed"
+    await hass.async_block_till_done()
+    audio_driver.close.assert_awaited_once()
+    assert not hass.data[DOMAIN]["audio_sessions"]
+    denied = await request(reader, "audio/receive", token=token)
+    assert not denied["success"]
+
+
+async def test_tts_scope_denial_does_not_synthesize_or_touch_device(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token, tts_player
+):
+    await grant(hass, hass_read_only_user, ["other"])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await start_tts(reader, loaded_entry.entry_id)
+    assert denied["error"]["code"] == "unauthorized"
+    tts_player[0].start.assert_not_called()
+    tts_player[1].assert_not_called()

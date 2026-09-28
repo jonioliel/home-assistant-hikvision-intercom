@@ -1,0 +1,155 @@
+import { test, expect, type Page } from "@playwright/test";
+
+async function scopedOperator(page: Page, shared = false) {
+  await page.goto(
+    "/?reader=1&grant=overview:manage,users:manage,events:view,stations:view,management:view",
+  );
+  await page.evaluate((shared) => {
+    const data = window.demoData;
+    data.access.station_ids = ["station-0"];
+    data.access.fields = {
+      phone: "view",
+      photo: "view",
+      credentials: "none",
+      profile: "view",
+      access: "view",
+    };
+    data.api.commands = [
+      "overview",
+      "users/get",
+      "users/list",
+      "users/update",
+      "stations/list",
+      "stations/get",
+      "profiles/settings_get",
+      "events/list",
+    ];
+    data.stations = data.stations.slice(0, 1);
+    data.users = data.users.slice(0, 1);
+    const user = data.users[0];
+    user.phone = "050-123-4567";
+    user.pin_configured = false;
+    user.cards = [];
+    user.redacted_fields = ["credentials"];
+    user.operator_editable = !shared;
+    user.assignments = { "station-0": user.assignments["station-0"] };
+    window.demoNotify();
+  }, shared);
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await expect(page.locator(".desktop-users tbody tr")).toHaveCount(1);
+}
+
+for (const width of [1440, 390]) {
+  test(`administrator edits station and field scopes without expanding them through presets at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?lang=he");
+    await page.getByRole("button", { name: "כלי ניהול", exact: true }).click();
+    await page.getByRole("button", { name: /הרשאות משתמשי תשתית המערכת/ }).click();
+    const operator = page.locator("wiskey-access-control article").filter({ hasText: "Reception" });
+    await operator.getByLabel("תבנית תפקיד עבור Reception").selectOption("personnel");
+    await operator.locator(".scope-editor > summary").click();
+    await operator.getByRole("checkbox", { name: "גישה לכל התחנות הקיימות והעתידיות" }).uncheck();
+    await operator.getByRole("checkbox", { name: "שער ראשי", exact: true }).check();
+    await operator.getByLabel("טלפון ליצירת קשר", { exact: true }).selectOption("view");
+    await operator.getByLabel("קוד אישי וכרטיסים", { exact: true }).selectOption("none");
+    await operator.getByLabel("תבנית תפקיד עבור Reception").selectOption("security");
+    await expect(operator.getByRole("checkbox", { name: "שער ראשי", exact: true })).toBeChecked();
+    await expect(operator.getByLabel("טלפון ליצירת קשר", { exact: true })).toHaveValue("view");
+    await expect(operator.getByLabel("קוד אישי וכרטיסים", { exact: true })).toHaveValue("none");
+    expect(
+      await operator.evaluate((element) => element.scrollWidth - element.clientWidth),
+    ).toBeLessThanOrEqual(1);
+    await page.getByRole("button", { name: "שמירת הרשאות" }).click();
+    await expect(page.getByText("ההרשאות נשמרו והוחלו מיד.")).toBeVisible();
+    const saved = await page.evaluate(
+      () =>
+        window.calls.find((call) => call.type.endsWith("authorization/settings_update")).users[
+          "reader-user"
+        ],
+    );
+    expect(saved.station_ids).toEqual(["station-0"]);
+    expect(saved.fields.phone).toBe("view");
+    expect(saved.fields.credentials).toBe("none");
+  });
+}
+
+test("read-only person fields stay disabled and are omitted from a name edit", async ({ page }) => {
+  await scopedOperator(page);
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("Mobile phone", { exact: true })).toBeDisabled();
+  await expect(dialog.locator("fieldset.editor-pin")).toBeHidden();
+  await expect(dialog.locator("fieldset.editor-cards")).toBeHidden();
+  await expect(dialog.locator("fieldset.editor-validity")).toHaveAttribute("disabled", "");
+  await dialog.getByLabel("Name", { exact: true }).fill("Renamed operator person");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  const patch = await page.evaluate(
+    () => window.calls.filter((call) => call.type.endsWith("users/update")).at(-1).data,
+  );
+  expect(patch.display_name).toBe("Renamed operator person");
+  for (const field of [
+    "phone",
+    "photo",
+    "pin",
+    "cards",
+    "profile",
+    "assignments",
+    "valid_from",
+    "valid_until",
+    "group_ids",
+    "access_timing_policy",
+    "access_timing_draft",
+  ])
+    expect(patch).not.toHaveProperty(field);
+});
+
+test("shared person stays view-only and restricted tools do not offer global operations", async ({
+  page,
+}) => {
+  await scopedOperator(page, true);
+  await expect(page.getByRole("button", { name: "Edit", exact: true }).first()).toBeDisabled();
+  await expect(page.getByRole("button", { name: "+ Add user", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Management tools", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Users", exact: true }).last()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Time & NTP", exact: true })).toHaveCount(0);
+  await expect(page.locator("wiskey-investigations")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Media & audio", exact: true })).toHaveCount(0);
+});
+
+test("permission refresh closes person details and discards a delayed detail response", async ({
+  page,
+}) => {
+  await scopedOperator(page);
+  await page.evaluate(() => {
+    const base = window.demoHass.callWS;
+    window.releaseDetail = undefined;
+    window.demoHass.callWS = async function (message) {
+      if (message.type.endsWith("users/get")) {
+        const result = await base.call(this, message);
+        return new Promise((resolve) => {
+          window.releaseDetail = () => resolve(result);
+        });
+      }
+      return base.call(this, message);
+    };
+  });
+  await page.getByRole("button", { name: "Or Levy", exact: true }).click();
+  await expect(page.locator("wiskey-user-details").getByRole("dialog")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => !!window.releaseDetail)).toBe(true);
+  await page.evaluate(() => {
+    window.demoData.access.fields.phone = "none";
+    window.demoData.access.revision++;
+    window.demoData.users[0].phone = "";
+    window.demoData.users[0].redacted_fields.push("phone");
+    window.demoNotify();
+  });
+  await expect(page.locator("wiskey-user-details")).toHaveCount(0);
+  await page.evaluate(() => window.releaseDetail());
+  await page.getByRole("button", { name: "Or Levy", exact: true }).click();
+  await expect(page.locator("wiskey-user-details")).not.toContainText("050-123-4567");
+  expect(
+    await page.evaluate(() => document.querySelector("hikvision-intercom-panel").detailCache.size),
+  ).toBe(0);
+});

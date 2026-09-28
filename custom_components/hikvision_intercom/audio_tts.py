@@ -15,7 +15,7 @@ from .client.audio import AudioError, AudioSession
 from .client.tts_audio import TtsCodecError, wav_to_mulaw_packets
 from .const import DOMAIN
 from .exceptions import HikvisionError
-from .panel_permissions import area_allowed
+from .panel_permissions import area_allowed, station_allowed
 
 MAX_TEXT_LENGTH = 500
 SYNTHESIS_TIMEOUT = 30
@@ -38,10 +38,11 @@ class IntercomTtsError(Exception):
         self.code = code
 
 
-def _authorized(hass: HomeAssistant, user: Any) -> bool:
+def _authorized(hass: HomeAssistant, user: Any, station_id: str | None = None) -> bool:
     permissions = hass.data[DOMAIN].get("panel_permissions")
-    return area_allowed(permissions, user, "overview", "manage") or area_allowed(
-        permissions, user, "stations", "manage"
+    return (station_id is None or station_allowed(permissions, user, station_id)) and (
+        area_allowed(permissions, user, "overview", "manage")
+        or area_allowed(permissions, user, "stations", "manage")
     )
 
 
@@ -144,7 +145,7 @@ class TtsPlayback:
         entry = self.hass.config_entries.async_get_entry(self.runtime.station_id)
         return bool(
             not self.stopped
-            and _authorized(self.hass, self.connection.user)
+            and _authorized(self.hass, self.connection.user, self.runtime.station_id)
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
             and not self.runtime.is_closed
@@ -299,6 +300,9 @@ def start(
         connection.send_error(msg["id"], "invalid_fields", "Invalid TTS request")
         return
     configured = available_engines(hass)
+    if not _authorized(hass, connection.user, station):
+        connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
+        return
     if engine not in {row["engine_id"] for row in configured["engines"]}:
         connection.send_error(msg["id"], "tts_engine_unavailable", "TTS engine unavailable")
         return

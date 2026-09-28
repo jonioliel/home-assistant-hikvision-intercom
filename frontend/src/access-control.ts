@@ -1,11 +1,13 @@
 import { LitElement, html, nothing } from "lit";
-import type { Hass } from "./types";
+import type { Hass, WiskeyPersonField } from "./types";
 
 type Level = "none" | "view" | "manage";
 type Area = "overview" | "users" | "events" | "stations" | "management";
 interface Policy {
   enabled: boolean;
   areas: Record<Area, Level>;
+  station_ids?: string[] | null;
+  fields?: Record<WiskeyPersonField, Level>;
 }
 interface DirectoryUser {
   id: string;
@@ -18,15 +20,21 @@ interface PermissionSettings {
   revision: number;
   users: Record<string, Policy>;
   directory: DirectoryUser[];
+  stations?: { id: string; name: string }[];
 }
 interface PermissionPreview {
   enabled: boolean;
   actions: Record<string, boolean>;
 }
 const areas: Area[] = ["overview", "users", "events", "stations", "management"];
+const fields: WiskeyPersonField[] = ["phone", "photo", "credentials", "profile", "access"];
+const fullFields = () =>
+  Object.fromEntries(fields.map((field) => [field, "manage"])) as Record<WiskeyPersonField, Level>;
 const emptyPolicy = (): Policy => ({
   enabled: false,
   areas: { overview: "none", users: "none", events: "none", stations: "none", management: "none" },
+  station_ids: null,
+  fields: fullFields(),
 });
 const rolePresets: Record<string, Record<Area, Level>> = {
   reception: {
@@ -158,7 +166,10 @@ export class WiskeyAccessControl extends LitElement {
     const levels = rolePresets[preset];
     if (!levels) return;
     this.invalidatePreview(id);
-    this._draft = { ...this._draft, [id]: { enabled: true, areas: { ...levels } } };
+    this._draft = {
+      ...this._draft,
+      [id]: { ...structuredClone(this.policy(id)), enabled: true, areas: { ...levels } },
+    };
     this._saved = false;
   }
   private async save() {
@@ -199,6 +210,95 @@ export class WiskeyAccessControl extends LitElement {
       management: ["Management tools", "כלי ניהול"],
     };
     return this.text(...labels[area]);
+  }
+  private changeScope(id: string, stations: string[] | null) {
+    this.invalidatePreview(id);
+    this._draft = {
+      ...this._draft,
+      [id]: { ...structuredClone(this.policy(id)), station_ids: stations },
+    };
+    this._saved = false;
+  }
+  private changeField(id: string, field: WiskeyPersonField, level: Level) {
+    this.invalidatePreview(id);
+    const policy = structuredClone(this.policy(id));
+    policy.fields = { ...(policy.fields ?? fullFields()), [field]: level };
+    this._draft = { ...this._draft, [id]: policy };
+    this._saved = false;
+  }
+  private fieldLabel(field: WiskeyPersonField) {
+    const labels: Record<WiskeyPersonField, [string, string]> = {
+      phone: ["Contact phone", "טלפון ליצירת קשר"],
+      photo: ["Person photo", "תמונת המשתמש"],
+      credentials: ["PIN and cards", "קוד אישי וכרטיסים"],
+      profile: ["Custom person fields", "שדות משתמש מותאמים"],
+      access: ["Access rights and validity", "הרשאות כניסה ותוקף"],
+    };
+    return this.text(...labels[field]);
+  }
+  private scopeEditor(user: DirectoryUser, policy: Policy) {
+    const stations = this._settings?.stations;
+    if (!stations) return nothing;
+    const selected = policy.station_ids;
+    const disabled = this._busy || !user.active || !policy.enabled;
+    return html`<details class="scope-editor">
+      <summary>
+        ${this.text("Stations and person fields", "תחנות ושדות משתמש")} ·
+        ${selected == null ? this.text("All stations", "כל התחנות") : this.text(`${selected.length} selected`, `${selected.length} תחנות נבחרות`)}
+      </summary>
+      <label class="switch"
+        ><input
+          type="checkbox"
+          .checked=${selected == null}
+          ?disabled=${disabled}
+          @change=${(event: Event) => this.changeScope(user.id, (event.target as HTMLInputElement).checked ? null : [])}
+        />${this.text("Access to all current and future stations", "גישה לכל התחנות הקיימות והעתידיות")}</label
+      >
+      ${
+        selected != null
+          ? html`<div class="station-options">
+              ${stations.map((station) => html`<label class="switch"><input type="checkbox" .checked=${selected.includes(station.id)} ?disabled=${disabled} @change=${(event: Event) => this.changeScope(user.id, (event.target as HTMLInputElement).checked ? [...selected, station.id] : selected.filter((id) => id !== station.id))} />${station.name}</label>`)}${selected
+                .filter((id) => !stations.some((station) => station.id === id))
+                .map(
+                  (id) =>
+                    html`<label class="switch"
+                      ><input
+                        type="checkbox"
+                        checked
+                        ?disabled=${disabled}
+                        @change=${() =>
+                          this.changeScope(
+                            user.id,
+                            selected.filter((value) => value !== id),
+                          )}
+                      />${this.text("Removed station", "תחנה שהוסרה")} <bdi>${id}</bdi></label
+                    >`,
+                )}
+            </div>`
+          : nothing
+      }
+      <p class="hint">
+        ${this.text("A station selection limits WisKey data and commands. People shared with another station are view-only. Fleet-wide jobs, imports and message history require an unrestricted grant. Infrastructure entity permissions are separate.", "בחירת תחנות מגבילה נתונים ופעולות ב־WisKey. אדם המשויך גם לתחנה אחרת זמין לצפייה בלבד. פעולות כלליות, ייבוא והיסטוריית הודעות דורשים הרשאה ללא הגבלות. הרשאות ישויות בתשתית המערכת מנוהלות בנפרד.")}
+      </p>
+      <div class="areas">
+        ${fields.map(
+          (field) =>
+            html`<label
+              >${this.fieldLabel(field)}<select
+                aria-label=${this.fieldLabel(field)}
+                .value=${policy.fields?.[field] ?? "manage"}
+                ?disabled=${disabled}
+                @change=${(event: Event) => this.changeField(user.id, field, (event.target as HTMLSelectElement).value as Level)}
+              >
+                ${(["none", "view", "manage"] as Level[]).map((level) => html`<option value=${level}>${this.levelLabel(level)}</option>`)}
+              </select></label
+            >`,
+        )}
+      </div>
+      <p class="hint">
+        ${this.text("Field permissions further limit the Users screen grant; they never grant access to a screen by themselves.", "הרשאות השדות מצמצמות את הרשאת מסך המשתמשים; הן אינן מעניקות גישה למסך בעצמן.")}
+      </p>
+    </details>`;
   }
   private levelLabel(level: Level) {
     const labels: Record<Level, [string, string]> = {
@@ -314,6 +414,23 @@ export class WiskeyAccessControl extends LitElement {
           padding: 12px;
           border: 1px solid var(--divider-color, #dbe3ed);
           border-radius: 10px;
+        }
+        .scope-editor {
+          margin: 14px 0;
+          border: 1px solid var(--divider-color, #dbe3ed);
+          border-radius: 10px;
+          padding: 12px;
+        }
+        .scope-editor summary {
+          cursor: pointer;
+          font-weight: 700;
+          margin-bottom: 10px;
+        }
+        .station-options {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+          gap: 10px;
+          margin-top: 12px;
         }
         .preview-actions {
           display: grid;
@@ -478,6 +595,7 @@ export class WiskeyAccessControl extends LitElement {
                             >`,
                         )}
                       </div>
+                      ${this.scopeEditor(user, policy)}
                       <button
                         type="button"
                         ?disabled=${this._busy || !!this._previewBusy || !user.active}

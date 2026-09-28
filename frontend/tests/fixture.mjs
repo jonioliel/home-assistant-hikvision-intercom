@@ -579,6 +579,8 @@ const fake = {
     if (command === "authorization/settings_get")
       return {
         revision: 0,
+        stations: data.stations.map(({ id, name }) => ({ id, name })),
+        fields: ["phone", "photo", "credentials", "profile", "access"],
         areas: Object.keys(fullAreas),
         levels: ["none", "view", "manage"],
         users: {},
@@ -612,6 +614,8 @@ const fake = {
     if (command === "authorization/settings_update")
       return {
         revision: message.revision + 1,
+        stations: data.stations.map(({ id, name }) => ({ id, name })),
+        fields: ["phone", "photo", "credentials", "profile", "access"],
         areas: Object.keys(fullAreas),
         levels: ["none", "view", "manage"],
         users: structuredClone(message.users),

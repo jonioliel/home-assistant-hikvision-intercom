@@ -5,6 +5,8 @@ from .access.models import AccessError
 API_VERSION = 1
 MIN_CLIENT = 0  # Legacy clients remain compatible with the existing command shapes.
 CAPABILITIES = [
+    "operator_station_scope",
+    "operator_person_fields",
     "investigation_timeline",
     "fleet_triage_alerts",
     "visit_host_approval",

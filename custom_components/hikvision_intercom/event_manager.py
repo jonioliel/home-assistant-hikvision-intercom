@@ -22,6 +22,7 @@ from .event_trace import EventTrace
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
 from .issues import issue
+from .operator_scope import contains_station, project_event
 from .storage import AccessStore
 
 if TYPE_CHECKING:
@@ -139,22 +140,49 @@ class EventManager:
             else {},
         )
 
-    def query(self, filters: dict[str, Any]) -> dict[str, Any]:
+    def query(
+        self, filters: dict[str, Any], *, operator_policy: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         before = len(self.cache.rows)
         base, match = self._audience(filters)
+        if operator_policy is not None:
+            audience = match
+
+            def match(row: dict[str, Any]) -> bool:
+                return contains_station(operator_policy, row["station_id"]) and (
+                    audience is None or audience(row)
+                )
+
         result = self.cache.query(base, datetime.now(UTC), match=match)
         if len(self.cache.rows) != before:
             self.changed()
         return {
             **result,
-            "membership_basis": "current_observed_owner" if match else None,
-            "records": [{**row, "evidence": explain_event(row)} for row in result["records"]],
+            "membership_basis": "current_observed_owner"
+            if set(filters) & {"current_group", "current_profile"}
+            else None,
+            "records": [
+                {
+                    **(project_event(operator_policy, row) if operator_policy else row),
+                    "evidence": explain_event(row),
+                }
+                for row in result["records"]
+            ],
             "storage_failed": self.storage_failed,
-            "stations": {key: value.status() for key, value in self.stations.items()},
+            "stations": {
+                key: value.status()
+                for key, value in self.stations.items()
+                if operator_policy is None or contains_station(operator_policy, key)
+            },
         }
 
     async def async_report(
-        self, filters: dict[str, Any], *, export: bool = False, printable: bool = False
+        self,
+        filters: dict[str, Any],
+        *,
+        export: bool = False,
+        printable: bool = False,
+        operator_policy: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         from .reporting import build_report
 
@@ -165,17 +193,31 @@ class EventManager:
         before = len(self.cache.rows)
         now = datetime.now(UTC)
         base, match = self._audience(filters)
+        if operator_policy is not None:
+            audience = match
+
+            def match(row: dict[str, Any]) -> bool:
+                return contains_station(operator_policy, row["station_id"]) and (
+                    audience is None or audience(row)
+                )
+
         page = self.cache.query(base, now, all_records=True, match=match)
         if len(self.cache.rows) != before:
             self.changed()
         # Capture HA-owned metadata before running only detached records in the worker.
         metadata = {
-            "membership_basis": "current_observed_owner" if match else None,
+            "membership_basis": "current_observed_owner"
+            if set(filters) & {"current_group", "current_profile"}
+            else None,
             "filters": dict(filters),
             "retention_days": page["retention_days"],
             "capacity": page["capacity"],
             "storage_failed": self.storage_failed,
-            "stations": {key: value.status() for key, value in self.stations.items()},
+            "stations": {
+                key: value.status()
+                for key, value in self.stations.items()
+                if operator_policy is None or contains_station(operator_policy, key)
+            },
         }
         names = {
             key: entry.title
@@ -187,8 +229,13 @@ class EventManager:
             for key, station in self.stations.items()
             if station.runtime.clock
         }
+        records = (
+            [project_event(operator_policy, row) for row in page["records"]]
+            if operator_policy
+            else page["records"]
+        )
         result = await self.hass.async_add_executor_job(
-            build_report, page["records"], now, names, export, zones, printable
+            build_report, records, now, names, export, zones, printable
         )
         return {**result, **metadata}
 

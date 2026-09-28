@@ -59,6 +59,7 @@ import type {
   Assignment,
   AuthorizationSession,
   WiskeyArea,
+  WiskeyPersonField,
   UserDirectoryPage,
 } from "./types";
 import "./schedules";
@@ -241,6 +242,13 @@ export class IntercomManagerPanel extends LitElement {
   private canManage(area: WiskeyArea) {
     return this.level(area) === "manage";
   }
+  private personField(field: WiskeyPersonField, manage = false) {
+    const level = this._session?.fields?.[field] ?? "manage";
+    return manage ? level === "manage" : level !== "none";
+  }
+  private personEditable(user: Person) {
+    return this.canManage("users") && user.operator_editable !== false;
+  }
   narrow = false;
   private _appearance: Appearance = "current";
   private _appearanceUser?: string;
@@ -373,12 +381,7 @@ export class IntercomManagerPanel extends LitElement {
     </button>`;
   }
   private navigate(tab: string) {
-    if (
-      tab === "tools"
-        ? !this.canView("stations") && !this.canView("management")
-        : !this.canView(this.tabArea(tab))
-    )
-      return;
+    if (!this.tabAvailable(tab)) return;
     const schedules = this.renderRoot.querySelector("hikvision-intercom-schedules") as
       (HTMLElement & { canLeave(): boolean }) | null;
     if (tab !== this._tab && schedules && !schedules.canLeave()) return;
@@ -762,6 +765,30 @@ export class IntercomManagerPanel extends LitElement {
         try {
           const data = await this.api<Overview>("overview");
           if (epoch === this._epoch && this.isConnected && this.authorized) {
+            const accessStamp = (access: AuthorizationSession | undefined | null) =>
+              JSON.stringify([
+                access?.areas,
+                access?.station_ids ?? null,
+                access?.fields ?? null,
+                access?.is_admin,
+              ]);
+            if (this._data && accessStamp(this._session) !== accessStamp(data.access)) {
+              this._draft = undefined;
+              this._dialog = "";
+              this._cameraStation = undefined;
+              this._detailsUser = "";
+              this._detailsModalUser = "";
+              this.detailCache.clear();
+              this._detailRecords = {};
+              this._selectedUsers = new Set();
+              clearTimeout(this._userQueryTimer);
+              this._userQuerySequence++;
+              this._userPage = undefined;
+              this._userPageKey = "";
+              this._userPageLoading = false;
+              this.clearCapture();
+              this.resetPinValidation();
+            }
             this._data = data;
             this._session = data.access;
             this.syncAppearance();
@@ -1119,6 +1146,8 @@ export class IntercomManagerPanel extends LitElement {
   private _onboarding = "";
   private _editorPolicyRevision?: number;
   private edit(user?: Person) {
+    if (user && !this.personEditable(user)) return;
+    if (!user && !this.commandAvailable("users/create")) return;
     this.resetPinValidation();
     this._timingConverted = false;
     this._timingEnforcement = user?.access_timing_policy?.mode ?? "draft";
@@ -1573,6 +1602,27 @@ export class IntercomManagerPanel extends LitElement {
       if (draft.group_ids !== undefined) data.group_ids = draft.group_ids;
       if (draft.photo !== undefined) data.photo = draft.photo;
     }
+    const fields: Record<string, WiskeyPersonField> = {
+      phone: "phone",
+      photo: "photo",
+      pin: "credentials",
+      cards: "credentials",
+      profile: "profile",
+      group_ids: "access",
+      assignments: "access",
+      permission_overrides: "access",
+      door_permissions: "access",
+      active: "access",
+      valid_from: "access",
+      valid_until: "access",
+      access_timing_draft: "access",
+      access_timing_policy: "access",
+      access_category: "access",
+      responsible_person: "access",
+      access_purpose: "access",
+    };
+    for (const [key, field] of Object.entries(fields))
+      if (!this.personField(field, true)) delete data[key];
     const success = await this.run(
       () =>
         draft.id
@@ -2297,13 +2347,13 @@ export class IntercomManagerPanel extends LitElement {
       <button
         class="user-edit"
         @click=${() => this.edit(user)}
-        ?disabled=${this._busy || !this.canManage("users")}
+        ?disabled=${this._busy || !this.personEditable(user)}
       >
         ${this.t("edit")}
       </button>
       <button
         @click=${() => this.run(() => this.api("sync/user", { user_id: user.id }))}
-        ?disabled=${this._busy}
+        ?disabled=${this._busy || !this.personEditable(user)}
       >
         ${this.t("sync_now")}
       </button>
@@ -2389,6 +2439,7 @@ export class IntercomManagerPanel extends LitElement {
                 ${
                   f.type === "select"
                     ? html`<select
+                        ?disabled=${!this.personField("profile", true)}
                         .value=${draft.profile?.[f.id] ?? ""}
                         ?required=${!draft.id && f.required}
                         @change=${(e: Event) => this.patchDraft("profile", { ...draft.profile, [f.id]: value(e) })}
@@ -2398,6 +2449,7 @@ export class IntercomManagerPanel extends LitElement {
                         ${f.options.map((o) => html`<option value=${o}>${o}</option>`)}
                       </select>`
                     : html`<input
+                          ?disabled=${!this.personField("profile", true)}
                           maxlength="100"
                           type=${f.type === "number" ? "text" : f.type === "date" && (!draft.profile?.[f.id] || validProfileValue(f, draft.profile[f.id])) ? "date" : "text"}
                           inputmode=${f.type === "number" ? "decimal" : "text"}
@@ -2426,6 +2478,7 @@ export class IntercomManagerPanel extends LitElement {
                         ><input
                           type="checkbox"
                           .checked=${draft.group_ids?.includes(g.id) ?? false}
+                          ?disabled=${!this.personField("access", true)}
                           @change=${(e: Event) => this.patchDraft("group_ids", checked(e) ? [...(draft.group_ids ?? []), g.id] : (draft.group_ids ?? []).filter((id) => id !== g.id))}
                         />${g.label}</label
                       >`,
@@ -2437,6 +2490,7 @@ export class IntercomManagerPanel extends LitElement {
         policy.photo_enabled
           ? html`<hikvision-user-photo
               .hass=${this.protectedHass}
+              .compact=${!this.personField("photo", true)}
               .userId=${draft.id ?? ""}
               .configured=${draft.photo_configured ?? false}
               .revision=${draft.revision ?? 0}
@@ -2828,13 +2882,44 @@ export class IntercomManagerPanel extends LitElement {
     return "overview";
   }
   private ensureAllowedTab() {
-    if (this.canView(this.tabArea())) return;
+    if (this.tabAvailable(this._tab)) return;
     const first = (["overview", "users", "events", "tools"] as const).find((tab) =>
-      tab === "tools"
-        ? this.canView("stations") || this.canView("management")
-        : this.canView(this.tabArea(tab)),
+      this.tabAvailable(tab),
     );
     this._tab = first ?? "overview";
+  }
+  private commandAvailable(command: string) {
+    return (
+      !this.operatorRestricted || !this._data?.api || this._data.api.commands.includes(command)
+    );
+  }
+  private get operatorRestricted() {
+    return (
+      this._session?.station_ids != null ||
+      Object.values(this._session?.fields ?? {}).some((level) => level !== "manage")
+    );
+  }
+  private tabAvailable(tab: string) {
+    if (tab === "tools") return this.canView("stations") || this.canView("management");
+    if (!this.canView(this.tabArea(tab))) return false;
+    const command: Record<string, string> = {
+      clock_options: "clock/settings_get",
+      media_options: "media/settings_get",
+      whatsapp_templates: "whatsapp/templates_get",
+      profile_options: "profiles/settings_get",
+      permission_directory: "permissions/directory",
+      operations_center: "operations/query",
+      investigations: "investigations/query",
+      camera_wall: "media/settings_get",
+      identity_lifecycle: "users/lifecycle",
+      guest_templates: "guest_templates/get",
+      visit_requests: "visits/list",
+      fleet_alerts: "fleet/alerts",
+      audit: "audit/list",
+      schedules: "schedules/list",
+      access_control: "authorization/settings_get",
+    };
+    return !command[tab] || this.commandAvailable(command[tab]);
   }
   private navigation() {
     const v4 = isWiskeyAppearance(this._appearance);
@@ -2895,7 +2980,7 @@ export class IntercomManagerPanel extends LitElement {
         ]
           .filter(
             (tab) =>
-              this.canView(this.tabArea(tab)) &&
+              this.tabAvailable(tab) &&
               (tab !== "guest_templates" ||
                 !!this._data?.api?.commands.includes("guest_templates/get")) &&
               (tab !== "visit_requests" || !!this._data?.api?.commands.includes("visits/list")) &&
@@ -2985,13 +3070,13 @@ export class IntercomManagerPanel extends LitElement {
           <button
             class="primary"
             @click=${() => this.edit()}
-            ?disabled=${this._busy || !this.canManage("users")}
+            ?disabled=${this._busy || !this.canManage("users") || !this.commandAvailable("users/create")}
           >
             + ${this.t("add_user")}
           </button>
           <button
             @click=${() => this.createGuest()}
-            ?disabled=${this._busy || !this.canManage("users")}
+            ?disabled=${this._busy || !this.canManage("users") || !this.commandAvailable("users/create")}
           >
             + ${this.t("guest_create")}
           </button>
@@ -3037,13 +3122,25 @@ export class IntercomManagerPanel extends LitElement {
           <details class="access-transfer-tools" ?open=${!this._accessMode}>
             <summary>${this.t("other")}</summary>
             <div class="access-transfer-list">
-              <button @click=${() => this.openCsv()} ?disabled=${this._busy}>
+              <button
+                @click=${() => this.openCsv()}
+                ?disabled=${this._busy || !this.commandAvailable("users/csv_preview")}
+              >
                 ${this.t("csv_import")}</button
-              ><button @click=${() => this.exportCsv()} ?disabled=${this._busy}>
+              ><button
+                @click=${() => this.exportCsv()}
+                ?disabled=${this._busy || !this.commandAvailable("users/csv_export")}
+              >
                 ${this.t("csv_export")}</button
-              ><button @click=${() => this.openImport()} ?disabled=${this._busy}>
+              ><button
+                @click=${() => this.openImport()}
+                ?disabled=${this._busy || !this.commandAvailable("users/adopt")}
+              >
                 ${this.t("import_existing")}</button
-              ><button @click=${() => this.run(() => this.api("sync/all"))} ?disabled=${this._busy}>
+              ><button
+                @click=${() => this.run(() => this.api("sync/all"))}
+                ?disabled=${this._busy || !this.commandAvailable("sync/all")}
+              >
                 ${this.t("sync_all")}
               </button>
             </div>
@@ -3315,14 +3412,24 @@ export class IntercomManagerPanel extends LitElement {
                   </td>
                   <td><bdi>${user.employee_no}</bdi></td>
                   <td class="phone-cell">
-                    <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi>
+                    <bdi dir="ltr"
+                      >${this.personField("phone") ? mobileDisplay(user.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                    >
                   </td>
                   ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
                   ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
-                  <td>${this.t(user.pin_configured ? "configured" : "not_configured")}</td>
-                  <td>${user.cards.length}</td>
-                  <td>${Object.values(user.assignments).filter((item) => item.enabled).length}</td>
-                  <td>${this.validitySummary(user)}</td>
+                  <td>
+                    ${this.personField("credentials") ? this.t(user.pin_configured ? "configured" : "not_configured") : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("credentials") ? user.cards.length : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("access") ? Object.values(user.assignments).filter((item) => item.enabled).length : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("access") ? this.validitySummary(user) : this.t("operator_field_hidden")}
+                  </td>
                   <td>
                     <span title=${this.t("user_sync_hint")}
                       >${this.badge(this.personStatus(user))}</span
@@ -3356,13 +3463,17 @@ export class IntercomManagerPanel extends LitElement {
               </div>
               <p class="sub">
                 ${this.t("phone")}:
-                <bdi dir="ltr">${mobileDisplay(user.phone || "") || "—"}</bdi> ·
-                ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
+                <bdi dir="ltr"
+                  >${this.personField("phone") ? mobileDisplay(user.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                >
+                · ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
                 ${this.t(user.active ? "active" : "inactive")}
               </p>
               <p class="sub">
-                ${this.t("pin")}: ${this.t(user.pin_configured ? "configured" : "not_configured")} ·
-                ${this.t("cards")}: ${user.cards.length}
+                ${this.t("pin")}:
+                ${this.personField("credentials") ? this.t(user.pin_configured ? "configured" : "not_configured") : this.t("operator_field_hidden")}
+                · ${this.t("cards")}:
+                ${this.personField("credentials") ? user.cards.length : this.t("operator_field_hidden")}
               </p>
               ${this.personCustomDetails(user)} ${this.validitySummary(user)}
               <div class="row actions">${this.userActions(user)}</div>
@@ -3427,9 +3538,11 @@ export class IntercomManagerPanel extends LitElement {
       this._detailRecords = { ...this._detailRecords, [person.id]: cached.person };
       return;
     }
+    const access = JSON.stringify(this._session);
     try {
       const detail = await this.api<Person>("users/get", { user_id: person.id });
-      if (!this.authorized || detail.id !== person.id) return;
+      if (!this.authorized || detail.id !== person.id || access !== JSON.stringify(this._session))
+        return;
       this.detailCache.delete(person.id);
       this.detailCache.set(person.id, { person: detail, expires: Date.now() + 60_000 });
       while (this.detailCache.size > 100)
@@ -3442,7 +3555,8 @@ export class IntercomManagerPanel extends LitElement {
   private accessPersonDetails(person: Person) {
     return html`<wiskey-user-details
       embedded
-      .canEdit=${this.canManage("users")}
+      .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+      .canEdit=${this.personEditable(person)}
       .hass=${this.protectedHass}
       .person=${person}
       .stations=${this._data?.stations ?? []}
@@ -3491,13 +3605,14 @@ export class IntercomManagerPanel extends LitElement {
                   </div>
                 </td>
                 <td class="phone-cell">
-                  <bdi dir="ltr">${mobileDisplay(u.phone || "") || "—"}</bdi>
+                  <bdi dir="ltr"
+                    >${this.personField("phone") ? mobileDisplay(u.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                  >
                 </td>
                 ${fields.map((f) => html`<td class="access-profile-col">${u.profile?.[f.id] || "—"}</td>`)}
                 <td class="access-groups-col">${this.userGroupNames(u) || "—"}</td>
                 <td class="access-rights-cell">
-                  ${Object.values(u.assignments).filter((a) => a.enabled).length}
-                  <span class="sub">${this.t("devices")}</span>
+                  ${this.personField("access") ? html`${Object.values(u.assignments).filter((a) => a.enabled).length}<span class="sub">${this.t("devices")}</span>` : this.t("operator_field_hidden")}
                 </td>
                 <td class="access-person-state">
                   ${this.badge(this.personStatus(u))}<span class="sub"
@@ -3967,7 +4082,14 @@ export class IntercomManagerPanel extends LitElement {
   private editorBody() {
     const draft = this._draft!;
     const blocked = this.pinBlocked();
-    return html`<div class="editor-summary">
+    return html`<style>
+        fieldset[hidden],
+        label[hidden],
+        p[hidden] {
+          display: none !important;
+        }
+      </style>
+      <div class="editor-summary">
         <span class="avatar">${icon("users")}</span>
         <div>
           <strong>${draft.display_name || this.t("new_person_heading")}</strong>
@@ -3998,8 +4120,9 @@ export class IntercomManagerPanel extends LitElement {
                   @input=${(event: Event) => this.patchDraft("employee_no", value(event))}
               /></label>
             </div>
-            <label
+            <label ?hidden=${!this.personField("phone")}
               >${this.t("phone")}<input
+                ?disabled=${!this.personField("phone", true)}
                 type="tel"
                 autocomplete="tel"
                 dir="ltr"
@@ -4014,12 +4137,17 @@ export class IntercomManagerPanel extends LitElement {
                 ><input
                   type="checkbox"
                   .checked=${draft.active}
+                  ?disabled=${!this.personField("access", true)}
                   @change=${(event: Event) => this.patchDraft("active", checked(event))}
                 />${this.t("active")}</label
               >
             </p>
           </fieldset>
-          <fieldset class="editor-person">
+          <fieldset
+            class="editor-person"
+            ?hidden=${!this.personField("access")}
+            ?disabled=${!this.personField("access", true)}
+          >
             <legend>${this.t("access_category")}</legend>
             <div class="fields">
               <label
@@ -4064,7 +4192,11 @@ export class IntercomManagerPanel extends LitElement {
             }
           </fieldset>
           ${this.profileEditor()} ${this.editorActions()}
-          <fieldset class="editor-validity">
+          <fieldset
+            class="editor-validity"
+            ?hidden=${!this.personField("access")}
+            ?disabled=${!this.personField("access", true)}
+          >
             <legend>${icon("schedules")}${this.t("validity")}</legend>
             ${this._timingConverted ? html`<p class="field-note" role="status">${this.t("user_timing_converted")}</p>` : nothing}
             <label
@@ -4129,6 +4261,7 @@ export class IntercomManagerPanel extends LitElement {
                           >`
                         : nothing
                     }<hikvision-user-timing
+                      ?inert=${!this.personField("access", true)}
                       .enforcement=${this._timingEnforcement}
                       .canEnforce=${this._data?.api?.capabilities.includes("user_timing_enforcement")}
                       .language=${this.hass?.language ?? "en"}
@@ -4207,7 +4340,11 @@ export class IntercomManagerPanel extends LitElement {
                 : html`<p class="sub">${this.t("permanent")}</p>`
             }
           </fieldset>
-          <fieldset class="editor-pin">
+          <fieldset
+            class="editor-pin"
+            ?hidden=${!this.personField("credentials")}
+            ?disabled=${!this.personField("credentials", true)}
+          >
             <legend>
               ${this.t("pin")} · ${this.t(draft.pin_configured ? "configured" : "not_configured")}
             </legend>
@@ -4289,7 +4426,11 @@ export class IntercomManagerPanel extends LitElement {
             </div>
             <p class="field-note">${this.t("pin_physical")}</p>
           </fieldset>
-          <fieldset class="editor-cards">
+          <fieldset
+            class="editor-cards"
+            ?hidden=${!this.personField("credentials")}
+            ?disabled=${!this.personField("credentials", true)}
+          >
             <legend>${this.t("cards")}</legend>
             ${repeat(
               draft.cards,
@@ -4372,6 +4513,7 @@ export class IntercomManagerPanel extends LitElement {
               </p>
             </div>
             <wiskey-usb-card-input
+              ?inert=${!this.personField("credentials", true)}
               .hass=${this.protectedHass}
               .locked=${this._busy}
               @card-reviewed=${(e: CustomEvent<{ card_no: string }>) => {
@@ -4391,7 +4533,11 @@ export class IntercomManagerPanel extends LitElement {
             ></wiskey-usb-card-input>
           </fieldset>
         </div>
-        <fieldset class="editor-assignments">
+        <fieldset
+          class="editor-assignments"
+          ?hidden=${!this.personField("access")}
+          ?disabled=${!this.personField("access", true)}
+        >
           <legend>${icon("devices")}${this.t("assignments")}</legend>
           <div class="row assignment-tools">
             <button type="button" @click=${() => this.selectStations(true)} ?disabled=${this._busy}>
@@ -5409,8 +5555,9 @@ export class IntercomManagerPanel extends LitElement {
       ${
         this._detailsModalUser && this._data?.users.find((u) => u.id === this._detailsModalUser)
           ? html`<wiskey-user-details
+              .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
               .v4=${isWiskeyAppearance(this._appearance)}
-              .canEdit=${this.canManage("users")}
+              .canEdit=${this.personEditable(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
               .hass=${this.protectedHass}
               .person=${this.detailPerson(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
               .stations=${this._data.stations}

@@ -4,7 +4,7 @@ import { styles } from "./styles";
 import { ScopedRequests } from "./request";
 import { translate } from "./i18n";
 import { mobileDisplay } from "./phone";
-import type { Hass, Person, Station } from "./types";
+import type { Hass, Person, Station, WiskeyPersonField } from "./types";
 import type { ProfilePolicy } from "./profile-settings";
 
 interface Message {
@@ -108,6 +108,7 @@ const whatsappIcon = html`<svg
 export class UserDetails extends LitElement {
   static properties = {
     canEdit: { type: Boolean },
+    allowedCommands: { attribute: false },
     embedded: { type: Boolean, reflect: true },
     v4: { type: Boolean, reflect: true },
     hass: { attribute: false },
@@ -128,6 +129,9 @@ export class UserDetails extends LitElement {
   static styles = [
     styles,
     css`
+      button[hidden] {
+        display: none !important;
+      }
       :host {
         display: block;
         height: auto;
@@ -530,6 +534,7 @@ export class UserDetails extends LitElement {
   embedded = false;
   v4 = false;
   canEdit = true;
+  allowedCommands?: string[];
   hass?: Hass;
   person?: Person;
   stations: Station[] = [];
@@ -651,9 +656,11 @@ export class UserDetails extends LitElement {
     this.busy = false;
     const generation = this.generation;
     await this.action(async () => {
-      const status = await this.requests.run<Status>({
-        type: "hikvision_intercom/whatsapp/status",
-      });
+      const status = this.allows("whatsapp/status")
+        ? await this.requests.run<Status>({
+            type: "hikvision_intercom/whatsapp/status",
+          })
+        : { available: false, history: false, accounts: [] };
       if (generation !== this.generation) return;
       this.status = {
         available: status.available === true,
@@ -669,6 +676,12 @@ export class UserDetails extends LitElement {
         if (generation === this.generation) this.photo = result.photo ?? undefined;
       }
     });
+  }
+  private allows(command: string) {
+    return !this.allowedCommands || this.allowedCommands.includes(command);
+  }
+  private fieldHidden(field: WiskeyPersonField) {
+    return this.person?.redacted_fields?.includes(field) ?? false;
   }
   private async prepare() {
     this.sent = false;
@@ -729,7 +742,9 @@ export class UserDetails extends LitElement {
         ${this.photo ? html`<img class="portrait" src=${this.photo} alt="" />` : html`<span class="portrait" aria-hidden="true">${p.display_name.slice(0, 1)}</span>`}
         <div class="identity">
           <h2 id="person-title">${p.display_name}</h2>
-          <bdi class="recipient" dir="ltr">${mobileDisplay(p.phone ?? "")}</bdi>
+          <bdi class="recipient" dir="ltr"
+            >${this.fieldHidden("phone") ? this.t("operator_field_hidden") : mobileDisplay(p.phone ?? "")}</bdi
+          >
         </div>
         <button aria-label=${this.t("close")} @click=${() => this.close()}>✕</button>
       </header>
@@ -737,7 +752,7 @@ export class UserDetails extends LitElement {
         <button aria-pressed=${this.tab === "details"} @click=${() => (this.tab = "details")}>
           ${this.t("details")}</button
         ><button
-          ?disabled=${!ready || !this.status?.history}
+          ?disabled=${!ready || !this.status?.history || !this.allows("whatsapp/history")}
           aria-pressed=${this.tab === "chat"}
           @click=${() => this.history()}
         >
@@ -796,17 +811,20 @@ export class UserDetails extends LitElement {
                     </div>
                     <div>
                       <dt>${this.t("pin")}</dt>
-                      <dd>${this.t(p.pin_configured ? "configured" : "not_configured")}</dd>
+                      <dd>
+                        ${this.t(this.fieldHidden("credentials") ? "operator_field_hidden" : p.pin_configured ? "configured" : "not_configured")}
+                      </dd>
                     </div>
                     <div>
                       <dt>${this.t("cards")}</dt>
-                      <dd>${p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}</dd>
+                      <dd>
+                        ${this.fieldHidden("credentials") ? this.t("operator_field_hidden") : p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}
+                      </dd>
                     </div>
                     <div>
                       <dt>${this.t("validity")}</dt>
                       <dd>
-                        ${p.valid_from || "—"} →
-                        ${p.valid_until || "—"}${
+                        ${this.fieldHidden("access") ? this.t("operator_field_hidden") : html`${p.valid_from || "—"} → ${p.valid_until || "—"}`}${
                           p.access_timing_policy
                             ? html`<p>
                                   ${p.access_timing_policy.schedule.timezone} ·
@@ -823,6 +841,7 @@ export class UserDetails extends LitElement {
                 </section>
                 ${p.access_timing_draft && !p.access_timing_policy ? html`<p>${this.t("draftOnly")}</p>` : nothing}
                 <section class="person-grants">
+                  ${this.fieldHidden("access") ? html`<p>${this.t("operator_field_hidden")}</p>` : nothing}
                   ${this.v4 ? html`<h3>${this.t("assignments")}</h3>` : nothing}
                   <ul class="rights">
                     ${Object.entries(p.assignments)
@@ -881,9 +900,10 @@ export class UserDetails extends LitElement {
               >`
             : nothing
         }
-        ${!p.phone ? html`<p>${this.t("missingPhone")}</p>` : nothing}${!this.status?.available ? html`<p>${this.t("whatsapp_unavailable")}</p>` : nothing}<button
+        ${!p.phone && this.allows("whatsapp/status") ? html`<p>${this.t("missingPhone")}</p>` : nothing}${!this.status?.available && this.allows("whatsapp/status") ? html`<p>${this.t("whatsapp_unavailable")}</p>` : nothing}<button
+          ?hidden=${!this.allows("whatsapp/preview")}
           class="wa"
-          ?disabled=${!ready || !this.canEdit}
+          ?disabled=${!ready || !this.canEdit || !this.allows("whatsapp/preview")}
           @click=${() => this.prepare()}
         >
           ${whatsappIcon}${this.t("prepare")}

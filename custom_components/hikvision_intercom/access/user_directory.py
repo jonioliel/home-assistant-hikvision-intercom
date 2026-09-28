@@ -90,6 +90,7 @@ def query_users(
     limit: Any,
     snapshot: Any,
     now: datetime | None = None,
+    permission_context: str = "",
 ) -> dict[str, Any]:
     """Filter and page already-redacted user projections without exposing secrets."""
 
@@ -101,6 +102,10 @@ def query_users(
         raise AccessError("invalid_fields")
     requested_snapshot = _text(snapshot, 64)
     current_snapshot = snapshot_token(users)
+    if permission_context:
+        current_snapshot = hashlib.sha256(
+            f"{current_snapshot}:{permission_context}".encode()
+        ).hexdigest()[:24]
     instant = (now or datetime.now(UTC)).astimezone(UTC)
     phone_query = _digits(text)
 
