@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Target WisKey source:** v2.0.0-rc.15, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
+**Target WisKey source:** v2.0.0-rc.16, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
@@ -15,6 +15,8 @@
 הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת הפקודות המעודכנת נמצאת בקובץ JSON הנלווה.
 
 ## Additions in 2.0.0-rc.14
+
+**Operator scopes in rc.16:** [Station and person-field authorization](WISKEY_OPERATOR_SCOPES.md) adds permitted station IDs, five field-category levels, safe projections, scoped creation, station-reader enrollment, fleet alerts and station clock controls. Use the actual operator's `authorization/session` and `overview.api.commands`; erase private caches and close media when grants change. Outside shared identities remain read-only. A Supervisor/service token does not inherit the browser operator's restrictions, and native infrastructure entity permissions remain separate. No namespace or command-shape change is required.
 
 Use the advertised installed commands and existing operator grants. Preserve the distinction between saved intent, synchronization evidence and physical access:
 
@@ -231,7 +233,7 @@ An ingress-hosted browser and the HA panel are not automatically the same origin
 
 ## 9. Authorization, errors, cache and operations
 
-WisKey's HA-user panel policy uses five areas: overview, users, events, stations, management. Each level is none, view or manage. HA admins bypass those grants; authorization/settings_update itself is admin-only. The backend must check commands and not infer authorization from the VMS UI. There is no per-station/per-door HA-user panel grant yet. If VMS needs one, implement it server-side before promising door-scoped restrictions.
+WisKey's HA-user panel policy combines five areas (overview, users, events, stations, management), permitted station IDs and five person-field categories (phone, photo, credentials, profile, access). Area and field levels are none, view or manage; field grants intersect area grants. `station_ids: null` permits all current and future stations, while an explicit list permits only those stations. Active HA admins bypass delegated grants; authorization/settings_update itself is admin-only. See [Operator scope authorization](WISKEY_OPERATOR_SCOPES.md) for shared identities, redaction, omitted write fields and active-session revocation. WisKey enforces these grants server-side. Station scope covers all managed relays on the station; separate relay/door operator grants are not implemented. A Supervisor/service token remains a different identity from the VMS browser operator.
 
 Handle these error classes distinctly: unauthorized (clear/hide private view), invalid_fields (correct request), api_incompatible (disable write and update connector), revision_conflict/review_stale (refetch and show new diff), station_offline/station_unloaded/device_unavailable (keep pending and retry only safe reads), device_busy/rate_limited/audio_busy (back off), release_unconfirmed/panel_operation_unconfirmed (show unknown, inspect state; never blind retry). Log command name, opaque IDs, actor, correlation ID, outcome and timing, never PIN/card/full phone/HA token/RTSP URL/photo.
 

@@ -11,6 +11,7 @@ from .access.models import AccessError
 
 AREAS = ("overview", "users", "events", "stations", "management")
 LEVELS = ("none", "view", "manage")
+FIELDS = ("phone", "photo", "credentials", "profile", "access")
 _LEVEL_VALUE = {"none": 0, "view": 1, "manage": 2}
 
 
@@ -19,16 +20,43 @@ def _empty() -> dict[str, str]:
 
 
 def normalize_policy(value: Any) -> dict[str, Any]:
-    if not isinstance(value, dict) or set(value) != {"enabled", "areas"}:
+    if (
+        not isinstance(value, dict)
+        or not {"enabled", "areas"} <= set(value)
+        or set(value) - {"enabled", "areas", "station_ids", "fields"}
+    ):
         raise AccessError("invalid_fields")
     if type(value["enabled"]) is not bool:
         raise AccessError("invalid_fields")
     areas = value["areas"]
     if not isinstance(areas, dict) or set(areas) != set(AREAS):
         raise AccessError("invalid_fields")
-    if any(level not in LEVELS for level in areas.values()):
+    if any(not isinstance(level, str) or level not in LEVELS for level in areas.values()):
         raise AccessError("invalid_fields")
-    return {"enabled": value["enabled"], "areas": dict(areas)}
+    stations = value.get("station_ids")
+    if stations is not None and (
+        not isinstance(stations, list)
+        or len(stations) > 1000
+        or any(
+            not isinstance(sid, str) or not 1 <= len(sid) <= 128 or any(ord(c) < 32 for c in sid)
+            for sid in stations
+        )
+        or len(set(stations)) != len(stations)
+    ):
+        raise AccessError("invalid_fields")
+    fields = value.get("fields", {key: "manage" for key in FIELDS})
+    if (
+        not isinstance(fields, dict)
+        or set(fields) != set(FIELDS)
+        or any(not isinstance(level, str) or level not in LEVELS for level in fields.values())
+    ):
+        raise AccessError("invalid_fields")
+    return {
+        "enabled": value["enabled"],
+        "areas": dict(areas),
+        "station_ids": sorted(stations) if stations is not None else None,
+        "fields": dict(fields),
+    }
 
 
 class PanelPermissions:
@@ -40,7 +68,7 @@ class PanelPermissions:
         self._save = save
         self._changed = changed
         self._lock = asyncio.Lock()
-        self._data: dict[str, Any] = {"schema": 1, "revision": 0, "users": {}}
+        self._data: dict[str, Any] = {"schema": 2, "revision": 0, "users": {}}
         self._recovery = False
 
     def recover_from_invalid_storage(self) -> None:
@@ -55,7 +83,8 @@ class PanelPermissions:
             if (
                 not isinstance(data, dict)
                 or set(data) != {"schema", "revision", "users"}
-                or data["schema"] != 1
+                or type(data["schema"]) is not int
+                or data["schema"] not in {1, 2}
                 or type(data["revision"]) is not int
                 or data["revision"] < 0
                 or not isinstance(data["users"], dict)
@@ -66,32 +95,55 @@ class PanelPermissions:
             for user_id, raw in data["users"].items():
                 if not isinstance(user_id, str) or not 1 <= len(user_id) <= 128:
                     raise ValueError
+                if data["schema"] == 1 and (
+                    not isinstance(raw, dict) or set(raw) != {"enabled", "areas"}
+                ):
+                    raise ValueError
+                if data["schema"] == 2 and (
+                    not isinstance(raw, dict)
+                    or set(raw) != {"enabled", "areas", "station_ids", "fields"}
+                ):
+                    raise ValueError
                 users[user_id] = normalize_policy(raw)
         except (AccessError, KeyError, TypeError, ValueError):
             raise AccessError("invalid_storage") from None
-        self._data = {"schema": 1, "revision": data["revision"], "users": users}
+        self._data = {"schema": 2, "revision": data["revision"], "users": users}
 
     @property
     def revision(self) -> int:
-        return self._data["revision"]
+        return int(self._data["revision"])
 
     def policy(self, user: Any) -> dict[str, Any]:
         if not user or not user.is_active:
-            return {"allowed": False, "is_admin": False, "areas": _empty()}
+            return self._denied()
         if user.is_admin:
             return {
                 "allowed": True,
                 "is_admin": True,
                 "areas": {area: "manage" for area in AREAS},
+                "station_ids": None,
+                "fields": {key: "manage" for key in FIELDS},
             }
         stored = self._data["users"].get(user.id)
         if not stored or not stored["enabled"]:
-            return {"allowed": False, "is_admin": False, "areas": _empty()}
+            return self._denied()
         areas = dict(stored["areas"])
         return {
             "allowed": any(level != "none" for level in areas.values()),
             "is_admin": False,
             "areas": areas,
+            "station_ids": deepcopy(stored["station_ids"]),
+            "fields": dict(stored["fields"]),
+        }
+
+    @staticmethod
+    def _denied() -> dict[str, Any]:
+        return {
+            "allowed": False,
+            "is_admin": False,
+            "areas": _empty(),
+            "station_ids": [],
+            "fields": {key: "none" for key in FIELDS},
         }
 
     def permits(self, user: Any, area: str, level: str = "view") -> bool:
@@ -108,6 +160,7 @@ class PanelPermissions:
             "revision": self._data["revision"],
             "areas": list(AREAS),
             "levels": list(LEVELS),
+            "fields": list(FIELDS),
             "users": deepcopy(self._data["users"]),
         }
 
@@ -129,15 +182,28 @@ class PanelPermissions:
                     normalized[user_id] = policy
             if normalized != self._data["users"] or self._recovery:
                 draft = {
-                    "schema": 1,
+                    "schema": 2,
                     "revision": revision + 1,
                     "users": normalized,
                 }
-                await self._save(draft)
-                self._data = draft
-                self._recovery = False
-                self._changed()
+                # Do not let connection cancellation split durable and live authorization.
+                task = asyncio.create_task(self._commit(draft))
+                cancelled = False
+                while not task.done():
+                    try:
+                        await asyncio.shield(task)
+                    except asyncio.CancelledError:
+                        cancelled = True
+                task.result()
+                if cancelled:
+                    raise asyncio.CancelledError
             return self.public()
+
+    async def _commit(self, draft: dict[str, Any]) -> None:
+        await self._save(draft)
+        self._data = draft
+        self._recovery = False
+        self._changed()
 
 
 # Every panel command is classified here. Unknown commands fail closed.
@@ -330,8 +396,12 @@ PREVIEW_ACTIONS = {
     "door_unlock": "stations/test_unlock",
     "station_view": "stations/get",
     "station_settings": "stations/technical_update",
+    "station_maintenance": "fleet/alerts_action",
+    "station_clock": "clock/station_sync",
+    "tts_broadcast": "tts/start",
     "people_view": "users/get",
     "people_edit": "users/update",
+    "card_capture": "cards/capture_start",
     "people_export": "users/csv_export",
     "whatsapp_send": "whatsapp/send",
     "events_view": "events/list",
@@ -339,6 +409,152 @@ PREVIEW_ACTIONS = {
     "event_capture": "events/trace_start",
     "system_settings": "media/settings_update",
 }
+
+# Restricted grants have an explicit supported command surface. Global libraries,
+# CSV imports, approval jobs and opaque review tokens can affect other stations or
+# contain hidden fields; those remain available to unrestricted grants and admins.
+SCOPED_STATION_COMMANDS = frozenset(
+    {
+        "fleet/alerts_action",
+        "stations/get",
+        "stations/test_unlock",
+        "stations/rescan",
+        "stations/inventory",
+        "stations/technical_get",
+        "stations/technical_update",
+        "stations/technical_relays",
+        "stations/technical_codes_get",
+        "stations/technical_codes_write",
+        "stations/technical_hold_get",
+        "stations/technical_hold_save",
+        "stations/technical_hold_delete",
+        "stations/technical_program_list",
+        "stations/technical_program_save",
+        "stations/technical_program_action",
+        "stations/clock_refresh",
+        "clock/station_sync",
+        "health/get",
+        "health/history",
+        "health/refresh",
+        "acceptance/get",
+        "acceptance/update",
+        "media/call",
+        "media/signal",
+        "sync/station",
+        "events/history_inspect",
+        "events/trace_start",
+        "events/trace_get",
+        "events/trace_stop",
+        "schedules/readiness",
+        "schedules/dependencies",
+        "schedules/assess",
+        "schedules/baseline_save",
+        "schedules/baseline_clear",
+        "cards/reader_capabilities",
+    }
+)
+SCOPED_COMMON_COMMANDS = frozenset(
+    {
+        "fleet/alerts",
+        "clock/settings_get",
+        "overview",
+        "sync/status",
+        "appearance/settings_get",
+        "stations/list",
+        "users/list",
+        "users/query",
+        "users/get",
+        "users/photo_get",
+        "users/update",
+        "users/create",
+        "users/set_active",
+        "users/temporary_cancel",
+        "users/delete",
+        "users/pin_check",
+        "users/pin_generate",
+        "cards/add",
+        "cards/remove",
+        "cards/capture_start",
+        "cards/capture_status",
+        "cards/capture_cancel",
+        "cards/capture_confirm",
+        "sync/user",
+        "profiles/settings_get",
+        "events/list",
+        "events/detail",
+        "events/support",
+        "events/report",
+        "events/print",
+        "events/export",
+        "tts/engines",
+        "tts/start",
+    }
+)
+FIELD_SCOPED_STATION_COMMANDS = SCOPED_STATION_COMMANDS - {
+    "stations/inventory",
+    "events/history_inspect",
+    "events/trace_start",
+    "events/trace_get",
+    "events/trace_stop",
+    "schedules/dependencies",
+    "schedules/assess",
+}
+FIELD_COMMANDS = {
+    "users/create": ("access", "manage"),
+    "users/photo_get": ("photo", "view"),
+    "users/pin_check": ("credentials", "manage"),
+    "users/pin_generate": ("credentials", "manage"),
+    "cards/add": ("credentials", "manage"),
+    "cards/remove": ("credentials", "manage"),
+    "cards/reader_capabilities": ("credentials", "manage"),
+    "cards/capture_start": ("credentials", "manage"),
+    "cards/capture_status": ("credentials", "manage"),
+    "cards/capture_cancel": ("credentials", "manage"),
+    "cards/capture_confirm": ("credentials", "manage"),
+    "users/set_active": ("access", "manage"),
+    "users/temporary_cancel": ("access", "manage"),
+}
+
+
+def station_allowed(permissions: PanelPermissions | None, user: Any, station_id: str) -> bool:
+    """Station scope intersects area grants; it never grants an area by itself."""
+    if not user or not user.is_active:
+        return False
+    if user.is_admin:
+        return True
+    if not isinstance(permissions, PanelPermissions):
+        return False
+    policy = permissions.policy(user)
+    return bool(
+        policy["allowed"] and (policy["station_ids"] is None or station_id in policy["station_ids"])
+    )
+
+
+def field_allowed(policy: dict[str, Any], field: str, level: str = "view") -> bool:
+    return bool(
+        field in FIELDS
+        and level in _LEVEL_VALUE
+        and _LEVEL_VALUE[policy.get("fields", {}).get(field, "manage")] >= _LEVEL_VALUE[level]
+    )
+
+
+def policy_command_allowed(policy: dict[str, Any], command: str) -> bool:
+    station_restricted = policy.get("station_ids") is not None
+    fields_restricted = any(not field_allowed(policy, field, "manage") for field in FIELDS)
+    if station_restricted and command not in SCOPED_COMMON_COMMANDS | SCOPED_STATION_COMMANDS:
+        return False
+    if fields_restricted and command not in SCOPED_COMMON_COMMANDS | FIELD_SCOPED_STATION_COMMANDS:
+        return False
+    if station_restricted and not policy["station_ids"]:
+        return command in {"overview", "sync/status", "appearance/settings_get", "stations/list"}
+    if command in FIELD_COMMANDS:
+        field, level = FIELD_COMMANDS[command]
+        return field_allowed(policy, field, level)
+    if command in {"users/delete"} and fields_restricted:
+        return False
+    if command in {"events/detail", "events/support"} and fields_restricted:
+        return False
+    return True
 
 
 def preview_policy(value: Any) -> dict[str, Any]:
@@ -350,6 +566,7 @@ def preview_policy(value: Any) -> dict[str, Any]:
         required = requirements(command)
         return bool(
             policy["enabled"]
+            and policy_command_allowed(policy, command)
             and required
             and any(
                 _LEVEL_VALUE[policy["areas"][area]] >= _LEVEL_VALUE[level]
@@ -360,6 +577,10 @@ def preview_policy(value: Any) -> dict[str, Any]:
     return {
         "enabled": policy["enabled"],
         "actions": {name: grants(command) for name, command in PREVIEW_ACTIONS.items()},
+        "station_ids": policy["station_ids"],
+        "fields": policy["fields"],
+        "restricted": policy["station_ids"] is not None
+        or any(level != "manage" for level in policy["fields"].values()),
     }
 
 
@@ -384,5 +605,7 @@ def command_allowed(permissions: PanelPermissions | None, user: Any, command: st
         return False
     required = requirements(command)
     return bool(
-        required and any(permissions.permits(user, area, level) for area, level in required)
+        required
+        and policy_command_allowed(permissions.policy(user), command)
+        and any(permissions.permits(user, area, level) for area, level in required)
     )

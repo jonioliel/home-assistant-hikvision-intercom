@@ -37,7 +37,18 @@ from .hardening import AdminLimiter
 from .health_api import dispatch_health
 from .issues import issue
 from .log_filter import install_filter
-from .panel_permissions import PanelPermissions, command_allowed, preview_policy
+from .operator_scope import (
+    contains_station,
+    guard_fields,
+    guard_person,
+    project_event,
+    project_overview,
+    project_people,
+    project_person,
+    project_profiles,
+    restricted,
+)
+from .panel_permissions import PanelPermissions, command_allowed, field_allowed, preview_policy
 from .schedule_operations_api import dispatch_operations
 from .schedule_plan_api import dispatch_plans
 
@@ -374,6 +385,7 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     )
     if policy["is_admin"]:
         policy["areas"] = {area: "manage" for area in policy["areas"]}
+    policy["revision"] = permissions.revision if isinstance(permissions, PanelPermissions) else 0
     data["access"] = policy
     data["user_count"] = len(data["users"])
     if user is not None and not policy["is_admin"]:
@@ -402,7 +414,121 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     ]
     data["api"] = contract(commands)
     data["version"] = VERSION
-    return data
+    # Internal fleet observers have no authenticated panel operator. Their input
+    # must retain the full fleet; request handlers always supply the real user.
+    return (
+        project_overview(policy, data, shared_identity_ids=_outside_bound_people(hass, policy))
+        if user is not None
+        else data
+    )
+
+
+def _outside_bound_people(hass: HomeAssistant, policy: dict[str, Any]) -> frozenset[str]:
+    if policy.get("station_ids") is None:
+        return frozenset()
+    return frozenset(
+        uid
+        for station, bindings in get_manager(hass).repository._state["bindings"].items()
+        if not contains_station(policy, station)
+        for uid in bindings
+    )
+
+
+def _operator_policy(hass: HomeAssistant, user: Any | None) -> dict[str, Any] | None:
+    permissions = hass.data[DOMAIN].get("panel_permissions")
+    if user is None or user.is_admin or not isinstance(permissions, PanelPermissions):
+        return None
+    return permissions.policy(user)
+
+
+def _guard_operator(
+    hass: HomeAssistant,
+    policy: dict[str, Any],
+    command: str,
+    msg: dict[str, Any],
+    *,
+    actor: str = "",
+) -> None:
+    if not restricted(policy):
+        return
+    manager = get_manager(hass)
+    uid = msg.get("user_id")
+    sid = msg.get("station_id")
+    if command.startswith("cards/capture_") and "session_id" in msg:
+        session = manager.enrollment.sessions.get(msg["session_id"])
+        if session is None or session.actor != actor:
+            raise AccessError("capture_not_found")
+        sid, uid = session.station_id, session.user_id
+    if sid is not None and (
+        (not sid and command != "fleet/alerts") or (sid and not contains_station(policy, sid))
+    ):
+        raise AccessError("unauthorized")
+    filters = msg.get("filters", {})
+    if isinstance(filters, dict):
+        for key in ("station", "station_id"):
+            if filters.get(key) and not contains_station(policy, filters[key]):
+                raise AccessError("unauthorized")
+        if (filters.get("current_group") and not field_allowed(policy, "access")) or (
+            filters.get("current_profile") and not field_allowed(policy, "profile")
+        ):
+            raise AccessError("field_access_denied")
+        if command == "users/query" and (
+            filters.get("credential")
+            and not field_allowed(policy, "credentials")
+            or filters.get("profile")
+            and not field_allowed(policy, "profile")
+            or (
+                filters.get("group")
+                or filters.get("rights")
+                or filters.get("state") in ("expired", "upcoming")
+            )
+            and not field_allowed(policy, "access")
+        ):
+            raise AccessError("field_access_denied")
+    if command == "users/create":
+        guard_fields(policy, msg["data"])
+        candidate = manager.repository.permission_data(msg["data"])
+        assignments = candidate.get("assignments", {})
+        if not isinstance(assignments, dict):
+            raise AccessError("invalid_fields")
+        if any(not contains_station(policy, station) for station in assignments):
+            raise AccessError("unauthorized")
+        if policy["station_ids"] is not None and not any(
+            isinstance(item, dict) and item.get("enabled", True) is True
+            for item in assignments.values()
+        ):
+            raise AccessError("operator_scope_required")
+    person_writes = {
+        "users/update",
+        "users/delete",
+        "users/set_active",
+        "users/temporary_cancel",
+        "cards/add",
+        "cards/remove",
+        "sync/user",
+        "cards/capture_start",
+        "cards/capture_confirm",
+    }
+    if uid:
+        try:
+            person = manager.repository.get(uid)
+        except AccessError:
+            raise AccessError("unauthorized") from None
+        guard_person(policy, person.public(), mutate=command in person_writes)
+        if command in person_writes and policy["station_ids"] is not None:
+            # A previously removed grant may still be awaiting device removal.
+            if uid in _outside_bound_people(hass, policy):
+                raise AccessError("person_scope_shared")
+        if command == "users/update":
+            guard_fields(policy, msg["data"])
+            candidate = manager.repository.permission_data(msg["data"], person)
+            assignments = candidate.get("assignments", person.assignments)
+            if any(not contains_station(policy, station) for station in assignments):
+                raise AccessError("unauthorized")
+    if command in {"events/detail", "events/support"}:
+        record = get_events(hass).cache.rows.get(msg["event_id"])
+        if not record or not contains_station(policy, record["station_id"]):
+            raise AccessError("unauthorized")
 
 
 async def _dispatch(
@@ -418,7 +544,37 @@ async def _dispatch(
         command,
         reason_code=msg.get("reason_code") if command == "users/temporary_cancel" else None,
     ):
-        return await _dispatch_inner(hass, command, msg, actor=actor, user=user)
+        policy = _operator_policy(hass, user)
+        permissions = hass.data[DOMAIN].get("panel_permissions")
+        revision = permissions.revision if isinstance(permissions, PanelPermissions) else 0
+        if policy is not None:
+            _guard_operator(hass, policy, command, msg, actor=actor)
+        result = await _dispatch_inner(hass, command, msg, actor=actor, user=user)
+        if policy is not None:
+            if permissions.revision != revision:
+                raise AccessError("permissions_changed")
+            if command in {
+                "users/create",
+                "users/get",
+                "users/update",
+                "users/set_active",
+                "cards/add",
+                "cards/remove",
+                "users/temporary_cancel",
+                "cards/capture_confirm",
+            }:
+                result = project_person(
+                    policy, result, shared_identity_ids=_outside_bound_people(hass, policy)
+                )
+            if command == "users/list":
+                result = project_people(
+                    policy, result, shared_identity_ids=_outside_bound_people(hass, policy)
+                )
+            if command == "profiles/settings_get":
+                result = project_profiles(policy, result)
+            if command == "stations/list":
+                result = [station for station in result if contains_station(policy, station["id"])]
+        return result
 
 
 async def _dispatch_inner(
@@ -481,6 +637,9 @@ async def _dispatch_inner(
             }
             for item in ha_users
             if not getattr(item, "system_generated", False)
+        ]
+        result["stations"] = [
+            {"id": item.id, "name": item.name} for item in get_manager(hass).stations.values()
         ]
         return result
     if command.startswith("whatsapp/"):
@@ -564,8 +723,26 @@ async def _dispatch_inner(
             raise AccessError("unauthorized")
         enrollment = manager.enrollment
         if command == "cards/capture_start":
+
+            def authorize_capture() -> bool:
+                permissions = hass.data[DOMAIN].get("panel_permissions")
+                if not command_allowed(permissions, user, "cards/capture_confirm"):
+                    return False
+                current = _operator_policy(hass, user)
+                if current is not None:
+                    try:
+                        _guard_operator(hass, current, "cards/capture_start", msg, actor=actor)
+                    except AccessError:
+                        return False
+                return True
+
             return enrollment.start(
-                msg["station_id"], msg["user_id"], msg["revision"], msg["reader_id"], actor
+                msg["station_id"],
+                msg["user_id"],
+                msg["revision"],
+                msg["reader_id"],
+                actor,
+                authorize=authorize_capture if user is not None else None,
             )
         if command == "cards/capture_status":
             return enrollment.status(msg["session_id"], actor)
@@ -776,6 +953,7 @@ async def _dispatch_inner(
                 msg["filters"],
                 export=command == "events/export",
                 printable=command == "events/print",
+                operator_policy=_operator_policy(hass, user),
             )
         except HikvisionValidationError:
             raise AccessError("invalid_fields") from None
@@ -797,7 +975,8 @@ async def _dispatch_inner(
         )
     if command == "events/list":
         try:
-            result = get_events(hass).query(msg["filters"])
+            policy = _operator_policy(hass, user)
+            result = get_events(hass).query(msg["filters"], operator_policy=policy)
             result["records"] = [
                 {
                     **row,
@@ -809,6 +988,8 @@ async def _dispatch_inner(
                 }
                 for row in result["records"]
             ]
+            if policy is not None:
+                result["records"] = [project_event(policy, row) for row in result["records"]]
             return result
         except HikvisionValidationError:
             raise AccessError("invalid_fields") from None
@@ -820,12 +1001,19 @@ async def _dispatch_inner(
         from .access.user_directory import query_users
 
         return query_users(
-            manager.repository.public()["users"],
+            project_people(
+                _operator_policy(hass, user) or {},
+                manager.repository.public()["users"],
+                shared_identity_ids=_outside_bound_people(hass, _operator_policy(hass, user) or {}),
+            ),
             query=msg["query"],
             filters=msg["filters"],
             offset=msg["offset"],
             limit=msg["limit"],
             snapshot=msg["snapshot"],
+            permission_context=str(hass.data[DOMAIN]["panel_permissions"].revision)
+            if _operator_policy(hass, user) is not None
+            else "",
         )
     if command in {"profiles/settings_get", "profiles/settings_update", "users/photo_get"}:
         profile_settings = hass.data[DOMAIN].get("profile_settings")
@@ -858,7 +1046,7 @@ async def _dispatch_inner(
     if command in {"fleet/alerts", "fleet/alerts_action"}:
         from .fleet_alerts_api import dispatch_alerts
 
-        return await dispatch_alerts(hass, command, msg, actor)
+        return await dispatch_alerts(hass, command, msg, actor, policy=_operator_policy(hass, user))
     if command == "investigations/query":
         from .investigations_api import investigate
 

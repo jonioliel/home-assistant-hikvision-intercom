@@ -16,16 +16,17 @@ from homeassistant.core import HomeAssistant, callback
 from .client.audio import PACKET_BYTES, AudioError, AudioSession
 from .const import DOMAIN
 from .exceptions import HikvisionError
-from .panel_permissions import area_allowed
+from .panel_permissions import area_allowed, station_allowed
 
 MAX_SECONDS = 180
 IDLE_SECONDS = 12
 
 
-def _authorized(hass: HomeAssistant, user: Any) -> bool:
+def _authorized(hass: HomeAssistant, user: Any, station_id: str | None = None) -> bool:
     permissions = hass.data[DOMAIN].get("panel_permissions")
-    return area_allowed(permissions, user, "overview", "manage") or area_allowed(
-        permissions, user, "stations", "manage"
+    return (station_id is None or station_allowed(permissions, user, station_id)) and (
+        area_allowed(permissions, user, "overview", "manage")
+        or area_allowed(permissions, user, "stations", "manage")
     )
 
 
@@ -48,7 +49,7 @@ class AudioBridge:
         entry = self.hass.config_entries.async_get_entry(self.runtime.station_id)
         return bool(
             not self.stopped
-            and _authorized(self.hass, self.connection.user)
+            and _authorized(self.hass, self.connection.user, self.runtime.station_id)
             and entry
             and getattr(entry, "runtime_data", None) is self.runtime
             and not self.runtime.is_closed
@@ -197,6 +198,9 @@ def start(
         connection.send_error(msg["id"], "invalid_fields", "Invalid audio request")
         return
     entry = hass.config_entries.async_get_entry(station)
+    if not _authorized(hass, connection.user, station):
+        connection.send_error(msg["id"], "unauthorized", "WisKey control access is not granted")
+        return
     runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
     if runtime is None or runtime.is_closed:
         connection.send_error(msg["id"], "station_unloaded", "Station unavailable")

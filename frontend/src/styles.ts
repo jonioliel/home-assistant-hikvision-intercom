@@ -504,6 +504,9 @@ export const styles = css`
     gap: 7px;
     font-size: 13px;
   }
+  label[hidden] {
+    display: none !important;
+  }
   input,
   select {
     width: 100%;

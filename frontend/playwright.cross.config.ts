@@ -12,6 +12,7 @@ export default defineConfig({
     "fleet-alerts.spec.ts",
     "investigations.spec.ts",
     "audio-output-cross.spec.ts",
+    "operator-scopes.spec.ts",
   ],
   fullyParallel: true,
   workers: 2,

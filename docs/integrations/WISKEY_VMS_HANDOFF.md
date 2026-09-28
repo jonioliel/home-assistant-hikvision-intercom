@@ -1,14 +1,16 @@
 # smplwise access control (WisKey) ↔ VMS integration handoff
 
-**Code reviewed:** smplwise access control 2.0.0-rc.15 (28 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
+**Code reviewed:** smplwise access control 2.0.0-rc.16 (28 September 2026). This document describes the API that exists in this repository today. It is not a claim that a separate, stable VMS API has already been released or that the external VMS has been tested.
 
 For a VMS already running as a Home Assistant add-on, start with the [complete add-on and screen-parity implementation guide](SMPLWISE_VMS_ADDON_IMPLEMENTATION_GUIDE.md). It covers the Supervisor WebSocket route, identity boundary, every current screen, media gaps and acceptance criteria. This document remains the concise API/storage reference.
+
+Station and person-field grants are described in [Operator scope authorization](WISKEY_OPERATOR_SCOPES.md), including legacy defaults, command discovery, shared identities, cache invalidation and the separate native entity boundary.
 
 ## Instructions for Claude implementing the VMS client
 
 Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all registered panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.
 
-1. Create a dedicated, active **non-admin** Home Assistant account for the VMS, configure only the necessary WisKey area grants, and keep its token in the VMS backend secret store.
+1. Create a dedicated, active **non-admin** Home Assistant account for the VMS, configure only the necessary WisKey area, station and person-field grants, and keep its token in the VMS backend secret store.
 2. Connect to `wss://<HA-host>/api/websocket`; answer `auth_required` with the token; correlate each command by its integer `id`. On reconnect, authenticate again and resubscribe.
 3. Call `authorization/session`, then `overview`. If access is denied, stop. Read `overview.result.api.version`, `capabilities`, and `commands`; enable VMS controls only for commands this account is allowed to call.
 4. Implement bounded pagination for `users/query` and `events/list`. Subscribe to data-free invalidations, refresh caches on `refresh`, and erase private caches on `access_revoked`.
@@ -16,7 +18,7 @@ Build a **server-side HA WebSocket adapter** for this existing integration. Do n
 6. Keep camera viewing and talkback as separate integrations. HA camera entities are the first video route; the panel's MSE/RTC and audio bridges are stateful implementation endpoints, not general RTSP URLs.
 7. Test with a non-admin account: allowed read, denied write, one controlled action on a test station, stale revision, disconnect/reconnect, token revocation, and a real event. Never use production PIN/card data in test fixtures.
 
-**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.15 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
+**Namespace compatibility:** the corrective release v2.0.0-rc.2 and current v2.0.0-rc.16 retain `hikvision_intercom/` and `/api/hikvision_intercom/...` for existing Home Assistant and VMS clients. The visible product name is smplwise access control / WisKey. No domain or API-namespace migration is required; do not change existing VMS command prefixes during this upgrade. [HACS recovery guide](../HACS_DOMAIN_MIGRATION_HE.md).
 
 ## Architecture decision
 
@@ -36,7 +38,7 @@ Converting WisKey to a Home Assistant *app* (formerly add-on) would create a sec
 
 For an add-on backend with `homeassistant_api: true`, Home Assistant also exposes `ws://supervisor/core/websocket` with `SUPERVISOR_TOKEN`; see the full add-on guide for the token-identity and ingress limitations. Outside the Supervisor proxy, Home Assistant exposes `wss://<HA-host>/api/websocket`. A VMS **server** connects with an HA access token belonging to a dedicated, active HA account; the token is kept server-side in a secret store. Prefer OAuth/refresh tokens for a distributed product, or a long-lived access token for one trusted site deployment. Configure WisKey's **Management tools → HA user permissions** for this account. Give `view` or `manage` only for the needed areas: `overview`, `users`, `events`, `stations`, `management`. An HA administrator bypasses these WisKey grants, so do not use an administrator token for routine VMS operation.
 
-The current permission system is **area-level**, not per-station or per-door. If a VMS operator must be restricted to particular doors, this requires a new server-side authorization layer in WisKey before exposing that capability to the VMS. Hiding a button in the VMS is not sufficient. HA camera entity permissions also apply to HLS independently of WisKey panel permissions.
+The current permission system combines **area levels, station scope and person-field category levels**. Configure `station_ids` and `fields` as described in [Operator scope authorization](WISKEY_OPERATOR_SCOPES.md). WisKey checks these grants server-side and projects directory, event and station data before search, counts and paging. A station grant covers that station's managed relays; it does **not** offer a separate operator grant for relay 1 versus relay 2. HA camera entity permissions also apply to HLS independently of WisKey panel permissions. A privileged VMS service token does not inherit the browser operator's restrictions.
 
 Connection flow (the token is a placeholder, never commit it):
 
@@ -133,7 +135,7 @@ HA **Recorder** is separate: it can record selected HA entity state changes/even
 ## Work needed before treating this as a durable third-party product API
 
 1. Freeze and publish a `vms/v1` contract separate from the panel contract, with documented fields, error codes, deprecation policy, and compatibility tests. The current `api_contract.version=1` declares **panel** compatibility only.
-2. Add server-side VMS authorization at the required scope, especially per-station/per-door grants, plus audit attribution and rate limits independent of the VMS UI. The current HA-user grants are area-level.
+2. Bind each VMS operator to the appropriate identity and enforce the required scope independently of the VMS UI. WisKey already enforces area, station and person-field category grants for authenticated HA users; individual relay grants, VMS identity delegation and product-specific rate limits remain separate work. Do not substitute a privileged Supervisor token for a restricted operator.
 3. Add event delivery with durable cursor/replay, so the VMS can recover after outages without relying on the 5,000/30-day UI cache; specify what happens when history is incomplete.
 4. Expose a media-session API or adapter for VMS video/call/audio instead of embedding the panel's MSE/RTC/audio protocol verbatim.
 5. Add an integration test client using a dedicated non-admin HA user: authorized reads, rejected writes, approved door command against a simulator/test station, pagination, revocation while subscribed, token rotation, reconnect, and event replay.

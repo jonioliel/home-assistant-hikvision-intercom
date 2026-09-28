@@ -579,6 +579,8 @@ const fake = {
     if (command === "authorization/settings_get")
       return {
         revision: 0,
+        stations: data.stations.map(({ id, name }) => ({ id, name })),
+        fields: ["phone", "photo", "credentials", "profile", "access"],
         areas: Object.keys(fullAreas),
         levels: ["none", "view", "manage"],
         users: {},
@@ -591,27 +593,39 @@ const fake = {
       const policy = message.policy;
       const has = (area, manage = false) =>
         policy.enabled &&
+        (policy.station_ids == null || policy.station_ids.length > 0) &&
         (policy.areas[area] === "manage" || (!manage && policy.areas[area] === "view"));
+      const restricted =
+        policy.station_ids != null ||
+        Object.values(policy.fields ?? {}).some((level) => level !== "manage");
       return {
         enabled: policy.enabled,
         actions: {
           door_unlock: has("overview", true) || has("stations", true),
           station_view: has("stations"),
           station_settings: has("stations", true),
+          station_maintenance: has("stations", true),
+          station_clock: has("management", true),
+          tts_broadcast: has("overview", true) || has("stations", true),
           people_view: has("users"),
           people_edit: has("users", true),
-          people_export: has("users"),
-          whatsapp_send: has("users", true),
+          card_capture: has("users", true) && (policy.fields?.credentials ?? "manage") === "manage",
+          people_export: has("users") && !restricted,
+          whatsapp_send: has("users", true) && !restricted,
           events_view: has("events"),
           events_export: has("events"),
-          event_capture: has("events", true),
-          system_settings: has("management", true),
+          event_capture:
+            has("events", true) &&
+            Object.values(policy.fields ?? {}).every((level) => level === "manage"),
+          system_settings: has("management", true) && !restricted,
         },
       };
     }
     if (command === "authorization/settings_update")
       return {
         revision: message.revision + 1,
+        stations: data.stations.map(({ id, name }) => ({ id, name })),
+        fields: ["phone", "photo", "credentials", "profile", "access"],
         areas: Object.keys(fullAreas),
         levels: ["none", "view", "manage"],
         users: structuredClone(message.users),

@@ -4,6 +4,20 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.16] - 2026-09-28
+
+- Add optional station scopes and separate hidden, view-only and editable person-field grants for infrastructure operators. Enforce scopes in WebSocket reads and writes, event paging/reports/exports, and MSE/RTC/audio/TTS station routes. Existing grants retain all stations and existing field access; active administrators retain full access.
+- Filter and redact records before searching or counting. Keep shared identities read-only when another station or an outstanding device binding is outside the operator's scope. Allow scoped creation only with a permitted station grant; reject hidden/read-only field patches and outside assignments before persistence or device I/O.
+- Close camera/person views and discard caches and delayed detail responses after access changes. Remove unsupported global tools from restricted operators, label hidden fields explicitly, and preserve all existing design variants and unrestricted workflows.
+- Retain station-reader card enrollment for permitted local identities. Bind collection to the operator, station and person, discard the private captured card after permission or assignment changes, and require a fresh authorized confirmation before saving.
+- Keep fleet alerts and maintenance controls usable for scoped operators, deriving counts and policy lists only from permitted stations while preserving outside presentation policies and device state.
+- Allow authorized scoped operators to synchronize a permitted station using saved NTP settings. Gate the compact clock controls by discovered commands; keep central NTP and host configuration outside restricted grants.
+- Extend the unsaved role preview with card enrollment, spoken broadcasts, station maintenance and clock synchronization, using the command enforcement rules. Distinguish general identity editing from read-only access or credential fields.
+- Add account search and granted/restricted/denied filters to operator administration. Preserve unsaved changes and all hidden accounts in the complete revision-checked permission save.
+- Clear stale person searches and filters after effective permission changes, hide filters for unavailable fields, and sanitize saved views before loading. Reject direct directory filters on hidden credentials, profiles or access rules instead of presenting misleading redacted matches.
+- Recreate an open event journal after effective permission changes, cancelling old reads/reports and clearing retained private state. Preserve its context when another account's permission revision changes. Ensure hidden labels stay hidden despite layout styles.
+- Accept legacy permission storage and persist extended schema 2 on the next change. Shield permission commits against cancellation so durable and live grants cannot diverge. Add strict typing and transport/browser regressions, VMS scope documentation and focused owner checks. Infrastructure entity permissions remain a separate authorization layer.
+
 ## [2.0.0-rc.15] - 2026-09-28
 
 - Translate station-alert paging controls, the unavailable-visitor notice and shared station/relay/storage failure messages in Hebrew and English, with mobile and deleted-visitor regression checks. This small follow-up includes all rc.14 operations features and preserves their API, data schema and behavior.

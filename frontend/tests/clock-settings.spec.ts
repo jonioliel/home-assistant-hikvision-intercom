@@ -1,14 +1,17 @@
 import { test, expect } from "@playwright/test";
 
-async function setup(page: any) {
+async function setup(page: any, commands?: string[]) {
   await page.goto("/");
-  await page.evaluate(() => {
+  await page.evaluate((commands: string[] | undefined) => {
     const w = window as any;
     w.clockCalls = [];
     let policy = { revision: 0, server: "time.windows.com", port: 123, interval: 60 };
     const el = document.createElement("hikvision-clock-settings") as any;
+    el.allowedCommands = commands;
+    el.compact = !!commands;
     el.hass = {
       ...w.demoHass,
+      user: commands ? { id: "scoped-operator", is_admin: false } : w.demoHass.user,
       language: "en",
       callWS: async (m: any) => {
         w.clockCalls.push(m);
@@ -24,8 +27,9 @@ async function setup(page: any) {
       { id: "one", name: "First", loaded: true, online: true },
       { id: "two", name: "Second", loaded: true, online: true },
     ];
+    if (commands) el.stations = el.stations.slice(1);
     document.body.append(el);
-  });
+  }, commands);
   return page.locator("body > hikvision-clock-settings");
 }
 
@@ -55,6 +59,39 @@ test("central settings save separately and bulk failure does not stop next stati
   expect(calls.every((x: any) => x.revision === 1 && !x.copy_system)).toBe(true);
   await expect(
     panel.getByRole("button", { name: "Apply NTP to system infrastructure", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("scoped clock controls apply only saved settings to a permitted station", async ({ page }) => {
+  const panel = await setup(page, ["clock/settings_get", "clock/station_sync"]);
+  await expect(panel.getByText("time.windows.com", { exact: true })).toBeVisible();
+  await expect(panel.getByLabel("NTP server", { exact: true })).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Save settings", exact: true })).toHaveCount(0);
+  await expect(
+    panel.getByRole("button", { name: "Apply NTP to system infrastructure", exact: true }),
+  ).toHaveCount(0);
+  await panel.getByRole("button", { name: "Synchronize clock to system", exact: true }).click();
+  await expect(
+    panel.getByText("NTP configuration verified; waiting for clock alignment."),
+  ).toBeVisible();
+  const calls = await page.evaluate(() => (window as any).clockCalls);
+  expect(calls.filter((call: any) => call.type.endsWith("station_sync"))).toEqual([
+    {
+      type: "hikvision_intercom/clock/station_sync",
+      station_id: "two",
+      revision: 0,
+      copy_system: true,
+    },
+  ]);
+  expect(calls.some((call: any) => /host_|settings_update/.test(call.type))).toBe(false);
+  await panel.evaluate((element: any) => {
+    element.allowedCommands = ["clock/settings_get"];
+  });
+  await expect(
+    panel.getByRole("button", { name: "Synchronize clock to system", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    panel.getByText("NTP configuration verified; waiting for clock alignment."),
   ).toHaveCount(0);
 });
 

@@ -1,4 +1,11 @@
 const en = {
+  field_access_denied: "You do not have permission to change this person field.",
+  person_scope_shared:
+    "This person also belongs to a station outside your scope. Ask an administrator to make the change.",
+  permissions_changed:
+    "Your permissions changed during this request. Refresh and review before retrying.",
+  operator_field_hidden: "Hidden by your permissions",
+  operator_scope_required: "Select at least one permitted station before creating this person.",
   previous: "Previous",
   next: "Next",
   user_not_found: "This user was deleted or is no longer available.",
@@ -2266,6 +2273,11 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  field_access_denied: "אין לך הרשאה לשנות את השדה הזה בפרטי המשתמש.",
+  person_scope_shared: "לאדם זה יש שיוך גם לתחנה מחוץ לתחום הרשאתך. יש לפנות למנהל לביצוע השינוי.",
+  permissions_changed: "ההרשאות שלך השתנו במהלך הבקשה. יש לרענן ולבדוק לפני ניסיון נוסף.",
+  operator_field_hidden: "מוסתר בהתאם להרשאות שלך",
+  operator_scope_required: "בחר לפחות תחנה מורשית אחת לפני יצירת המשתמש.",
   previous: "הקודם",
   next: "הבא",
   user_not_found: "המשתמש נמחק או אינו זמין עוד.",

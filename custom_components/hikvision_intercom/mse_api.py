@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from .access.models import AccessError
 from .const import DOMAIN
 from .media_api import provider, settings
-from .panel_permissions import area_allowed
+from .panel_permissions import area_allowed, station_allowed
 
 CODECS = frozenset(
     {
@@ -51,8 +51,11 @@ class MSEView(HomeAssistantView):
         user = request.get("hass_user")
         permissions = self.hass.data[DOMAIN].get("panel_permissions")
         if not (
-            area_allowed(permissions, user, "overview", "view")
-            or area_allowed(permissions, user, "stations", "view")
+            station_allowed(permissions, user, station_id)
+            and (
+                area_allowed(permissions, user, "overview", "view")
+                or area_allowed(permissions, user, "stations", "view")
+            )
         ):
             raise web.HTTPForbidden()
         entry = self.hass.config_entries.async_get_entry(station_id)
@@ -143,6 +146,9 @@ class MSEView(HomeAssistantView):
                                     "stations",
                                     "view",
                                 )
+                            )
+                            and station_allowed(
+                                self.hass.data[DOMAIN].get("panel_permissions"), user, station_id
                             )
                             and not runtime.is_closed
                             and getattr(
