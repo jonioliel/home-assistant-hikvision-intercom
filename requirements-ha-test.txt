@@ -6,3 +6,7 @@ av==17.0.1
 numpy==2.3.2
 
 home-assistant-frontend==20260826.6
+
+# Actual MFA provider requirements used by the fresh-authentication tests.
+pyotp==2.9.0
+PyQRCode==1.2.1
