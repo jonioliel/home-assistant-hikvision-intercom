@@ -36,7 +36,8 @@ async def test_csv_job_requires_a_current_second_admin_and_an_explicit_resume(
     owner = await hass_ws_client(hass)
     await enable_approval(hass)
     raw = "employee_no,display_name,pin\n9821,Approved import,837261\n"
-    preview = await request(owner, "users/csv_preview", csv=raw, mode="create")
+    mapping = {key: key for key in ("employee_no", "display_name", "pin")}
+    preview = await request(owner, "users/csv_preview", csv=raw, mode="create", column_map=mapping)
     assert preview["success"], preview
     created = await request(
         owner,
@@ -44,6 +45,7 @@ async def test_csv_job_requires_a_current_second_admin_and_an_explicit_resume(
         content=raw,
         mode="create",
         review_token=preview["result"]["review_token"],
+        column_map=mapping,
         confirmed=True,
     )
     assert created["success"], created
@@ -97,6 +99,9 @@ async def test_csv_job_requires_a_current_second_admin_and_an_explicit_resume(
             await task
         assert len(repo.users()) == 1 and repo.users()[0].pin.value == "837261"
     device_io["unlock"].assert_not_called()
+    await second.close()
+    await owner.close()
+    await hass.async_block_till_done()
 
 
 @pytest.mark.parametrize("revoked", [False, True])
@@ -152,6 +157,9 @@ async def test_fleet_approval_is_read_only_then_rechecked_before_write(
             assert result["success"], result
             assert result["result"]["receipts"][0]["state"] == "verified"
             write.assert_awaited_once()
+    await second.close()
+    await owner.close()
+    await hass.async_block_till_done()
             repeated = await request(
                 owner, "platform/config_apply", review_id=token, confirmed=True
             )
@@ -185,6 +193,9 @@ async def test_foreground_csv_approval_uses_the_existing_csv_contract(
     result = await request(owner, "workflows/apply", request_id=submitted["result"]["id"])
     assert result["success"], result
     assert len(hass.data[DOMAIN]["access"].repository.users()) == 1
+    await second.close()
+    await owner.close()
+    await hass.async_block_till_done()
 
 
 @pytest.mark.parametrize(
