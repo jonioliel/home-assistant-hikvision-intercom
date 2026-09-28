@@ -19,6 +19,7 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
         "authorization/preview",
         "authorization/settings_update",
         "appearance/settings_update",
+        "investigations/query",
     }
     assert {
         command
