@@ -148,6 +148,7 @@ class HikvisionClient:
         ):
             raise HikvisionValidationError("Invalid expected station identity")
         self.metrics = RequestMetrics()
+        self.door_metrics = RequestMetrics()
         self._expected_identity = expected_identity
         self._session = session
         self.settings = settings
@@ -355,18 +356,24 @@ class HikvisionClient:
                 raise HikvisionBusyError("A door command was just attempted")
             self._last_unlock = time.monotonic()
             self._last_unlock_by_door[door_id] = self._last_unlock
-            await self.async_confirm_identity()
-            body = (
-                b'<RemoteControlDoor version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
-                b"<cmd>open</cmd></RemoteControlDoor>"
-            )
-            response = parse_payload(
-                await self._request(
-                    "PUT",
-                    f"/ISAPI/AccessControl/RemoteControl/door/{door_id}",
-                    content=body,
+            failed = True
+            started = time.monotonic()
+            try:
+                await self.async_confirm_identity()
+                body = (
+                    b'<RemoteControlDoor version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema">'
+                    b"<cmd>open</cmd></RemoteControlDoor>"
                 )
-            ).data
-            codes = find_values(response, "statusCode")
-            if not codes or any(str(code) != "1" for code in codes):
-                raise HikvisionDeviceError("Door command was not acknowledged")
+                response = parse_payload(
+                    await self._request(
+                        "PUT",
+                        f"/ISAPI/AccessControl/RemoteControl/door/{door_id}",
+                        content=body,
+                    )
+                ).data
+                codes = find_values(response, "statusCode")
+                if not codes or any(str(code) != "1" for code in codes):
+                    raise HikvisionDeviceError("Door command was not acknowledged")
+                failed = False
+            finally:
+                self.door_metrics.record(time.monotonic() - started, failed)

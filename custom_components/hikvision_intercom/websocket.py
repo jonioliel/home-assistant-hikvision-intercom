@@ -140,6 +140,23 @@ COMMANDS = {
     "workflows/renew_request": {"user_id": str, "revision": int, "until": str, "reason": str},
     "workflows/renew_decide": {"request_id": str, "approve": bool},
     "jobs/list": {},
+    "platform/config_pending": {},
+    "platform/config_review": {"review_id": str},
+    "platform/config_decide": {
+        "review_id": str,
+        "fingerprint": str,
+        "approve": bool,
+        "confirmed": bool,
+    },
+    "jobs/approval_review": {"job_id": str},
+    "jobs/approval_request": {"job_id": str, "revision": int, "action": str, "confirmed": bool},
+    "jobs/approval_decide": {
+        "job_id": str,
+        "revision": int,
+        "review_id": str,
+        "approve": bool,
+        "confirmed": bool,
+    },
     "jobs/action": {"job_id": str, "revision": int, "action": str},
     "jobs/errors": {"job_id": str},
     "jobs/bulk_create": {"operation_id": str, "confirmed": bool},
@@ -312,6 +329,7 @@ COMMANDS = {
     "cards/capture_cancel": {"session_id": str},
     "cards/capture_confirm": {"session_id": str, "label": str},
     "overview": {},
+    "overview/summary": {},
     "events/list": {"filters": dict},
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
@@ -374,8 +392,11 @@ def _patch(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
-    data = get_manager(hass).public()
+def overview(
+    hass: HomeAssistant, user: Any | None = None, *, include_users: bool = True
+) -> dict[str, Any]:
+    manager = get_manager(hass)
+    data = manager.public(include_users=include_users)
     registry = er.async_get(hass)
     latest_access = get_events(hass).latest_access({station["id"] for station in data["stations"]})
     for station in data["stations"]:
@@ -488,11 +509,26 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     data["version"] = VERSION
     # Internal fleet observers have no authenticated panel operator. Their input
     # must retain the full fleet; request handlers always supply the real user.
-    return (
+    result = (
         project_overview(policy, data, shared_identity_ids=_outside_bound_people(hass, policy))
         if user is not None
         else data
     )
+    if not include_users:
+        from .operator_scope import visible_person
+
+        # Count only identities this operator may see; no names, fields, cards,
+        # bindings or person serialization enter the summary response.
+        result["users_complete"] = False
+        result["user_count"] = (
+            sum(
+                visible_person(policy, record)
+                for record in manager.repository._state["users"].values()
+            )
+            if user is None or policy["is_admin"] or policy["areas"]["users"] != "none"
+            else 0
+        )
+    return result
 
 
 def _outside_bound_people(hass: HomeAssistant, policy: dict[str, Any]) -> frozenset[str]:
@@ -1009,7 +1045,7 @@ async def _dispatch_inner(
         from .diagnostics import async_get_config_entry_diagnostics
 
         generated_at = datetime.now(UTC).isoformat()
-        public_stations = manager.public()["stations"]
+        public_stations = manager.public(include_users=False)["stations"]
         cached: dict[str, dict[str, Any]] = {}
         for station in public_stations:
             entry = hass.config_entries.async_get_entry(station["id"])
@@ -1117,8 +1153,8 @@ async def _dispatch_inner(
             return result
         except HikvisionValidationError:
             raise AccessError("invalid_fields") from None
-    if command in {"overview", "sync/status"}:
-        return overview(hass, user)
+    if command in {"overview", "overview/summary", "sync/status"}:
+        return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
     if command == "users/query":
@@ -1263,10 +1299,14 @@ async def _dispatch_inner(
     if command == "users/delete":
         await manager.async_delete(msg["user_id"], revision=msg["revision"])
     elif command == "stations/list":
-        return overview(hass, user)["stations"]
+        return overview(hass, user, include_users=False)["stations"]
     elif command == "stations/get":
         station = next(
-            (item for item in overview(hass, user)["stations"] if item["id"] == msg["station_id"]),
+            (
+                item
+                for item in overview(hass, user, include_users=False)["stations"]
+                if item["id"] == msg["station_id"]
+            ),
             None,
         )
         if station is None:
@@ -1441,7 +1481,7 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
                     result = await _dispatch(hass, command, msg, actor=user.id, user=user)
                     if security and command == "authorization/session":
                         result["security"] = security.public(connection)
-                    elif security and command in {"overview", "sync/status"}:
+                    elif security and command in {"overview", "overview/summary", "sync/status"}:
                         result["access"]["security"] = security.public(connection)
             finally:
                 limiter.release(admitted)

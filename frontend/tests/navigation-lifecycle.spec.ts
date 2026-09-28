@@ -40,6 +40,14 @@ test("repeated navigation releases connection listeners and never replays a devi
       .first()
       .getByRole("button", { name: "Answer signal", exact: true }),
   ).toBeEnabled();
+  // Sample persistent listeners only after all initial per-station reads settle.
+  await expect
+    .poll(() =>
+      page
+        .locator("hikvision-intercom-call-controls")
+        .evaluateAll((nodes) => nodes.every((node: any) => !node._busy)),
+    )
+    .toBe(true);
   const baseline = await count();
   expect(baseline).toBeGreaterThan(0);
   for (let cycle = 0; cycle < 12; cycle++) {

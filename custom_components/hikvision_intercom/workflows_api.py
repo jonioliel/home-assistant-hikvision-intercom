@@ -58,7 +58,25 @@ async def dispatch_workflows(
     if command == "workflows/submit":
         original, values = msg["command"], msg["values"]
         effects = []
-        if original == "users/bulk_apply":
+        if original == "users/csv_apply":
+            import asyncio
+
+            rules = manager._csv_rules()
+            preview, changes, stamp = await asyncio.to_thread(
+                manager._bulk_preview,
+                values["csv"],
+                values["mode"],
+                manager.repository.preview_copy(),
+                rules,
+                values.get("column_map"),
+            )
+            if preview["errors"]:
+                raise AccessError("csv_validation_failed")
+            if not values.get("review_token") or preview["review_token"] != values["review_token"]:
+                raise AccessError("csv_review_stale")
+            if rules != manager._csv_rules():
+                raise AccessError("bulk_review_stale")
+        elif original == "users/bulk_apply":
             manager.bulk._purge()
             review = manager.bulk.reviews.get(values.get("operation_id"))
             if (
@@ -246,8 +264,8 @@ def requires_approval(command: str, msg: dict[str, Any]) -> bool:
         return msg.get("values", {}).get("status") in {"lost", "blocked"}
     if command == "workflows/inventory_return":
         return not msg.get("delete", False)
-    if command == "jobs/action":
-        return msg.get("action") in {"resume", "retry_failed"}
+    # Checkpoint jobs stage changes only. Their row-bound consent is checked again
+    # on resume and before every commit, including policy changes while running.
     if command in {
         "users/create",
         "cards/add",
@@ -262,8 +280,6 @@ def requires_approval(command: str, msg: dict[str, Any]) -> bool:
         "profiles/settings_update",
         "profiles/settings_apply",
         "users/bulk_apply",
-        "jobs/bulk_create",
-        "jobs/csv_create",
         "users/csv_apply",
         "users/delete",
         "users/set_active",

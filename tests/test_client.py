@@ -113,6 +113,7 @@ async def test_unselected_unlock_rejected_before_io(door):
         with pytest.raises(HikvisionValidationError):
             await client.async_unlock(door)
     handler.assert_not_called()
+    assert client.door_metrics.requests == 0
 
 
 async def test_unlock_exact_payload_no_retries_and_repeat_guard():
@@ -130,6 +131,8 @@ async def test_unlock_exact_payload_no_retries_and_repeat_guard():
     assert len(requests) == 1
     assert requests[0].method == "PUT"
     assert requests[0].url.path == "/ISAPI/AccessControl/RemoteControl/door/1"
+    assert client.door_metrics.public()["requests"] == 1
+    assert client.door_metrics.public()["failures"] == 0
     assert (
         requests[0].content
         == b'<RemoteControlDoor version="2.0" xmlns="http://www.isapi.org/ver20/XMLSchema"><cmd>open</cmd></RemoteControlDoor>'
@@ -157,6 +160,8 @@ async def test_unlock_requires_real_acknowledgement(status, body, error):
         with pytest.raises(error):
             await client.async_unlock(1)
     handler.assert_awaited_once()
+    assert client.door_metrics.public()["requests"] == 1
+    assert client.door_metrics.public()["failures"] == 1
 
 
 @pytest.mark.parametrize(

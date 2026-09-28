@@ -17,6 +17,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from . import job_approval
 from .admin_audit import audit_actor
 from .csv_transfer import desired_fields, validate_csv_targets
 from .models import AccessError, utc_now
@@ -35,7 +36,7 @@ def validate(data: Any) -> None:
         if sum(len(job.get("rows", [])) for job in data.values()) > 5000:
             raise ValueError
         for identity, job in data.items():
-            if not isinstance(job, dict) or set(job) != {
+            if not isinstance(job, dict) or set(job) - {"approval"} != {
                 "id",
                 "actor",
                 "kind",
@@ -47,6 +48,7 @@ def validate(data: Any) -> None:
                 "rows",
             }:
                 raise ValueError
+            job_approval.validate(job)
             if identity != job["id"] or not re.fullmatch(r"[0-9a-f]{32}", identity):
                 raise ValueError
             if job["kind"] not in {"csv", "bulk"} or job["state"] not in STATES:
@@ -135,6 +137,11 @@ class CheckpointJobs:
             key: deepcopy(job[key])
             for key in ("id", "kind", "state", "revision", "created_at", "updated_at")
         } | {
+            "approval": (
+                {key: job["approval"][key] for key in ("state", "action", "expires_at")}
+                if job.get("approval")
+                else None
+            ),
             "total": len(job["rows"]),
             "saved": sum(row["state"] == "saved" for row in job["rows"]),
             "failed": sum(row["state"] == "failed" for row in job["rows"]),
@@ -145,6 +152,123 @@ class CheckpointJobs:
                 if row["state"] == "failed"
             ],
         }
+
+    def pending_reviews(self, actor: str) -> list[dict[str, Any]]:
+        return [
+            self.public(job)
+            for job in self.manager.repository._state["checkpoint_jobs"].values()
+            if job["actor"] != actor
+            and (job.get("approval") or {}).get("state") == "pending"
+            and job["state"] in {"paused", "completed_with_errors"}
+        ]
+
+    def approval_review(self, actor: str, identity: str) -> dict[str, Any]:
+        from .admin_audit import summary
+
+        def evidence(raw: dict[str, Any] | None) -> dict[str, Any] | None:
+            if raw is None:
+                return None
+            policy = raw.get("access_timing_policy")
+            return {
+                **(summary(raw) or {}),
+                "timing": (
+                    {"mode": policy["mode"], "schedule": deepcopy(policy["schedule"])}
+                    if policy
+                    else None
+                ),
+            }
+
+        job = self.manager.repository._state["checkpoint_jobs"].get(identity)
+        if not job or not job.get("approval"):
+            raise AccessError("operation_not_found")
+        receipt = job["approval"]
+        if receipt["state"] != "pending" or job["state"] not in {"paused", "completed_with_errors"}:
+            raise AccessError("operation_not_found")
+        if selected := job_approval.selected(job, receipt["action"]):
+            if selected != receipt["rows"]:
+                raise AccessError("bulk_review_stale")
+        else:
+            raise AccessError("bulk_review_stale")
+        changes = [row["change"] for row in job["rows"] if str(row["index"]) in selected]
+        from .workflows import Workflows
+
+        state = self.manager.repository._state
+        candidate = Workflows(self.manager)._preview(state, changes)
+        added = iter(raw for uid, raw in candidate["users"].items() if uid not in state["users"])
+        return {
+            **self.public(job),
+            "review_id": receipt["review_id"],
+            "own_request": actor == job["actor"],
+            "impact": [
+                {
+                    "before": evidence(state["users"].get(change["user_id"])),
+                    "after": evidence(candidate["users"].get(change["user_id"]))
+                    if change["user_id"]
+                    else evidence(next(added)),
+                    "fields": sorted(change["data"]),
+                    "delete": bool(change.get("delete")),
+                }
+                for change in changes
+            ],
+        }
+
+    async def approval_request(
+        self, actor: str, identity: str, revision: int, action: str
+    ) -> dict[str, Any]:
+        if self.closed or not await self.authorize(actor):
+            raise AccessError("unauthorized")
+
+        def apply(state: dict[str, Any]) -> dict[str, Any]:
+            job = state["checkpoint_jobs"].get(identity)
+            if not job or job["actor"] != actor:
+                raise AccessError("operation_not_found")
+            if type(revision) is not int or job["revision"] != revision:
+                raise AccessError("revision_conflict")
+            if job["rules"] != self.manager.bulk.rules_stamp():
+                raise AccessError("bulk_review_stale")
+            job_approval.request(job, action)
+            job["revision"] += 1
+            job["updated_at"] = utc_now()
+            return self.public(job)
+
+        result = await self.manager.repository._commit(apply)
+        self.manager._changed()
+        return result
+
+    async def approval_decide(
+        self, actor: str, identity: str, revision: int, review_id: str, approve: bool
+    ) -> dict[str, Any]:
+        if self.closed or not await self.authorize(actor):
+            raise AccessError("unauthorized")
+
+        def apply(state: dict[str, Any]) -> dict[str, Any]:
+            job = state["checkpoint_jobs"].get(identity)
+            if not job or not job.get("approval"):
+                raise AccessError("operation_not_found")
+            if actor == job["actor"]:
+                raise AccessError("separate_approver_required")
+            if type(revision) is not int or job["revision"] != revision:
+                raise AccessError("revision_conflict")
+            receipt = job["approval"]
+            if receipt["state"] != "pending" or receipt["review_id"] != review_id:
+                raise AccessError("bulk_review_stale")
+            if datetime.fromisoformat(receipt["expires_at"]) <= datetime.now().astimezone():
+                raise AccessError("approval_expired")
+            if (
+                job["rules"] != self.manager.bulk.rules_stamp()
+                or job_approval.selected(job, receipt["action"]) != receipt["rows"]
+            ):
+                raise AccessError("bulk_review_stale")
+            # Rebuild the masked impact; changed people invalidate this review.
+            self.approval_review(actor, identity)
+            receipt.update(state="approved" if approve else "rejected", approver=actor)
+            job["revision"] += 1
+            job["updated_at"] = utc_now()
+            return self.public(job)
+
+        result = await self.manager.repository._commit(apply, offload=True)
+        self.manager._changed()
+        return result
 
     async def create(
         self,
@@ -231,6 +355,16 @@ class CheckpointJobs:
             action in {"resume", "retry_failed"} and not await self.authorize(actor)
         ):
             raise AccessError("unauthorized")
+        observed = self.manager.repository._state["checkpoint_jobs"].get(identity)
+        if (
+            action in {"resume", "retry_failed"}
+            and observed
+            and observed["actor"] == actor
+            and self.manager.repository._state["workflows"]["settings"]["dual_approval"]
+        ):
+            approver = job_approval.check(observed, action=action)
+            if not await self.authorize(approver):
+                raise AccessError("approval_required")
 
         def apply(state: dict[str, Any]) -> dict[str, Any]:
             job = state["checkpoint_jobs"].get(identity)
@@ -241,6 +375,8 @@ class CheckpointJobs:
             if job["state"] == "cancelled" or job["state"] == "completed":
                 raise AccessError("job_finished")
             if action in {"resume", "retry_failed"}:
+                if state["workflows"]["settings"]["dual_approval"]:
+                    job_approval.check(job, action=action)
                 if job["rules"] != self.manager.bulk.rules_stamp():
                     raise AccessError("bulk_review_stale")
                 if action == "retry_failed":
@@ -252,6 +388,7 @@ class CheckpointJobs:
                 job["state"] = "paused"
             else:
                 job["state"] = "cancelled"
+                job.pop("approval", None)
                 for row in job["rows"]:
                     row["change"] = {}
             job["revision"] += 1
@@ -280,6 +417,14 @@ class CheckpointJobs:
                 if not await self.authorize(job["actor"]):
                     await self._pause(identity)
                     return
+                if repository._state["workflows"]["settings"]["dual_approval"]:
+                    try:
+                        approver = job_approval.check(job)
+                        if not await self.authorize(approver):
+                            raise AccessError("approval_required")
+                    except AccessError:
+                        await self._pause(identity)
+                        return
                 row = next((row for row in job["rows"] if row["state"] == "pending"), None)
                 if row is None:
 
@@ -305,11 +450,11 @@ class CheckpointJobs:
                     current = state["checkpoint_jobs"][identity]
                     if current["state"] != "running":
                         raise AccessError("job_paused")
-                    if state["workflows"]["settings"]["dual_approval"]:
-                        raise AccessError("approval_required")
                     if current["rules"] != self.manager.bulk.rules_stamp():
                         raise AccessError("bulk_review_stale")
                     record = current["rows"][index]
+                    if state["workflows"]["settings"]["dual_approval"]:
+                        job_approval.check(current, row=record)
                     change = record["change"]
                     uid = change["user_id"]
                     if uid:
@@ -341,7 +486,12 @@ class CheckpointJobs:
                         await repository._commit(apply, offload=True)
                 except AccessError as error:
                     code = str(error)
-                    if code in {"job_paused", "bulk_review_stale", "approval_required"}:
+                    if code in {
+                        "job_paused",
+                        "bulk_review_stale",
+                        "approval_required",
+                        "approval_expired",
+                    }:
                         await self._pause(identity)
                         return
                     safe = code if re.fullmatch(r"[a-z_]{1,64}", code) else "operation_failed"

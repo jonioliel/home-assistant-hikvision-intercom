@@ -197,6 +197,12 @@ def query_users(
         "records": page,
         "total": total,
         "total_all": len(users),
+        # The caller projects fields/stations before querying. These bounded
+        # options therefore cannot expose values hidden from this operator.
+        "profile_facets": {
+            key: sorted({item.get("profile", {}).get(key, "") for item in users} - {""})[:200]
+            for key in sorted({key for item in users for key in item.get("profile", {})})
+        },
         "offset": effective_offset,
         "limit": limit,
         "next_offset": effective_offset + limit if effective_offset + limit < total else None,

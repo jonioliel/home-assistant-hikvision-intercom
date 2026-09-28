@@ -320,12 +320,7 @@ async def async_setup_access(hass: HomeAssistant) -> None:
 
     async def authorize_job(actor: str) -> bool:
         user = await hass.auth.async_get_user(actor)
-        return bool(
-            user
-            and user.is_active
-            and user.is_admin
-            and not workflows_center.data["settings"]["dual_approval"]
-        )
+        return bool(user and user.is_active and user.is_admin)
 
     checkpoint_jobs = CheckpointJobs(manager, authorize_job)
     hass.data[DOMAIN]["checkpoint_jobs"] = checkpoint_jobs

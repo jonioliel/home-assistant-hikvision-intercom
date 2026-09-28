@@ -456,6 +456,7 @@ class StationEvents:
                             if not self._active:
                                 return
                             self.stream_state = "connected"
+                            self.telemetry.transport_connected()
                             self.last_frame_at = datetime.now(UTC).isoformat()
                             delay = 2
                             frames += 1
@@ -474,6 +475,7 @@ class StationEvents:
                     self.stream_state = "disconnected"
                 if not self._active:
                     return
+                self.telemetry.transport_disconnected()
                 self.reconnects += 1
                 await asyncio.sleep(
                     delay

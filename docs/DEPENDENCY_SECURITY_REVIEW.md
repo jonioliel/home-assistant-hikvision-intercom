@@ -1,4 +1,4 @@
-# Dependency security review — 2026-09-28
+# Dependency security review — 2026-09-29
 
 The release pipeline scans the complete installed Python dependency inventory
 and runtime browser dependencies. Unreviewed findings fail the release. The JSON
@@ -38,3 +38,16 @@ Follow-up: review the upstream infrastructure pin before 2026-10-31 and upgrade
 the shared dependency when supported. A future use of certificate verification,
 PKCS#7, RSA, or any new cryptography APIs requires a fresh review. CI preserves
 the findings even when this narrow review permits a release.
+
+## Local development environment recheck — 2026-09-29
+
+The full installed-inventory scan also found old development-environment copies
+of aiohttp 3.13.3 and pip 25.0.1. They were updated locally to aiohttp 3.14.3 and
+pip 26.2.1, then the strict scan returned `passed_with_reviews`, with no blocking
+findings. No new advisory exemptions were introduced. This did not update the
+live infrastructure server, change integration runtime requirements, or establish
+that another installation has the same inventory. Each CI/runtime environment
+must pass its own scan.
+
+Primary release references: [aiohttp 3.14.3](https://github.com/aio-libs/aiohttp/releases/tag/v3.14.3)
+and [pip changelog](https://pip.pypa.io/en/stable/news/).

@@ -38,6 +38,14 @@ async def async_get_config_entry_diagnostics(
             "online": not runtime.is_closed and runtime.coordinator.last_update_success,
             "consecutive_poll_failures": runtime.coordinator.failures,
             "requests": runtime.client.metrics.public(),
+            "quality": {
+                "requests": runtime.client.metrics.quality(),
+                "door_commands": {
+                    **runtime.client.door_metrics.quality(),
+                    "physical_result": "not_measured",
+                },
+                "synchronization": runtime.access_manager.diagnostics.quality(entry.entry_id),
+            },
         }
     )
     manager = runtime.access_manager

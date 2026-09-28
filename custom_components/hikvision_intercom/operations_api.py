@@ -75,8 +75,48 @@ async def dispatch_operations(
 
     events = get_events(hass)
     now = datetime.now(UTC)
+    if command == "platform/config_pending":
+        from . import fleet_approval
+
+        records = []
+        if hass.data[DOMAIN]["workflows"].settings()["dual_approval"]:
+            for token, review in ops.reviews.items():
+                if review["kind"] != "configuration":
+                    continue
+                try:
+                    result = fleet_approval.plan(ops, token, actor, catalog)
+                except AccessError:
+                    continue
+                if result["own_request"] or result["state"] == "pending":
+                    records.append(
+                        {
+                            key: result[key]
+                            for key in ("review_id", "own_request", "state", "remaining_seconds")
+                        }
+                        | {"station_count": len(result["rows"])}
+                    )
+        return {"records": records}
+    if command in {"platform/config_review", "platform/config_decide"}:
+        from . import fleet_approval
+
+        review = fleet_approval.current(ops, msg["review_id"])
+        if (
+            station_stamp(hass, [row["station_id"] for row in review["values"]["rows"]])
+            != review["stamp"]
+        ):
+            raise AccessError("review_expired")
+        if command == "platform/config_decide":
+            if msg["confirmed"] is not True:
+                raise AccessError("confirmation_required")
+            fleet_approval.decide(ops, msg["review_id"], actor, msg["fingerprint"], msg["approve"])
+        return fleet_approval.plan(ops, msg["review_id"], actor, catalog)
     if command == "platform/get":
-        return {**ops.public(actor), "event_usage": usage(events, now), "catalog": catalog}
+        return {
+            **ops.public(actor),
+            "event_usage": usage(events, now),
+            "catalog": catalog,
+            "capabilities": ["fleet_configuration_approval"],
+        }
     if command == "platform/save":
         if msg["collection"] == "stations" and msg["record_id"] not in catalog:
             raise AccessError("station_not_found")
@@ -166,11 +206,16 @@ async def dispatch_operations(
         )
         return {"review_id": token, "rows": rows, "apply_count": len(pending)}
     if command == "platform/config_apply":
-        # Existing dual approval does not have a fleet-config change representation.
-        # Fail closed rather than silently treating a single operator as two approvers.
-        if hass.data[DOMAIN]["workflows"].settings()["dual_approval"]:
-            raise AccessError("approval_command_unsupported")
+        from . import fleet_approval
+
         review = ops.reviews.get(msg["review_id"])
+        if hass.data[DOMAIN]["workflows"].settings()["dual_approval"]:
+            if not review or review["actor"] != actor:
+                raise AccessError("approval_required")
+            approver_id = fleet_approval.check(review)
+            approver = await hass.auth.async_get_user(approver_id)
+            if not approver or not approver.is_active or not approver.is_admin:
+                raise AccessError("approval_required")
         ids = (
             [row["station_id"] for row in review["values"]["rows"]]
             if review and review["actor"] == actor
@@ -195,6 +240,10 @@ async def dispatch_operations(
             try:
                 if not current or not current.is_active or not current.is_admin:
                     raise AccessError("unauthorized")
+                if hass.data[DOMAIN]["workflows"].settings()["dual_approval"]:
+                    approver = await hass.auth.async_get_user(fleet_approval.check(review))
+                    if not approver or not approver.is_active or not approver.is_admin:
+                        raise AccessError("approval_required")
                 if metadata and not in_window(metadata["window"], datetime.now(UTC)):
                     raise AccessError("maintenance_window_closed")
                 if (

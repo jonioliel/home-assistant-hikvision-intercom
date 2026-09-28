@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.19",
+  "integration_version": "2.0.0-rc.20",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -441,6 +441,37 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/jobs/approval_decide": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "review_id": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/approval_request": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "action": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/approval_review": {
+      "required": {
+        "job_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/jobs/bulk_create": {
       "required": {
         "operation_id": "str",
@@ -537,6 +568,12 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/overview/summary": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/permissions/directory": {
       "required": {
         "filters": "dict"
@@ -562,6 +599,23 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/platform/config_decide": {
+      "required": {
+        "review_id": "str",
+        "fingerprint": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_pending": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/platform/config_preview": {
       "required": {
         "station_ids": "list",
@@ -576,6 +630,14 @@
       "required": {
         "station_ids": "list",
         "door": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_review": {
+      "required": {
+        "review_id": "str"
       },
       "optional_common": {
         "api_contract": "int"
