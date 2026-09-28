@@ -136,11 +136,16 @@ async def test_native_setup_http_requires_administrator(
 ):
     assert await async_setup_component(hass, "config", {})
     client = await hass_client(hass)
+    headers = {"Authorization": "Bearer " + hass_read_only_access_token}
+    # This token is authenticated: listing configuration entries is allowed,
+    # while starting a native administrator setup flow is denied.
+    authenticated = await client.get("/api/config/config_entries/entry", headers=headers)
+    assert authenticated.status == 200
     response = await client.post(
         "/api/config/config_entries/flow",
         json={"handler": DOMAIN},
-        headers={"Authorization": "Bearer " + hass_read_only_access_token},
+        headers=headers,
     )
-    assert response.status == 403
+    assert response.status == 401
     device_io["profile"].assert_not_called()
     device_io["unlock"].assert_not_called()
