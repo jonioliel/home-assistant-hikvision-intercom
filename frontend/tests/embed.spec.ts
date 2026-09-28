@@ -433,14 +433,23 @@ for (const scenario of [
   { marker: 'data-embed-api="1"', root: true, result: "waiting" },
   { marker: "", root: true, result: "legacy" },
   { marker: "", root: false, result: "waiting" },
+  { marker: 'data-embed-api="1"', root: true, result: "waiting", nested: true },
+  { marker: "", root: true, result: "legacy", nested: true },
 ]) {
-  test(`VMS timeout uses ${scenario.result} for ${scenario.root ? scenario.marker || "old panel" : "login without panel"}`, async ({
+  test(`VMS timeout uses ${scenario.result} for ${scenario.root ? scenario.marker || "old panel" : "login without panel"}${scenario.nested ? " in infrastructure shadow roots" : ""}`, async ({
     page,
   }) => {
     await page.route("**/hikvision-intercom*", (route) =>
       route.fulfill({
         contentType: "text/html",
-        body: `<html><body>${scenario.root ? `<hikvision-intercom-panel ${scenario.marker}></hikvision-intercom-panel>` : "Sign in"}</body></html>`,
+        body: scenario.nested
+          ? `<html><body><home-assistant></home-assistant><script>
+              const first = document.querySelector('home-assistant').attachShadow({mode:'open'});
+              first.innerHTML = '<home-assistant-main></home-assistant-main>';
+              const second = first.firstElementChild.attachShadow({mode:'open'});
+              second.innerHTML = '<hikvision-intercom-panel ${scenario.marker}></hikvision-intercom-panel>';
+            </script></body></html>`
+          : `<html><body>${scenario.root ? `<hikvision-intercom-panel ${scenario.marker}></hikvision-intercom-panel>` : "Sign in"}</body></html>`,
       }),
     );
     await page.clock.install();

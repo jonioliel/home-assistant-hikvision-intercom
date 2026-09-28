@@ -88,16 +88,15 @@ export function attachWiskey(iframe, options = {}) {
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (catalog || disposed) return;
-      // Only the public version marker is inspected; no Shadow DOM or internal calls.
+      // Only after a missing handshake: discover the public root through open
+      // infrastructure shadow roots. Never inspect panel state or call its methods.
       let root;
       try {
         if (iframe.contentWindow?.location.origin !== origin) {
           options.onWaiting?.();
           return;
         }
-        root = iframe.contentDocument?.querySelector(
-          "hikvision-intercom-panel",
-        );
+        root = findPublicRoot(iframe.contentDocument);
       } catch {
         options.onWaiting?.();
         return;
@@ -109,6 +108,18 @@ export function attachWiskey(iframe, options = {}) {
         options.onUnsupported?.(marker.getAttribute("data-embed-api"));
       else options.onWaiting?.();
     }, 12000);
+  }
+
+  function findPublicRoot(container) {
+    if (!container) return null;
+    const panel = container.querySelector("hikvision-intercom-panel");
+    if (panel) return panel;
+    for (const element of container.querySelectorAll("*")) {
+      if (!element.shadowRoot) continue;
+      const nested = findPublicRoot(element.shadowRoot);
+      if (nested) return nested;
+    }
+    return null;
   }
 
   function refresh() {

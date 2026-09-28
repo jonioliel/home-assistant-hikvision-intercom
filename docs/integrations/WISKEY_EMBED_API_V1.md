@@ -209,8 +209,11 @@ video transports, TTS generation or device access.
 
 [examples/wiskey-embed-client.mjs](examples/wiskey-embed-client.mjs) demonstrates
 same-origin validation, version negotiation, catalog discovery, message-based
-navigation, refresh and a bounded older-build fallback hook. It supplies no HA token,
-reads no Shadow DOM and calls no internal panel method on the v1 path.
+navigation, refresh and a bounded older-build fallback hook. Successful v1 navigation
+uses messages only. If no handshake arrives within 12 seconds, discovery traverses open
+infrastructure shadow roots solely to locate the public panel root and read its version
+marker. It never reads panel state or calls internal methods. A missing root is treated
+as loading/authentication, never as proof of an older authorized installation.
 
 ```js
 import { attachWiskey } from './wiskey-embed-client.mjs';
