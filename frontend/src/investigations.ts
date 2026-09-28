@@ -477,7 +477,14 @@ export class Investigations extends LitElement {
     return this.stations.find((item) => item.id === sid)?.name ?? this.t("unknown");
   }
   private action(row: TimelineRow) {
-    return this.t(row.action.replaceAll("/", "_"));
+    const key = row.action.replaceAll("/", "_");
+    return this.t(
+      row.source === "sync"
+        ? "job_action_" + key
+        : row.source === "change" && !row.action.startsWith("bulk/")
+          ? "audit_source_" + key
+          : key,
+    );
   }
   private time(raw: unknown) {
     return formatTime(typeof raw === "string" ? raw : null, this.hass?.language, this.zone);

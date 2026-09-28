@@ -10,6 +10,8 @@ test("timeline distinguishes all evidence sources and exports only the current s
   await expect(view.locator("article")).toHaveCount(3);
   await expect(view.locator("article.sync")).toContainText("verified by device readback");
   await expect(view.locator("article.change")).toContainText("permission change was saved");
+  await expect(view.locator("article.change")).toContainText("User updated");
+  await expect(view.locator("article.sync")).toContainText("Person synchronization");
   await view.getByRole("combobox", { name: "Evidence source", exact: true }).selectOption("change");
   await view.getByRole("button", { name: "Run investigation" }).click();
   await expect(view.locator("article")).toHaveCount(1);
@@ -31,6 +33,26 @@ test("timeline distinguishes all evidence sources and exports only the current s
       window.calls.some((call) => /sync\/user$|users\/update$|test_unlock$/.test(call.type)),
     ),
   ).toBe(false);
+});
+
+test("Hebrew timeline labels approval and bulk changes without technical command names", async ({
+  page,
+}) => {
+  await page.goto("/?investigations=1&lang=he");
+  await page.evaluate(() => {
+    const row = window.investigationRows.find((item) => item.source === "change");
+    window.investigationRows = [
+      { ...row, id: "change/approval", action: "visits/decide" },
+      { ...row, id: "change/group", action: "bulk/group_policy" },
+    ];
+  });
+  await navigate(page, "תחקור גישה");
+  const view = page.locator("wiskey-investigations");
+  await expect(view.locator("article")).toHaveCount(2);
+  await expect(view).toContainText("שמירת החלטת אישור ביקור");
+  await expect(view).toContainText("עדכון מדיניות דלתות לקבוצה");
+  await expect(view).not.toContainText("visits_decide");
+  await expect(view).not.toContainText("bulk_group_policy");
 });
 
 test("saved filters persist per operator and do not overwrite another tab's edits", async ({
