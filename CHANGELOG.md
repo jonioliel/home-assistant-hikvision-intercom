@@ -14,6 +14,8 @@ Semantic Versioning is used throughout the project.
 - Allow authorized scoped operators to synchronize a permitted station using saved NTP settings. Gate the compact clock controls by discovered commands; keep central NTP and host configuration outside restricted grants.
 - Extend the unsaved role preview with card enrollment, spoken broadcasts, station maintenance and clock synchronization, using the command enforcement rules. Distinguish general identity editing from read-only access or credential fields.
 - Add account search and granted/restricted/denied filters to operator administration. Preserve unsaved changes and all hidden accounts in the complete revision-checked permission save.
+- Clear stale person searches and filters after effective permission changes, hide filters for unavailable fields, and sanitize saved views before loading. Reject direct directory filters on hidden credentials, profiles or access rules instead of presenting misleading redacted matches.
+- Recreate an open event journal after effective permission changes, cancelling old reads/reports and clearing retained private state. Preserve its context when another account's permission revision changes. Ensure hidden labels stay hidden despite layout styles.
 - Accept legacy permission storage and persist extended schema 2 on the next change. Shield permission commits against cancellation so durable and live grants cannot diverge. Add strict typing and transport/browser regressions, VMS scope documentation and focused owner checks. Infrastructure entity permissions remain a separate authorization layer.
 
 ## [2.0.0-rc.15] - 2026-09-28

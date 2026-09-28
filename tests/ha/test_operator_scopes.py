@@ -57,6 +57,36 @@ async def people(hass, station):
     return users
 
 
+@pytest.mark.parametrize(
+    "filters",
+    [
+        {"credential": "pin"},
+        {"credential": "no_card"},
+        {"profile": {"dept": "Private"}},
+        {"group": "private-group"},
+        {"rights": "assigned"},
+        {"state": "expired"},
+        {"state": "upcoming"},
+    ],
+)
+async def test_directory_hidden_field_filters_are_denied_but_view_only_filters_work(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token, filters
+):
+    await people(hass, loaded_entry.entry_id)
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], **dict.fromkeys(FIELDS, "none"))
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    denied = await request(
+        reader, "users/query", query="", filters=filters, offset=0, limit=25, snapshot=""
+    )
+    assert denied["error"]["code"] == "field_access_denied"
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], **dict.fromkeys(FIELDS, "view"))
+    allowed = await request(
+        reader, "users/query", query="", filters=filters, offset=0, limit=25, snapshot=""
+    )
+    assert allowed["success"], allowed
+    assert "outside" not in json.dumps(allowed)
+
+
 async def test_admin_scope_settings_and_projected_directory(
     hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
 ):

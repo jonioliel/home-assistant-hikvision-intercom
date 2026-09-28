@@ -53,6 +53,8 @@ Restricted person records include `operator_editable` and `redacted_fields`. Hid
 
 Projection happens before search, filtering, counting and paging. Hidden phones/cards cannot match search. Directory snapshot tokens for non-admin operators change after a permission revision; discard stale cached pages.
 
+Directory filters require visibility of their source field: `credential` needs `credentials`, `profile` needs `profile`, and `rights`, `group`, expired/upcoming `state` need `access`. Hidden-field filters return `field_access_denied`; active/inactive state remains basic identity data. The UI clears searches/filters after effective grant changes and strips unavailable criteria and outside stations from a loaded saved view. It leaves the original saved view intact for later use with an appropriate grant.
+
 Events are filtered before paging/aggregation; reports, CSV and print use the same rows. Hidden card/portrait data is removed before export. Current group/custom-field audience filters require field visibility. Source details and trace workflows that could reveal hidden fields are unavailable to field-restricted accounts.
 
 `fleet/alerts` also filters station observations before deriving counts, pages and maintenance/snooze lists. An empty `station_id` means all permitted stations, never the entire fleet for a scoped operator. `fleet/alerts_action` may change presentation policies only for a permitted station and still requires station-management permission and the current global alert-policy revision. Policies on outside stations are preserved. Neither operation changes device state.
@@ -74,6 +76,8 @@ Station-reader enrollment remains available with user management and credential 
 MSE/RTC/audio/TTS startup checks station access. Active media rechecks ownership and closes after station removal; audio tokens cannot continue after revocation. Transport tests do not prove physical audibility.
 
 The panel closes person/edit/camera views and clears private caches after effective grant changes; a delayed detail reply cannot restore old data. VMS clients must do the same after a data-free `refresh`: refetch session/overview, compare grants, close obsolete views, cancel pending reads, clear pages/photos/conversations. On `access_revoked`, erase private state and stop.
+
+An open event journal is recreated on effective area/station/field changes, cancelling requests and clearing event/report/filter state. Another operator's revision change alone does not recreate the journal. Do not keep a stale inspector or export under an updated grant.
 
 Errors: `unauthorized` (outside target/unsupported command), `field_access_denied`, `person_scope_shared`, `operator_scope_required`, `permissions_changed`. The latter means a revision changed while a request ran: refetch and review; never automatically replay a write. An admitted write may have completed, so reconcile saved/device status first.
 

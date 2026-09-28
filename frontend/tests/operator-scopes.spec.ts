@@ -205,6 +205,118 @@ test("shared person stays view-only and restricted tools do not offer global ope
   await expect(page.getByRole("button", { name: "Media & audio", exact: true })).toHaveCount(0);
 });
 
+test("field revocation clears stale search filters and saved views cannot restore hidden filters", async ({
+  page,
+}) => {
+  await scopedOperator(page);
+  await page.locator("details.user-filters > summary").click();
+  await expect(page.getByLabel("Filter by credential", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Filter by assignment", { exact: true }).selectOption("assigned");
+  await page.locator(".users-tools input[type=search]").fill("Or");
+  await page.evaluate(() => {
+    const data = window.demoData;
+    data.access.fields.access = "none";
+    data.access.fields.profile = "none";
+    data.access.fields.phone = "none";
+    data.access.revision++;
+    data.users[0].assignments = {};
+    data.users[0].profile = {};
+    data.users[0].phone = "";
+    data.profile_settings.fields = [];
+    data.profile_settings.groups = [];
+    window.demoNotify();
+  });
+  await expect(page.locator(".users-tools input[type=search]")).toHaveValue("");
+  await expect(page.getByLabel("Filter by assignment", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Groups", { exact: true })).toBeHidden();
+  await expect(
+    page.getByLabel("Filter by user state", { exact: true }).locator('option[value="expired"]'),
+  ).toHaveCount(0);
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    panel.shadowRoot.querySelector("wiskey-saved-user-views").dispatchEvent(
+      new CustomEvent("view-load", {
+        detail: {
+          query: "",
+          columns: null,
+          filters: {
+            station: "outside",
+            rights: "assigned",
+            state: "expired",
+            credential: "pin",
+            group: "old-group",
+            profile: { dept: "Private" },
+            sort: "employee",
+          },
+        },
+      }),
+    );
+  });
+  await expect(page.locator(".desktop-users tbody tr")).toHaveCount(1);
+  const filters = await page.evaluate(
+    () => document.querySelector("hikvision-intercom-panel")._userFilters,
+  );
+  for (const key of ["station", "rights", "state", "credential", "group"])
+    expect(filters[key]).toBe("");
+  expect(filters.profile).toEqual({});
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  await expect(page.getByRole("dialog").getByLabel("Mobile phone", { exact: true })).toBeHidden();
+});
+
+test("an effective permission change detaches the open event journal and clears its private state", async ({
+  page,
+}) => {
+  await scopedOperator(page);
+  await page.getByRole("button", { name: "Events", exact: true }).click();
+  await expect(page.locator("hikvision-intercom-events")).toBeVisible();
+  await page.evaluate(() => {
+    window.oldEventView = document
+      .querySelector("hikvision-intercom-panel")
+      .shadowRoot.querySelector("hikvision-intercom-events");
+    window.oldEventView._filters = { person: "Old private search" };
+    window.onlyRevision = ++window.demoData.access.revision;
+    window.demoNotify();
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("hikvision-intercom-panel")._session.revision),
+    )
+    .toBe(await page.evaluate(() => window.onlyRevision));
+  expect(
+    await page.evaluate(
+      () =>
+        document
+          .querySelector("hikvision-intercom-panel")
+          .shadowRoot.querySelector("hikvision-intercom-events") === window.oldEventView,
+    ),
+  ).toBe(true);
+  expect(await page.evaluate(() => window.oldEventView._filters.person)).toBe("Old private search");
+  await page.evaluate(() => {
+    window.demoData.access.fields.phone = "none";
+    window.demoData.access.revision++;
+    window.demoData.users[0].phone = "";
+    window.demoNotify();
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const current = document
+          .querySelector("hikvision-intercom-panel")
+          .shadowRoot.querySelector("hikvision-intercom-events");
+        return current !== window.oldEventView && !window.oldEventView.isConnected;
+      }),
+    )
+    .toBe(true);
+  const stale = await page.evaluate(() => ({
+    filters: window.oldEventView._filters,
+    data: window.oldEventView._data,
+    pending: window.oldEventView.requests.size,
+  }));
+  expect(stale.filters).toEqual({});
+  expect(stale.data).toBeUndefined();
+  expect(stale.pending).toBe(0);
+});
+
 test("permission refresh closes person details and discards a delayed detail response", async ({
   page,
 }) => {

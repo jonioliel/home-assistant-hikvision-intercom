@@ -27,6 +27,7 @@ import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } fr
 import { LitElement, html, nothing, type PropertyValues } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { live } from "lit/directives/live.js";
+import { keyed } from "lit/directives/keyed.js";
 import { styles } from "./styles";
 import { interfaceStyles } from "./interface-styles";
 import { stationSettingsStyles } from "./station-settings-styles";
@@ -248,6 +249,27 @@ export class IntercomManagerPanel extends LitElement {
   }
   private personEditable(user: Person) {
     return this.canManage("users") && user.operator_editable !== false;
+  }
+  private permissionStamp(access = this._session) {
+    return JSON.stringify([
+      access?.areas,
+      access?.station_ids ?? null,
+      access?.fields ?? null,
+      access?.is_admin,
+    ]);
+  }
+  private permittedUserFilters(filters: UserFilters): UserFilters {
+    const result = { ...filters, profile: { ...(filters.profile ?? {}) } };
+    if (!this.personField("credentials")) result.credential = "";
+    if (!this.personField("profile")) result.profile = {};
+    if (!this.personField("access")) {
+      result.rights = "";
+      result.group = "";
+      if (["expired", "upcoming"].includes(result.state)) result.state = "";
+    }
+    if (result.station && !this._data?.stations.some((station) => station.id === result.station))
+      result.station = "";
+    return result;
   }
   narrow = false;
   private _appearance: Appearance = "current";
@@ -765,14 +787,7 @@ export class IntercomManagerPanel extends LitElement {
         try {
           const data = await this.api<Overview>("overview");
           if (epoch === this._epoch && this.isConnected && this.authorized) {
-            const accessStamp = (access: AuthorizationSession | undefined | null) =>
-              JSON.stringify([
-                access?.areas,
-                access?.station_ids ?? null,
-                access?.fields ?? null,
-                access?.is_admin,
-              ]);
-            if (this._data && accessStamp(this._session) !== accessStamp(data.access)) {
+            if (this._data && this.permissionStamp() !== this.permissionStamp(data.access)) {
               this._draft = undefined;
               this._dialog = "";
               this._cameraStation = undefined;
@@ -781,6 +796,8 @@ export class IntercomManagerPanel extends LitElement {
               this.detailCache.clear();
               this._detailRecords = {};
               this._selectedUsers = new Set();
+              this._query = "";
+              this._userFilters = defaultFilters();
               clearTimeout(this._userQueryTimer);
               this._userQuerySequence++;
               this._userPage = undefined;
@@ -3158,7 +3175,7 @@ export class IntercomManagerPanel extends LitElement {
             @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
             @view-load=${(e: CustomEvent<UserView>) => {
               this._query = e.detail.query;
-              this._userFilters = e.detail.filters;
+              this._userFilters = this.permittedUserFilters(e.detail.filters);
               this._userColumns = e.detail.columns;
               this._selectedUsers = new Set();
               this.scheduleUserQuery(true);
@@ -3182,10 +3199,10 @@ export class IntercomManagerPanel extends LitElement {
                   [
                     "state",
                     "user_filter_state",
-                    ["active", "inactive", "expired", "upcoming"].map((v) => [
-                      v,
-                      this.t("filter_" + v),
-                    ]),
+                    (this.personField("access")
+                      ? ["active", "inactive", "expired", "upcoming"]
+                      : ["active", "inactive"]
+                    ).map((v) => [v, this.t("filter_" + v)]),
                   ],
                   [
                     "credential",
@@ -3198,25 +3215,28 @@ export class IntercomManagerPanel extends LitElement {
                     ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
                   ],
                 ] as [keyof UserFilters, string, string[][]][]
-              ).map(
-                ([key, label, options]) =>
-                  html`<label
-                    >${this.t(label)}<select
-                      aria-label=${this.t(label)}
-                      .value=${this._userFilters[key]}
-                      @change=${(e: Event) => {
-                        this._userFilters = {
-                          ...this._userFilters,
-                          [key]: (e.target as HTMLSelectElement).value,
-                        };
-                        this._selectedUsers = new Set();
-                        this.scheduleUserQuery(true);
-                      }}
-                    >
-                      ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
-                    </select></label
-                  >`,
-              )}
+              )
+                .filter(([key]) => key !== "credential" || this.personField("credentials"))
+                .filter(([key]) => key !== "rights" || this.personField("access"))
+                .map(
+                  ([key, label, options]) =>
+                    html`<label
+                      >${this.t(label)}<select
+                        aria-label=${this.t(label)}
+                        .value=${this._userFilters[key]}
+                        @change=${(e: Event) => {
+                          this._userFilters = {
+                            ...this._userFilters,
+                            [key]: (e.target as HTMLSelectElement).value,
+                          };
+                          this._selectedUsers = new Set();
+                          this.scheduleUserQuery(true);
+                        }}
+                      >
+                        ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
+                      </select></label
+                    >`,
+                )}
             </div>
             <div class="toolbar profile-filters">
               ${this._data?.profile_settings?.fields
@@ -3241,7 +3261,7 @@ export class IntercomManagerPanel extends LitElement {
                       </select></label
                     >`,
                 )}
-              <label
+              <label ?hidden=${!this.personField("access")}
                 >${this.t("profile_groups")}<select
                   aria-label=${this.t("profile_groups")}
                   .value=${this._userFilters.group ?? ""}
@@ -5544,13 +5564,16 @@ export class IntercomManagerPanel extends LitElement {
                                                           .hass=${this.protectedHass}
                                                           .stations=${this._data.stations}
                                                         ></hikvision-intercom-schedules>`
-                                                      : html`<hikvision-intercom-events
-                                                          .policy=${this._data.profile_settings}
-                                                          .hass=${this.protectedHass}
-                                                          .stations=${this._data.stations}
-                                                          .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                                          .v4=${isWiskeyAppearance(this._appearance)}
-                                                        ></hikvision-intercom-events>`
+                                                      : keyed(
+                                                          this.permissionStamp(),
+                                                          html`<hikvision-intercom-events
+                                                            .policy=${this._data.profile_settings}
+                                                            .hass=${this.protectedHass}
+                                                            .stations=${this._data.stations}
+                                                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                            .v4=${isWiskeyAppearance(this._appearance)}
+                                                          ></hikvision-intercom-events>`,
+                                                        )
         }
       </main>
       ${

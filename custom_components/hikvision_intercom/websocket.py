@@ -472,6 +472,19 @@ def _guard_operator(
             filters.get("current_profile") and not field_allowed(policy, "profile")
         ):
             raise AccessError("field_access_denied")
+        if command == "users/query" and (
+            filters.get("credential")
+            and not field_allowed(policy, "credentials")
+            or filters.get("profile")
+            and not field_allowed(policy, "profile")
+            or (
+                filters.get("group")
+                or filters.get("rights")
+                or filters.get("state") in ("expired", "upcoming")
+            )
+            and not field_allowed(policy, "access")
+        ):
+            raise AccessError("field_access_denied")
     if command == "users/create":
         guard_fields(policy, msg["data"])
         candidate = manager.repository.permission_data(msg["data"])
