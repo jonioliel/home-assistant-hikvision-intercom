@@ -33,6 +33,8 @@ async def test_real_password_and_totp_are_required_and_connection_bound(hass, mf
     manager = await auth.auth_manager_from_config(
         hass, [{"type": "homeassistant"}], [{"type": "totp"}] if mfa else []
     )
+    # Providers resolve MFA through the host's auth manager, as in a real installation.
+    hass.auth = manager
     provider = manager.get_auth_provider("homeassistant", None)
     await provider.async_add_auth("operator", "correct-test-password")
     credential = await provider.async_get_or_create_credentials({"username": "operator"})

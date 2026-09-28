@@ -1327,12 +1327,21 @@ async def _dispatch_inner(
 
 
 def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., None]:
+    # Existing clients omit newly introduced settings. Preserve those values on save.
+    optional = {
+        "appearance/settings_update": {"accent"},
+        "authorization/settings_update": {"station_groups"},
+        "authorization/preview": {"station_groups"},
+    }.get(command, set())
     schema = vol.Schema(
         {
             vol.Optional("api_contract"): int,
             vol.Required("id"): int,
             vol.Required("type"): str,
-            **{vol.Required(key): kind for key, kind in fields.items()},
+            **{
+                (vol.Optional(key) if key in optional else vol.Required(key)): kind
+                for key, kind in fields.items()
+            },
             **({vol.Optional("filters"): dict} if command == "visits/list" else {}),
             **(
                 {vol.Optional("column_map"): dict}

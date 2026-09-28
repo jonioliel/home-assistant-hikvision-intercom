@@ -95,3 +95,58 @@ test("staff preset fills a new user draft and message without saving", async ({ 
     page.getByRole("textbox", { name: "Message draft for this person", exact: true }),
   ).toHaveValue("Welcome {name}");
 });
+
+test("mobile fresh-authentication form clears password, requires MFA and emits only after proof", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel") as any;
+    const gate = document.createElement("wiskey-reauth") as any;
+    gate.locked = true;
+    let step = 0;
+    gate.hass = {
+      ...panel.hass,
+      callWS: async (message: any) => {
+        if (message.type.endsWith("/security/reauth_start"))
+          return {
+            flow_id: "test",
+            fields: [{ name: "password", choices: null }],
+            authenticated: false,
+          };
+        step++;
+        if (step === 1)
+          return {
+            flow_id: "test",
+            fields: [{ name: "password", choices: null }],
+            authenticated: false,
+            errors: ["invalid_auth"],
+          };
+        if (step === 2)
+          return {
+            flow_id: "test",
+            fields: [{ name: "code", choices: null }],
+            authenticated: false,
+          };
+        return { authenticated: true };
+      },
+    };
+    gate.addEventListener("reauthenticated", () => gate.setAttribute("data-proved", "yes"));
+    document.body.append(gate);
+  });
+  const gate = page.locator("wiskey-reauth");
+  await gate.getByLabel("Password", { exact: true }).fill("synthetic-wrong-password");
+  await gate.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(gate.getByRole("alert")).toContainText("Authentication failed");
+  await expect(gate.getByLabel("Password", { exact: true })).toHaveValue("");
+  await gate.getByLabel("Password", { exact: true }).fill("synthetic-correct-password");
+  await gate.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(gate.getByLabel("Verification code", { exact: true })).toBeVisible();
+  await expect(gate).not.toHaveAttribute("data-proved", "yes");
+  await expect(gate.getByLabel("Password", { exact: true })).toHaveCount(0);
+  await gate.getByLabel("Verification code", { exact: true }).fill("123456");
+  await gate.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(gate).toHaveAttribute("data-proved", "yes");
+  expect(await gate.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+});
