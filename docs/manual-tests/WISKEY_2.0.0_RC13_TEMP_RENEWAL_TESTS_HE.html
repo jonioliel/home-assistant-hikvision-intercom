@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WisKey 2.0.0-rc.13 — חידוש גישה זמנית</title>
+  <style>
+    :root{font:16px/1.6 system-ui,Arial,sans-serif;color:#142622;background:#eef3f1}*{box-sizing:border-box}
+    body{margin:0}main{max-width:900px;margin:auto;padding:24px}header{background:#15352e;color:white;border-radius:22px;padding:28px}
+    h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.25;margin:.1em 0}h2{font-size:1.12rem;margin:0 0 8px}p{margin:.4em 0}
+    .card{background:white;border:1px solid #d7e2dd;border-radius:16px;padding:20px;margin:16px 0}
+    label{display:flex;align-items:flex-start;gap:12px;padding:11px;border:1px solid #e0e9e5;border-radius:10px;margin:9px 0;cursor:pointer}
+    input{inline-size:21px;block-size:21px;accent-color:#167b58;flex:none;margin-top:2px}.muted{color:#526b62}
+    a{color:#155d46}button{border:0;background:#226c53;color:white;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer;margin:4px}
+    textarea{width:100%;min-height:90px;resize:vertical;font:inherit;padding:12px;border:1px solid #d7e2dd;border-radius:10px}
+    @media(max-width:600px){main{padding:12px}header,.card{padding:16px}}
+  </style>
+</head>
+<body><main>
+  <header><p>WisKey · smplwise access control · 2.0.0-rc.13</p><h1>חידוש גישה לאורחים ולקבלנים</h1><p>העדכון מוסיף מעקב וחידוש תוקף, אחרי תצוגה מקדימה ואישור. בדיקת כניסה פיזית נשארת שלך; בדיקות התוכנה בוצעו לפני השחרור.</p></header>
+  <section class="card"><h2>מה כבר נבדק עבורך</h2><p>סיווג לפי תוקף, כולל רגע הפקיעה; הגבלת גודל הדוח; שמירת PIN, כרטיסים, דלתות וכללי ימים ושעות; יומן שינויים; תזמון סנכרון; חסימת צופה; דחיית עריכה מקבילה; ביטול תגובה מאוחרת; מסך נייד בעברית ותאימות לדוח הישן.</p><p class="muted">אין צורך לבדוק שוב את כל הגנות התוכנה. ״בתקופת התוקף״ מתאר את התוקף שהוגדר; יש לבדוק את הסנכרון וכללי השעות לפני כניסה בתחנה.</p></section>
+  <section class="card"><h2>בדיקה קצרה בגרסה החדשה</h2>
+    <label><input type="checkbox" data-id="upgrade"> אחרי עדכון HACS והפעלה מחדש מוצגת גרסה 2.0.0-rc.13.</label>
+    <label><input type="checkbox" data-id="report"> בכלי ניהול ← מחזור חיי משתמשים מופיע אזור ״אורחים וקבלנים״ כשיש משתמשים מסווגים כאלה. בחר מצב תוקף ובדוק שהשם, האחראי, המטרה והמועדים מתאימים למה שהגדרת. אם אין עדיין אורח או קבלן, אפשר להקים אחד דרך ״הקמת גישה זמנית״.</label>
+    <label><input type="checkbox" data-id="renew"> באורח לבדיקה בחר ״חידוש תוקף״, הגדר מועד סיום חדש, בדוק את התצוגה המקדימה ורק אז לחץ ״אישור וסנכרון״. בפרטי המשתמש ודא שהתוקף השתנה והשיוכים לתחנות הסתנכרנו. אם יש כללי ימים ושעות נוספים, הם ממשיכים לחול.</label>
+    <label><input type="checkbox" data-id="physical"> כשאתה ליד תחנה: השתמש באותו כרטיס או PIN של אורח הבדיקה בתוך הטווח החדש. לאחר מועד הסיום ודא שאין כניסה. תאם טווח קצר שנוח לבדיקה והמתן לסנכרון לפני שתי הבדיקות. אין צורך לבדוק תחנות שכבר אישרת באותו מסלול אם לא חל בהן שינוי.</label>
+  </section>
+  <section class="card"><h2>בדיקות שטרם דיווחת עליהן</h2><p><a href="WISKEY_2.0.0_RC12_MEDIA_TESTS_HE.html">מדיה והעדפת וידאו חי / תמונה מתרעננת</a> · <a href="WISKEY_2.0.0_RC11_OPERATOR_TESTS_HE.html">הרשאות מפעילים</a> · <a href="WISKEY_2.0.0_RC10_EVENTS_TESTS_HE.html">חקירת אירועים</a> · <a href="WISKEY_2.0.0_RC9_FLEET_HEALTH_TESTS_HE.html">בריאות תחנות</a> · <a href="WISKEY_2.0.0_RC8_TEMP_ACCESS_TESTS_HE.html">הקמת אורחים וקבלנים</a></p><p><a href="WISKEY_PENDING_TESTS_HE.html">הקטלוג המצטבר של הבדיקות הפתוחות</a></p><p class="muted">בדיקה שלא דיווחת על תוצאתה אינה מסומנת כבדיקה פיזית שעברה. בדיקות יציבות והמתנה ממושכת נשארות פתוחות.</p></section>
+  <section class="card"><h2>דיווח תוצאה</h2><p>אם משהו נכשל, ציין סעיף, מכשיר, דפדפן ומה קרה. אין לציין PIN, מספר כרטיס מלא או סיסמה.</p><textarea id="notes" aria-label="תוצאות והערות" placeholder="תוצאות והערות"></textarea><button id="export">הורד תוצאות</button><button id="reset">נקה סימונים</button></section>
+</main><script>
+  const key='wiskey-2.0.0-rc.13-renewal';
+  const checks=[...document.querySelectorAll('input[data-id]')];
+  for(const input of checks){input.checked=localStorage.getItem(key+':'+input.dataset.id)==='1';input.addEventListener('change',()=>localStorage.setItem(key+':'+input.dataset.id,input.checked?'1':'0'))}
+  const notes=document.getElementById('notes');notes.value=localStorage.getItem(key+':notes')||'';notes.addEventListener('input',()=>localStorage.setItem(key+':notes',notes.value));
+  document.getElementById('reset').addEventListener('click',()=>{for(const input of checks){input.checked=false;localStorage.removeItem(key+':'+input.dataset.id)}notes.value='';localStorage.removeItem(key+':notes')});
+  document.getElementById('export').addEventListener('click',()=>{const data={version:'2.0.0-rc.13',exported_at:new Date().toISOString(),checks:Object.fromEntries(checks.map(input=>[input.dataset.id,input.checked?'owner_reported_pass':'not_reported'])),notes:notes.value};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='wiskey-rc13-test-results.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+</script></body></html>

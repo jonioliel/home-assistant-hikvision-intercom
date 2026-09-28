@@ -42,6 +42,30 @@ const en = {
   access_purpose: "Purpose of access",
   temporary_access_note:
     "Temporary access requires an expiry and a responsible person. The station or system infrastructure enforces the validity window.",
+  temporary_lifecycle: "Visitors and contractors",
+  temporary_lifecycle_scope:
+    "Configured validity periods. Door permissions, additional time rules and station synchronization apply separately.",
+  temporary_state_total: "Total",
+  temporary_state_all: "All",
+  temporary_state_active: "Within validity period",
+  temporary_state_upcoming: "Not started",
+  temporary_state_expiring: "Expiring soon",
+  temporary_state_expired: "Expired",
+  temporary_state_inactive: "Disabled",
+  temporary_filter: "Validity status",
+  temporary_none: "No temporary people match this status.",
+  temporary_renew: "Renew validity",
+  temporary_renew_scope:
+    "Change the start and end of this person's validity period. PIN, cards and permitted doors are retained.",
+  temporary_inactive_preserved:
+    "This person is disabled and will remain disabled after the validity change. Enable them separately in person details.",
+  temporary_schedule_preserved:
+    "Existing day and time rules are retained and still restrict entry. Edit person details to change those rules.",
+  temporary_previous_period: "Current period",
+  temporary_proposed_period: "Proposed period",
+  temporary_validity_unchanged: "The period has not changed. Choose new dates before reviewing.",
+  temporary_renew_preview: "Review new period",
+  temporary_renew_confirm: "Confirm and sync",
   guest_responsible_required: "Enter the person responsible for this access.",
   guest_intro:
     "Create one temporary person with a defined access window. Existing user synchronization and expiry rules apply.",
@@ -92,7 +116,8 @@ const en = {
   lifecycle_reason_phone: "Same phone number",
   lifecycle_reason_card_last4: "Same card suffix",
   lifecycle_reason_employee_no: "Same employee number",
-  lifecycle_truncated: "Only the first 200 records are shown. Export the report for review.",
+  lifecycle_truncated:
+    "Only the first 200 records are shown and exported. Summary counts include every record.",
   lifecycle_load_failed: "The identity lifecycle report could not be loaded.",
   lifecycle_employee_conflict: "This employee number is already assigned to another person.",
   lifecycle_duplicate_confirm:
@@ -2016,6 +2041,30 @@ const he: Record<keyof typeof en, string> = {
   access_purpose: "מטרת הכניסה",
   temporary_access_note:
     "גישה זמנית מחייבת מועד סיום ואחראי. התוקף נאכף בתחנה או בתשתית המערכת לפי ההגדרה.",
+  temporary_lifecycle: "אורחים וקבלנים",
+  temporary_lifecycle_scope:
+    "תקופות התוקף שהוגדרו. הרשאות הדלתות, כללי ימים ושעות נוספים וסנכרון לתחנות נבדקים בנפרד.",
+  temporary_state_total: "סך הכול",
+  temporary_state_all: "הכול",
+  temporary_state_active: "בתקופת התוקף",
+  temporary_state_upcoming: "טרם התחילה",
+  temporary_state_expiring: "עומדת לפוג",
+  temporary_state_expired: "פג תוקף",
+  temporary_state_inactive: "מושבתת",
+  temporary_filter: "מצב התוקף",
+  temporary_none: "אין אורחים או קבלנים במצב שנבחר.",
+  temporary_renew: "חידוש תוקף",
+  temporary_renew_scope:
+    "שינוי ההתחלה והסיום של תקופת התוקף. קוד הגישה, הכרטיסים והדלתות המורשות נשמרים.",
+  temporary_inactive_preserved:
+    "המשתמש מושבת ויישאר מושבת לאחר שינוי התוקף. אפשר להפעיל אותו בנפרד בפרטי המשתמש.",
+  temporary_schedule_preserved:
+    "כללי הימים והשעות הקיימים נשמרים וממשיכים להגביל כניסה. לשינוי שלהם יש לערוך את פרטי המשתמש.",
+  temporary_previous_period: "התקופה הנוכחית",
+  temporary_proposed_period: "התקופה המוצעת",
+  temporary_validity_unchanged: "התקופה לא השתנתה. יש לבחור מועדים חדשים לפני התצוגה המקדימה.",
+  temporary_renew_preview: "בדיקת התקופה החדשה",
+  temporary_renew_confirm: "אישור וסנכרון",
   guest_responsible_required: "יש לציין מי אחראי לגישה הזו.",
   guest_intro: "יוצרים אדם אחד עם חלון גישה מוגדר. האכיפה והסנכרון מתבצעים במסלול המשתמשים הקיים.",
   guest_step: "שלב {step} מתוך 2",
@@ -2063,7 +2112,7 @@ const he: Record<keyof typeof en, string> = {
   lifecycle_reason_phone: "מספר טלפון זהה",
   lifecycle_reason_card_last4: "סיומת כרטיס זהה",
   lifecycle_reason_employee_no: "מספר עובד זהה",
-  lifecycle_truncated: "מוצגות 200 הרשומות הראשונות בלבד. ניתן לייצא את הדוח לבדיקה.",
+  lifecycle_truncated: "מוצגות ומיוצאות רק 200 הרשומות הראשונות. הסיכום סופר את כל הרשומות.",
   lifecycle_load_failed: "לא ניתן לטעון את דוח מחזור חיי המשתמשים.",
   lifecycle_employee_conflict: "מספר העובד כבר משויך למשתמש אחר.",
   lifecycle_duplicate_confirm:

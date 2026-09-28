@@ -5162,6 +5162,8 @@ export class IntercomManagerPanel extends LitElement {
                             ? html`<wiskey-identity-lifecycle
                                 .hass=${this.protectedHass}
                                 .zone=${this._data.default_zone ?? UTC_ZONE}
+                                .canManage=${this.canManage("users")}
+                                @access-renewed=${() => void this.refresh()}
                                 @open-user=${(event: CustomEvent<string>) => {
                                   const user = this._data?.users.find(
                                     (item) => item.id === event.detail,

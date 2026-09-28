@@ -74,6 +74,10 @@ def report(
     scheduled = 0
     expired = 0
     expiring = 0
+    temporary: list[dict[str, Any]] = []
+    temporary_summary = dict.fromkeys(
+        ("total", "active", "upcoming", "expired", "inactive", "expiring"), 0
+    )
 
     indexes: dict[str, dict[str, set[str]]] = {
         "display_name": defaultdict(set),
@@ -94,11 +98,41 @@ def report(
             missing_credentials.append(rows[user.id])
         if user.valid_from and _instant(user.valid_from) > current:
             scheduled += 1
+        if user.access_category in {"visitor", "contractor"}:
+            # This is the configured outer validity, not an assertion of physical access.
+            # Additional timing rules and station synchronization still apply.
+            start = _instant(user.valid_from) if user.valid_from else None
+            end = _instant(user.valid_until) if user.valid_until else None
+            if not user.active:
+                temporary_state = "inactive"
+            elif end is not None and end <= current:
+                temporary_state = "expired"
+            elif start is not None and start > current:
+                temporary_state = "upcoming"
+            else:
+                temporary_state = "active"
+            expiring_soon = (
+                temporary_state == "active"
+                and end is not None
+                and end - current <= timedelta(days=warning_days)
+            )
+            temporary_summary["total"] += 1
+            temporary_summary[temporary_state] += 1
+            temporary_summary["expiring"] += int(expiring_soon)
+            temporary.append(
+                {
+                    **rows[user.id],
+                    "revision": user.revision,
+                    "state": temporary_state,
+                    "expiring_soon": expiring_soon,
+                    "timing_policy_configured": user.access_timing_policy is not None,
+                }
+            )
         if not user.valid_until:
             continue
         end = _instant(user.valid_until)
         remaining = end - current
-        if remaining.total_seconds() < 0:
+        if remaining.total_seconds() <= 0:
             state = "expired"
             expired += 1
         elif remaining <= timedelta(days=warning_days):
@@ -137,6 +171,10 @@ def report(
     duplicates_page, duplicate_truncated = _bounded(duplicates)
     expiry_page, expiry_truncated = _bounded(expirations)
     credentials_page, credentials_truncated = _bounded(missing_credentials)
+    temporary.sort(
+        key=lambda item: (_instant(item["valid_until"]), item["display_name"], item["id"])
+    )
+    temporary_page, temporary_truncated = _bounded(temporary)
     return {
         "format": "hikvision_intercom.identity_lifecycle",
         "generated_at": current.isoformat(timespec="seconds"),
@@ -154,10 +192,12 @@ def report(
         "expirations": expiry_page,
         "duplicates": duplicates_page,
         "without_credentials": credentials_page,
+        "temporary_access": {"summary": temporary_summary, "users": temporary_page},
         "truncated": {
             "expirations": expiry_truncated,
             "duplicates": duplicate_truncated,
             "without_credentials": credentials_truncated,
+            "temporary_access": temporary_truncated,
         },
         "privacy": "no_pin_or_complete_card_values",
     }

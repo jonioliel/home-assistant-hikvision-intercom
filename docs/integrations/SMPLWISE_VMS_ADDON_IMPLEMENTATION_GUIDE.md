@@ -30,6 +30,10 @@ The already installed HA panel is at /hikvision-intercom on the **HA frontend or
 
 **The exact WisKey 04 appearance is a frontend implementation, not a backend response.** Recreate the screens against the APIs below, or deliberately share the current frontend component source after supplying its expected HA hass object and testing every lifecycle. Copying only CSS or loading the compiled panel.js into an ingress page will not supply its HA context or make it a supported VMS component.
 
+**Additive lifecycle response in 2.0.0-rc.13:** `users/lifecycle` (send `warning_days`, e.g. `30`) now optionally includes `temporary_access: {summary, users}`. The summary counts all visitors/contractors; the list contains at most 200, sorted by expiry, and `truncated.temporary_access` signals clipping. Each row includes `revision`, `state` (`active`, `upcoming`, `expired`, `inactive`), `expiring_soon`, category, responsible person, purpose, outer validity and `timing_policy_configured`. These states describe configured validity, not physical access or completed station sync. Never interpret `active` as permission to bypass the additional time policy.
+
+To reproduce **Renew validity**, show the existing/new periods and explicitly confirm before calling `users/update` with the row's current `revision`, `data: {valid_from, valid_until}` (timezone-aware UTC instants), `sync_now: true` and `api_contract: 1`. Send only the dates; preserve active state, credentials, assignments and timing rules. Require Users management permission on the server. Refetch after success, show sync separately, and close/reload on a revision conflict. No separate renewal endpoint or storage migration was added. Older responses without `temporary_access` retain the earlier lifecycle view.
+
 ## 2. Running inside an HA add-on
 
 The official HA add-on communication path is:

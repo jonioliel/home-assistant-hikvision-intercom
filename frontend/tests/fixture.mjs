@@ -265,6 +265,20 @@ if (query.has("lifecycle")) {
   data.users[1].valid_until = "2026-10-01T12:00:00Z";
   data.users[4].pin_configured = false;
   data.users[4].cards = [];
+  if (query.has("temporary")) {
+    data.default_zone = { kind: "iana", name: "Asia/Jerusalem" };
+    for (const index of [0, 1, 3, 5]) {
+      Object.assign(data.users[index], {
+        access_category: index % 2 ? "contractor" : "visitor",
+        responsible_person: hebrew ? "מנהל אחזקה" : "Facilities manager",
+        access_purpose: hebrew ? "תחזוקה" : "Maintenance visit",
+        valid_from: "2026-09-20T09:00:00Z",
+        valid_until: "2026-09-25T09:00:00Z",
+      });
+    }
+    data.users[1].valid_until = "2026-09-23T09:00:00Z";
+    data.users[5].valid_from = "2026-09-24T09:00:00Z";
+  }
 }
 if (query.has("legacy-api")) {
   data.api.commands = data.api.commands.filter(
@@ -998,6 +1012,38 @@ const fake = {
       };
     }
     if (command === "users/lifecycle") {
+      const now = Date.parse("2026-09-23T09:00:00Z");
+      const temporaryUsers = data.users
+        .filter((user) => ["visitor", "contractor"].includes(user.access_category))
+        .map((user) => {
+          const end = Date.parse(user.valid_until);
+          const state = !user.active
+            ? "inactive"
+            : end <= now
+              ? "expired"
+              : Date.parse(user.valid_from) > now
+                ? "upcoming"
+                : "active";
+          return {
+            ...structuredClone(user),
+            state,
+            expiring_soon: state === "active" && end - now <= message.warning_days * 86400000,
+            assignment_count: Object.values(user.assignments).filter(
+              (assignment) => assignment.enabled,
+            ).length,
+            timing_policy_configured: !!user.access_timing_policy,
+          };
+        });
+      const temporarySummary = Object.fromEntries(
+        ["total", "active", "upcoming", "expired", "inactive", "expiring"].map((state) => [
+          state,
+          state === "total"
+            ? temporaryUsers.length
+            : temporaryUsers.filter((user) =>
+                state === "expiring" ? user.expiring_soon : user.state === state,
+              ).length,
+        ]),
+      );
       return {
         format: "hikvision_intercom.identity_lifecycle",
         generated_at: "2026-09-23T09:00:00Z",
@@ -1048,6 +1094,9 @@ const fake = {
             group_ids: [],
           },
         ],
+        ...(query.has("legacy-lifecycle")
+          ? {}
+          : { temporary_access: { summary: temporarySummary, users: temporaryUsers } }),
         truncated: { expirations: false, duplicates: false, without_credentials: false },
         privacy: "no_pin_or_complete_card_values",
       };

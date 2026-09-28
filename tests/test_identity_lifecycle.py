@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from custom_components.hikvision_intercom.access.identity_lifecycle import (
+    MAX_ROWS,
     candidate_matches,
     report,
 )
@@ -110,3 +111,64 @@ def test_employee_collision_is_blocking_and_inputs_are_bounded():
         report([existing], warning_days=0, now=NOW)
     with pytest.raises(AccessError, match="invalid_fields"):
         candidate_matches([existing], {"card_suffixes": ["22"]})
+
+
+@pytest.mark.parametrize("category", ["visitor", "contractor"])
+@pytest.mark.parametrize(
+    "start_delta,end_delta,active,state,expiring",
+    [
+        (-1, 1, True, "active", True),
+        (0, 40, True, "active", False),
+        (1, 2, True, "upcoming", False),
+        (-1, 0, True, "expired", False),
+        (-2, -1, False, "inactive", False),
+    ],
+)
+def test_temporary_lifecycle_uses_outer_validity_and_respects_disabled_people(
+    category, start_delta, end_delta, active, state, expiring
+):
+    temporary = user(
+        5001,
+        "Temporary person",
+        access_category=category,
+        responsible_person="Reception",
+        access_purpose="Visit",
+        active=active,
+        pin="987654",
+        cards=[{"card_no": "12345555", "enabled": True}],
+        valid_from=(NOW + timedelta(days=start_delta)).isoformat(),
+        valid_until=(NOW + timedelta(days=end_delta)).isoformat(),
+    )
+    result = report([temporary, user(5002, "Staff")], now=NOW)
+    row = result["temporary_access"]["users"][0]
+    assert row["state"] == state and row["expiring_soon"] is expiring
+    assert row["revision"] == temporary.revision
+    assert not row["timing_policy_configured"]
+    summary = result["temporary_access"]["summary"]
+    assert summary["total"] == 1 and summary[state] == 1
+    assert summary["expiring"] == int(expiring)
+    assert "987654" not in str(result) and "12345555" not in str(result)
+    if end_delta == 0:
+        assert result["expirations"][0]["state"] == "expired"
+
+
+def test_temporary_report_is_bounded_but_counts_and_sorts_all_records():
+    records = [
+        user(
+            5000 + index,
+            f"Visitor {index}",
+            access_category="visitor",
+            responsible_person="Reception",
+            valid_from=(NOW - timedelta(days=1)).isoformat(),
+            valid_until=(NOW + timedelta(hours=index + 1)).isoformat(),
+        )
+        for index in range(MAX_ROWS + 3)
+    ]
+    result = report(reversed(records), now=NOW)
+    temporary = result["temporary_access"]
+    assert temporary["summary"]["total"] == MAX_ROWS + 3
+    assert temporary["summary"]["active"] == MAX_ROWS + 3
+    assert len(temporary["users"]) == MAX_ROWS
+    assert temporary["users"][0]["id"] == records[0].id
+    assert temporary["users"][-1]["id"] == records[MAX_ROWS - 1].id
+    assert result["truncated"]["temporary_access"]

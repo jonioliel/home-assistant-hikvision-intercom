@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.13] - 2026-09-28
+
+- Add a visitor/contractor lifecycle section with bounded reports, complete summary counts, responsible person, purpose, validity dates and filters for upcoming, current, expiring, expired and disabled people. Classify expiry at the exact end instant consistently with the existing access model; validity status does not claim physical access or completed synchronization.
+- Renew an outer validity period through a before/after review and explicit confirmation using the existing revision-checked, audited user update and synchronization queue. Retain credentials, door permissions, active state and additional time rules. Keep renewal unavailable to viewers, reject stale edits and discard late responses after operator-context changes.
+- Preserve the previous lifecycle API response, existing appearances, HACS domain/path and dashboard live/still preference. Add browser and server regression coverage, cross-browser renewal checks, and a focused Hebrew acceptance sheet linked from the cumulative test catalog.
+
 ## [2.0.0-rc.12] - 2026-09-28
 
 - Add a read-only media-path check inside camera audio diagnostics. Report decoded video, incoming RTC/MSE or ISAPI evidence and outgoing microphone delivery separately, including incoming audio codec and available RTC jitter.

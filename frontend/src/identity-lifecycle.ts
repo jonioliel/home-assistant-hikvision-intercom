@@ -4,6 +4,8 @@ import { translate } from "./i18n";
 import { boundedRequest } from "./request";
 import { formatTime, UTC_ZONE, type DisplayZone } from "./time";
 import type { Hass } from "./types";
+import { type TemporaryAccessUser } from "./temporary-validity";
+import "./temporary-validity";
 
 interface LifecycleUser {
   id: string;
@@ -25,6 +27,10 @@ interface LifecycleUser {
 interface Expiration extends LifecycleUser {
   state: "expired" | "expiring";
   seconds_remaining: number;
+}
+interface TemporaryUser extends LifecycleUser, TemporaryAccessUser {
+  state: "active" | "upcoming" | "expired" | "inactive";
+  expiring_soon: boolean;
 }
 interface DuplicateGroup {
   reason: "display_name" | "phone" | "card_last4" | "employee_no";
@@ -48,6 +54,17 @@ interface LifecycleReport {
   expirations: Expiration[];
   duplicates: DuplicateGroup[];
   without_credentials: LifecycleUser[];
+  temporary_access?: {
+    summary: {
+      total: number;
+      active: number;
+      upcoming: number;
+      expired: number;
+      inactive: number;
+      expiring: number;
+    };
+    users: TemporaryUser[];
+  };
   truncated: Record<string, boolean>;
   privacy: string;
 }
@@ -204,6 +221,42 @@ export class IdentityLifecycle extends LitElement {
         margin-top: 8px;
         color: var(--warning-color, #9a6500);
       }
+      .temporary {
+        margin: 16px 0;
+      }
+      .temporary > .toolbar {
+        margin-bottom: 10px;
+      }
+      .temporary-summary {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .temporary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .temporary-card {
+        display: grid;
+        gap: 10px;
+      }
+      .temporary-card p {
+        overflow-wrap: anywhere;
+      }
+      .temporary-card .row {
+        justify-content: space-between;
+      }
+      .temporary-card .dates {
+        font-size: 0.92rem;
+      }
+      .badge.active {
+        color: var(--success-color, #287656);
+      }
+      .badge.upcoming,
+      .badge.inactive {
+        color: var(--muted, var(--secondary-text-color));
+      }
       @media (max-width: 1050px) {
         .summary {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -211,6 +264,9 @@ export class IdentityLifecycle extends LitElement {
       }
       @media (max-width: 720px) {
         .columns {
+          grid-template-columns: 1fr;
+        }
+        .temporary-grid {
           grid-template-columns: 1fr;
         }
         .summary {
@@ -234,17 +290,26 @@ export class IdentityLifecycle extends LitElement {
   static properties = {
     hass: { attribute: false },
     zone: { attribute: false },
+    canManage: { type: Boolean },
     _report: { state: true },
     _busy: { state: true },
     _error: { state: true },
     _days: { state: true },
+    _temporaryFilter: { state: true },
+    _renewal: { state: true },
+    _notice: { state: true },
   };
   hass?: Hass;
   zone: DisplayZone = UTC_ZONE;
+  canManage = false;
   private _report?: LifecycleReport;
   private _busy = false;
   private _error = "";
   private _days = 30;
+  private _temporaryFilter = "all";
+  private _renewal?: TemporaryUser;
+  private _notice = "";
+  private renewalFocus?: HTMLElement;
   private request?: AbortController;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
 
@@ -259,16 +324,24 @@ export class IdentityLifecycle extends LitElement {
   protected updated(changed: PropertyValues) {
     if (changed.has("hass") && changed.get("hass")) void this.load();
   }
-  private async load() {
-    if (!this.hass || this.hass.connection.connected === false || this._busy) return;
+  private async load(force = false) {
+    if (!this.hass || this.hass.connection.connected === false || (this._busy && !force)) return;
     this.request?.abort();
     const request = new AbortController();
     this.request = request;
     this._busy = true;
+    const hass = this.hass,
+      actor = hass.user?.id,
+      connection = hass.connection;
+    const current = () =>
+      this.isConnected &&
+      request === this.request &&
+      this.hass?.user?.id === actor &&
+      this.hass?.connection === connection;
     try {
       const result = await boundedRequest<LifecycleReport>(
         () =>
-          this.hass!.callWS({
+          hass.callWS({
             type: "hikvision_intercom/users/lifecycle",
             api_contract: 1,
             warning_days: this._days,
@@ -276,11 +349,11 @@ export class IdentityLifecycle extends LitElement {
         30000,
         request.signal,
       );
-      if (request !== this.request) return;
+      if (!current()) return;
       this._report = result;
       this._error = "";
     } catch (error) {
-      if (!request.signal.aborted)
+      if (current() && !request.signal.aborted)
         this._error = this.t((error as { code?: string })?.code ?? "lifecycle_load_failed");
     } finally {
       if (request === this.request) {
@@ -288,6 +361,103 @@ export class IdentityLifecycle extends LitElement {
         this._busy = false;
       }
     }
+  }
+  private closeRenewal() {
+    this._renewal = undefined;
+    void this.updateComplete.then(
+      () => this.renewalFocus?.isConnected && this.renewalFocus.focus(),
+    );
+  }
+  private openRenewal(user: TemporaryUser, event: Event) {
+    this._notice = "";
+    this.renewalFocus = event.currentTarget as HTMLElement;
+    this._renewal = user;
+  }
+  private temporaryAccess() {
+    const temporary = this._report?.temporary_access;
+    if (!temporary || !temporary.summary.total) return nothing;
+    const users = temporary.users.filter(
+      (user) =>
+        this._temporaryFilter === "all" ||
+        (this._temporaryFilter === "expiring"
+          ? user.expiring_soon
+          : user.state === this._temporaryFilter),
+    );
+    return html`<section class="temporary" aria-labelledby="temporary-title">
+      <div class="heading">
+        <div>
+          <h3 id="temporary-title">${this.t("temporary_lifecycle")}</h3>
+          <p class="sub">${this.t("temporary_lifecycle_scope")}</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="temporary-summary">
+          ${(["total", "active", "upcoming", "expiring", "expired", "inactive"] as const).map((state) => html`<span class="badge ${state}">${this.t("temporary_state_" + state)}: ${temporary.summary[state]}</span>`)}
+        </div>
+        <label
+          >${this.t("temporary_filter")}<select
+            .value=${this._temporaryFilter}
+            @change=${(event: Event) => {
+              this._temporaryFilter = (event.target as HTMLSelectElement).value;
+            }}
+          >
+            ${["all", "active", "upcoming", "expiring", "expired", "inactive"].map((state) => html`<option value=${state}>${this.t("temporary_state_" + state)}</option>`)}
+          </select></label
+        >
+      </div>
+      <div class="temporary-grid">
+        ${
+          users.length
+            ? users.map(
+                (user) =>
+                  html`<article class="temporary-card">
+                    <div class="group-head">
+                      <strong>${user.display_name}</strong
+                      ><span class="badge ${user.state}"
+                        >${this.t("temporary_state_" + user.state)}</span
+                      >
+                    </div>
+                    <p class="sub">
+                      ${this.t("access_category_" + user.access_category)} ·
+                      ${this.t("responsible_person")}: ${user.responsible_person || "—"}
+                    </p>
+                    ${user.access_purpose ? html`<p>${user.access_purpose}</p>` : nothing}
+                    <div class="dates">
+                      <p>
+                        ${this.t("valid_from")}:
+                        ${formatTime(user.valid_from, this.hass?.language, this.zone)}
+                      </p>
+                      <p>
+                        ${this.t("valid_until")}:
+                        ${formatTime(user.valid_until, this.hass?.language, this.zone)}
+                      </p>
+                    </div>
+                    <div class="row">
+                      <span class="sub"
+                        >${this.t("health_triage_stations")}: ${user.assignment_count}</span
+                      >
+                      <div class="row">
+                        <button @click=${() => this.open(user)}>
+                          ${this.t("lifecycle_open_user")}
+                        </button>
+                        ${
+                          this.canManage && Number.isInteger(user.revision)
+                            ? html`<button
+                                @click=${(event: Event) => this.openRenewal(user, event)}
+                              >
+                                ${this.t("temporary_renew")}
+                              </button>`
+                            : nothing
+                        }
+                      </div>
+                    </div>
+                  </article>`,
+              )
+            : html`<p class="empty">${this.t("temporary_none")}</p>`
+        }
+      </div>
+      ${this.truncated("temporary_access")}
+    </section>`;
   }
   private open(user: LifecycleUser) {
     this.dispatchEvent(
@@ -353,6 +523,7 @@ export class IdentityLifecycle extends LitElement {
         </div>
       </div>
       ${this._error ? html`<p class="error" role="alert">${this._error}</p>` : nothing}
+      ${this._notice ? html`<p role="status">${this._notice}</p>` : nothing}
       ${
         !report
           ? html`<p class="empty">${this.t(this._busy ? "loading" : "lifecycle_none")}</p>`
@@ -372,6 +543,7 @@ export class IdentityLifecycle extends LitElement {
                     </div>`,
                 )}
               </div>
+              ${this.temporaryAccess()}
               <div class="columns">
                 <section>
                   <h3>${this.t("lifecycle_expirations")}</h3>
@@ -431,6 +603,22 @@ export class IdentityLifecycle extends LitElement {
                 ${formatTime(report.generated_at, this.hass?.language, this.zone)}
               </p>
             `
+      }
+      ${
+        this._renewal
+          ? html`<wiskey-temporary-validity
+              .hass=${this.hass}
+              .zone=${this.zone}
+              .user=${this._renewal}
+              .canManage=${this.canManage}
+              @renewal-close=${() => this.closeRenewal()}
+              @access-renewed=${() => {
+                this.closeRenewal();
+                this._notice = this.t("saved_sync");
+                void this.load(true);
+              }}
+            ></wiskey-temporary-validity>`
+          : nothing
       }`;
   }
 }
