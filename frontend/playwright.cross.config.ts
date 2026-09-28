@@ -3,6 +3,7 @@ const port = Number(process.env.WISKEY_TEST_PORT || 8765);
 export default defineConfig({
   testDir: "./tests",
   testMatch: [
+    "station-onboarding.spec.ts",
     "job-approval.spec.ts",
     "quality-metrics.spec.ts",
     "overview-summary.spec.ts",
