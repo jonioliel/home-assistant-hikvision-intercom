@@ -1,4 +1,6 @@
 const en = {
+  previous: "Previous",
+  next: "Next",
   visit_queue_next: "Next",
   visit_queue_previous: "Previous",
   visit_queue_scope: "Requests to show",
@@ -2259,6 +2261,8 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  previous: "הקודם",
+  next: "הבא",
   visit_queue_next: "הבא",
   visit_queue_previous: "הקודם",
   visit_queue_scope: "בקשות להצגה",

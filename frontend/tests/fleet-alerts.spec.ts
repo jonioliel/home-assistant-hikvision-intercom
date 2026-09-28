@@ -89,5 +89,7 @@ test("Hebrew mobile alerts fit and expiry resumes an alert on refresh", async ({
   );
   await view.getByRole("button", { name: "רענון", exact: true }).click();
   await expect(view.locator("article")).toHaveCount(2);
+  await expect(view.getByRole("button", { name: "הקודם", exact: true })).toBeDisabled();
+  await expect(view.getByRole("button", { name: "הבא", exact: true })).toBeDisabled();
   expect(await view.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });

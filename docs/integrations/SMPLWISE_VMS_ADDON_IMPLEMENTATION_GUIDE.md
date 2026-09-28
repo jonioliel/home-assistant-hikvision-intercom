@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Target WisKey source:** v2.0.0-rc.14, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
+**Target WisKey source:** v2.0.0-rc.15, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
