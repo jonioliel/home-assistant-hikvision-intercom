@@ -107,7 +107,11 @@ const whatsappIcon = html`<svg
 
 export class UserDetails extends LitElement {
   static properties = {
+    canRenew: { type: Boolean },
     canEdit: { type: Boolean },
+    renewing: { state: true },
+    renewalNotice: { state: true },
+    messageDraft: {},
     allowedCommands: { attribute: false },
     embedded: { type: Boolean, reflect: true },
     v4: { type: Boolean, reflect: true },
@@ -531,14 +535,20 @@ export class UserDetails extends LitElement {
       }
     `,
   ];
+  messageDraft = "";
   embedded = false;
   v4 = false;
+  canRenew = false;
   canEdit = true;
   allowedCommands?: string[];
   hass?: Hass;
   person?: Person;
   stations: Station[] = [];
   policy?: ProfilePolicy;
+  private renewing = false;
+  private renewUntil = "";
+  private renewReason = "";
+  private renewalNotice = false;
   private tab = "details";
   private status?: Status;
   private account = "";
@@ -572,6 +582,10 @@ export class UserDetails extends LitElement {
     this.generation++;
     this.requests.cancel();
     this.preview = undefined;
+    this.renewing = false;
+    this.renewUntil = "";
+    this.renewReason = "";
+    this.renewalNotice = false;
     this.messages = undefined;
     this.photo = undefined;
     for (const item of Object.values(this.media)) URL.revokeObjectURL(item.url);
@@ -687,6 +701,14 @@ export class UserDetails extends LitElement {
     this.sent = false;
     await this.action(async () => {
       this.preview = await this.api<Preview>("preview", { language: this.hass?.language ?? "en" });
+      if (this.messageDraft)
+        this.preview = {
+          ...this.preview,
+          message:
+            this.messageDraft.replaceAll("{name}", this.person?.display_name ?? "") +
+            "\n\n" +
+            this.preview.message,
+        };
     });
   }
   private async history() {
@@ -938,9 +960,45 @@ export class UserDetails extends LitElement {
               </section>`
             : nothing
         }
+        ${
+          this.renewing
+            ? html`<section class="compose">
+                <h3>${this.t("renew_request")}</h3>
+                <label
+                  >${this.t("valid_until")}<input
+                    type="datetime-local"
+                    .value=${this.renewUntil}
+                    @input=${(e: Event) => (this.renewUntil = (e.target as HTMLInputElement).value)} /></label
+                ><label
+                  >${this.t("renew_reason")}<input
+                    maxlength="240"
+                    .value=${this.renewReason}
+                    @input=${(e: Event) => (this.renewReason = (e.target as HTMLInputElement).value)} /></label
+                ><button
+                  ?disabled=${this.busy}
+                  @click=${() =>
+                    this.action(async () => {
+                      await this.requests.run({
+                        type: "hikvision_intercom/workflows/renew_request",
+                        user_id: this.person!.id,
+                        revision: this.person!.revision,
+                        until: new Date(this.renewUntil).toISOString(),
+                        reason: this.renewReason,
+                      });
+                      this.renewalNotice = true;
+                      this.renewing = false;
+                    })}
+                >
+                  ${this.t("approval_submit")}</button
+                ><button @click=${() => (this.renewing = false)}>${this.t("cancel")}</button>
+              </section>`
+            : nothing
+        }
+        ${this.renewalNotice ? html`<p role="status">${this.t("renew_submitted")}</p>` : nothing}
         ${this.busy ? html`<p role="status">${this.t("wait")}</p>` : nothing}${this.sent ? html`<p role="status">${this.t("accepted")}</p>` : nothing}${this.error ? html`<p class="error" role="alert">${this.t(this.error)}</p>` : nothing}
       </main>
       <footer>
+        ${this.canRenew && this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
         <button
           ?disabled=${!this.canEdit}
           @click=${() => {

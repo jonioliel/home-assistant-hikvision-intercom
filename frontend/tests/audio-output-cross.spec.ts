@@ -19,9 +19,11 @@ test("local output selection fits Hebrew mobile, requests no microphone and send
         window.outputCalls.push(id);
       },
     });
-    navigator.mediaDevices.enumerateDevices = async () => [
-      { kind: "audiooutput", deviceId: "headphones", label: "אוזניות בדיקה" },
-    ];
+    // Mock the prototype so every WebKit MediaDevices wrapper uses the same fixture.
+    Object.defineProperty(Object.getPrototypeOf(navigator.mediaDevices), "enumerateDevices", {
+      configurable: true,
+      value: async () => [{ kind: "audiooutput", deviceId: "headphones", label: "אוזניות בדיקה" }],
+    });
     navigator.mediaDevices.getUserMedia = async () => {
       throw Error("Microphone must not be requested");
     };
@@ -30,7 +32,10 @@ test("local output selection fits Hebrew mobile, requests no microphone and send
   const audio = page.locator("hikvision-intercom-audio-controls");
   await audio.locator(".audio-options > summary").click();
   const output = audio.locator("wiskey-audio-output");
+  await page.bringToFront();
+  await expect.poll(() => page.evaluate(() => document.visibilityState)).toBe("visible");
   await output.getByRole("button", { name: "רענון התקני פלט", exact: true }).click();
+  await expect(output.locator('option[value="headphones"]')).toHaveCount(1);
   await output.locator("select").selectOption("headphones");
   await expect(output).toContainText("נבחר פלט להאזנה");
   expect(await output.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);

@@ -16,6 +16,7 @@ APPEARANCES = (
     "wiskey-light",
     "wiskey-dark",
 )
+ACCENTS = ("green", "blue", "purple", "teal", "orange", "rose")
 
 
 class AppearanceSettings:
@@ -25,34 +26,53 @@ class AppearanceSettings:
         self._save = save
         self._changed = changed
         self._lock = asyncio.Lock()
-        self._data: dict[str, Any] = {"schema": 1, "revision": 0, "default": "current"}
+        self._data: dict[str, Any] = {
+            "schema": 2,
+            "revision": 0,
+            "default": "current",
+            "accent": "green",
+        }
 
     def load(self, data: Any) -> None:
         if data is None:
             return
         if (
             not isinstance(data, dict)
-            or set(data) != {"schema", "revision", "default"}
+            or set(data)
+            != (
+                {"schema", "revision", "default"}
+                if data.get("schema") == 1
+                else {"schema", "revision", "default", "accent"}
+            )
             or type(data["schema"]) is not int
-            or data["schema"] != 1
+            or data["schema"] not in {1, 2}
             or type(data["revision"]) is not int
             or data["revision"] < 0
             or data["default"] not in APPEARANCES
+            or (data["schema"] == 2 and data["accent"] not in ACCENTS)
         ):
             raise AccessError("invalid_storage")
-        self._data = dict(data)
+        self._data = {**data, "schema": 2, "accent": data.get("accent", "green")}
 
     def public(self) -> dict[str, Any]:
-        return {"revision": self._data["revision"], "default": self._data["default"]}
+        return {key: self._data[key] for key in ("revision", "default", "accent")}
 
-    async def update(self, revision: int, appearance: str) -> dict[str, Any]:
+    async def update(
+        self, revision: int, appearance: str, accent: str | None = None
+    ) -> dict[str, Any]:
         async with self._lock:
             if type(revision) is not int or revision != self._data["revision"]:
                 raise AccessError("revision_conflict")
-            if appearance not in APPEARANCES:
+            color = self._data["accent"] if accent is None else accent
+            if appearance not in APPEARANCES or color not in ACCENTS:
                 raise AccessError("invalid_fields")
-            if appearance != self._data["default"]:
-                draft = {"schema": 1, "revision": revision + 1, "default": appearance}
+            if appearance != self._data["default"] or color != self._data["accent"]:
+                draft = {
+                    "schema": 2,
+                    "revision": revision + 1,
+                    "default": appearance,
+                    "accent": color,
+                }
                 await self._save(draft)
                 self._data = draft
                 self._changed()

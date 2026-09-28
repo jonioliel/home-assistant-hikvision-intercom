@@ -4,6 +4,19 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.17] - 2026-09-28
+
+- Add six selectable leading colors to both V4 themes, with personal and shared defaults; preserve other themes, semantic status colors and active drafts/media.
+- Add durable, actor-owned CSV/bulk jobs with per-row atomic checkpoints, pause/resume/cancel, restart recovery, isolated row failures and a safe error CSV.
+- Add authenticated AES-GCM access backups with passphrase encryption, collision previews, explicit import approval and replay-safe application. Import restores reviewed people and desired access; full infrastructure backups remain necessary for host recovery and rollback.
+- Extend operator scopes with individual custom-field permissions and named station groups. Preserve hidden/read-only values during updates and deny hidden-field search predicates.
+- Add optional shared-screen idle locks and fresh local password/MFA authentication for sensitive actions. Reconnects stay locked; private views and live audio are cleared on locking. Both policies are disabled by default.
+- Add an optional second-administrator approval queue for supported access changes, with masked before/after impact, revision checks, separate approval/application and withdrawal. Unsupported access-changing commands are blocked when this policy is enabled.
+- Add controlled card transfer, employee identity replacement and user merge. Wait for station revocation readback before reassignment; preserve pending removal through outages/restarts. Add card inventory, temporary holders, return, lost/blocked status and optional transfer approval.
+- Add reusable staff access presets for groups, doors, profile fields, infrastructure-managed hours and editable message drafts. Presets never contain PINs/cards and do not save or transmit automatically.
+- Add start/expiry reminders with acknowledge/snooze and manually reviewed messages, plus renewal requests requiring another administrator. Existing guests, media, TTS and WhatsApp paths remain available.
+- Access schema 13 atomically migrates supported schemas 1–12. Code-only downgrade is unsupported: rollback requires the matching pre-upgrade integration files and full configuration/storage backup. See the sprint guide and RC17 acceptance checklist.
+
 ## [2.0.0-rc.16] - 2026-09-28
 
 - Add optional station scopes and separate hidden, view-only and editable person-field grants for infrastructure operators. Enforce scopes in WebSocket reads and writes, event paging/reports/exports, and MSE/RTC/audio/TTS station routes. Existing grants retain all stations and existing field access; active administrators retain full access.

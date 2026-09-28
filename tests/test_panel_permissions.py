@@ -98,7 +98,7 @@ async def test_explicit_empty_save_recovers_invalid_storage():
     permissions.recover_from_invalid_storage()
     result = await permissions.update(0, {}, set())
     assert result["revision"] == 1
-    save.assert_awaited_once_with({"schema": 2, "revision": 1, "users": {}})
+    save.assert_awaited_once_with({"schema": 3, "revision": 1, "users": {}, "station_groups": []})
     changed.assert_called_once_with()
 
 

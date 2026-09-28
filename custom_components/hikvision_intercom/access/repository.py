@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Any, TypeVar
 from uuid import uuid4
 
-from . import sync_tracking, visit_requests
+from . import sync_tracking, visit_requests, workflows
 from .admin_audit import append_changes, current_actor, current_reason_code, validate_storage
 from .models import AccessError, ManagedUser, build_user, utc_now
 
@@ -30,7 +30,9 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 11,
+            "schema": 13,
+            "workflows": workflows.defaults(),
+            "checkpoint_jobs": {},
             "visit_requests": {"revision": 0, "items": {}},
             "sync_operations": {},
             "profile_settings": None,
@@ -51,8 +53,8 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11)
-            previous_state = set(self._state) - {"visit_requests"}
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13)
+            previous_state = set(self._state) - {"visit_requests", "checkpoint_jobs", "workflows"}
             legacy_state = previous_state - {"sync_operations"}
             legacy_keys = legacy_state - {
                 "admin_audit",
@@ -99,7 +101,16 @@ class AccessRepository:
                 }
                 migrated = True
             try:
-                if data.get("schema") != 11 or set(data) != set(self._state):
+                if data.get("schema") == 11 and set(data) == set(self._state) - {
+                    "checkpoint_jobs",
+                    "workflows",
+                }:
+                    data = {**deepcopy(data), "schema": 12, "checkpoint_jobs": {}}
+                    migrated = True
+                if data.get("schema") == 12 and set(data) == set(self._state) - {"workflows"}:
+                    data = {**deepcopy(data), "schema": 13, "workflows": workflows.defaults()}
+                    migrated = True
+                if data.get("schema") != 13 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -165,6 +176,10 @@ class AccessRepository:
                         raise AccessError("invalid_storage")
                 validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
                 visit_requests.validate(normalized["visit_requests"], normalized["users"])
+                from .checkpoint_jobs import validate as validate_jobs
+
+                validate_jobs(normalized["checkpoint_jobs"])
+                workflows.validate(normalized["workflows"])
                 sync_tracking.validate(normalized["sync_operations"])
                 if migrated:
                     sync_tracking.update(normalized, migrated=True)
@@ -311,6 +326,17 @@ class AccessRepository:
     def _validate_collisions(state: dict[str, Any]) -> None:
         if sum(len(u.get("photo") or "") for u in state["users"].values()) > 24 * 1024 * 1024:
             raise AccessError("photo_storage_full")
+        blocked_cards = {
+            item["card_no"]
+            for item in state.get("workflows", {}).get("inventory", {}).values()
+            if item["status"] in {"lost", "blocked"}
+        }
+        if any(
+            card["card_no"] in blocked_cards
+            for user in state["users"].values()
+            for card in user["cards"]
+        ):
+            raise AccessError("card_unavailable")
         employees: set[str] = set()
         cards: dict[str, str] = {}
         pins: dict[str, str] = {}
@@ -720,6 +746,14 @@ class AccessRepository:
         receipt: dict[str, Any] | None = None,
     ) -> list[ManagedUser]:
         def apply(state: dict[str, Any]) -> list[ManagedUser]:
+            if receipt and (existing := state["operation_receipts"].get(receipt["operation_id"])):
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return [
+                    ManagedUser.from_private(state["users"][uid])
+                    for uid in existing["user_ids"]
+                    if uid in state["users"]
+                ]
             if stamp != self.bulk_stamp(state):
                 raise AccessError("csv_review_stale")
             users = self._bulk_users(state, changes)

@@ -117,7 +117,7 @@ async def test_active_policy_roundtrip_revision_and_metadata_preservation():
     restored = AccessRepository(AsyncMock())
     await restored.async_load(deepcopy(repo.snapshot()))
     assert restored.get(user.id).access_timing_policy == policy(active())
-    assert restored.snapshot()["schema"] == 11
+    assert restored.snapshot()["schema"] == 13
 
 
 class Frozen(datetime):

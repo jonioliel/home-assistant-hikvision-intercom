@@ -4,6 +4,7 @@ import { accessStyles } from "./access-styles";
 import { accessOverview } from "./access-overview";
 import { wiskeyOverview, type WiskeyDoorFilter } from "./wiskey-v4-overview";
 import { wiskeyV4Styles } from "./wiskey-v4-styles";
+import { accentOverride, saveAccent, applyAccent, isAccent, type Accent } from "./accent";
 import { mobileDisplay } from "./phone";
 import { usersCompactStyles } from "./users-compact-styles";
 import "./clock-settings";
@@ -18,6 +19,8 @@ import "./usb-card-input";
 import "./camera-wall";
 import "./permission-directory";
 import "./access-control";
+import "./workflow-center";
+import "./reauth";
 import { profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
 import "./user-photo";
@@ -162,6 +165,7 @@ export class IntercomManagerPanel extends LitElement {
     hass: { attribute: false },
     narrow: { type: Boolean },
     _appearance: { attribute: "data-appearance", reflect: true },
+    _accent: { attribute: "data-accent", reflect: true },
     _accessMode: { type: Boolean, attribute: "data-access", reflect: true },
     _accessNarrow: { state: true },
     _accessDoor: { state: true },
@@ -175,6 +179,9 @@ export class IntercomManagerPanel extends LitElement {
     _deviceFocus: { state: true },
     _data: { state: true },
     _session: { state: true },
+    _locked: { state: true },
+    _reauthOpen: { state: true },
+    _approvalPending: { state: true },
     _haConnected: { state: true },
     _refreshFailed: { state: true },
     _tab: { state: true },
@@ -221,9 +228,152 @@ export class IntercomManagerPanel extends LitElement {
   private get protectedHass(): Hass | undefined {
     if (this.contractSource !== this.hass) {
       this.contractSource = this.hass;
-      this.contractProxy = contractHass(this.hass, () => this._data?.api);
+      this.contractProxy = contractHass(
+        this.hass,
+        () => this._data?.api,
+        (message, error) => {
+          const code = (error as { code?: string }).code;
+          if (code === "screen_locked") this.lockScreen();
+          if (code === "reauth_required") this._reauthOpen = true;
+          if (
+            code === "approval_required" &&
+            this._session?.is_admin &&
+            !String(message.type).startsWith("hikvision_intercom/workflows/")
+          )
+            this._approvalPending = message;
+        },
+      );
     }
     return this.contractProxy;
+  }
+  private _locked = false;
+  private _reauthOpen = false;
+  private _approvalPending?: Record<string, unknown>;
+  private approvalLabel = "";
+  private idleTimer?: ReturnType<typeof setInterval>;
+  private lastHuman = Date.now();
+  private lastTouch = 0;
+  private messageDrafts = new Map<string, string>();
+  private draftMessage = "";
+  private activity = () => {
+    if (this._locked) return;
+    this.lastHuman = Date.now();
+    if (this._session?.security?.idle_minutes && this.lastHuman - this.lastTouch > 10000) {
+      this.lastTouch = this.lastHuman;
+      void this.hass
+        ?.callWS<{ locked: boolean }>({ type: "hikvision_intercom/security/touch" })
+        .then((result) => {
+          if (result.locked) this.lockScreen();
+        })
+        .catch(() => {});
+    }
+  };
+  private lockScreen() {
+    if (this._locked) return;
+    this._locked = true;
+    this._reauthOpen = false;
+    this._approvalPending = undefined;
+    this._epoch++;
+    this.cancelRequests();
+    this.clearPrivateState();
+    this.messageDrafts.clear();
+    this.draftMessage = "";
+    this._userPage = undefined;
+    this._selectedUsers.clear();
+    this._userSnapshot = "";
+    this._query = "";
+    this._data = undefined;
+    this._unsubscribe?.();
+    this._unsubscribe = undefined;
+    this._connecting = false;
+    if (this.commandAvailable("security/lock"))
+      void this.hass?.callWS({ type: "hikvision_intercom/security/lock" }).catch(() => {});
+  }
+  private securityOverlay() {
+    if (this._locked || this._reauthOpen)
+      return html`<wiskey-reauth
+        .hass=${this.hass}
+        .locked=${this._locked}
+        @reauth-cancel=${() => (this._reauthOpen = false)}
+        @reauthenticated=${() => {
+          this._locked = false;
+          this._reauthOpen = false;
+          this.lastHuman = Date.now();
+          this.lastTouch = this.lastHuman;
+          void this.bootstrap();
+        }}
+      ></wiskey-reauth>`;
+    const pending = this._approvalPending;
+    if (!pending) return nothing;
+    return html`<div
+      style="position:fixed;inset:0;z-index:10010;background:#10182099;display:grid;place-items:center;padding:16px"
+    >
+      <section
+        style="background:var(--surface);color:var(--ink);padding:24px;border-radius:14px;width:min(460px,100%);box-sizing:border-box"
+        role="dialog"
+        aria-modal="true"
+      >
+        <h2>${this.t("approval_required")}</h2>
+        <p>${this.t("approval_request_hint")}</p>
+        <label
+          >${this.t("approval_label")}<input
+            .value=${this.approvalLabel}
+            @input=${(e: Event) => (this.approvalLabel = (e.target as HTMLInputElement).value)}
+        /></label>
+        <p>${this.t("approval_no_credentials")}</p>
+        <button
+          @click=${() =>
+            void this.run(async () => {
+              const values = { ...pending };
+              delete values.type;
+              delete values.api_contract;
+              await this.api("workflows/submit", {
+                command: String(pending.type).replace("hikvision_intercom/", ""),
+                values,
+                label: this.approvalLabel || this.t("approval_access_change"),
+              });
+              this._approvalPending = undefined;
+              this.approvalLabel = "";
+            }, "approval_submitted")}
+        >
+          ${this.t("approval_submit")}</button
+        ><button @click=${() => (this._approvalPending = undefined)}>${this.t("cancel")}</button>
+      </section>
+    </div>`;
+  }
+  private applyStaffTemplate(template: { data: Record<string, unknown>; message: string }) {
+    if (!this._session?.is_admin || !this.canManage("users")) return;
+    if (!this._draft) this.edit();
+    if (!this._draft) return;
+    const draft = this._draft;
+    Object.assign(draft, structuredClone(template.data));
+    draft.assignments = Object.fromEntries(
+      Object.entries((template.data.assignments ?? {}) as Record<string, Assignment>).map(
+        ([id, item]) => [id, { ...item, enabled: true }],
+      ),
+    );
+    const grants = new Set(
+      (this._data?.profile_settings?.groups ?? [])
+        .filter((g) => g.enabled && draft.group_ids?.includes(g.id))
+        .flatMap((g) => g.station_ids ?? []),
+    );
+    draft.permission_overrides = Object.fromEntries(
+      (this._data?.stations ?? [])
+        .filter((station) => draft.assignments[station.id] || !grants.has(station.id))
+        .map((station) => [
+          station.id,
+          draft.assignments[station.id] ? ("allow" as const) : ("deny" as const),
+        ]),
+    );
+    this.refreshDraftPermissions();
+    draft.access_timing_draft = draft.access_timing_policy?.schedule;
+    this._timingEnforcement = draft.access_timing_policy?.mode ?? "draft";
+    draft.timed = !!draft.valid_from;
+    this._validityFrom = localInput(draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(draft.valid_until, this.validityZone());
+    this.draftMessage = template.message;
+    this._notice = this.t("staff_template_applied");
+    this.requestUpdate();
   }
   private _detailsUser = "";
   private _detailsModalUser = "";
@@ -247,6 +397,10 @@ export class IntercomManagerPanel extends LitElement {
     const level = this._session?.fields?.[field] ?? "manage";
     return manage ? level === "manage" : level !== "none";
   }
+  private profileField(identity: string, manage = false) {
+    const level = this._session?.profile_fields?.[identity] ?? "manage";
+    return this.personField("profile", manage) && (manage ? level === "manage" : level !== "none");
+  }
   private personEditable(user: Person) {
     return this.canManage("users") && user.operator_editable !== false;
   }
@@ -255,6 +409,7 @@ export class IntercomManagerPanel extends LitElement {
       access?.areas,
       access?.station_ids ?? null,
       access?.fields ?? null,
+      access?.profile_fields ?? null,
       access?.is_admin,
     ]);
   }
@@ -273,6 +428,8 @@ export class IntercomManagerPanel extends LitElement {
   }
   narrow = false;
   private _appearance: Appearance = "current";
+  private _accent: Accent = "green";
+  private _accentOverride: Accent | null = null;
   private _appearanceUser?: string;
   private _dark = false;
   private _accessMode = false;
@@ -369,17 +526,21 @@ export class IntercomManagerPanel extends LitElement {
     if (user !== this._appearanceUser) {
       this._appearanceUser = user;
       this._appearanceOverride = appearanceOverride(user);
+      this._accentOverride = accentOverride(user);
       this._appearanceFollow = this._appearanceOverride === null;
     }
     this._appearance = this._appearanceFollow
       ? (this._data?.appearance_settings?.default ?? "current")
       : (this._appearanceOverride ?? "current");
+    const shared = this._data?.appearance_settings?.accent;
+    this._accent = this._accentOverride ?? (isAccent(shared) ? shared : "green");
   }
   protected willUpdate(changed: PropertyValues) {
     if (changed.has("_tab")) this._detailsModalUser = "";
     if (changed.has("hass") || changed.has("_session") || changed.has("_data"))
       this.syncAppearance();
     this._accessMode = isAccessAppearance(this._appearance);
+    applyAccent(this, this._accent, this._appearance);
     this._dark = this._accessMode
       ? this._appearance === "access-dark" || this._appearance === "wiskey-dark"
       : (this.hass?.themes?.darkMode ?? false);
@@ -396,6 +557,7 @@ export class IntercomManagerPanel extends LitElement {
           this._appearance,
           event.currentTarget as HTMLElement,
           this._appearanceFollow,
+          this._accent,
         );
       }}
     >
@@ -435,6 +597,9 @@ export class IntercomManagerPanel extends LitElement {
   private clearPrivateState() {
     this._guestApprovalRequired = false;
     this._guestApprover = "";
+    this._approvalPending = undefined;
+    this.messageDrafts.clear();
+    this.draftMessage = "";
     this._detailsUser = "";
     this._detailsModalUser = "";
     this._detailRecords = {};
@@ -528,6 +693,13 @@ export class IntercomManagerPanel extends LitElement {
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   connectedCallback() {
     super.connectedCallback();
+    this.addEventListener("pointerdown", this.activity);
+    this.addEventListener("keydown", this.activity);
+    this.idleTimer = setInterval(() => {
+      const minutes = this._session?.security?.idle_minutes;
+      if (minutes && !this._locked && Date.now() - this.lastHuman >= minutes * 60000)
+        this.lockScreen();
+    }, 1000);
     window.addEventListener("resize", this.fitDialog);
     window.addEventListener("resize", this.fitWall);
     document.addEventListener("fullscreenchange", this.fitWall);
@@ -537,7 +709,7 @@ export class IntercomManagerPanel extends LitElement {
     this.dialogResize = new ResizeObserver(this.fitDialog);
     this.dialogResize.observe(this);
     this._timer = setInterval(() => {
-      if (!document.hidden && this.authorized) {
+      if (!document.hidden && this.authorized && !this._locked) {
         this.requestUpdate();
         void this.refresh();
       }
@@ -550,6 +722,9 @@ export class IntercomManagerPanel extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener("pointerdown", this.activity);
+    this.removeEventListener("keydown", this.activity);
+    clearInterval(this.idleTimer);
     window.removeEventListener("resize", this.fitDialog);
     window.removeEventListener("resize", this.fitWall);
     document.removeEventListener("fullscreenchange", this.fitWall);
@@ -669,6 +844,11 @@ export class IntercomManagerPanel extends LitElement {
       )
         return;
       this._session = session;
+      if (session.security?.locked) {
+        this.lockScreen();
+        return;
+      }
+      this._locked = false;
       this.syncAppearance();
       if (session.allowed) await this.connect();
       else {
@@ -774,7 +954,7 @@ export class IntercomManagerPanel extends LitElement {
     }
   }
   private async refresh() {
-    if (!this.isConnected || !this.authorized || !this._haConnected) return;
+    if (!this.isConnected || !this.authorized || !this._haConnected || this._locked) return;
     if (this._refreshing) {
       this._refreshAgain = true;
       return;
@@ -1164,6 +1344,7 @@ export class IntercomManagerPanel extends LitElement {
   private _onboarding = "";
   private _editorPolicyRevision?: number;
   private edit(user?: Person) {
+    this.draftMessage = user?.id ? (this.messageDrafts.get(user.id) ?? "") : "";
     if (user && !this.personEditable(user)) return;
     if (!user && !this.commandAvailable("users/create")) return;
     this.resetPinValidation();
@@ -1616,7 +1797,10 @@ export class IntercomManagerPanel extends LitElement {
     };
     if (draft.pin !== undefined) data.pin = draft.pin;
     if (this._data?.profile_settings) {
-      if (draft.profile !== undefined) data.profile = draft.profile;
+      if (draft.profile !== undefined)
+        data.profile = Object.fromEntries(
+          Object.entries(draft.profile).filter(([key]) => this.profileField(key, true)),
+        );
       if (draft.group_ids !== undefined) data.group_ids = draft.group_ids;
       if (draft.photo !== undefined) data.photo = draft.photo;
     }
@@ -1643,8 +1827,8 @@ export class IntercomManagerPanel extends LitElement {
       if (!this.personField(field, true)) delete data[key];
     const success = await this.run(
       () =>
-        draft.id
-          ? this.api("users/update", {
+        (draft.id
+          ? this.api<Person>("users/update", {
               user_id: draft.id,
               revision: draft.revision,
               data,
@@ -1655,7 +1839,12 @@ export class IntercomManagerPanel extends LitElement {
                 data: { ...data, active: false },
                 approver_id: this._guestApprover,
               })
-            : this.api("users/create", { data, sync_now }),
+            : this.api<Person>("users/create", { data, sync_now })
+        ).then((saved) => {
+          const person = saved as Person;
+          if (person.id && this.draftMessage) this.messageDrafts.set(person.id, this.draftMessage);
+          return saved;
+        }),
       approval ? "visit_request_saved" : sync_now ? "saved_sync" : "saved",
     );
     if (success) this.close();
@@ -1929,7 +2118,7 @@ export class IntercomManagerPanel extends LitElement {
         this._csvPreview = result;
     }, "");
   }
-  private async applyCsv() {
+  private async applyCsv(background = false) {
     const preview = this._csvPreview;
     if (
       !preview?.review_token ||
@@ -1944,8 +2133,10 @@ export class IntercomManagerPanel extends LitElement {
       return;
     const success = await this.run(async () => {
       try {
-        await this.api("users/csv_apply", {
-          csv: this._csvContent,
+        await this.api(background ? "jobs/csv_create" : "users/csv_apply", {
+          ...(background
+            ? { content: this._csvContent, confirmed: true }
+            : { csv: this._csvContent }),
           column_map: this._csvMapping,
           mode: this._csvMode,
           review_token: preview.review_token,
@@ -2117,7 +2308,7 @@ export class IntercomManagerPanel extends LitElement {
                     <p>
                       ${row.stations.map((id) => this.stationName(id)).join(", ") || this.t("csv_no_stations")}
                     </p>
-                    ${row.group_ids ? html`<p>${this.t("groups")}: ${row.group_ids.map((id) => this._data?.profile_settings?.groups.find((group) => group.id === id)?.label ?? id).join(", ") || "—"}</p>` : nothing}
+                    ${row.group_ids ? html`<p>${this.t("profile_groups")}: ${row.group_ids.map((id) => this._data?.profile_settings?.groups.find((group) => group.id === id)?.label ?? id).join(", ") || "—"}</p>` : nothing}
                     ${
                       row.profile
                         ? html`<p>
@@ -2457,7 +2648,7 @@ export class IntercomManagerPanel extends LitElement {
                 ${
                   f.type === "select"
                     ? html`<select
-                        ?disabled=${!this.personField("profile", true)}
+                        ?disabled=${!this.profileField(f.id, true)}
                         .value=${draft.profile?.[f.id] ?? ""}
                         ?required=${!draft.id && f.required}
                         @change=${(e: Event) => this.patchDraft("profile", { ...draft.profile, [f.id]: value(e) })}
@@ -2467,7 +2658,7 @@ export class IntercomManagerPanel extends LitElement {
                         ${f.options.map((o) => html`<option value=${o}>${o}</option>`)}
                       </select>`
                     : html`<input
-                          ?disabled=${!this.personField("profile", true)}
+                          ?disabled=${!this.profileField(f.id, true)}
                           maxlength="100"
                           type=${f.type === "number" ? "text" : f.type === "date" && (!draft.profile?.[f.id] || validProfileValue(f, draft.profile[f.id])) ? "date" : "text"}
                           inputmode=${f.type === "number" ? "decimal" : "text"}
@@ -2890,6 +3081,7 @@ export class IntercomManagerPanel extends LitElement {
         "media_options",
         "whatsapp_templates",
         "permission_directory",
+        "workflow_center",
         "operations_center",
         "investigations",
         "schedules",
@@ -2914,10 +3106,13 @@ export class IntercomManagerPanel extends LitElement {
   private get operatorRestricted() {
     return (
       this._session?.station_ids != null ||
-      Object.values(this._session?.fields ?? {}).some((level) => level !== "manage")
+      Object.values(this._session?.fields ?? {}).some((level) => level !== "manage") ||
+      Object.values(this._session?.profile_fields ?? {}).some((level) => level !== "manage")
     );
   }
   private tabAvailable(tab: string) {
+    if (tab === "workflow_center" && !this._data?.api?.commands.includes("workflows/get"))
+      return false;
     if (tab === "tools") return this.canView("stations") || this.canView("management");
     if (!this.canView(this.tabArea(tab))) return false;
     const command: Record<string, string> = {
@@ -2926,6 +3121,7 @@ export class IntercomManagerPanel extends LitElement {
       whatsapp_templates: "whatsapp/templates_get",
       profile_options: "profiles/settings_get",
       permission_directory: "permissions/directory",
+      workflow_center: "workflows/get",
       operations_center: "operations/query",
       investigations: "investigations/query",
       camera_wall: "media/settings_get",
@@ -2981,6 +3177,7 @@ export class IntercomManagerPanel extends LitElement {
           "whatsapp_templates",
           "profile_options",
           "permission_directory",
+          "workflow_center",
           "operations_center",
           "investigations",
           "camera_wall",
@@ -3006,7 +3203,8 @@ export class IntercomManagerPanel extends LitElement {
               (tab !== "investigations" ||
                 (!!this._session?.is_admin &&
                   !!this._data?.api?.commands.includes("investigations/query"))) &&
-              (tab !== "access_control" || !!this._session?.is_admin),
+              (tab !== "access_control" || !!this._session?.is_admin) &&
+              (tab !== "workflow_center" || !!this._session?.is_admin),
           )
           .map(
             (tab) =>
@@ -3369,6 +3567,7 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
         <hikvision-bulk-users
+          .canCheckpoint=${this._data?.api?.commands.includes("jobs/bulk_create") ?? false}
           .hass=${this.protectedHass}
           .policy=${this._data?.profile_settings}
           .users=${this._data?.users ?? []}
@@ -3577,6 +3776,7 @@ export class IntercomManagerPanel extends LitElement {
     return html`<wiskey-user-details
       embedded
       .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+      .canRenew=${this._data?.api?.commands.includes("workflows/renew_request") ?? false}
       .canEdit=${this.personEditable(person)}
       .hass=${this.protectedHass}
       .person=${person}
@@ -4119,6 +4319,21 @@ export class IntercomManagerPanel extends LitElement {
       </div>
       <form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
         <p class="field-note">${this.t("save_hint")}</p>
+        ${
+          this._session?.is_admin && this._data?.api?.commands.includes("workflows/get")
+            ? html`<details>
+                <summary>${this.t("staff_template_picker")}</summary>
+                <wiskey-workflow-center
+                  picker
+                  .hass=${this.protectedHass}
+                  .people=${this._data?.users}
+                  .stations=${this._data?.stations}
+                  @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
+                ></wiskey-workflow-center>
+              </details>`
+            : nothing
+        }
+        ${this.draftMessage ? html`<label>${this.t("staff_message_draft")}<textarea .value=${this.draftMessage} @input=${(e: Event) => (this.draftMessage = (e.target as HTMLTextAreaElement).value)}></textarea></label>` : nothing}
         <div class="editor-person-column">
           <fieldset class="editor-person">
             <legend>${icon("users")}${this.t("person_details")}</legend>
@@ -5337,7 +5552,7 @@ export class IntercomManagerPanel extends LitElement {
           : nothing
       }
       <div class="dialog-foot" ?hidden=${this._dialog === "camera" || this._dialog === "guest"}>
-        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>${this.commandAvailable("jobs/csv_create") ? html`<button ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length} @click=${() => this.applyCsv(true)}>${this.t("checkpoint_csv")}</button>` : nothing}` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
       </div>
     </dialog>`;
   }
@@ -5347,6 +5562,7 @@ export class IntercomManagerPanel extends LitElement {
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
         <p class="loader">${this.t("loading")}</p>
       </div>`;
+    if (this._locked) return this.securityOverlay();
     if (!this.authorized)
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
         <h2>${this.t("access_not_granted")}</h2>
@@ -5416,164 +5632,181 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "access_control" && this._session?.is_admin
-              ? html`<wiskey-access-control .hass=${this.hass}></wiskey-access-control>`
-              : this._tab === "camera_wall"
-                ? html`<wiskey-camera-wall
-                    .hass=${this.protectedHass}
-                    .stations=${this._data.stations}
-                    .media=${this._data.media_settings}
-                    .version=${this._data.version}
-                    .suspended=${!!this._dialog}
-                    @open-station=${(e: CustomEvent<string>) => {
-                      this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
-                      this._dialog = "camera";
-                    }}
-                  ></wiskey-camera-wall>`
-                : this._tab === "permission_directory"
-                  ? html`<hikvision-permission-directory
+            : this._tab === "workflow_center" && this._session?.is_admin
+              ? html`<wiskey-workflow-center
+                  .hass=${this.protectedHass}
+                  .people=${this._data.users}
+                  .stations=${this._data.stations}
+                  .groups=${this._data.profile_settings?.groups ?? []}
+                  .fields=${this._data.profile_settings?.fields ?? []}
+                  @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
+                  @reminder-message=${(e: CustomEvent) => {
+                    this.messageDrafts.set(
+                      e.detail.user_id,
+                      this.t("reminder_message_" + e.detail.kind).replace("{date}", e.detail.at),
+                    );
+                    this._detailsModalUser = e.detail.user_id;
+                  }}
+                ></wiskey-workflow-center>`
+              : this._tab === "access_control" && this._session?.is_admin
+                ? html`<wiskey-access-control .hass=${this.protectedHass}></wiskey-access-control>`
+                : this._tab === "camera_wall"
+                  ? html`<wiskey-camera-wall
                       .hass=${this.protectedHass}
                       .stations=${this._data.stations}
-                      .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
-                      @edit-person=${(e: CustomEvent<string>) => {
-                        const user = this._data?.users.find((u) => u.id === e.detail);
-                        if (user) this.edit(user);
+                      .media=${this._data.media_settings}
+                      .version=${this._data.version}
+                      .suspended=${!!this._dialog}
+                      @open-station=${(e: CustomEvent<string>) => {
+                        this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
+                        this._dialog = "camera";
                       }}
-                    ></hikvision-permission-directory>`
-                  : this._tab === "profile_options"
-                    ? html`<hikvision-profile-settings
+                    ></wiskey-camera-wall>`
+                  : this._tab === "permission_directory"
+                    ? html`<hikvision-permission-directory
                         .hass=${this.protectedHass}
-                        .settings=${this._data.profile_settings}
                         .stations=${this._data.stations}
-                        @profile-saved=${(e: CustomEvent) => {
-                          if (this._data)
-                            this._data = { ...this._data, profile_settings: e.detail };
+                        .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
+                        @edit-person=${(e: CustomEvent<string>) => {
+                          const user = this._data?.users.find((u) => u.id === e.detail);
+                          if (user) this.edit(user);
                         }}
-                      ></hikvision-profile-settings>`
-                    : this._tab === "whatsapp_templates"
-                      ? html`<wiskey-whatsapp-templates
+                      ></hikvision-permission-directory>`
+                    : this._tab === "profile_options"
+                      ? html`<hikvision-profile-settings
                           .hass=${this.protectedHass}
-                        ></wiskey-whatsapp-templates>`
-                      : this._tab === "media_options"
-                        ? html`<hikvision-media-settings
+                          .settings=${this._data.profile_settings}
+                          .stations=${this._data.stations}
+                          @profile-saved=${(e: CustomEvent) => {
+                            if (this._data)
+                              this._data = { ...this._data, profile_settings: e.detail };
+                          }}
+                        ></hikvision-profile-settings>`
+                      : this._tab === "whatsapp_templates"
+                        ? html`<wiskey-whatsapp-templates
                             .hass=${this.protectedHass}
-                            .settings=${this._data.media_settings}
-                            @media-saved=${(e: CustomEvent) => {
-                              if (this._data)
-                                this._data = { ...this._data, media_settings: e.detail };
-                            }}
-                          ></hikvision-media-settings>`
-                        : this._tab === "clock_options"
-                          ? html`<hikvision-clock-settings
+                          ></wiskey-whatsapp-templates>`
+                        : this._tab === "media_options"
+                          ? html`<hikvision-media-settings
                               .hass=${this.protectedHass}
-                              .stations=${this._data.stations}
-                            ></hikvision-clock-settings>`
-                          : this._tab === "investigations"
-                            ? html`<wiskey-investigations
+                              .settings=${this._data.media_settings}
+                              @media-saved=${(e: CustomEvent) => {
+                                if (this._data)
+                                  this._data = { ...this._data, media_settings: e.detail };
+                              }}
+                            ></hikvision-media-settings>`
+                          : this._tab === "clock_options"
+                            ? html`<hikvision-clock-settings
                                 .hass=${this.protectedHass}
-                                .authorized=${!!this._session?.is_admin}
-                                .users=${this._data.users}
                                 .stations=${this._data.stations}
-                                .zone=${this._data.default_zone ?? UTC_ZONE}
-                                @open-user=${(event: CustomEvent<string>) => {
-                                  const user = this._data?.users.find(
-                                    (item) => item.id === event.detail,
-                                  );
-                                  if (user) this.openPersonDetails(user);
-                                }}
-                              ></wiskey-investigations>`
-                            : this._tab === "guest_templates"
-                              ? html`<wiskey-guest-templates
+                              ></hikvision-clock-settings>`
+                            : this._tab === "investigations"
+                              ? html`<wiskey-investigations
                                   .hass=${this.protectedHass}
+                                  .authorized=${!!this._session?.is_admin}
+                                  .users=${this._data.users}
                                   .stations=${this._data.stations}
-                                  .canManage=${this.canManage("users")}
-                                  .timezone=${this._data.default_zone?.name ?? "UTC"}
-                                ></wiskey-guest-templates>`
-                              : this._tab === "fleet_alerts"
-                                ? html`<wiskey-fleet-alerts
+                                  .zone=${this._data.default_zone ?? UTC_ZONE}
+                                  @open-user=${(event: CustomEvent<string>) => {
+                                    const user = this._data?.users.find(
+                                      (item) => item.id === event.detail,
+                                    );
+                                    if (user) this.openPersonDetails(user);
+                                  }}
+                                ></wiskey-investigations>`
+                              : this._tab === "guest_templates"
+                                ? html`<wiskey-guest-templates
                                     .hass=${this.protectedHass}
                                     .stations=${this._data.stations}
-                                    .canManage=${this.canManage("stations")}
-                                    @open-station=${(event: CustomEvent<string>) => {
-                                      this._deviceFocus = event.detail;
-                                      this.navigate("devices");
-                                    }}
-                                  ></wiskey-fleet-alerts>`
-                                : this._tab === "visit_requests"
-                                  ? html`<wiskey-visit-requests
+                                    .canManage=${this.canManage("users")}
+                                    .timezone=${this._data.default_zone?.name ?? "UTC"}
+                                  ></wiskey-guest-templates>`
+                                : this._tab === "fleet_alerts"
+                                  ? html`<wiskey-fleet-alerts
                                       .hass=${this.protectedHass}
                                       .stations=${this._data.stations}
-                                      .canManage=${this.canManage("users")}
-                                      @visit-changed=${() => void this.refresh()}
-                                    ></wiskey-visit-requests>`
-                                  : this._tab === "identity_lifecycle"
-                                    ? html`<wiskey-identity-lifecycle
+                                      .canManage=${this.canManage("stations")}
+                                      @open-station=${(event: CustomEvent<string>) => {
+                                        this._deviceFocus = event.detail;
+                                        this.navigate("devices");
+                                      }}
+                                    ></wiskey-fleet-alerts>`
+                                  : this._tab === "visit_requests"
+                                    ? html`<wiskey-visit-requests
                                         .hass=${this.protectedHass}
-                                        .zone=${this._data.default_zone ?? UTC_ZONE}
-                                        .canManage=${this.canManage("users")}
-                                        .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
                                         .stations=${this._data.stations}
-                                        @access-renewed=${() => void this.refresh()}
-                                        @access-cancelled=${() => void this.refresh()}
-                                        @open-user=${(event: CustomEvent<string>) => {
-                                          const user = this._data?.users.find(
-                                            (item) => item.id === event.detail,
-                                          );
-                                          if (user) this.openPersonDetails(user);
-                                        }}
-                                      ></wiskey-identity-lifecycle>`
-                                    : this._tab === "operations_center"
-                                      ? html`<wiskey-operations-center
+                                        .canManage=${this.canManage("users")}
+                                        @visit-changed=${() => void this.refresh()}
+                                      ></wiskey-visit-requests>`
+                                    : this._tab === "identity_lifecycle"
+                                      ? html`<wiskey-identity-lifecycle
                                           .hass=${this.protectedHass}
-                                          .users=${this._data.users}
+                                          .zone=${this._data.default_zone ?? UTC_ZONE}
+                                          .canManage=${this.canManage("users")}
+                                          .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
                                           .stations=${this._data.stations}
-                                          .canRetryUser=${this.canManage("users")}
-                                          .canRetryStation=${this.canManage("stations")}
-                                        ></wiskey-operations-center>`
-                                      : this._tab === "tools"
-                                        ? this.toolsView()
-                                        : this._tab === "overview"
-                                          ? this.overviewView()
-                                          : this._tab === "users"
-                                            ? this.usersView()
-                                            : this._tab === "devices"
-                                              ? this.devicesView()
-                                              : this._tab === "sync"
-                                                ? this.syncView()
-                                                : this._tab === "audit"
-                                                  ? html`<hikvision-admin-audit
-                                                      .hass=${this.protectedHass}
-                                                      .users=${this._data.users}
-                                                      .stations=${this._data.stations}
-                                                      .focusUser=${this._auditUser}
-                                                      .zone=${this._data.default_zone ?? UTC_ZONE}
-                                                      @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                                    ></hikvision-admin-audit>`
-                                                  : this._tab === "health"
-                                                    ? html`<hikvision-intercom-health
-                                                        .callBusy=${this._callBusy}
-                                                        .onCallBusy=${this.setCallBusy}
+                                          @access-renewed=${() => void this.refresh()}
+                                          @access-cancelled=${() => void this.refresh()}
+                                          @open-user=${(event: CustomEvent<string>) => {
+                                            const user = this._data?.users.find(
+                                              (item) => item.id === event.detail,
+                                            );
+                                            if (user) this.openPersonDetails(user);
+                                          }}
+                                        ></wiskey-identity-lifecycle>`
+                                      : this._tab === "operations_center"
+                                        ? html`<wiskey-operations-center
+                                            .canCheckpoint=${this._data.api?.commands.includes("jobs/list") ?? false}
+                                            .hass=${this.protectedHass}
+                                            .users=${this._data.users}
+                                            .stations=${this._data.stations}
+                                            .canRetryUser=${this.canManage("users")}
+                                            .canRetryStation=${this.canManage("stations")}
+                                          ></wiskey-operations-center>`
+                                        : this._tab === "tools"
+                                          ? this.toolsView()
+                                          : this._tab === "overview"
+                                            ? this.overviewView()
+                                            : this._tab === "users"
+                                              ? this.usersView()
+                                              : this._tab === "devices"
+                                                ? this.devicesView()
+                                                : this._tab === "sync"
+                                                  ? this.syncView()
+                                                  : this._tab === "audit"
+                                                    ? html`<hikvision-admin-audit
                                                         .hass=${this.protectedHass}
+                                                        .users=${this._data.users}
                                                         .stations=${this._data.stations}
-                                                        .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
-                                                        .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
-                                                        .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
-                                                      ></hikvision-intercom-health>`
-                                                    : this._tab === "schedules"
-                                                      ? html`<hikvision-intercom-schedules
+                                                        .focusUser=${this._auditUser}
+                                                        .zone=${this._data.default_zone ?? UTC_ZONE}
+                                                        @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                                      ></hikvision-admin-audit>`
+                                                    : this._tab === "health"
+                                                      ? html`<hikvision-intercom-health
+                                                          .callBusy=${this._callBusy}
+                                                          .onCallBusy=${this.setCallBusy}
                                                           .hass=${this.protectedHass}
                                                           .stations=${this._data.stations}
-                                                        ></hikvision-intercom-schedules>`
-                                                      : keyed(
-                                                          this.permissionStamp(),
-                                                          html`<hikvision-intercom-events
-                                                            .policy=${this._data.profile_settings}
+                                                          .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
+                                                          .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
+                                                          .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
+                                                        ></hikvision-intercom-health>`
+                                                      : this._tab === "schedules"
+                                                        ? html`<hikvision-intercom-schedules
                                                             .hass=${this.protectedHass}
                                                             .stations=${this._data.stations}
-                                                            .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                                            .v4=${isWiskeyAppearance(this._appearance)}
-                                                          ></hikvision-intercom-events>`,
-                                                        )
+                                                          ></hikvision-intercom-schedules>`
+                                                        : keyed(
+                                                            this.permissionStamp(),
+                                                            html`<hikvision-intercom-events
+                                                              .policy=${this._data.profile_settings}
+                                                              .hass=${this.protectedHass}
+                                                              .stations=${this._data.stations}
+                                                              .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                              .v4=${isWiskeyAppearance(this._appearance)}
+                                                            ></hikvision-intercom-events>`,
+                                                          )
         }
       </main>
       ${
@@ -5581,8 +5814,10 @@ export class IntercomManagerPanel extends LitElement {
           ? html`<wiskey-user-details
               .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
               .v4=${isWiskeyAppearance(this._appearance)}
+              .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
               .canEdit=${this.personEditable(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
               .hass=${this.protectedHass}
+              .messageDraft=${this.messageDrafts.get(this._detailsModalUser) ?? ""}
               .person=${this.detailPerson(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
               .stations=${this._data.stations}
               .policy=${this._data.profile_settings}
@@ -5594,15 +5829,15 @@ export class IntercomManagerPanel extends LitElement {
             ></wiskey-user-details>`
           : nothing
       }
-      ${this.dialogView()}
+      ${this.dialogView()} ${this.securityOverlay()}
       <hikvision-appearance-picker
         .language=${this.hass?.language ?? "en"}
         .settings=${this._data?.appearance_settings}
         .canSetDefault=${!!this._session?.is_admin}
-        .saveDefault=${async (revision: number, choice: Appearance) => {
+        .saveDefault=${async (revision: number, choice: Appearance, accent: Accent) => {
           const result = await this.api<NonNullable<Overview["appearance_settings"]>>(
             "appearance/settings_update",
-            { revision, default: choice },
+            { revision, default: choice, accent },
           );
           if (this._data) this._data = { ...this._data, appearance_settings: result };
         }}
@@ -5614,6 +5849,13 @@ export class IntercomManagerPanel extends LitElement {
               ? (this._data?.appearance_settings?.default ?? "current")
               : event.detail;
           if (!saveAppearance(this._appearanceUser, event.detail))
+            this._notice = this.t("appearance_session");
+        }}
+        @accent-change=${(event: CustomEvent<Accent | "default">) => {
+          this._accentOverride = event.detail === "default" ? null : event.detail;
+          const shared = this._data?.appearance_settings?.accent;
+          this._accent = this._accentOverride ?? (isAccent(shared) ? shared : "green");
+          if (!saveAccent(this._appearanceUser, event.detail))
             this._notice = this.t("appearance_session");
         }}
       ></hikvision-appearance-picker>

@@ -154,7 +154,7 @@ test("V4 is opt-in alongside all four earlier choices", async ({ page }) => {
   await page.locator(".nav").getByRole("button", { name: "ניהול", exact: true }).click();
   await page.locator(".tools-grid .appearance-button").click();
   const picker = page.locator("hikvision-appearance-picker");
-  await expect(picker.getByRole("radio")).toHaveCount(6);
+  await expect(picker.locator("input[name=appearance]")).toHaveCount(6);
   for (const value of [
     "current",
     "modern",

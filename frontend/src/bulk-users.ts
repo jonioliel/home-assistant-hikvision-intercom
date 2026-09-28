@@ -103,6 +103,7 @@ export class BulkUsers extends LitElement {
   static properties = {
     hass: { attribute: false },
     policy: { attribute: false },
+    canCheckpoint: { attribute: false },
     _profileValue: { state: true },
     users: { attribute: false },
     selected: { attribute: false },
@@ -118,9 +119,11 @@ export class BulkUsers extends LitElement {
     _unknown: { state: true },
     _checked: { state: true },
     _online: { state: true },
+    _jobId: { state: true },
   };
   hass?: Hass;
   policy?: ProfilePolicy;
+  canCheckpoint = false;
   private _profileValue = "";
   users: Person[] = [];
   selected: string[] = [];
@@ -136,6 +139,7 @@ export class BulkUsers extends LitElement {
   private _unknown = "";
   private _checked = false;
   private _online = true;
+  private _jobId = "";
   private connection?: Hass["connection"];
   private actor?: string;
   private controller?: AbortController;
@@ -166,6 +170,7 @@ export class BulkUsers extends LitElement {
     this._preview = undefined;
     this._approved = false;
     this._receipt = undefined;
+    this._jobId = "";
     this._recent = undefined;
     this._error = "";
   }
@@ -232,6 +237,35 @@ export class BulkUsers extends LitElement {
   }
   private stationName(id: string) {
     return this.stations.find((s) => s.id === id)?.name ?? id;
+  }
+  private async checkpointJob() {
+    if (
+      !this.canCheckpoint ||
+      !this._preview?.changed ||
+      !this._approved ||
+      this._busy ||
+      !this.hass?.user?.is_admin
+    )
+      return;
+    const operation = this._preview.operation_id;
+    const actor = this.hass.user.id;
+    this._busy = true;
+    this._error = "";
+    try {
+      const result = await this.hass.callWS<{ id: string }>({
+        type: "hikvision_intercom/jobs/bulk_create",
+        operation_id: operation,
+        confirmed: true,
+      });
+      if (!this.isConnected || actor !== this.hass?.user?.id) return;
+      this._jobId = result.id;
+      this._preview = undefined;
+      this._approved = false;
+    } catch (error) {
+      this._error = this.t((error as { code?: string })?.code ?? "failed");
+    } finally {
+      this._busy = false;
+    }
   }
   private async perform(action: "preview" | "apply" | "receipt" | "recent") {
     const hass = this.hass;
@@ -462,10 +496,21 @@ export class BulkUsers extends LitElement {
                 >
                   ${this.t("bulk_apply")}
                 </button>
+                ${
+                  this.canCheckpoint
+                    ? html`<button
+                        ?disabled=${this._busy || !this._online || !this._approved || !this._preview.changed}
+                        @click=${() => this.checkpointJob()}
+                      >
+                        ${this.t("checkpoint_create")}
+                      </button>`
+                    : nothing
+                }
               </section>`
             : nothing
         }
         ${this._receipt ? html`<p class="notice" role="status">${this.t("bulk_saved")} · ${this._receipt.changed}<br /><bdi>${this._receipt.operation_id}</bdi></p>` : nothing}
+        ${this._jobId ? html`<p class="notice" role="status">${this.t("checkpoint_created")} <bdi>${this._jobId}</bdi></p>` : nothing}
         ${
           this._recent
             ? html`<details open>

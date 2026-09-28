@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
+import "./checkpoint-jobs";
 import { styles } from "./styles";
 import { translate } from "./i18n";
 import { boundedRequest } from "./request";
@@ -199,6 +200,7 @@ export class OperationsCenter extends LitElement {
     hass: { attribute: false },
     users: { attribute: false },
     stations: { attribute: false },
+    canCheckpoint: { type: Boolean },
     canRetryUser: { type: Boolean },
     canRetryStation: { type: Boolean },
     _page: { state: true },
@@ -212,6 +214,7 @@ export class OperationsCenter extends LitElement {
   hass?: Hass;
   users: Person[] = [];
   stations: Station[] = [];
+  canCheckpoint = false;
   canRetryUser = false;
   canRetryStation = false;
   private _page?: OperationPage;
@@ -325,7 +328,8 @@ export class OperationsCenter extends LitElement {
   }
   render() {
     const summary = this._page?.summary ?? {};
-    return html`<div class="heading">
+    return html`${this.canCheckpoint ? html`<wiskey-checkpoint-jobs .hass=${this.hass}></wiskey-checkpoint-jobs>` : nothing}
+      <div class="heading">
         <div>
           <h2>${this.t("jobs_title")}</h2>
           <p class="sub">${this.t("jobs_intro")}</p>

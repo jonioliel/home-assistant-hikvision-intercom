@@ -254,7 +254,7 @@ async def test_cancelled_permission_save_finishes_commit_before_releasing_lock()
     finish.set()
     with pytest.raises(asyncio.CancelledError):
         await pending
-    assert permissions.revision == 1 and saved[0]["schema"] == 2
+    assert permissions.revision == 1 and saved[0]["schema"] == 3
     assert station_allowed(permissions, actor(), "front")
     assert not station_allowed(permissions, actor(), "back")
     changed.assert_called_once_with()

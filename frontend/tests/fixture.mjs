@@ -75,7 +75,7 @@ const data = {
     fallback_hls: true,
     go2rtc_url: "",
   },
-  appearance_settings: { revision: 0, default: "current" },
+  appearance_settings: { revision: 0, default: "current", accent: "green" },
   api: query.has("paged")
     ? {
         version: 1,
@@ -483,6 +483,33 @@ let deploymentPreview;
 let scheduleImport;
 window.demoBaselineChange = false;
 window.demoSchedules = schedules;
+if (query.has("shared-accent"))
+  data.appearance_settings = { revision: 1, default: "wiskey-dark", accent: "purple" };
+const workflowCommands = [
+  "workflows/get",
+  "backups/export",
+  "backups/preview",
+  "backups/apply",
+  "workflows/settings_update",
+  "workflows/inventory_save",
+  "workflows/inventory_issue",
+  "workflows/inventory_return",
+  "workflows/template_save",
+  "workflows/template_delete",
+  "workflows/renew_request",
+  "jobs/list",
+  "jobs/action",
+];
+if (query.has("workflows")) data.api.commands.push(...workflowCommands);
+window.workflowData = {
+  settings: { revision: 0, idle_minutes: 0, reauth_sensitive: false, dual_approval: false },
+  approvals: [],
+  transfers: [],
+  inventory: [],
+  templates: [],
+  reminders: [],
+  renewals: [],
+};
 window.demoData = data;
 const fake = {
   language: hebrew ? "he" : "en",
@@ -538,6 +565,77 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (query.has("workflows")) {
+      const center = window.workflowData;
+      if (command === "workflows/get") return structuredClone(center);
+      if (command === "jobs/list") return { records: [] };
+      if (command === "backups/export")
+        return {
+          filename: "demo.encrypted.json",
+          content: JSON.stringify({
+            format: "smplwise-access",
+            version: 1,
+            data: "encrypted-test-data",
+          }),
+        };
+      if (command === "backups/preview")
+        return {
+          review_id: "backup-review",
+          changed: 1,
+          errors: 0,
+          rows: [{ name: "Restored person", employee_no: "1001", action: "create", error: null }],
+        };
+      if (command === "backups/apply") return { saved: 1 };
+      if (command === "workflows/settings_update") {
+        center.settings = { ...message.values, revision: center.settings.revision + 1 };
+        return structuredClone(center.settings);
+      }
+      if (command === "workflows/inventory_save") {
+        let item = center.inventory.find((item) => item.id === message.card_id);
+        if (!item) {
+          item = {
+            id: "inventory-" + center.inventory.length,
+            revision: 0,
+            holder: null,
+            holder_id: null,
+            masked_number: "•••• " + message.values.card_no.slice(-4),
+          };
+          center.inventory.push(item);
+        }
+        Object.assign(item, {
+          label: message.values.label,
+          status: message.values.status,
+          return_by: message.values.return_by,
+          revision: item.revision + 1,
+        });
+        return structuredClone(item);
+      }
+      if (command === "workflows/template_save") {
+        const item = {
+          ...message.values,
+          id: message.template_id || "staff-preset",
+          revision: message.revision + 1,
+        };
+        center.templates = [...center.templates.filter((t) => t.id !== item.id), item];
+        return structuredClone(item);
+      }
+      if (command === "workflows/template_delete") {
+        center.templates = center.templates.filter((t) => t.id !== message.template_id);
+        return { deleted: true };
+      }
+      if (command === "workflows/renew_request") {
+        center.renewals.push({
+          id: "renew",
+          name: "Renewed",
+          actor: "demo-admin",
+          until: message.until,
+          reason: message.reason,
+          state: "pending",
+        });
+        return { id: "renew", state: "pending" };
+      }
+    }
+
     if (command === "investigations/query") {
       if (window.investigationDelay)
         await new Promise((resolve) => setTimeout(resolve, window.investigationDelay));
@@ -728,7 +826,11 @@ const fake = {
     if (command === "appearance/settings_update") {
       if (message.revision !== data.appearance_settings.revision)
         throw { code: "revision_conflict" };
-      data.appearance_settings = { default: message.default, revision: message.revision + 1 };
+      data.appearance_settings = {
+        default: message.default,
+        accent: message.accent ?? data.appearance_settings.accent,
+        revision: message.revision + 1,
+      };
       window.demoNotify();
       return structuredClone(data.appearance_settings);
     }

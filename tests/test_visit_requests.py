@@ -327,6 +327,8 @@ async def test_schema_ten_migration_is_durable_and_corrupt_request_cannot_activa
     legacy = repo.snapshot()
     legacy["schema"] = 10
     legacy.pop("visit_requests")
+    legacy.pop("checkpoint_jobs")
+    legacy.pop("workflows")
     save = AsyncMock(side_effect=OSError("Synthetic disk failure"))
     restored = AccessRepository(save)
     with pytest.raises(OSError):

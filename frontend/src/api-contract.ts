@@ -18,6 +18,14 @@ export function compatible(contract?: ApiContract): boolean {
 // Unknown commands are treated as writes in a mismatched session. Audio stop/mute
 // and capture cancellation must remain available to safely terminate existing work.
 const reads = new Set([
+  "workflows/get",
+  "security/session",
+  "security/touch",
+  "security/lock",
+  "security/reauth_start",
+  "security/reauth_step",
+  "jobs/list",
+  "jobs/errors",
   "fleet/alerts",
   "visits/operators",
   "visits/list",
@@ -88,6 +96,7 @@ const cleanup = new Set(["audio/stop", "audio/mute", "cards/capture_cancel", "ev
 export function contractHass(
   hass: Hass | undefined,
   current: () => ApiContract | undefined,
+  failed?: (message: Record<string, unknown>, error: unknown) => void,
 ): Hass | undefined {
   if (!hass) return undefined;
   let elevatedSource = hass.user;
@@ -124,7 +133,10 @@ export function contractHass(
           !audioSessionCommands.has(command)
             ? { ...message, api_contract: CLIENT_API }
             : message;
-        return target.callWS(envelope);
+        return target.callWS(envelope).catch((error) => {
+          failed?.(message, error);
+          throw error;
+        });
       };
     },
   });

@@ -130,6 +130,8 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     raw.pop("sync_operations")
     raw["schema"] = schema
     raw.pop("visit_requests")
+    raw.pop("checkpoint_jobs")
+    raw.pop("workflows")
     if schema < 5:
         raw.pop("profile_settings")
     if schema < 3:
@@ -147,7 +149,7 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     await restored.async_load(raw)
     assert restored.get(user.id).pin.value == user.pin.value
     assert restored.get(user.id).cards[0].card_no == user.cards[0].card_no
-    assert restored.snapshot()["schema"] == 11
+    assert restored.snapshot()["schema"] == 13
     assert pending_age(restored.snapshot(), "a") is None
     operation = restored.public()["sync_operations"][0]
     assert operation["queued_at"] is None
@@ -216,6 +218,8 @@ async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
     backup = repo.snapshot()
     backup["schema"] = 7
     backup.pop("visit_requests")
+    backup.pop("checkpoint_jobs")
+    backup.pop("workflows")
     backup.pop("sync_operations")
     original = deepcopy(backup)
     restored = AccessRepository(AsyncMock())
@@ -231,3 +235,42 @@ async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
     for key in ("bindings", "retired_cards", "retired_pins", "profile_settings"):
         assert restored.snapshot()[key] == backup[key]
     assert restored.snapshot()["retired_pins"] and restored.snapshot()["retired_cards"]
+
+
+async def test_card_transfer_waits_for_isapi_readback_after_disconnect(setup):
+    from custom_components.hikvision_intercom.access.manager import AccessManager
+    from custom_components.hikvision_intercom.access.workflows import Workflows
+
+    repo, device, driver, engine = setup
+    source = await create_user(repo)
+    target = await create_user(repo, employee_no="1002", pin=None, cards=[])
+    await engine.async_reconcile("a", driver)
+    card = source.cards[0].card_no.value
+    assert device.cards[card]["employeeNo"] == source.employee_no
+    manager = AccessManager(repo)
+    manager.register("a", "Gate", True)
+    center = Workflows(manager)
+    try:
+        transfer = await center.transfer_start(
+            "owner", "card", source.id, target.id, repo.get(source.id).revision, source.cards[0].id
+        )
+        device.offline = True
+        with pytest.raises(HikvisionConnectionError):
+            await engine.async_reconcile("a", driver)
+        with pytest.raises(AccessError, match="revocation_not_confirmed"):
+            await center.transfer_finish("owner", transfer["id"])
+        device.offline = False
+        device.fail_after = ("CardInfo", "Delete")
+        await engine.async_reconcile("a", driver)
+        # A lost delete acknowledgement is verified by an independent readback on retry.
+        await engine.async_reconcile("a", driver)
+        assert card not in device.cards and center.transfers()[0]["ready"]
+        await center.transfer_finish("owner", transfer["id"])
+        await engine.async_reconcile("a", driver)
+        assert device.cards[card]["employeeNo"] == target.employee_no
+        writes = len(device.writes)
+        await engine.async_reconcile("a", driver)
+        assert len(device.writes) == writes
+        assert not repo.get(source.id).cards
+    finally:
+        await manager.async_close()

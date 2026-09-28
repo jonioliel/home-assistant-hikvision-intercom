@@ -25,7 +25,7 @@ from .access.schedules import ScheduleLibrary, preview
 from .access.schedules import normalize as normalize_schedule
 from .access_runtime import SIGNAL_ACCESS_CHANGED, get_manager
 from .admin_operations_api import dispatch_admin
-from .api_contract import contract, validate_client
+from .api_contract import READ_COMMANDS, contract, validate_client
 from .client.schedule_dependencies import inspect_dependencies
 from .client.schedule_inventory import inspect_inventory
 from .client.schedule_readiness import inspect_readiness as inspect_schedules
@@ -78,6 +78,61 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "security/session": {},
+    "security/touch": {},
+    "security/lock": {},
+    "security/reauth_start": {},
+    "security/reauth_step": {"flow_id": str, "values": dict},
+    "backups/export": {"passphrase": str},
+    "backups/preview": {"content": str, "passphrase": str, "mapping": dict, "mode": str},
+    "backups/apply": {"review_id": str, "confirmed": bool},
+    "workflows/get": {"days": int},
+    "workflows/settings_update": {"revision": int, "values": dict},
+    "workflows/submit": {"command": str, "values": dict, "label": str},
+    "workflows/decide": {"request_id": str, "approve": bool},
+    "workflows/apply": {"request_id": str},
+    "workflows/withdraw": {"request_id": str},
+    "workflows/transfer_start": {
+        "kind": str,
+        "source": str,
+        "target": str,
+        "revision": int,
+        "value": str,
+        "confirmed": bool,
+    },
+    "workflows/transfer_review": {"transfer_id": str, "approve": bool},
+    "workflows/transfer_begin": {"transfer_id": str},
+    "workflows/transfer_recheck": {"transfer_id": str},
+    "workflows/inventory_return": {
+        "card_id": str,
+        "revision": int,
+        "delete": bool,
+        "confirmed": bool,
+    },
+    "workflows/transfer_finish": {"transfer_id": str, "cancel": bool, "confirmed": bool},
+    "workflows/inventory_save": {"card_id": str, "revision": int, "values": dict},
+    "workflows/inventory_issue": {
+        "card_id": str,
+        "user_id": str,
+        "revision": int,
+        "confirmed": bool,
+    },
+    "workflows/template_save": {"template_id": str, "revision": int, "values": dict},
+    "workflows/template_delete": {"template_id": str, "revision": int},
+    "workflows/reminder_action": {"reminder_id": str, "action": str},
+    "workflows/renew_request": {"user_id": str, "revision": int, "until": str, "reason": str},
+    "workflows/renew_decide": {"request_id": str, "approve": bool},
+    "jobs/list": {},
+    "jobs/action": {"job_id": str, "revision": int, "action": str},
+    "jobs/errors": {"job_id": str},
+    "jobs/bulk_create": {"operation_id": str, "confirmed": bool},
+    "jobs/csv_create": {
+        "content": str,
+        "mode": str,
+        "review_token": str,
+        "column_map": dict,
+        "confirmed": bool,
+    },
     "fleet/alerts": {
         "offset": int,
         "limit": int,
@@ -102,11 +157,11 @@ COMMANDS = {
     "guest_templates/upsert": {"revision": int, "template_id": str, "values": dict},
     "guest_templates/delete": {"revision": int, "template_id": str},
     "appearance/settings_get": {},
-    "appearance/settings_update": {"revision": int, "default": str},
+    "appearance/settings_update": {"revision": int, "default": str, "accent": str},
     "authorization/session": {},
     "authorization/settings_get": {},
-    "authorization/preview": {"policy": dict},
-    "authorization/settings_update": {"revision": int, "users": dict},
+    "authorization/preview": {"policy": dict, "station_groups": list},
+    "authorization/settings_update": {"revision": int, "users": dict, "station_groups": list},
     "whatsapp/status": {},
     "whatsapp/templates_get": {},
     "whatsapp/templates_update": {"revision": int, "values": dict},
@@ -472,6 +527,11 @@ def _guard_operator(
             filters.get("current_profile") and not field_allowed(policy, "profile")
         ):
             raise AccessError("field_access_denied")
+        if command == "users/query" and isinstance(filters.get("profile"), dict):
+            from .panel_permissions import profile_field_allowed
+
+            if any(not profile_field_allowed(policy, key) for key in filters["profile"]):
+                raise AccessError("field_access_denied")
         if command == "users/query" and (
             filters.get("credential")
             and not field_allowed(policy, "credentials")
@@ -503,6 +563,7 @@ def _guard_operator(
         "users/delete",
         "users/set_active",
         "users/temporary_cancel",
+        "workflows/renew_request",
         "cards/add",
         "cards/remove",
         "sync/user",
@@ -539,6 +600,11 @@ async def _dispatch(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
+    from .workflows_api import requires_approval
+
+    center = hass.data[DOMAIN].get("workflows")
+    if center and center.data["settings"]["dual_approval"] and requires_approval(command, msg):
+        raise AccessError("approval_required")
     with audit_actor(
         actor,
         command,
@@ -549,6 +615,17 @@ async def _dispatch(
         revision = permissions.revision if isinstance(permissions, PanelPermissions) else 0
         if policy is not None:
             _guard_operator(hass, policy, command, msg, actor=actor)
+            if command == "users/update" and "profile" in msg["data"]:
+                msg = {
+                    **msg,
+                    "data": {
+                        **msg["data"],
+                        "profile": {
+                            **get_manager(hass).repository.get(msg["user_id"]).profile,
+                            **msg["data"]["profile"],
+                        },
+                    },
+                }
         result = await _dispatch_inner(hass, command, msg, actor=actor, user=user)
         if policy is not None:
             if permissions.revision != revision:
@@ -585,6 +662,14 @@ async def _dispatch_inner(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
+    if command.startswith(("workflows/", "backups/")):
+        from .workflows_api import dispatch_workflows
+
+        return await dispatch_workflows(hass, command, msg, actor, user)
+    if command.startswith("jobs/"):
+        from .checkpoint_jobs_api import dispatch_jobs
+
+        return await dispatch_jobs(hass, command, msg, actor, user)
     if command == "authorization/session":
         permissions = hass.data[DOMAIN].get("panel_permissions")
         if isinstance(permissions, PanelPermissions):
@@ -604,7 +689,13 @@ async def _dispatch_inner(
                 result["areas"] = {area: "manage" for area in result["areas"]}
         return result
     if command == "authorization/preview":
-        return preview_policy(msg["policy"])
+        return preview_policy(
+            msg["policy"],
+            msg.get(
+                "station_groups",
+                (hass.data[DOMAIN]["panel_permissions"].public()["station_groups"]),
+            ),
+        )
     if command in {"authorization/settings_get", "authorization/settings_update"}:
         permissions = hass.data[DOMAIN].get("panel_permissions")
         if not isinstance(permissions, PanelPermissions):
@@ -617,7 +708,10 @@ async def _dispatch_inner(
         ]
         if command == "authorization/settings_update":
             await permissions.update(
-                msg["revision"], msg["users"], (item.id for item in assignable)
+                msg["revision"],
+                msg["users"],
+                (item.id for item in assignable),
+                msg.get("station_groups"),
             )
             issue(hass, "panel_permissions_storage_corrupt", active=False)
         result = permissions.public()
@@ -641,6 +735,8 @@ async def _dispatch_inner(
         result["stations"] = [
             {"id": item.id, "name": item.name} for item in get_manager(hass).stations.values()
         ]
+        profiles = get_manager(hass).repository.profile_settings()
+        result["profile_fields"] = profiles["values"]["fields"] if profiles else []
         return result
     if command.startswith("whatsapp/"):
         from .whatsapp_api import dispatch_whatsapp
@@ -664,7 +760,7 @@ async def _dispatch_inner(
             raise AccessError("appearance_settings_unavailable")
         if command == "appearance/settings_get":
             return appearance.public()
-        return await appearance.update(msg["revision"], msg["default"])
+        return await appearance.update(msg["revision"], msg["default"], msg.get("accent"))
     manager = get_manager(hass)
     if command.startswith("clock/"):
         from .clock_api import dispatch_clock
@@ -1231,12 +1327,21 @@ async def _dispatch_inner(
 
 
 def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., None]:
+    # Existing clients omit newly introduced settings. Preserve those values on save.
+    optional = {
+        "appearance/settings_update": {"accent"},
+        "authorization/settings_update": {"station_groups"},
+        "authorization/preview": {"station_groups"},
+    }.get(command, set())
     schema = vol.Schema(
         {
             vol.Optional("api_contract"): int,
             vol.Required("id"): int,
             vol.Required("type"): str,
-            **{vol.Required(key): kind for key, kind in fields.items()},
+            **{
+                (vol.Optional(key) if key in optional else vol.Required(key)): kind
+                for key, kind in fields.items()
+            },
             **({vol.Optional("filters"): dict} if command == "visits/list" else {}),
             **(
                 {vol.Optional("column_map"): dict}
@@ -1283,8 +1388,11 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
                 if kind in {int, bool} and type(msg[key]) is not kind:
                     raise AccessError("invalid_fields")
             maximum = (
-                1_048_576
-                if command in {"users/csv_preview", "users/csv_apply", "users/csv_inspect"}
+                67_108_864
+                if command == "backups/preview"
+                else 1_048_576
+                if command
+                in {"users/csv_preview", "users/csv_apply", "users/csv_inspect", "jobs/csv_create"}
                 else 65_536
             )
             if len(json.dumps(msg, ensure_ascii=False).encode()) > maximum:
@@ -1292,7 +1400,21 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             limiter = hass.data[DOMAIN].setdefault("admin_limiter", AdminLimiter())
             admitted = limiter.acquire(user.id, hass.loop.time())
             try:
-                result = await _dispatch(hass, command, msg, actor=user.id, user=user)
+                from .panel_security import get_security
+
+                security = get_security(hass)
+                if security:
+                    security.guard(connection, command, command not in READ_COMMANDS)
+                if command.startswith("security/"):
+                    if security is None:
+                        raise AccessError("security_unavailable")
+                    result = await security.dispatch(connection, command, msg)
+                else:
+                    result = await _dispatch(hass, command, msg, actor=user.id, user=user)
+                    if security and command == "authorization/session":
+                        result["security"] = security.public(connection)
+                    elif security and command in {"overview", "sync/status"}:
+                        result["access"]["security"] = security.public(connection)
             finally:
                 limiter.release(admitted)
         except vol.Invalid:
@@ -1343,7 +1465,13 @@ def subscribe(
         if closed:
             return
         current = hass.data[DOMAIN].get("panel_permissions")
-        if command_allowed(current, connection.user, "overview"):
+        from .panel_security import get_security
+
+        security = get_security(hass)
+        if security and security.public(connection)["locked"]:
+            connection.send_event(msg["id"], {"kind": "screen_locked"})
+            cancel()
+        elif command_allowed(current, connection.user, "overview"):
             # Data-free invalidation coalesces bursts and is re-authorized every time.
             connection.send_event(msg["id"], {"kind": "refresh"})
         else:

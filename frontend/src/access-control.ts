@@ -8,6 +8,13 @@ interface Policy {
   areas: Record<Area, Level>;
   station_ids?: string[] | null;
   fields?: Record<WiskeyPersonField, Level>;
+  profile_fields?: Record<string, Level>;
+  station_group_ids?: string[];
+}
+interface StationGroup {
+  id: string;
+  label: string;
+  station_ids: string[];
 }
 interface DirectoryUser {
   id: string;
@@ -21,6 +28,8 @@ interface PermissionSettings {
   users: Record<string, Policy>;
   directory: DirectoryUser[];
   stations?: { id: string; name: string }[];
+  station_groups?: StationGroup[];
+  profile_fields?: { id: string; label: string }[];
 }
 interface PermissionPreview {
   enabled: boolean;
@@ -86,6 +95,7 @@ export class WiskeyAccessControl extends LitElement {
     _previewBusy: { state: true },
     _query: { state: true },
     _grantFilter: { state: true },
+    _groups: { state: true },
   };
   hass?: Hass;
   private _settings?: PermissionSettings;
@@ -97,6 +107,7 @@ export class WiskeyAccessControl extends LitElement {
   private _previewBusy = "";
   private _query = "";
   private _grantFilter = "all";
+  private _groups: StationGroup[] = [];
   private previewGeneration = 0;
   private mounted = false;
 
@@ -136,6 +147,7 @@ export class WiskeyAccessControl extends LitElement {
       if (!this.mounted) return;
       this._settings = settings;
       this._draft = this.clone(settings.users);
+      this._groups = structuredClone(settings.station_groups ?? []);
       this._previews = {};
       this.previewGeneration++;
       this._previewBusy = "";
@@ -185,9 +197,11 @@ export class WiskeyAccessControl extends LitElement {
       const settings = await this.request<PermissionSettings>("authorization/settings_update", {
         revision: this._settings.revision,
         users: this._draft,
+        station_groups: this._groups,
       });
       this._settings = settings;
       this._draft = this.clone(settings.users);
+      this._groups = structuredClone(settings.station_groups ?? []);
       this._previews = {};
       this.previewGeneration++;
       this._previewBusy = "";
@@ -281,6 +295,33 @@ export class WiskeyAccessControl extends LitElement {
             </div>`
           : nothing
       }
+      ${
+        selected != null && this._groups.length
+          ? html`<div class="station-options">
+              ${this._groups.map(
+                (group) =>
+                  html`<label class="switch"
+                    ><input
+                      type="checkbox"
+                      .checked=${(policy.station_group_ids ?? []).includes(group.id)}
+                      ?disabled=${disabled}
+                      @change=${(event: Event) => {
+                        this.invalidatePreview(user.id);
+                        const selected = new Set(policy.station_group_ids ?? []);
+                        if ((event.target as HTMLInputElement).checked) selected.add(group.id);
+                        else selected.delete(group.id);
+                        this._draft = {
+                          ...this._draft,
+                          [user.id]: { ...policy, station_group_ids: [...selected] },
+                        };
+                        this._saved = false;
+                      }}
+                    />${group.label} (${group.station_ids.length})</label
+                  >`,
+              )}
+            </div>`
+          : nothing
+      }
       <p class="hint">
         ${this.text("A station selection limits WisKey data and commands. People shared with another station are view-only. Fleet-wide jobs, imports and message history require an unrestricted grant. Infrastructure entity permissions are separate.", "בחירת תחנות מגבילה נתונים ופעולות ב־WisKey. אדם המשויך גם לתחנה אחרת זמין לצפייה בלבד. פעולות כלליות, ייבוא והיסטוריית הודעות דורשים הרשאה ללא הגבלות. הרשאות ישויות בתשתית המערכת מנוהלות בנפרד.")}
       </p>
@@ -302,6 +343,118 @@ export class WiskeyAccessControl extends LitElement {
       <p class="hint">
         ${this.text("Field permissions further limit the Users screen grant; they never grant access to a screen by themselves.", "הרשאות השדות מצמצמות את הרשאת מסך המשתמשים; הן אינן מעניקות גישה למסך בעצמן.")}
       </p>
+      ${this.profileScope(user, policy, disabled)}
+    </details>`;
+  }
+  private profileScope(user: DirectoryUser, policy: Policy, disabled: boolean) {
+    return html`<div class="areas">
+      ${(this._settings?.profile_fields ?? []).map(
+        (field) =>
+          html`<label>
+            ${field.label}<select
+              aria-label=${field.label}
+              .value=${policy.profile_fields?.[field.id] ?? "manage"}
+              ?disabled=${disabled || policy.fields?.profile === "none"}
+              @change=${(event: Event) => {
+                this.invalidatePreview(user.id);
+                this._draft = {
+                  ...this._draft,
+                  [user.id]: {
+                    ...policy,
+                    profile_fields: {
+                      ...policy.profile_fields,
+                      [field.id]: (event.target as HTMLSelectElement).value as Level,
+                    },
+                  },
+                };
+                this._saved = false;
+              }}
+            >
+              ${(["none", "view", "manage"] as Level[]).map((level) => html`<option value=${level}>${this.levelLabel(level)}</option>`)}
+            </select>
+          </label>`,
+      )}
+    </div>`;
+  }
+  private groupEditor() {
+    if (!this._settings) return nothing;
+    return html`<details class="scope-editor">
+      <summary>${this.text("Named station groups", "קבוצות תחנות")}</summary>
+      <p class="hint">
+        ${this.text("Group membership changes affect assigned operators after saving. Groups never grant screen permissions.", "שינוי תחנות בקבוצה חל על המפעילים המשויכים לאחר שמירה. קבוצה אינה מעניקה הרשאת גישה למסכים.")}
+      </p>
+      ${this._groups.map(
+        (group) =>
+          html`<article>
+            <input
+              aria-label=${this.text("Group name", "שם קבוצה")}
+              maxlength="64"
+              .value=${group.label}
+              ?disabled=${this._busy}
+              @input=${(event: Event) => {
+                group.label = (event.target as HTMLInputElement).value;
+                this._saved = false;
+              }}
+            />
+            <div class="station-options">
+              ${(this._settings?.stations ?? []).map(
+                (station) =>
+                  html`<label class="switch"
+                    ><input
+                      type="checkbox"
+                      .checked=${group.station_ids.includes(station.id)}
+                      ?disabled=${this._busy}
+                      @change=${(event: Event) => {
+                        group.station_ids = (event.target as HTMLInputElement).checked
+                          ? [...group.station_ids, station.id]
+                          : group.station_ids.filter((id) => id !== station.id);
+                        this._saved = false;
+                        this._previews = {};
+                        this.requestUpdate();
+                      }}
+                    />${station.name}</label
+                  >`,
+              )}
+            </div>
+            <button
+              ?disabled=${this._busy}
+              @click=${() => {
+                this._groups = this._groups.filter((item) => item.id !== group.id);
+                this._draft = Object.fromEntries(
+                  Object.entries(this._draft).map(([id, policy]) => [
+                    id,
+                    {
+                      ...policy,
+                      station_group_ids: (policy.station_group_ids ?? []).filter(
+                        (key) => key !== group.id,
+                      ),
+                    },
+                  ]),
+                );
+                this._saved = false;
+                this._previews = {};
+              }}
+            >
+              ${this.text("Delete group", "מחיקת קבוצה")}
+            </button>
+          </article>`,
+      )}
+      <button
+        ?disabled=${this._busy || this._groups.length >= 64}
+        @click=${() => {
+          this._groups = [
+            ...this._groups,
+            {
+              id: crypto.randomUUID(),
+              label: this.text("New group", "קבוצה חדשה"),
+              station_ids: [],
+            },
+          ];
+          this._saved = false;
+        }}
+      >
+        ${this.text("Add station group", "הוספת קבוצת תחנות")}
+      </button>
     </details>`;
   }
   private levelLabel(level: Level) {
@@ -329,6 +482,7 @@ export class WiskeyAccessControl extends LitElement {
     try {
       const result = await this.request<PermissionPreview>("authorization/preview", {
         policy: this.policy(id),
+        station_groups: this._groups,
       });
       if (this.mounted && this.hass?.user?.is_admin && generation === this.previewGeneration)
         this._previews = { ...this._previews, [id]: result };
@@ -635,6 +789,7 @@ export class WiskeyAccessControl extends LitElement {
           ${this.text(`${users.length} of ${directory.length} accounts · Saving includes hidden accounts and their changes.`, `${users.length} מתוך ${directory.length} חשבונות · השמירה כוללת גם חשבונות שהוסתרו במסנן והשינויים בהם.`)}
         </p>
         ${this._settings && !users.length ? html`<p class="hint">${this.text("No accounts match this search and filter.", "אין חשבונות התואמים לחיפוש ולסינון.")}</p>` : nothing}
+        ${this.groupEditor()}
         <div class="grid">
           ${users.map((user) => {
             const policy = this.policy(user.id);
