@@ -168,3 +168,124 @@ async def test_policy_changed_during_authorization_pauses_before_any_row(setup_j
     result = await finished(jobs, job)
     assert result["state"] == "paused" and result["saved"] == 0
     assert all(person.active for person in repo.users())
+
+
+async def approve_job(jobs, job):
+    await jobs.approval_request("actor", job["id"], job["revision"], "resume")
+    review = jobs.approval_review("second", job["id"])
+    return await jobs.approval_decide(
+        "second", job["id"], review["revision"], review["review_id"], True
+    )
+
+
+async def test_dual_approval_stages_without_mutation_and_a_separate_admin_can_resume(setup_jobs):
+    jobs, repo, _ = setup_jobs
+    await repo._commit(lambda state: state["workflows"]["settings"].update(dual_approval=True))
+    job = await prepared(jobs)
+    with pytest.raises(AccessError, match="approval_required"):
+        await jobs.action("actor", job["id"], job["revision"], "resume")
+    assert all(user.active for user in repo.users())
+    approved = await approve_job(jobs, job)
+    assert all(user.active for user in repo.users())
+    assert (await finished(jobs, approved))["saved"] == 3
+
+
+async def test_review_masks_credentials_and_cannot_be_self_approved_or_replayed(setup_jobs):
+    jobs, _, _ = setup_jobs
+    job = await prepared(jobs)
+    requested = await jobs.approval_request("actor", job["id"], 1, "resume")
+    assert not jobs.pending_reviews("actor")
+    assert len(jobs.pending_reviews("second")) == 1
+    review = jobs.approval_review("second", job["id"])
+    assert "726310" not in json.dumps(review) and "row_hashes" not in json.dumps(review)
+    assert len(review["impact"]) == 3
+    assert all(
+        item["before"]["active"] and not item["after"]["active"] for item in review["impact"]
+    )
+    with pytest.raises(AccessError, match="separate_approver_required"):
+        await jobs.approval_decide(
+            "actor", job["id"], requested["revision"], review["review_id"], True
+        )
+    with pytest.raises(AccessError, match="bulk_review_stale"):
+        await jobs.approval_decide("second", job["id"], requested["revision"], "0" * 32, True)
+    decided = await jobs.approval_decide(
+        "second", job["id"], requested["revision"], review["review_id"], True
+    )
+    with pytest.raises(AccessError, match="revision_conflict"):
+        await jobs.approval_decide(
+            "second", job["id"], requested["revision"], review["review_id"], True
+        )
+    assert decided["state"] == "paused"
+
+
+async def test_changed_person_invalidates_approval_review_without_granting_access(setup_jobs):
+    jobs, repo, _ = setup_jobs
+    job = await prepared(jobs)
+    requested = await jobs.approval_request("actor", job["id"], 1, "resume")
+    review = jobs.approval_review("second", job["id"])
+    person = repo.users()[0]
+    await repo.async_update(
+        person.id, {"display_name": "Changed"}, expected_revision=person.revision
+    )
+    with pytest.raises(AccessError, match="revision_conflict"):
+        await jobs.approval_decide(
+            "second", job["id"], requested["revision"], review["review_id"], True
+        )
+    assert all(user.active for user in repo.users())
+
+
+@pytest.mark.parametrize("boundary", ["expired", "revoked", "tampered", "rejected"])
+async def test_job_consent_boundaries_pause_before_writing(setup_jobs, boundary):
+    jobs, repo, _ = setup_jobs
+    job = await prepared(jobs)
+    await repo._commit(lambda state: state["workflows"]["settings"].update(dual_approval=True))
+    approved = await approve_job(jobs, job)
+    if boundary in {"expired", "tampered", "rejected"}:
+
+        def alter(state):
+            record = state["checkpoint_jobs"][job["id"]]
+            if boundary == "expired":
+                record["approval"]["expires_at"] = "2000-01-01T00:00:00+00:00"
+            elif boundary == "rejected":
+                record["approval"]["state"] = "rejected"
+            else:
+                record["rows"][0]["change"]["data"]["active"] = True
+
+        await repo._commit(alter)
+    else:
+        jobs.authorize.side_effect = lambda actor: actor != "second"
+    with pytest.raises(AccessError, match="approval_required|approval_expired|bulk_review_stale"):
+        await jobs.action("actor", job["id"], approved["revision"], "resume")
+    assert all(user.active for user in repo.users())
+
+
+async def test_approved_partial_job_survives_restart_without_replaying_saved_rows(setup_jobs):
+    jobs, repo, _ = setup_jobs
+    job = await prepared(jobs)
+    await repo._commit(lambda state: state["workflows"]["settings"].update(dual_approval=True))
+    approved = await approve_job(jobs, job)
+    calls = 0
+
+    async def authorize(actor):
+        nonlocal calls
+        if actor == "actor":
+            calls += 1
+            return calls < 3
+        return True
+
+    jobs.authorize.side_effect = authorize
+    partial = await finished(jobs, approved)
+    assert partial["saved"] == 1 and partial["state"] == "paused"
+    restored = AccessRepository(AsyncMock())
+    await restored.async_load(repo.snapshot())
+    manager = AccessManager(restored)
+    manager.register("a", "Gate", True)
+    resumed = CheckpointJobs(manager, AsyncMock(return_value=True))
+    before = {person.id: person.revision for person in restored.users()}
+    try:
+        assert (await finished(resumed, resumed.records("actor")[0]))["saved"] == 3
+        already_saved = repo.users()[0].id
+        assert restored.get(already_saved).revision == before[already_saved]
+    finally:
+        await resumed.close()
+        await manager.async_close()

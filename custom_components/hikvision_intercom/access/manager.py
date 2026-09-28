@@ -823,8 +823,10 @@ class AccessManager:
 
         return pending_users(state, station_id)
 
-    def public(self) -> dict[str, Any]:
-        state = self.repository.snapshot()
+    def public(self, *, include_users: bool = True) -> dict[str, Any]:
+        # This synchronous read cannot interleave with an async commit. Avoid
+        # copying the entire private store merely to render station counters.
+        state = self.repository._state
         stations = []
         for station in self.stations.values():
             caps = station.driver.capabilities if station.driver else None
@@ -868,7 +870,7 @@ class AccessManager:
                     else None,
                 }
             )
-        public = self.repository.public()
+        public = self.repository.public(include_users=include_users)
         for user in public["users"]:
             user["sync_reference"] = self.diagnostics.reference(user["id"])
         return {**public, "stations": stations}

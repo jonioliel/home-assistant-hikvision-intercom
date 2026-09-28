@@ -128,7 +128,7 @@ async def test_review_cannot_bypass_enabled_second_approver(hass, loaded_entry, 
         0, {"idle_minutes": 0, "reauth_sensitive": False, "dual_approval": True}
     )
     result = await request(client, "platform/config_apply", review_id="no-proof", confirmed=True)
-    assert not result["success"] and result["error"]["code"] == "approval_command_unsupported"
+    assert not result["success"] and result["error"]["code"] == "approval_required"
 
 
 async def test_integrity_and_demo_are_read_only_and_keep_production_people(

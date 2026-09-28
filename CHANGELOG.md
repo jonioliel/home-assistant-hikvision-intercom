@@ -4,6 +4,15 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.20] — 2026-09-29
+
+- Add a lightweight scoped overview and lazy/paged people loading, retaining the legacy overview and VMS embed contracts. Keep off-page filter facets, cross-page selection and explicit directory-error fallback.
+- Replace the nine-station soak limit with explicit station/concurrency budgets. Extend loopback resilience checks to slow media consumers, dropped upload, credential revocation recovery and fragmented/duplicate events; these simulations are not physical station certification.
+- Add bounded request, synchronization and door-acknowledgement quality observations with P95, failure percentages and startup reference windows. Transport gaps remain distinct from lost events; command acknowledgements remain distinct from physical door results.
+- Add masked second-operator reviews for CSV/bulk checkpoint jobs and fleet configuration. Bind approval to reviewed rows or the exact short-lived fleet plan, recheck current approver authority, and require explicit owner resume/apply. Approval never automatically starts work or writes device settings.
+- Recheck dependency compatibility and retain the narrowly scoped cryptography review without widening advisory exemptions or forcing an incompatible shared-runtime upgrade.
+- Preserve all themes, people/group permissions, media, TTS, manual WhatsApp, schedules and the existing technical domain. Optional job approval data requires restoring a matching data backup when downgrading.
+
 ## [2.0.0-rc.19] — 2026-09-28
 
 - Add opt-in `embed=1` for the original WisKey screens in a same-origin SMPLWISE VMS iframe. Omit only the WisKey top toolbar; retain content navigation, dialogs, existing themes, media controls and server-side permissions. Normal panel opening retains its toolbar.

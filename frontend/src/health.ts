@@ -15,6 +15,19 @@ interface HealthRead {
   epoch: number;
 }
 
+interface QualityMetric {
+  requests: number;
+  sample_count: number;
+  p95_ms: number | null;
+  failure_percent: number | null;
+  window_failure_percent: number | null;
+  baseline_samples: number;
+  baseline_p95_ms: number | null;
+  comparison_samples: number;
+  p95_delta_ms: number | null;
+  repeat_attempts_after_failure?: number;
+}
+
 interface Health {
   integration_version: string;
   model?: string;
@@ -23,6 +36,11 @@ interface Health {
   generated_at: string;
   clock?: Partial<StationClock>;
   access?: { queue_depth: number; errors: Record<string, number>; last_error?: string | null };
+  quality?: {
+    requests: QualityMetric;
+    door_commands: QualityMetric;
+    synchronization: QualityMetric;
+  };
   events?: {
     stream: string;
     history: string;
@@ -31,6 +49,12 @@ interface Health {
       stream_arrival_delay: { samples: number; median: number | null; p95: number | null };
       accepted: number;
       duplicates: number;
+      transport_gaps?: {
+        count: number;
+        disconnected_seconds: number;
+        open: boolean;
+        lost_event_count: null;
+      };
     };
   };
   media?: {
@@ -158,6 +182,27 @@ export class IntercomHealth extends LitElement {
         margin-block: 10px;
         color: var(--error-color, #b34a50);
         font-weight: 600;
+      }
+      .health-quality {
+        margin-block: 14px;
+      }
+      .quality-values {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+        gap: 8px;
+        margin-block: 8px 16px;
+      }
+      .quality-values div {
+        min-width: 0;
+      }
+      .quality-values dt {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+      }
+      .quality-values dd {
+        margin: 0;
+        font-variant-numeric: tabular-nums;
       }
     `,
   ];
@@ -541,6 +586,60 @@ export class IntercomHealth extends LitElement {
       </button>
     </div>`;
   }
+  private qualityView(report: Health) {
+    if (!report.quality) return nothing;
+    const value = (number: number | null | undefined, suffix = "") =>
+      number === null || number === undefined ? "—" : `${number}${suffix}`;
+    const gaps = report.events?.telemetry?.transport_gaps;
+    return html`<details class="health-quality">
+      <summary>${this.t("quality_title")}</summary>
+      <p class="sub">${this.t("quality_scope")}</p>
+      ${(["requests", "synchronization", "door_commands"] as const).map((key) => {
+        const metric = report.quality![key];
+        if (!metric) return nothing;
+        return html`<section>
+          <strong>${this.t("quality_" + key)}</strong>
+          <dl class="quality-values">
+            <div>
+              <dt>${this.t("quality_attempts")}</dt>
+              <dd>${metric.requests}</dd>
+            </div>
+            <div>
+              <dt>${this.t("quality_failure")}</dt>
+              <dd>${value(metric.failure_percent, "%")}</dd>
+            </div>
+            <div>
+              <dt>${this.t("quality_window_failure")}</dt>
+              <dd>${value(metric.window_failure_percent, "%")}</dd>
+            </div>
+            <div>
+              <dt>${this.t("quality_p95")}</dt>
+              <dd>${value(metric.p95_ms, " ms")}</dd>
+            </div>
+            <div>
+              <dt>${this.t("quality_baseline")}</dt>
+              <dd>${value(metric.baseline_p95_ms, " ms")}</dd>
+            </div>
+            <div>
+              <dt>${this.t("quality_change")}</dt>
+              <dd>${value(metric.p95_delta_ms, " ms")}</dd>
+            </div>
+            ${
+              metric.repeat_attempts_after_failure !== undefined
+                ? html`<div>
+                    <dt>${this.t("quality_repeats")}</dt>
+                    <dd>${metric.repeat_attempts_after_failure}</dd>
+                  </div>`
+                : nothing
+            }
+          </dl>
+        </section>`;
+      })}
+      ${gaps ? html`<p>${this.t("quality_gaps")}: ${gaps.count} · ${value(gaps.disconnected_seconds, " s")} · ${this.t(gaps.open ? "quality_gap_open" : "quality_gap_closed")}</p>` : nothing}
+      <p class="field-note">${this.t("quality_reference_hint")}</p>
+      <p class="field-note">${this.t("quality_evidence_hint")}</p>
+    </details>`;
+  }
   private card(station: Station) {
     const report = this._reports[station.id];
     const attention = stationAttention(station, report);
@@ -588,6 +687,7 @@ export class IntercomHealth extends LitElement {
       ${report?.clock?.status === "ready" && ["ahead", "behind", "repeated_ahead", "repeated_behind"].includes(report.clock.drift_state ?? "") ? html`<p class="notice error">${this.t("health_clock_warning")}</p>` : nothing}
       <p>${this.t("health_delay")}: ${delays?.median ?? "—"} / ${delays?.p95 ?? "—"}</p>
       <p class="sub">${this.t("event_clock_hint")}</p>
+      ${report ? this.qualityView(report) : nothing}
       ${
         report
           ? html`<details class="media-path-evidence">

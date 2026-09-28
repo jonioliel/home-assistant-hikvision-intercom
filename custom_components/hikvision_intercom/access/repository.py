@@ -410,7 +410,19 @@ class AccessRepository:
                 return pin
         raise AccessError("pin_generation_failed")
 
-    def public(self) -> dict[str, Any]:
+    def public(self, *, include_users: bool = True) -> dict[str, Any]:
+        if not include_users:
+            return {
+                key: []
+                for key in (
+                    "users",
+                    "sync_operations",
+                    "revocations",
+                    "card_removals",
+                    "pin_removals",
+                    "tombstones",
+                )
+            }
         return deepcopy(
             {
                 "users": [

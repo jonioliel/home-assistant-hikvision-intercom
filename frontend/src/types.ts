@@ -154,6 +154,7 @@ export interface Tombstone {
   stations?: Record<string, { sync_state: string; last_error: string | null }>;
 }
 export interface Overview {
+  users_complete?: boolean;
   appearance_settings?: {
     revision: number;
     default: import("./appearance").Appearance;
@@ -188,6 +189,7 @@ export interface Overview {
   pin_removals: { id: string; user_id: string; targets: string[]; confirmed: string[] }[];
 }
 export interface UserDirectoryPage {
+  profile_facets?: Record<string, string[]>;
   records: Person[];
   total: number;
   total_all: number;

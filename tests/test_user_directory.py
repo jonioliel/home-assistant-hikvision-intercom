@@ -51,6 +51,24 @@ def test_query_is_stable_bounded_and_reports_snapshot_changes():
     assert query(changed, snapshot=first["snapshot"])["stale"]
 
 
+def test_profile_facets_cover_other_pages_without_altering_search_or_mutating_input():
+    records = [
+        user("a", "1", "Ada", profile={"dept": "Office"}),
+        user("b", "2", "Ben", profile={"dept": "Facilities", "role": "Technician"}),
+        user("c", "3", "Cam", profile={"dept": "Office", "role": ""}),
+    ]
+    result = query(records, query="Ada", limit=1)
+    assert result["total"] == 1 and result["total_all"] == 3
+    assert result["profile_facets"] == {"dept": ["Facilities", "Office"], "role": ["Technician"]}
+    result["profile_facets"]["dept"].clear()
+    assert records[0]["profile"] == {"dept": "Office"}
+
+
+def test_profile_facets_are_bounded():
+    records = [user(str(i), str(i), str(i), profile={"dept": f"dept-{i:03}"}) for i in range(250)]
+    assert len(query(records)["profile_facets"]["dept"]) == 200
+
+
 def test_query_matches_search_filters_validity_credentials_and_last_card_digits():
     records = [
         user(

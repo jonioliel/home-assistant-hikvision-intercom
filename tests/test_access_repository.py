@@ -2,7 +2,7 @@
 
 import asyncio
 from copy import deepcopy
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -53,6 +53,14 @@ async def test_private_roundtrip_and_masked_projection(repo):
     assert restored.get(user.id).cards[0].card_no.value == "000012345678"
     saved["users"].clear()
     assert len(repo.users()) == 1
+
+
+async def test_summary_never_materializes_people_or_identity_queues(repo):
+    await person(repo)
+    with patch.object(repo, "users", side_effect=AssertionError("identity serialization")):
+        summary = repo.public(include_users=False)
+    assert all(value == [] for value in summary.values())
+    assert len(repo.public()["users"]) == 1
 
 
 async def test_temporary_access_metadata_survives_restart_and_requires_expiry(repo):

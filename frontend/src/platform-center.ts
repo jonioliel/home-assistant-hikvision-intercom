@@ -4,6 +4,7 @@ import { ScopedRequests } from "./request";
 import { downloadText } from "./download";
 import type { Hass, Station } from "./types";
 import { translate } from "./i18n";
+import "./fleet-approval";
 
 type Values = Record<string, unknown>;
 interface Saved {
@@ -11,6 +12,7 @@ interface Saved {
   values: Values;
 }
 interface Center {
+  capabilities?: string[];
   revision: number;
   stations: Record<string, Saved>;
   templates: Record<string, Saved>;
@@ -568,7 +570,8 @@ export class PlatformCenter extends LitElement {
   }
   private configurationTab() {
     const selected = this.selectedIds;
-    return html`<article>
+    return html`${this.data?.capabilities?.includes("fleet_configuration_approval") ? html`<wiskey-fleet-approval .hass=${this.hass}></wiskey-fleet-approval>` : nothing}
+      <article>
         <h2>${this.copy("Compare and apply door settings", "השוואה והחלת הגדרות דלת")}</h2>
         <p class="sub">
           ${this.copy("Choose up to 12 stations. Only advertised writable fields are allowed. Each station is read, reviewed, written and verified separately.", "בחר עד 12 תחנות. רק שדות שהתחנה מפרסמת כתמיכה ניתנים לשינוי. כל תחנה נקראת, נסקרת, נכתבת ומאומתת בנפרד.")}

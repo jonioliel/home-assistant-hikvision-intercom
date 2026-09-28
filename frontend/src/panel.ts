@@ -594,6 +594,7 @@ export class IntercomManagerPanel extends LitElement {
     this._tab = tab;
     this.publishLocation(true);
     if (tab === "users") this.scheduleUserQuery(false);
+    if (this._summarySupported && this._data) void this.refresh();
   }
 
   private embed = false;
@@ -762,6 +763,7 @@ export class IntercomManagerPanel extends LitElement {
     this.pendingRequests.clear();
   }
   private clearPrivateState() {
+    this._profileFacets = {};
     this._guestApprovalRequired = false;
     this._guestApprover = "";
     this._approvalPending = undefined;
@@ -807,6 +809,8 @@ export class IntercomManagerPanel extends LitElement {
   private _userPageOffset = 0;
   private _userPageSize = 50;
   private _userSnapshot = "";
+  private _summarySupported?: boolean;
+  private _profileFacets: Record<string, string[]> = {};
   private _userQuerySequence = 0;
   private _userQueryTimer?: ReturnType<typeof setTimeout>;
   private _userColumns: string[] | null = null;
@@ -948,6 +952,8 @@ export class IntercomManagerPanel extends LitElement {
     this._userPage = undefined;
     this._userPageKey = "";
     this._userSnapshot = "";
+    this._summarySupported = undefined;
+    this._profileFacets = {};
     this._unsubscribe?.();
     this._unsubscribe = undefined;
     this._connecting = false;
@@ -976,6 +982,7 @@ export class IntercomManagerPanel extends LitElement {
     if (changed.has("hass")) {
       const identityChanged = this.sessionUser !== this.hass?.user?.id;
       const connectionChanged = this.connection !== this.hass?.connection;
+      if (identityChanged || connectionChanged) this._summarySupported = undefined;
       const administratorRoleDropped =
         Boolean(this._session?.is_admin) && !Boolean(this.hass?.user?.is_admin);
       if (identityChanged || administratorRoleDropped) {
@@ -1017,7 +1024,7 @@ export class IntercomManagerPanel extends LitElement {
         void this.connect();
       }
     }
-    if (changed.has("_data")) {
+    if (changed.has("_data") && this._data?.users_complete !== false) {
       const ids = new Set(this._data?.users.map((u) => u.id) ?? []);
       if ([...this._selectedUsers].some((id) => !ids.has(id)))
         this._selectedUsers = new Set([...this._selectedUsers].filter((id) => ids.has(id)));
@@ -1129,14 +1136,13 @@ export class IntercomManagerPanel extends LitElement {
       epoch = this._epoch;
     const send = () =>
       this.protectedHass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
-    const timeout =
-      command === "overview"
-        ? 20000
-        : command === "stations/test_unlock"
-          ? 30000
-          : slowManagementCommands.has(command)
-            ? 600000
-            : 60000;
+    const timeout = command.startsWith("overview")
+      ? 20000
+      : command === "stations/test_unlock"
+        ? 30000
+        : slowManagementCommands.has(command)
+          ? 600000
+          : 60000;
     const controller = new AbortController();
     this.pendingRequests.add(controller);
     try {
@@ -1167,7 +1173,8 @@ export class IntercomManagerPanel extends LitElement {
         this._refreshAgain = false;
         const epoch = this._epoch;
         try {
-          const data = await this.api<Overview>("overview");
+          const data = await this.loadOverview();
+          await this.hydratePeople(data);
           if (epoch === this._epoch && this.isConnected && this.authorized) {
             if (this._data && this.permissionStamp() !== this.permissionStamp(data.access)) {
               this._draft = undefined;
@@ -1185,6 +1192,7 @@ export class IntercomManagerPanel extends LitElement {
               this._userPage = undefined;
               this._userPageKey = "";
               this._userPageLoading = false;
+              this._profileFacets = {};
               this.clearCapture();
               this.resetPinValidation();
             }
@@ -1208,6 +1216,88 @@ export class IntercomManagerPanel extends LitElement {
       } while (this._refreshAgain && this.isConnected && this.authorized && this._haConnected);
     } finally {
       this._refreshing = false;
+    }
+  }
+  private async loadOverview(): Promise<Overview> {
+    if (this._summarySupported !== false) {
+      try {
+        const summary = await this.api<Overview>("overview/summary");
+        if (!summary || !Array.isArray(summary.stations) || summary.users_complete !== false)
+          throw { code: "unknown_command" };
+        this._summarySupported = true;
+        return summary;
+      } catch (error) {
+        if (
+          !["unknown_command", "unknown_error", "invalid_format"].includes(
+            (error as { code?: string })?.code ?? "",
+          )
+        )
+          throw error;
+        this._summarySupported = false;
+      }
+    }
+    return this.api<Overview>("overview");
+  }
+  private async hydratePeople(data: Overview) {
+    if (data.users_complete !== false) return;
+    const leanScreens = [
+      "overview",
+      "users",
+      "events",
+      "audit",
+      "camera_wall",
+      "clock_options",
+      "media_options",
+      "whatsapp_templates",
+      "access_control",
+      "platform_center",
+      "health",
+      "fleet_alerts",
+      "schedules",
+    ];
+    if (
+      !leanScreens.includes(this._tab) ||
+      this._dialog === "import" ||
+      (this._tab === "users" && !data.api?.commands.includes("users/query"))
+    ) {
+      if (data.api?.commands.includes("sync/status")) {
+        const status = await this.api<Overview>("sync/status");
+        for (const key of [
+          "users",
+          "sync_operations",
+          "tombstones",
+          "revocations",
+          "card_removals",
+          "pin_removals",
+        ] as const)
+          Object.assign(data, { [key]: status[key] });
+        data.users_complete = true;
+      } else if (data.api?.commands.includes("users/list")) {
+        data.users = await this.api<Person[]>("users/list");
+        data.users_complete = true;
+      }
+      return;
+    }
+    const ids = new Set(
+      [
+        this._draft?.id,
+        this._capture?.user.id,
+        this._review?.user_id,
+        this._detailsModalUser,
+        this._detailsUser,
+      ].filter((id): id is string => !!id),
+    );
+    if (data.api?.commands.includes("users/get")) {
+      for (const id of ids) {
+        try {
+          data.users.push(await this.api<Person>("users/get", { user_id: id }));
+        } catch (error) {
+          if (
+            !["user_not_found", "unauthorized"].includes((error as { code?: string })?.code ?? "")
+          )
+            throw error;
+        }
+      }
     }
   }
   private errorText(error: unknown) {
@@ -1311,12 +1401,42 @@ export class IntercomManagerPanel extends LitElement {
       this._userPageOffset = page.offset;
       this._userPageKey = this.userQueryKey(page.offset);
       this._userSnapshot = page.snapshot;
+      this._profileFacets = page.profile_facets ?? {};
+      if (this._summarySupported && this._data) {
+        const records = new Map(this._data.users.map((person) => [person.id, person]));
+        for (const person of page.records) records.set(person.id, person);
+        // Retain only this page and explicitly pinned editor/dialog records.
+        const pinned = new Set([
+          this._draft?.id,
+          this._capture?.user.id,
+          this._review?.user_id,
+          this._detailsModalUser,
+          this._detailsUser,
+        ]);
+        this._data = {
+          ...this._data,
+          users_complete: false,
+          user_count: page.total_all,
+          users: [...records.values()].filter(
+            (person) => pinned.has(person.id) || page.records.some((row) => row.id === person.id),
+          ),
+        };
+      }
       if (this._detailsUser && !page.records.some((item) => item.id === this._detailsUser))
         this._detailsUser = "";
     } catch {
       if (sequence === this._userQuerySequence) {
         this._userPage = undefined;
         this._userPageKey = "";
+        if (this._summarySupported && this._data?.api?.commands.includes("users/list")) {
+          try {
+            const users = await this.api<Person[]>("users/list");
+            if (sequence === this._userQuerySequence && this._data)
+              this._data = { ...this._data, users, users_complete: true };
+          } catch {
+            if (sequence === this._userQuerySequence) this._refreshFailed = true;
+          }
+        }
       }
     } finally {
       if (sequence === this._userQuerySequence) this._userPageLoading = false;
@@ -1385,6 +1505,11 @@ export class IntercomManagerPanel extends LitElement {
   }
   private pendingCount() {
     return this._data?.stations.reduce((sum, station) => sum + station.pending_user_count, 0) ?? 0;
+  }
+  private totalUserCount() {
+    return this._data?.users_complete === false
+      ? (this._data.user_count ?? 0)
+      : (this._data?.users.length ?? 0);
   }
   private zone(station?: Station) {
     return station?.clock?.zone ?? (station ? UTC_ZONE : (this._data?.default_zone ?? UTC_ZONE));
@@ -2554,6 +2679,10 @@ export class IntercomManagerPanel extends LitElement {
   private async loadInventory() {
     this._importRows = [];
     await this.run(async () => {
+      if (this._data?.users_complete === false) {
+        const users = await this.api<Person[]>("users/list");
+        this._data = { ...this._data, users, users_complete: true };
+      }
       this._importRows = await this.api<Inventory[]>("stations/inventory", {
         station_id: this._importStation,
       });
@@ -2959,7 +3088,7 @@ export class IntercomManagerPanel extends LitElement {
             ${[
               [`${all.filter((s) => s.online).length} / ${all.length}`, "online_stations"],
               [all.filter((s) => s.call_state === "ringing").length, "ringing_now"],
-              [this._data?.users.length ?? 0, "total_users"],
+              [this.totalUserCount(), "total_users"],
               [this.pendingCount(), "pending_sync"],
             ].map(
               ([n, k]) =>
@@ -3181,7 +3310,7 @@ export class IntercomManagerPanel extends LitElement {
               "health",
               "metric_ringing",
             ],
-            [this._data?.users.length ?? 0, "total_users", "users", "metric_users"],
+            [this.totalUserCount(), "total_users", "users", "metric_users"],
             [this.pendingCount(), "pending_sync", "sync", "metric_pending"],
           ].map(
             ([count, label, glyph, shortLabel]) =>
@@ -3450,7 +3579,7 @@ export class IntercomManagerPanel extends LitElement {
         ? this._userPage
         : undefined;
     const totalMatches = serverPage?.total ?? localMatches.length;
-    const totalUsers = serverPage?.total_all ?? this._data?.users.length ?? 0;
+    const totalUsers = serverPage?.total_all ?? this.totalUserCount();
     const pageOffset = this.supportsUserDirectory
       ? Math.min(
           serverPage?.offset ?? this._userPageOffset,
@@ -3648,7 +3777,7 @@ export class IntercomManagerPanel extends LitElement {
                         }}
                       >
                         <option value="">${this.t("filter_any")}</option>
-                        ${[...new Set((this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v))].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                        ${[...new Set([...(this._profileFacets[f.id] ?? []), ...(this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v), ...(this._userFilters.profile?.[f.id] ? [this._userFilters.profile[f.id]] : [])])].sort().map((v) => html`<option value=${v}>${v}</option>`)}
                       </select></label
                     >`,
                 )}

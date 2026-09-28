@@ -21,6 +21,7 @@ from ..exceptions import (
     HikvisionUnsupportedError,
     HikvisionValidationError,
 )
+from ..hardening import RequestMetrics
 from .models import AccessError, utc_now
 
 _LOGGER = logging.getLogger(__name__)
@@ -170,6 +171,10 @@ class SyncDiagnostics:
         self._rows: deque[dict[str, Any]] = deque(maxlen=200)
         self._active: OrderedDict[tuple[str, str | None], str] = OrderedDict()
         self._warnings: OrderedDict[str, float] = OrderedDict()
+        self._started: OrderedDict[tuple[str, str | None], float] = OrderedDict()
+        self._quality: OrderedDict[str, RequestMetrics] = OrderedDict()
+        self._repeat_counts: dict[str, int] = {}
+        self._failed: OrderedDict[tuple[str, str | None], None] = OrderedDict()
 
     def reference(self, value: str) -> str:
         return self._fingerprint({"sync_diagnostic_reference": value})[:12]
@@ -182,6 +187,13 @@ class SyncDiagnostics:
 
     def stage(self, station: str, user: str | None, step: str) -> None:
         key = self._key(station, user)
+        if user is not None and key not in self._started:
+            self._started[key] = monotonic()
+            if key in self._failed:
+                self._repeat_counts[key[0]] = self._repeat_counts.get(key[0], 0) + 1
+                self._failed.pop(key)
+            if len(self._started) > 64:
+                self._started.popitem(last=False)
         self._active[key] = step if step in STEPS else "reconcile"
         self._active.move_to_end(key)
         if len(self._active) > 64:
@@ -197,8 +209,29 @@ class SyncDiagnostics:
         outcome: str = "succeeded",
     ) -> None:
         key = self._key(station, user)
+        started = self._started.pop(key, None)
+        if started is not None and outcome != "cancelled":
+            metrics = self._quality.setdefault(key[0], RequestMetrics())
+            metrics.record(monotonic() - started, error is not None)
+            self._quality.move_to_end(key[0])
+            if len(self._quality) > 256:
+                evicted, _ = self._quality.popitem(last=False)
+                self._repeat_counts.pop(evicted, None)
+            if error:
+                self._failed[key] = None
+                if len(self._failed) > 256:
+                    self._failed.popitem(last=False)
         step = self._active.pop(key, "complete")
         self._record(key, step, "failed" if error else outcome, error)
+
+    def quality(self, station: str) -> dict[str, Any]:
+        reference = self.reference(station)
+        metrics = self._quality.get(reference)
+        return {
+            **(metrics.quality() if metrics else RequestMetrics().quality()),
+            "repeat_attempts_after_failure": self._repeat_counts.get(reference, 0),
+            "scope": "person_reconciliation_attempt_not_queue_wait_or_physical_access",
+        }
 
     def _record(
         self,

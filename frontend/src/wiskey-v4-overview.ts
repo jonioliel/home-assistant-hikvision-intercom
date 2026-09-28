@@ -78,7 +78,11 @@ export function wiskeyOverview(o: WiskeyOverviewOptions) {
         <strong><bdi dir="ltr">${all.filter((s) => s.online).length} / ${all.length}</bdi></strong
         ><span>${o.t("online_stations")}</span>
       </div>
-      <div><strong>${o.data.users.length}</strong><span>${o.t("total_users")}</span></div>
+      <div>
+        <strong
+          >${o.data.users_complete === false ? (o.data.user_count ?? 0) : o.data.users.length}</strong
+        ><span>${o.t("total_users")}</span>
+      </div>
       <div><strong>${ringing.length}</strong><span>${o.t("ringing_now")}</span></div>
       ${
         o.canSync

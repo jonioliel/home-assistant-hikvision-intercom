@@ -328,7 +328,7 @@ export class OperationsCenter extends LitElement {
   }
   render() {
     const summary = this._page?.summary ?? {};
-    return html`${this.canCheckpoint ? html`<wiskey-checkpoint-jobs .hass=${this.hass}></wiskey-checkpoint-jobs>` : nothing}
+    return html`${this.canCheckpoint ? html`<wiskey-checkpoint-jobs .hass=${this.hass} .stations=${this.stations}></wiskey-checkpoint-jobs>` : nothing}
       <div class="heading">
         <div>
           <h2>${this.t("jobs_title")}</h2>

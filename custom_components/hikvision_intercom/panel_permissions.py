@@ -471,6 +471,7 @@ def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
 
     if command in {
         "overview",
+        "overview/summary",
         "appearance/settings_get",
         "security/session",
         "security/touch",
@@ -569,6 +570,7 @@ SCOPED_COMMON_COMMANDS = frozenset(
         "fleet/alerts",
         "clock/settings_get",
         "overview",
+        "overview/summary",
         "sync/status",
         "appearance/settings_get",
         "stations/list",

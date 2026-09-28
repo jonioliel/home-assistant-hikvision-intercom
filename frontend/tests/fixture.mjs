@@ -178,6 +178,10 @@ const data = {
   card_removals: [],
   pin_removals: [],
 };
+if (query.has("summary")) {
+  data.api.capabilities.push("overview_summary");
+  data.api.commands.push("overview/summary", "sync/status", "users/list", "users/get");
+}
 const people = hebrew
   ? ["אור לוי", "דנה כהן", "יובל ברק", "נועה ישראלי", "צוות אחזקה", "אורח זמני"]
   : ["Or Levy", "Dana Cohen", "Yuval Barak", "Noa Israeli", "Maintenance", "Temporary guest"];
@@ -1609,8 +1613,26 @@ const fake = {
       if (!person) throw { code: "user_not_found" };
       return { ...structuredClone(person), phone: person.phone ?? "0501234567" };
     }
-    if (command === "overview") return structuredClone(data);
+    if (command === "overview" || command === "sync/status") return structuredClone(data);
+    if (command === "users/list") return structuredClone(data.users);
+    if (command === "overview/summary") {
+      if (!query.has("summary")) throw { code: "unknown_command" };
+      const summary = structuredClone(data);
+      summary.users = [];
+      summary.users_complete = false;
+      summary.user_count = data.users.length;
+      for (const key of [
+        "sync_operations",
+        "tombstones",
+        "revocations",
+        "card_removals",
+        "pin_removals",
+      ])
+        summary[key] = [];
+      return summary;
+    }
     if (command === "users/query") {
+      if (query.has("query-fails")) throw { code: "fixture_query_failed" };
       const text = String(message.query ?? "")
         .trim()
         .toLocaleLowerCase();
@@ -1635,6 +1657,12 @@ const fake = {
         records: structuredClone(filtered.slice(offset, offset + message.limit)),
         total: filtered.length,
         total_all: data.users.length,
+        profile_facets: Object.fromEntries(
+          data.profile_settings.fields.map((field) => [
+            field.id,
+            [...new Set(data.users.map((user) => user.profile?.[field.id]).filter(Boolean))].sort(),
+          ]),
+        ),
         offset,
         limit: message.limit,
         next_offset: offset + message.limit < filtered.length ? offset + message.limit : null,

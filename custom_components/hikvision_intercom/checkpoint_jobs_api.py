@@ -23,7 +23,21 @@ async def dispatch_jobs(
         raise AccessError("jobs_unavailable")
     manager = get_manager(hass)
     if command == "jobs/list":
-        return {"records": jobs.records(actor)}
+        return {
+            "records": jobs.records(actor),
+            "reviews": jobs.pending_reviews(actor),
+            "dual_approval": hass.data[DOMAIN]["workflows"].settings()["dual_approval"],
+        }
+    if command == "jobs/approval_review":
+        return jobs.approval_review(actor, msg["job_id"])
+    if command in {"jobs/approval_request", "jobs/approval_decide"}:
+        if msg.get("confirmed") is not True:
+            raise AccessError("confirmation_required")
+        if command == "jobs/approval_request":
+            return await jobs.approval_request(actor, msg["job_id"], msg["revision"], msg["action"])
+        return await jobs.approval_decide(
+            actor, msg["job_id"], msg["revision"], msg["review_id"], msg["approve"]
+        )
     if command == "jobs/errors":
         return {"csv": jobs.error_csv(actor, msg["job_id"])}
     if command == "jobs/action":

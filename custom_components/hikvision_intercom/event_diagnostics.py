@@ -6,6 +6,7 @@ from collections import Counter, deque
 from datetime import UTC, datetime
 from math import ceil
 from statistics import median
+from time import monotonic
 from typing import Any
 
 from .events import timestamp
@@ -86,6 +87,22 @@ class EventTelemetry:
         self.last_received: str | None = None
         self.last_live: str | None = None
         self.started_at = datetime.now(UTC).isoformat()
+        self._ever_connected = False
+        self._gap_started: float | None = None
+        self._gap_seconds = 0.0
+        self._gap_count = 0
+
+    def transport_connected(self) -> None:
+        self._ever_connected = True
+        if self._gap_started is not None:
+            self._gap_seconds += max(0, monotonic() - self._gap_started)
+            self._gap_started = None
+
+    def transport_disconnected(self) -> None:
+        # Initial connection and quiet periods are not evidence of lost events.
+        if self._ever_connected and self._gap_started is None:
+            self._gap_started = monotonic()
+            self._gap_count += 1
 
     def observe(self, row: dict[str, Any], accepted: bool) -> None:
         self.seen += 1
@@ -105,6 +122,21 @@ class EventTelemetry:
         values = sorted(self.delays)
         return {
             "started_at": self.started_at,
+            "transport_gaps": {
+                "count": self._gap_count,
+                "disconnected_seconds": round(
+                    self._gap_seconds
+                    + (
+                        max(0, monotonic() - self._gap_started)
+                        if self._gap_started is not None
+                        else 0
+                    ),
+                    1,
+                ),
+                "open": self._gap_started is not None,
+                "lost_event_count": None,
+                "basis": "observed_transport_interruption_not_proof_of_missing_events",
+            },
             "seen": self.seen,
             "accepted": self.accepted,
             "duplicates": self.seen - self.accepted,
