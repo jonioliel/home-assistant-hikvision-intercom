@@ -81,6 +81,10 @@ async def test_csv_job_requires_a_current_second_admin_and_an_explicit_resume(
     repo = hass.data[DOMAIN]["access"].repository
     assert not repo.users()
     if revoked:
+        # Close the reviewer's transport before revoking its infrastructure token;
+        # authorization is still checked against the real, now inactive user.
+        await second.close()
+        await hass.async_block_till_done()
         await hass.auth.async_update_user(user, is_active=False)
     resumed = await request(
         owner,
@@ -148,6 +152,8 @@ async def test_fleet_approval_is_read_only_then_rechecked_before_write(
         assert (await request(second, "platform/config_decide", **values))["success"]
         write.assert_not_called()
         if revoked:
+            await second.close()
+            await hass.async_block_till_done()
             await hass.auth.async_update_user(user, is_active=False)
         result = await request(owner, "platform/config_apply", review_id=token, confirmed=True)
         if revoked:

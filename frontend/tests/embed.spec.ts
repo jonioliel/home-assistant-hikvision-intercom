@@ -453,7 +453,9 @@ for (const scenario of [
       }),
     );
     await page.clock.install();
-    await page.goto("/embed-host.html");
+    // The adapter owns initial navigation. An already loading users fixture can
+    // finish after refresh in WebKit and race the adapter's overview navigation.
+    await page.goto("/embed-host.html?frame=about%3Ablank");
     await page.evaluate(async () => {
       const { attachWiskey } = await import("/wiskey-embed-client.mjs");
       (window as any).adapterEvents = [];
