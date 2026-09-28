@@ -223,7 +223,7 @@ class VisitApprover extends VisitContext {
                   @change=${(e: Event) => this.change(true, (e.target as HTMLSelectElement).value)}
                 >
                   <option value="">${this.t("visit_choose_approver")}</option>
-                  ${this.operators.map((item) => html`<option value=${item.id}>${item.name || item.id}</option>`)}
+                  ${this.operators.map((item) => html`<option value=${item.id} ?selected=${this.selected === item.id}>${item.name || item.id}</option>`)}
                 </select></label
               >${!this.busy && !this.operators.length ? html`<p class="error" role="alert">${this.t("visit_no_approver")}</p>` : nothing}`
           : nothing
@@ -478,7 +478,7 @@ export class VisitRequestsPanel extends VisitContext {
                   }}
                 >
                   <option value="">${this.t("visit_choose_approver")}</option>
-                  ${this.operators.filter((item) => item.id !== actor).map((item) => html`<option value=${item.id}>${item.name || item.id}</option>`)}
+                  ${this.operators.filter((item) => item.id !== actor).map((item) => html`<option value=${item.id} ?selected=${this.approver === item.id}>${item.name || item.id}</option>`)}
                 </select></label
               >
               <div class="row actions">

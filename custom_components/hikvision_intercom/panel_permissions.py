@@ -211,6 +211,7 @@ _WRITE_EVENTS = {
     "events/trace_stop",
 }
 _READ_STATIONS = {
+    "fleet/alerts",
     "stations/list",
     "stations/get",
     "stations/inventory",
@@ -227,6 +228,7 @@ _READ_STATIONS = {
     "stations/permission_audit",
 }
 _WRITE_STATIONS = {
+    "fleet/alerts_action",
     "stations/rescan",
     "stations/technical_codes_write",
     "stations/technical_hold_delete",

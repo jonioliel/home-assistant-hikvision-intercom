@@ -67,6 +67,21 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "fleet/alerts": {
+        "offset": int,
+        "limit": int,
+        "station_id": str,
+        "kind": str,
+        "include_suppressed": bool,
+    },
+    "fleet/alerts_action": {
+        "revision": int,
+        "station_id": str,
+        "kind": str,
+        "action": str,
+        "duration_minutes": int,
+        "reason": str,
+    },
     "visits/operators": {},
     "visits/list": {"offset": int, "limit": int},
     "visits/create": {"data": dict, "approver_id": str},
@@ -839,6 +854,10 @@ async def _dispatch_inner(
         return {"photo": manager.repository.get(msg["user_id"]).photo}
     if command == "users/get":
         return manager.repository.get(msg["user_id"]).public()
+    if command in {"fleet/alerts", "fleet/alerts_action"}:
+        from .fleet_alerts_api import dispatch_alerts
+
+        return await dispatch_alerts(hass, command, msg, actor)
     if command.startswith("guest_templates/"):
         from .guest_templates_api import dispatch_templates
 

@@ -1,4 +1,63 @@
 const en = {
+  fleet_alerts: "Station alerts",
+  tools_fleet_alerts:
+    "Deduplicated warnings for connectivity, synchronization, event streams and clocks, with expiring snooze and maintenance controls.",
+  fleet_alert_intro:
+    "Warnings use existing observations and refresh every 30 seconds while this view is visible. They do not send device commands.",
+  fleet_alert_active: "Active",
+  fleet_alert_suppressed: "Snoozed or in maintenance",
+  fleet_alert_kind: "Alert type",
+  fleet_alert_offline: "Station unavailable",
+  fleet_alert_sync_stalled: "Synchronization delayed",
+  fleet_alert_sync_conflict: "Synchronization conflict",
+  fleet_alert_sync_error: "Synchronization error",
+  fleet_alert_event_gap: "Event stream interrupted",
+  fleet_alert_clock_drift: "Repeated clock drift",
+  fleet_alert_maintenance: "Station maintenance",
+  fleet_alert_help_offline:
+    "Check power and network connectivity. After recovery, confirm the station reconnects and pending synchronization completes.",
+  fleet_alert_help_sync_stalled:
+    "Inspect synchronization progress and the affected user. A delayed record must not block the other users; review its error before requesting another sync.",
+  fleet_alert_help_sync_conflict:
+    "Review the station's conflicting record and choose the desired data source. Do not overwrite an unexplained difference automatically.",
+  fleet_alert_help_sync_error:
+    "Inspect the failing user's synchronization details. Correct the reported credential, capacity or device problem before retrying.",
+  fleet_alert_help_event_gap:
+    "Review the live event stream and history recovery. A working camera does not confirm that access events are being recorded.",
+  fleet_alert_help_clock_drift:
+    "Review the measured clock evidence and configured time server. This alert requires a repeated, fresh measurement.",
+  fleet_alert_first_observed: "First observed in the current recorded sequence",
+  fleet_alert_time_unknown:
+    "The first detection time is unavailable; no outage duration is inferred.",
+  fleet_alert_show_suppressed: "Show snoozed alerts",
+  fleet_alert_review: "Review alert presentation change",
+  fleet_alert_observation_only:
+    "This changes alert presentation only. It does not unlock a door, stop event recording, disable a user or repair the station.",
+  fleet_alert_duration: "Duration",
+  fleet_alert_duration_15: "15 minutes",
+  fleet_alert_duration_60: "1 hour",
+  fleet_alert_duration_240: "4 hours",
+  fleet_alert_duration_1440: "1 day",
+  fleet_alert_duration_10080: "7 days",
+  fleet_alert_reason: "Reason",
+  fleet_alert_reason_planned_maintenance: "Planned maintenance",
+  fleet_alert_reason_network_work: "Network work",
+  fleet_alert_reason_investigating: "Under investigation",
+  fleet_alert_until: "Until",
+  fleet_alert_open_station: "Open station details",
+  fleet_alert_snooze: "Snooze this alert",
+  fleet_alert_set_maintenance: "Set maintenance period",
+  fleet_alert_confirm_suppress: "Confirm suppression",
+  fleet_alert_confirm_restore: "Restore alert presentation",
+  fleet_alert_restore: "Restore now",
+  fleet_alert_suppressions: "Active suppression periods",
+  fleet_alert_action_saved: "Alert presentation updated. Device operation was preserved.",
+  fleet_alert_empty: "No matching active alerts.",
+  fleet_alert_matching: "matching alerts",
+  fleet_alerts_unavailable:
+    "The alert settings store is unavailable. Repair its stored data before making changes.",
+  fleet_alert_limit:
+    "The alert suppression store is full. Restore obsolete suppression periods first.",
   visit_requests: "Visit approvals",
   tools_visit_requests:
     "Review visitor and contractor requests before activating their access. The selected second operator approves the exact doors and validity window.",
@@ -2100,6 +2159,63 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  fleet_alerts: "התראות תחנות",
+  tools_fleet_alerts:
+    "התראות מאוחדות על תקשורת, סנכרון, אירועים ושעונים, עם השהיה זמנית ומצב תחזוקה.",
+  fleet_alert_intro:
+    "ההתראות משתמשות במדידות קיימות ומתעדכנות כל 30 שניות כשהמסך מוצג. הן אינן שולחות פקודות לציוד.",
+  fleet_alert_active: "פעילות",
+  fleet_alert_suppressed: "מושהות או בתחזוקה",
+  fleet_alert_kind: "סוג התראה",
+  fleet_alert_offline: "תחנה אינה זמינה",
+  fleet_alert_sync_stalled: "עיכוב בסנכרון",
+  fleet_alert_sync_conflict: "קונפליקט בסנכרון",
+  fleet_alert_sync_error: "שגיאת סנכרון",
+  fleet_alert_event_gap: "זרם האירועים נקטע",
+  fleet_alert_clock_drift: "סטיית שעון חוזרת",
+  fleet_alert_maintenance: "תחזוקת תחנה",
+  fleet_alert_help_offline:
+    "יש לבדוק חשמל ותקשורת רשת. לאחר חזרת החיבור, יש לוודא שהתחנה מתחברת מחדש ושהסנכרון הממתין הושלם.",
+  fleet_alert_help_sync_stalled:
+    "יש לבדוק את התקדמות הסנכרון ואת המשתמש המושפע. רשומה שמתעכבת אינה אמורה לחסום את האחרות; מומלץ לקרוא את השגיאה לפני סנכרון נוסף.",
+  fleet_alert_help_sync_conflict:
+    "יש לבדוק את הרשומה שבקונפליקט ולבחור את מקור הנתונים הרצוי. אין לדרוס הבדל שלא הוסבר באופן אוטומטי.",
+  fleet_alert_help_sync_error:
+    "יש לבדוק את פרטי הסנכרון של המשתמש שנכשל ולתקן את בעיית הכרטיס, הקיבולת או הציוד שדווחה לפני ניסיון נוסף.",
+  fleet_alert_help_event_gap:
+    "יש לבדוק את זרם האירועים ואת השלמת ההיסטוריה. מצלמה פועלת אינה מאשרת שאירועי הגישה נרשמים.",
+  fleet_alert_help_clock_drift:
+    "יש לבדוק את מדידת השעון ואת שרת הזמן שהוגדר. התראה זו מבוססת על מדידה חוזרת ועדכנית.",
+  fleet_alert_first_observed: "נצפה לראשונה ברצף המדידות הנוכחי",
+  fleet_alert_time_unknown: "מועד הזיהוי הראשון אינו זמין; לא מחושב משך ניתוק משוער.",
+  fleet_alert_show_suppressed: "הצגת התראות מושהות",
+  fleet_alert_review: "בדיקת שינוי הצגת התראה",
+  fleet_alert_observation_only:
+    "הפעולה משנה רק את הצגת ההתראות. היא אינה פותחת דלת, מפסיקה רישום אירועים, מבטלת משתמש או מתקנת את התחנה.",
+  fleet_alert_duration: "משך",
+  fleet_alert_duration_15: "15 דקות",
+  fleet_alert_duration_60: "שעה",
+  fleet_alert_duration_240: "4 שעות",
+  fleet_alert_duration_1440: "יום",
+  fleet_alert_duration_10080: "7 ימים",
+  fleet_alert_reason: "סיבה",
+  fleet_alert_reason_planned_maintenance: "תחזוקה מתוכננת",
+  fleet_alert_reason_network_work: "עבודות רשת",
+  fleet_alert_reason_investigating: "בבדיקה",
+  fleet_alert_until: "עד",
+  fleet_alert_open_station: "פתיחת פרטי התחנה",
+  fleet_alert_snooze: "השהיית התראה זו",
+  fleet_alert_set_maintenance: "הגדרת תקופת תחזוקה",
+  fleet_alert_confirm_suppress: "אישור השהיה",
+  fleet_alert_confirm_restore: "החזרת הצגת ההתראות",
+  fleet_alert_restore: "החזרה כעת",
+  fleet_alert_suppressions: "תקופות השהיה פעילות",
+  fleet_alert_action_saved: "הצגת ההתראות עודכנה. פעילות הציוד נשמרה.",
+  fleet_alert_empty: "אין התראות פעילות שמתאימות לסינון.",
+  fleet_alert_matching: "התראות מתאימות",
+  fleet_alerts_unavailable:
+    "מאגר הגדרות ההתראות אינו זמין. יש לתקן את הנתונים השמורים לפני שינוי ההגדרות.",
+  fleet_alert_limit: "מאגר השהיית ההתראות מלא. יש לבטל קודם תקופות השהיה שאינן דרושות.",
   visit_requests: "אישורי ביקור",
   tools_visit_requests:
     "אישור ביקורי אורחים וקבלנים לפני הפעלת ההרשאה. מפעיל נוסף בודק את הדלתות ואת זמני התוקף שנבחרו.",

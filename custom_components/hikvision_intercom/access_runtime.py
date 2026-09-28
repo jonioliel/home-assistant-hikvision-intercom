@@ -215,7 +215,19 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         issue(hass, "acceptance_storage_corrupt", active=False)
         hass.data[DOMAIN]["acceptance"] = acceptance
 
+    from .fleet_alerts import FleetAlerts
     from .fleet_health import FleetHealth
+
+    alert_store = AccessStore(hass, key=f"{DOMAIN}.fleet_alerts")
+    fleet_alerts = FleetAlerts(alert_store.async_save, changed)
+    try:
+        fleet_alerts.load(await alert_store.async_load())
+    except AccessError:
+        issue(hass, "fleet_alerts_storage_corrupt", active=True)
+        hass.data[DOMAIN]["fleet_alerts"] = None
+    else:
+        issue(hass, "fleet_alerts_storage_corrupt", active=False)
+        hass.data[DOMAIN]["fleet_alerts"] = fleet_alerts
 
     fleet_store = AccessStore(hass, key=f"{DOMAIN}.fleet_health")
     fleet_health = FleetHealth(fleet_store.async_save)

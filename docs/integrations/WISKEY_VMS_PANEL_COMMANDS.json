@@ -307,6 +307,31 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/fleet/alerts": {
+      "required": {
+        "offset": "int",
+        "limit": "int",
+        "station_id": "str",
+        "kind": "str",
+        "include_suppressed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/fleet/alerts_action": {
+      "required": {
+        "revision": "int",
+        "station_id": "str",
+        "kind": "str",
+        "action": "str",
+        "duration_minutes": "int",
+        "reason": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/fleet/inventory_export": {
       "required": {
         "format": "str"

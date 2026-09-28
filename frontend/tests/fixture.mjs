@@ -389,6 +389,39 @@ const visitRequests = {
     : [],
 };
 window.visitRequests = visitRequests;
+if (query.has("fleet-alerts")) {
+  data.api.capabilities.push("fleet_triage_alerts");
+  data.api.commands.push("fleet/alerts", "fleet/alerts_action");
+}
+const fleetAlerts = {
+  revision: 0,
+  suppressions: [],
+  items: [
+    {
+      id: "station-0/sync_conflict",
+      station_id: "station-0",
+      station_name: names[0],
+      kind: "sync_conflict",
+      severity: "error",
+      observed_since: new Date(Date.now() - 3600000).toISOString(),
+      observed_seconds: 3600,
+      suppressed: false,
+      suppression: null,
+    },
+    {
+      id: "station-1/event_gap",
+      station_id: "station-1",
+      station_name: names[1],
+      kind: "event_gap",
+      severity: "warning",
+      observed_since: new Date(Date.now() - 1800000).toISOString(),
+      observed_seconds: 1800,
+      suppressed: false,
+      suppression: null,
+    },
+  ],
+};
+window.fleetAlerts = fleetAlerts;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -1473,6 +1506,51 @@ const fake = {
       return structuredClone(user);
     }
     if (command === "guest_templates/get") return structuredClone(guestTemplates);
+    if (command === "fleet/alerts") {
+      const policies = fleetAlerts.suppressions.filter((row) => Date.parse(row.until) > Date.now());
+      const rows = fleetAlerts.items.map((item) => {
+        const suppression = policies.find(
+          (row) =>
+            row.station_id === item.station_id &&
+            (row.kind === item.kind || row.kind === "maintenance"),
+        );
+        return { ...item, suppressed: !!suppression, suppression: suppression ?? null };
+      });
+      const filtered = rows.filter(
+        (row) =>
+          (message.include_suppressed || !row.suppressed) &&
+          (!message.station_id || row.station_id === message.station_id) &&
+          (!message.kind || row.kind === message.kind),
+      );
+      return {
+        revision: fleetAlerts.revision,
+        generated_at: new Date().toISOString(),
+        items: structuredClone(filtered.slice(message.offset, message.offset + message.limit)),
+        total: filtered.length,
+        offset: message.offset,
+        next_offset: null,
+        active_count: rows.filter((row) => !row.suppressed).length,
+        suppressed_count: rows.filter((row) => row.suppressed).length,
+        suppressions: structuredClone(policies),
+      };
+    }
+    if (command === "fleet/alerts_action") {
+      if (message.revision !== fleetAlerts.revision) throw { code: "revision_conflict" };
+      fleetAlerts.suppressions = fleetAlerts.suppressions.filter(
+        (row) => !(row.station_id === message.station_id && row.kind === message.kind),
+      );
+      if (message.action === "suppress")
+        fleetAlerts.suppressions.push({
+          station_id: message.station_id,
+          kind: message.kind,
+          reason: message.reason,
+          until: new Date(Date.now() + message.duration_minutes * 60000).toISOString(),
+          created_at: new Date().toISOString(),
+          actor: this.user.id,
+        });
+      fleetAlerts.revision++;
+      return { revision: fleetAlerts.revision };
+    }
     if (command === "visits/operators")
       return {
         operators: [
