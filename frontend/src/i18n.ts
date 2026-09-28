@@ -1,4 +1,66 @@
 const en = {
+  investigations: "Access investigation",
+  investigation_user: "User",
+  investigation_user_details: "User details",
+  investigation_details: "Details",
+  investigation_employee_no: "Employee ID",
+  investigation_revision: "Revision",
+  investigation_results: "Results",
+  investigation_choose: "Choose",
+  investigation_apply: "Apply",
+  investigation_previous: "Previous",
+  investigation_next: "Next",
+  investigation_missing_user: "Deleted or unavailable person",
+  investigation_missing_station: "Removed or unavailable station",
+  tools_investigations:
+    "Read-only access events, permission changes and latest synchronization evidence. Available to system administrators.",
+  investigation_filters: "Investigation filters",
+  investigation_source: "Evidence source",
+  investigation_source_all: "All evidence",
+  investigation_source_access: "Access events",
+  investigation_source_change: "Permission changes",
+  investigation_source_sync: "Synchronization",
+  investigation_period: "Period",
+  investigation_period_1: "Last 24 hours",
+  investigation_period_7: "Last 7 days",
+  investigation_period_30: "Last 30 days",
+  investigation_period_all: "All retained evidence",
+  investigation_run: "Run investigation",
+  investigation_saved: "Saved investigation filters",
+  investigation_saved_scope:
+    "Filters are saved for this operator in this browser. Relative periods are recalculated on use. Event records and credentials are not stored here.",
+  investigation_view_name: "Filter name",
+  investigation_save_view: "Save current filters",
+  investigation_reload_views: "Reload saved filters",
+  investigation_saved_error:
+    "Saved filters changed elsewhere, are unavailable or are invalid. Existing data was preserved; reload before saving.",
+  investigation_limits:
+    "Events and changes retain up to 30 days. Synchronization shows the latest retained operation for each user and station. Missing evidence does not prove that no action occurred; chronological proximity does not prove causation.",
+  investigation_stale:
+    "Evidence changed while paging. Refresh from the beginning before continuing.",
+  investigation_access_unavailable:
+    "Access events are unavailable or their persistence failed. Other sources do not constitute a complete access history.",
+  investigation_download_page: "Download current page",
+  investigation_operator: "Operator",
+  investigation_fields: "Changed fields",
+  investigation_queued: "Queued",
+  investigation_verified: "Device readback verified",
+  investigation_received: "Received by the system",
+  investigation_evidence_device_event:
+    "The station reported this event; a saved permission change alone does not prove physical access.",
+  investigation_evidence_device_readback:
+    "The desired record was verified by device readback; this does not prove a person entered.",
+  investigation_evidence_desired_state_saved:
+    "The desired permission change was saved; verify subsequent station synchronization separately.",
+  investigation_evidence_sync_journal:
+    "Latest synchronization evidence; completion without readback does not verify device state.",
+  investigation_identity_observed_station_owner:
+    "Identity linked to observed station ownership at event time",
+  investigation_identity_device_record_only:
+    "Device record only; no proven link to a managed person",
+  investigation_recovered: "Recovered or historical event",
+  investigation_time_device: "Time reported by the station",
+  investigation_time_received: "Time of system reception",
   fleet_alerts: "Station alerts",
   tools_fleet_alerts:
     "Deduplicated warnings for connectivity, synchronization, event streams and clocks, with expiring snooze and maintenance controls.",
@@ -2159,6 +2221,65 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  investigations: "תחקור גישה",
+  investigation_user: "אדם",
+  investigation_user_details: "פרטי אדם",
+  investigation_details: "פרטים",
+  investigation_employee_no: "מזהה עובד",
+  investigation_revision: "גרסת רשומה",
+  investigation_results: "תוצאות",
+  investigation_choose: "בחירה",
+  investigation_apply: "הפעלת מסנן שמור",
+  investigation_previous: "הקודם",
+  investigation_next: "הבא",
+  investigation_missing_user: "אדם שנמחק או אינו זמין",
+  investigation_missing_station: "תחנה שהוסרה או אינה זמינה",
+  tools_investigations:
+    "אירועי כניסה, שינויי הרשאות וראיות סנכרון אחרונות לקריאה בלבד. זמין למנהלי המערכת.",
+  investigation_filters: "מסנני תחקור",
+  investigation_source: "מקור המידע",
+  investigation_source_all: "כל המקורות",
+  investigation_source_access: "אירועי כניסה",
+  investigation_source_change: "שינויי הרשאות",
+  investigation_source_sync: "סנכרון",
+  investigation_period: "תקופה",
+  investigation_period_1: "24 שעות אחרונות",
+  investigation_period_7: "7 ימים אחרונים",
+  investigation_period_30: "30 ימים אחרונים",
+  investigation_period_all: "כל המידע שנשמר",
+  investigation_run: "הפעלת תחקור",
+  investigation_saved: "מסנני תחקור שמורים",
+  investigation_saved_scope:
+    "המסננים נשמרים למפעיל הנוכחי בדפדפן זה. טווח יחסי מחושב מחדש בעת הפעלתו. אירועים וקודי גישה אינם נשמרים כאן.",
+  investigation_view_name: "שם המסנן",
+  investigation_save_view: "שמירת המסננים הנוכחיים",
+  investigation_reload_views: "טעינת המסננים השמורים מחדש",
+  investigation_saved_error:
+    "המסננים השמורים השתנו במקום אחר, אינם נגישים או אינם תקינים. המידע הקיים נשמר; יש לטעון אותו לפני שמירה נוספת.",
+  investigation_limits:
+    "אירועים ושינויים נשמרים עד 30 ימים. סנכרון מציג את הפעולה האחרונה שנשמרה לכל אדם ותחנה. חוסר במידע אינו מוכיח שלא בוצעה פעולה; סמיכות בזמנים אינה מוכיחה קשר סיבתי.",
+  investigation_stale: "המידע השתנה במהלך העימוד. יש לרענן מתחילת הדוח לפני שממשיכים.",
+  investigation_access_unavailable:
+    "אירועי הכניסה אינם זמינים או ששמירתם נכשלה. המקורות האחרים אינם מהווים היסטוריית כניסה מלאה.",
+  investigation_download_page: "הורדת העמוד הנוכחי",
+  investigation_operator: "מפעיל",
+  investigation_fields: "שדות שהשתנו",
+  investigation_queued: "נוסף לתור",
+  investigation_verified: "אומת בקריאה חוזרת מהתחנה",
+  investigation_received: "התקבל במערכת",
+  investigation_evidence_device_event:
+    "התחנה דיווחה על האירוע; שינוי הרשאה שנשמר לבדו אינו מוכיח כניסה פיזית.",
+  investigation_evidence_device_readback:
+    "הרשומה הרצויה אומתה בקריאה חוזרת מהתחנה; אין בכך הוכחה שאדם נכנס.",
+  investigation_evidence_desired_state_saved:
+    "שינוי ההרשאה הרצוי נשמר; יש לבדוק בנפרד את הסנכרון לתחנה.",
+  investigation_evidence_sync_journal:
+    "מידע מיומן הסנכרון האחרון; סיום ללא קריאה חוזרת אינו אימות מצב התחנה.",
+  investigation_identity_observed_station_owner: "הזהות שויכה לבעלים שאומת בתחנה בזמן האירוע",
+  investigation_identity_device_record_only: "רשומת ציוד בלבד; אין שיוך מוכח לאדם מנוהל",
+  investigation_recovered: "אירוע משוחזר או היסטורי",
+  investigation_time_device: "זמן שדווח בתחנה",
+  investigation_time_received: "זמן קליטה במערכת",
   fleet_alerts: "התראות תחנות",
   tools_fleet_alerts:
     "התראות מאוחדות על תקשורת, סנכרון, אירועים ושעונים, עם השהיה זמנית ומצב תחזוקה.",

@@ -422,6 +422,48 @@ const fleetAlerts = {
   ],
 };
 window.fleetAlerts = fleetAlerts;
+if (query.has("investigations")) {
+  data.api.capabilities.push("investigation_timeline");
+  data.api.commands.push("investigations/query");
+}
+const investigationRows = ["access", "sync", "change"].map((source, i) => ({
+  id: `${source}/example`,
+  source,
+  time: new Date(Date.now() - i * 60000).toISOString(),
+  received_at: source === "access" ? new Date().toISOString() : null,
+  time_source: source === "access" ? "device" : "system",
+  user_id: data.users[0].id,
+  person_name: data.users[0].display_name,
+  employee_no: data.users[0].employee_no,
+  station_ids: ["station-0"],
+  action:
+    source === "access"
+      ? "access_granted"
+      : source === "sync"
+        ? "sync/user_station"
+        : "users/update",
+  status: source === "access" ? "granted" : source === "sync" ? "verified" : "saved",
+  actor: source === "change" ? "demo-admin" : null,
+  evidence:
+    source === "access"
+      ? "device_event"
+      : source === "sync"
+        ? "device_readback"
+        : "desired_state_saved",
+  details:
+    source === "access"
+      ? {
+          authentication: "pin",
+          door: 1,
+          identity_basis: "observed_station_owner",
+          recovered: false,
+        }
+      : source === "change"
+        ? { fields: ["assignments"], revision_before: 1, revision_after: 2 }
+        : { queued_at: new Date().toISOString(), verified_at: new Date().toISOString() },
+}));
+window.investigationRows = investigationRows;
+window.investigationRevision = 0;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -496,6 +538,38 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (command === "investigations/query") {
+      if (window.investigationDelay)
+        await new Promise((resolve) => setTimeout(resolve, window.investigationDelay));
+      const filters = message.filters;
+      const rows = window.investigationRows.filter(
+        (row) =>
+          (!filters.user_id || row.user_id === filters.user_id) &&
+          (!filters.station_id || row.station_ids.includes(filters.station_id)) &&
+          (!filters.source || filters.source === "all" || row.source === filters.source) &&
+          (!filters.query || row.person_name.toLowerCase().includes(filters.query.toLowerCase())),
+      );
+      const snapshot = "investigation-" + window.investigationRevision;
+      return structuredClone({
+        records: rows.slice(message.offset, message.offset + message.limit),
+        total: rows.length,
+        offset: message.offset,
+        limit: message.limit,
+        next_offset:
+          message.offset + message.limit < rows.length ? message.offset + message.limit : null,
+        previous_offset: message.offset ? Math.max(0, message.offset - message.limit) : null,
+        snapshot,
+        stale: !!message.snapshot && message.snapshot !== snapshot,
+        summary: Object.fromEntries(
+          ["access", "change", "sync"].map((source) => [
+            source,
+            rows.filter((row) => row.source === source).length,
+          ]),
+        ),
+        sources: { access_available: true, access_storage_failed: false },
+        actors: { "demo-admin": "System administrator" },
+      });
+    }
     if (command === "authorization/session")
       return structuredClone(
         this?.user?.is_admin === false && !query.has("reader")

@@ -171,6 +171,7 @@ COMMANDS = {
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
     "users/bulk_receipts": {},
+    "investigations/query": {"filters": dict, "offset": int, "limit": int, "snapshot": str},
     "operations/query": {"filters": dict, "offset": int, "limit": int, "snapshot": str},
     "audit/list": {"filters": dict},
     "audit/export": {"filters": dict},
@@ -858,6 +859,10 @@ async def _dispatch_inner(
         from .fleet_alerts_api import dispatch_alerts
 
         return await dispatch_alerts(hass, command, msg, actor)
+    if command == "investigations/query":
+        from .investigations_api import investigate
+
+        return await investigate(hass, msg)
     if command.startswith("guest_templates/"):
         from .guest_templates_api import dispatch_templates
 

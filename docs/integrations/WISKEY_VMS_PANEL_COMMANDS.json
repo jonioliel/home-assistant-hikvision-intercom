@@ -389,6 +389,17 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/investigations/query": {
+      "required": {
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/media/call": {
       "required": {
         "station_id": "str"
