@@ -2,6 +2,10 @@ const en = {
   previous: "Previous",
   next: "Next",
   user_not_found: "This user was deleted or is no longer available.",
+  station_not_found: "The selected station is no longer configured. Refresh the station list.",
+  unmanaged_lock: "The selected physical lock is not managed. Check the station's relay settings.",
+  invalid_storage:
+    "Stored data is invalid. Existing data was preserved; an administrator must check storage before continuing.",
   visit_queue_next: "Next",
   visit_queue_previous: "Previous",
   visit_queue_scope: "Requests to show",
@@ -2265,6 +2269,10 @@ const he: Record<keyof typeof en, string> = {
   previous: "הקודם",
   next: "הבא",
   user_not_found: "המשתמש נמחק או אינו זמין עוד.",
+  station_not_found: "התחנה שנבחרה אינה מוגדרת עוד. רענן את רשימת התחנות.",
+  unmanaged_lock: "המנעול הפיזי שנבחר אינו מנוהל. בדוק את הגדרות הממסרים בתחנה.",
+  invalid_storage:
+    "הנתונים השמורים אינם תקינים. המידע הקיים נשמר; מנהל המערכת נדרש לבדוק את האחסון לפני המשך הפעולה.",
   visit_queue_next: "הבא",
   visit_queue_previous: "הקודם",
   visit_queue_scope: "בקשות להצגה",
