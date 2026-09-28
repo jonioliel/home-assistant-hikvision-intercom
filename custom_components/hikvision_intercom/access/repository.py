@@ -886,6 +886,15 @@ class AccessRepository:
         policy = self.profile_settings()
         if not policy or not policy["values"].get("photo_enabled"):
             return None
+        reference = self.event_person_ref(station, employee_no, occurred_at)
+        if reference and self._state["users"][reference["user_id"]].get("photo"):
+            return reference
+        return None
+
+    def event_person_ref(
+        self, station: str, employee_no: str, occurred_at: str
+    ) -> dict[str, Any] | None:
+        """Reference an unambiguous observed owner, including people without photos."""
         try:
             when = datetime.fromisoformat(occurred_at)
             if when.tzinfo is None:
@@ -905,7 +914,7 @@ class AccessRepository:
                 and datetime.fromisoformat(observed) <= when
             ):
                 candidates.append(raw)
-        if len(candidates) != 1 or not candidates[0].get("photo"):
+        if len(candidates) != 1:
             return None
         raw = candidates[0]
         return {"user_id": raw["id"], "revision": raw["revision"]}

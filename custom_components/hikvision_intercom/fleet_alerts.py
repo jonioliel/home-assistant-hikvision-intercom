@@ -45,12 +45,16 @@ def onset(
 
 
 def observed_alerts(
-    stations: list[dict[str, Any]], history: dict[str, list[dict[str, Any]]], now: datetime
+    stations: list[dict[str, Any]],
+    history: dict[str, list[dict[str, Any]]],
+    now: datetime,
+    thresholds: dict[str, dict[str, int]] | None = None,
 ) -> list[dict[str, Any]]:
     alerts: list[dict[str, Any]] = []
     for station in stations:
         sid = station["id"]
         rows = history.get(sid, [])
+        limits = (thresholds or {}).get(sid, {})
         online = station.get("online") is True
         status = station.get("sync_state", "unknown")
 
@@ -85,7 +89,7 @@ def observed_alerts(
         if not online:
             since = onset(rows, lambda row: row.get("online") is False, now)
             # No observation means unavailable, not a fictitious timed outage.
-            add("offline", since, 600 if since else 0)
+            add("offline", since, limits.get("offline", 600) if since else 0)
             continue
         if status in {"conflict", "error"}:
 
@@ -101,7 +105,7 @@ def observed_alerts(
             add(
                 "sync_stalled",
                 onset(rows, lambda row: row.get("sync") in {"pending", "syncing"}, now),
-                900,
+                limits.get("sync_stalled", 900),
             )
         events = station.get("event_status") or {}
         if events.get("stream") in {"disconnected", "retrying", "connecting", "stopped"}:
@@ -114,7 +118,7 @@ def observed_alerts(
                     ),
                     now,
                 ),
-                600,
+                limits.get("event_gap", 600),
             )
         clock = station.get("clock") or {}
         checked = stamp(clock.get("checked_at"))
@@ -273,6 +277,7 @@ class FleetAlerts:
         kind: str = "",
         include_suppressed: bool = False,
         now: datetime | None = None,
+        thresholds: dict[str, dict[str, int]] | None = None,
     ) -> dict[str, Any]:
         if (
             type(offset) is not int
@@ -288,7 +293,7 @@ class FleetAlerts:
             raise AccessError("invalid_fields")
         now = now or datetime.now(UTC)
         policies = {key: row for key, row in self._data["suppressions"].items() if live(row, now)}
-        rows = observed_alerts(stations, history, now)
+        rows = observed_alerts(stations, history, now, thresholds)
         for row in rows:
             suppression = policies.get(f"{row['station_id']}/maintenance") or policies.get(
                 row["id"]
@@ -317,5 +322,6 @@ class FleetAlerts:
                 deepcopy(row) for row in policies.values() if row["station_id"] in configured
             ],
             "thresholds_seconds": {"offline": 600, "sync_stalled": 900, "event_gap": 600},
+            **({"station_thresholds_seconds": deepcopy(thresholds)} if thresholds else {}),
             "evidence_scope": "observed_health_not_physical_acceptance",
         }

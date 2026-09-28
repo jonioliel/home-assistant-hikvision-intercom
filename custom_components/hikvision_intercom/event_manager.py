@@ -51,6 +51,19 @@ class EventManager:
     async def async_load(self) -> None:
         data = await self.store.async_load()
         if data:
+            if "retention" in data:
+                from .exceptions import HikvisionValidationError
+                from .operations_center import retention
+
+                try:
+                    policy = retention(data["retention"])
+                except AccessError:
+                    raise HikvisionValidationError("Invalid event retention") from None
+                self.cache.days, self.cache.limit, self.cache.maximum_bytes = (
+                    policy["days"],
+                    policy["count"],
+                    policy["bytes"],
+                )
             self.key = bytes.fromhex(data["fingerprint_key"])
             if len(self.key) != 32 or not isinstance(data.get("cursors"), dict):
                 raise ValueError("Invalid event storage")
@@ -74,6 +87,17 @@ class EventManager:
     def _data(self) -> dict[str, Any]:
         return {
             **self.cache.dump(),
+            **(
+                {
+                    "retention": {
+                        "days": self.cache.days,
+                        "count": self.cache.limit,
+                        "bytes": self.cache.maximum_bytes,
+                    }
+                }
+                if self.cache.maximum_bytes is not None
+                else {}
+            ),
             "fingerprint_key": self.key.hex(),
             "cursors": dict(self.cursors),
         }
@@ -125,6 +149,9 @@ class EventManager:
         self.changed()
         if not row["recovered"]:
             async_dispatcher_send(self.hass, SIGNAL_EVENT, dict(row))
+            from .operations_runtime import publish
+
+            publish(self.hass, "access_event", row)
         return True
 
     def _audience(

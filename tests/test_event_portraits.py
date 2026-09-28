@@ -34,3 +34,20 @@ async def test_event_portrait_proven_owner_and_no_historic_guess():
     repo._state["profile_settings"]["values"]["photo_enabled"] = True
     await repo.async_delete(user.id, expected_revision=1)
     assert repo.event_portrait("s", "00042", later) is None
+
+
+async def test_event_person_reference_requires_observed_ownership_but_not_a_photo():
+    repo = AccessRepository(AsyncMock())
+    user = await repo.async_create({"display_name": "Person", "employee_no": "00042"})
+    before = datetime.now(UTC) - timedelta(minutes=1)
+    later = datetime.now(UTC) + timedelta(minutes=1)
+    assert repo.event_person_ref("s", "00042", later.isoformat()) is None
+    await repo.async_bind("s", user.id, fingerprint="observed")
+    assert repo.event_person_ref("s", "00042", later.isoformat()) == {
+        "user_id": user.id,
+        "revision": user.revision,
+    }
+    assert repo.event_person_ref("s", "00042", before.isoformat()) is None
+    assert repo.event_person_ref("s", "42", later.isoformat()) is None
+    assert repo.event_person_ref("s", "00042", "invalid") is None
+    assert repo.event_portrait("s", "00042", later.isoformat()) is None

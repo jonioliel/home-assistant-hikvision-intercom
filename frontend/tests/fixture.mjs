@@ -485,6 +485,48 @@ window.demoBaselineChange = false;
 window.demoSchedules = schedules;
 if (query.has("shared-accent"))
   data.appearance_settings = { revision: 1, default: "wiskey-dark", accent: "purple" };
+const platformCommands = [
+  "get",
+  "save",
+  "delete",
+  "config_read",
+  "config_preview",
+  "config_apply",
+  "retention_preview",
+  "retention_apply",
+  "archive",
+  "report",
+  "export",
+  "import_preview",
+  "import_apply",
+  "webhook_save",
+  "webhook_key",
+  "integrity",
+  "demo",
+];
+if (query.has("platform"))
+  data.api.commands.push("users/get", ...platformCommands.map((c) => "platform/" + c));
+window.platformData = {
+  revision: 0,
+  stations: {},
+  templates: {},
+  views: {},
+  reports: {},
+  journal: [],
+  observations: [],
+  receipts: [],
+  report_runs: [],
+  webhook: { enabled: false, url: "", kinds: [] },
+  catalog: Object.fromEntries(data.stations.map((s) => [s.id, s.name])),
+  event_usage: {
+    records: 100,
+    bytes: 65536,
+    days: 30,
+    count_limit: 5000,
+    byte_limit: 16777216,
+    count_horizon_days: 40,
+  },
+};
 const workflowCommands = [
   "workflows/get",
   "backups/export",
@@ -565,6 +607,129 @@ const fake = {
   async callWS(message) {
     window.calls.push(structuredClone(message));
     const command = message.type.replace("hikvision_intercom/", "");
+    if (query.has("platform") && command.startsWith("platform/")) {
+      const state = window.platformData;
+      const route = command.slice(9);
+      if (route === "get") return structuredClone(state);
+      if (route === "save") {
+        const id = message.record_id || "saved-" + state.revision;
+        state[message.collection][id] = {
+          actor: this.user.id,
+          values: structuredClone(message.values),
+        };
+        state.revision++;
+        return { id, revision: state.revision };
+      }
+      if (route === "delete") {
+        delete state[message.collection][message.record_id];
+        state.revision++;
+        return { revision: state.revision };
+      }
+      if (route === "config_read")
+        return {
+          rows: message.station_ids.map((id) => ({
+            station_id: id,
+            name: state.catalog[id],
+            configuration: {
+              door: message.door,
+              values: { openDuration: 5 },
+              constraints: { openDuration: { type: "integer", min: 1, max: 255 } },
+            },
+          })),
+        };
+      if (route === "config_preview")
+        return {
+          review_id: "config-review",
+          rows: message.station_ids.map((id) => ({
+            station_id: id,
+            name: state.catalog[id],
+            before: { openDuration: 5 },
+            after: message.changes,
+            error: null,
+          })),
+          apply_count: message.station_ids.length,
+        };
+      if (route === "config_apply") {
+        state.receipts = [
+          {
+            at: "2026-09-28T12:00:00Z",
+            station_id: "station-0",
+            state: "failed",
+            code: "device_unavailable",
+          },
+          { at: "2026-09-28T12:00:00Z", station_id: "station-1", state: "verified", code: "" },
+        ];
+        return { receipts: state.receipts };
+      }
+      if (route === "retention_preview")
+        return {
+          review_id: "retention-review",
+          before: 100,
+          after: 90,
+          removed: 10,
+          values: message.values,
+        };
+      if (route === "retention_apply") {
+        state.event_usage.days = 7;
+        state.event_usage.records = 90;
+        state.revision++;
+        return state.event_usage;
+      }
+      if (route === "archive")
+        return {
+          body: { format: "smplwise-event-archive", records: [] },
+          algorithm: "Ed25519",
+          signature: "synthetic",
+          public_key: "synthetic",
+        };
+      if (route === "report")
+        return {
+          totals: { records: 1, granted: 1, denied: 0 },
+          csv: "timestamp,station\n2026-09-28,Demo\n",
+          print_records: [
+            {
+              display_timestamp: "2026-09-28T12:00:00Z",
+              station: "Main gate",
+              person_name: "Report person",
+              result: "granted",
+            },
+          ],
+        };
+      if (route === "export")
+        return { format: "smplwise-operations", version: 1, stations: {}, templates: [] };
+      if (route === "import_preview") {
+        const file = JSON.parse(message.content);
+        if (Object.keys(file.stations).some((id) => !message.mapping[id]))
+          throw { code: "station_mapping_required" };
+        return {
+          review_id: "import-review",
+          stations: Object.entries(file.stations).map(([id, row]) => ({
+            source: id,
+            name: row.name,
+            target: message.mapping[id],
+            replaces: false,
+          })),
+          templates: file.templates.length,
+        };
+      }
+      if (route === "import_apply") {
+        state.revision++;
+        return { revision: state.revision };
+      }
+      if (route === "webhook_save") {
+        state.webhook = structuredClone(message.values);
+        state.revision++;
+        return { revision: state.revision };
+      }
+      if (route === "webhook_key") return { key: "synthetic signing key" };
+      if (route === "integrity")
+        return {
+          checks: [{ component: "access", state: "available", remedy: "none" }],
+          writes_performed: false,
+        };
+      if (route === "demo")
+        return { demo: true, stations: [{ name: "Demo station", online: true }], device_writes: 0 };
+    }
     if (query.has("workflows")) {
       const center = window.workflowData;
       if (command === "workflows/get") return structuredClone(center);
@@ -1500,6 +1665,9 @@ const fake = {
       const records = [
         {
           id: "event-1",
+          ...(query.has("platform")
+            ? { person_link: { user_id: data.users[0].id, revision: data.users[0].revision } }
+            : {}),
           station_id: data.stations[0]?.id,
           timestamp: "2026-09-08T12:00:00Z",
           person_name: "Dana",

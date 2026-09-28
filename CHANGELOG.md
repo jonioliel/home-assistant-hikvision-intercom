@@ -4,6 +4,18 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.18] — 2026-09-28
+
+- Add an administrator fleet and reporting workspace alongside existing tools and themes: station zones, owners, tags, maintenance windows and per-station alert thresholds.
+- Add language/category/credential message variants with missing-field warnings and proof-based event-to-person navigation. WhatsApp delivery still requires editable preview and explicit send.
+- Read and compare advertised door settings across up to 12 stations, then apply reviewed changes sequentially with identity, current-value and maintenance-window checks. Record each result independently; enabled dual approval blocks unsupported fleet batches.
+- Add day/count/byte event retention with a reviewed deletion preview, atomic policy persistence and preservation of concurrent arrivals. Export retained monthly UTC records as portable Ed25519-signed archives.
+- Add actor-private server-saved report filters and local scheduled count summaries, browser-local remembered speaker selection, opt-in HTTPS/HMAC metadata webhooks and secret-free infrastructure events.
+- Add bounded denial auditing, read-only integrity checks, dependency security checks, reviewed station-mapped preferences transfer and a synthetic commissioning checklist. Existing encrypted people backups remain separate.
+- Preserve explicit output selection with a warning when a speaker is unplugged. A new camera session can use system output when its remembered device is unavailable. Python dependency scanning reports three narrowly reviewed, expiring cryptography findings on the infrastructure-owned pin; affected APIs are unused here. See [security review](docs/DEPENDENCY_SECURITY_REVIEW.md), including server-wide limits.
+- No station credentials, physical relay mappings or access rights are replaced by the preferences importer. Automatic station replacement, continuous active media measurements and physical acceptance remain separate follow-up work. No release claim substitutes for speaker, reader or full-server restore checks.
+- Focused owner checks: [rc.18 acceptance](docs/manual-tests/WISKEY_2.0.0_RC18_PLATFORM_TESTS_HE.html); [implementation and limits](docs/NEXT_TEN_SPRINT_2026_09_28_HE.md); [external interface guide](docs/integrations/SMPLWISE_OPERATIONS_RC18_HE.md).
+
 ## [2.0.0-rc.17] - 2026-09-28
 
 - Add six selectable leading colors to both V4 themes, with personal and shared defaults; preserve other themes, semantic status colors and active drafts/media.

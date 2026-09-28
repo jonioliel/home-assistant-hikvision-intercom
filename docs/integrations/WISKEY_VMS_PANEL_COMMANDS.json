@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.17",
+  "integration_version": "2.0.0-rc.18",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -540,6 +540,149 @@
     "hikvision_intercom/permissions/directory": {
       "required": {
         "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/archive": {
+      "required": {
+        "month": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_preview": {
+      "required": {
+        "station_ids": "list",
+        "door": "int",
+        "changes": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_read": {
+      "required": {
+        "station_ids": "list",
+        "door": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/delete": {
+      "required": {
+        "collection": "str",
+        "record_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/demo": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/import_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/import_preview": {
+      "required": {
+        "content": "str",
+        "mapping": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/integrity": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/report": {
+      "required": {
+        "collection": "str",
+        "record_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/retention_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/retention_preview": {
+      "required": {
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/save": {
+      "required": {
+        "collection": "str",
+        "record_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/webhook_key": {
+      "required": {
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/webhook_save": {
+      "required": {
+        "revision": "int",
+        "values": "dict",
+        "confirmed": "bool"
       },
       "optional_common": {
         "api_contract": "int"

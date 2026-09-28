@@ -22,6 +22,7 @@ interface Preview {
   token: string;
   recipient: string;
   message: string;
+  warnings?: string[];
 }
 interface Status {
   available: boolean;
@@ -935,6 +936,7 @@ export class UserDetails extends LitElement {
             ? html`<section class="compose">
                 <h3>${this.t("review")}</h3>
                 <p><bdi dir="ltr">${this.preview.recipient}</bdi></p>
+                ${(this.preview.warnings ?? []).map((warning) => html`<p class="error" role="status">${translate(this.hass?.language ?? "en", "message_" + warning)}</p>`)}
                 <p class="sub">${this.t("notice")}</p>
                 <textarea
                   aria-label=${this.t("review")}

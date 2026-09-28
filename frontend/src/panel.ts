@@ -20,6 +20,7 @@ import "./camera-wall";
 import "./permission-directory";
 import "./access-control";
 import "./workflow-center";
+import "./platform-center";
 import "./reauth";
 import { profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
@@ -3082,6 +3083,7 @@ export class IntercomManagerPanel extends LitElement {
         "whatsapp_templates",
         "permission_directory",
         "workflow_center",
+        "platform_center",
         "operations_center",
         "investigations",
         "schedules",
@@ -3113,6 +3115,11 @@ export class IntercomManagerPanel extends LitElement {
   private tabAvailable(tab: string) {
     if (tab === "workflow_center" && !this._data?.api?.commands.includes("workflows/get"))
       return false;
+    if (
+      tab === "platform_center" &&
+      (!this._session?.is_admin || !this._data?.api?.commands.includes("platform/get"))
+    )
+      return false;
     if (tab === "tools") return this.canView("stations") || this.canView("management");
     if (!this.canView(this.tabArea(tab))) return false;
     const command: Record<string, string> = {
@@ -3122,6 +3129,7 @@ export class IntercomManagerPanel extends LitElement {
       profile_options: "profiles/settings_get",
       permission_directory: "permissions/directory",
       workflow_center: "workflows/get",
+      platform_center: "platform/get",
       operations_center: "operations/query",
       investigations: "investigations/query",
       camera_wall: "media/settings_get",
@@ -3178,6 +3186,7 @@ export class IntercomManagerPanel extends LitElement {
           "profile_options",
           "permission_directory",
           "workflow_center",
+          "platform_center",
           "operations_center",
           "investigations",
           "camera_wall",
@@ -3750,6 +3759,25 @@ export class IntercomManagerPanel extends LitElement {
   }
   private detailPerson(person: Person) {
     return this._detailRecords[person.id] ?? person;
+  }
+  private modalPerson() {
+    return (
+      this._detailRecords[this._detailsModalUser] ??
+      this._data?.users.find((u) => u.id === this._detailsModalUser)
+    );
+  }
+  private async openEventPerson(userId: string) {
+    if (!this._session?.is_admin || !this._data?.api?.commands.includes("users/get")) return;
+    const access = JSON.stringify(this._session);
+    try {
+      const person = await this.api<Person>("users/get", { user_id: userId });
+      if (!this.authorized || access !== JSON.stringify(this._session) || person.id !== userId)
+        return;
+      this._detailRecords = { ...this._detailRecords, [person.id]: person };
+      this._detailsModalUser = person.id;
+    } catch {
+      this._error = this.t("action_failed");
+    }
   }
   private async loadPersonDetails(person: Person) {
     if (!this._data?.api?.commands.includes("users/get")) return;
@@ -5632,198 +5660,206 @@ export class IntercomManagerPanel extends LitElement {
             ? html`<p class="loader">
                 ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
               </p>`
-            : this._tab === "workflow_center" && this._session?.is_admin
-              ? html`<wiskey-workflow-center
+            : this._tab === "platform_center" && this._session?.is_admin
+              ? html`<wiskey-platform-center
                   .hass=${this.protectedHass}
-                  .people=${this._data.users}
                   .stations=${this._data.stations}
-                  .groups=${this._data.profile_settings?.groups ?? []}
-                  .fields=${this._data.profile_settings?.fields ?? []}
-                  @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
-                  @reminder-message=${(e: CustomEvent) => {
-                    this.messageDrafts.set(
-                      e.detail.user_id,
-                      this.t("reminder_message_" + e.detail.kind).replace("{date}", e.detail.at),
-                    );
-                    this._detailsModalUser = e.detail.user_id;
-                  }}
-                ></wiskey-workflow-center>`
-              : this._tab === "access_control" && this._session?.is_admin
-                ? html`<wiskey-access-control .hass=${this.protectedHass}></wiskey-access-control>`
-                : this._tab === "camera_wall"
-                  ? html`<wiskey-camera-wall
+                ></wiskey-platform-center>`
+              : this._tab === "workflow_center" && this._session?.is_admin
+                ? html`<wiskey-workflow-center
+                    .hass=${this.protectedHass}
+                    .people=${this._data.users}
+                    .stations=${this._data.stations}
+                    .groups=${this._data.profile_settings?.groups ?? []}
+                    .fields=${this._data.profile_settings?.fields ?? []}
+                    @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
+                    @reminder-message=${(e: CustomEvent) => {
+                      this.messageDrafts.set(
+                        e.detail.user_id,
+                        this.t("reminder_message_" + e.detail.kind).replace("{date}", e.detail.at),
+                      );
+                      this._detailsModalUser = e.detail.user_id;
+                    }}
+                  ></wiskey-workflow-center>`
+                : this._tab === "access_control" && this._session?.is_admin
+                  ? html`<wiskey-access-control
                       .hass=${this.protectedHass}
-                      .stations=${this._data.stations}
-                      .media=${this._data.media_settings}
-                      .version=${this._data.version}
-                      .suspended=${!!this._dialog}
-                      @open-station=${(e: CustomEvent<string>) => {
-                        this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
-                        this._dialog = "camera";
-                      }}
-                    ></wiskey-camera-wall>`
-                  : this._tab === "permission_directory"
-                    ? html`<hikvision-permission-directory
+                    ></wiskey-access-control>`
+                  : this._tab === "camera_wall"
+                    ? html`<wiskey-camera-wall
                         .hass=${this.protectedHass}
                         .stations=${this._data.stations}
-                        .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
-                        @edit-person=${(e: CustomEvent<string>) => {
-                          const user = this._data?.users.find((u) => u.id === e.detail);
-                          if (user) this.edit(user);
+                        .media=${this._data.media_settings}
+                        .version=${this._data.version}
+                        .suspended=${!!this._dialog}
+                        @open-station=${(e: CustomEvent<string>) => {
+                          this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
+                          this._dialog = "camera";
                         }}
-                      ></hikvision-permission-directory>`
-                    : this._tab === "profile_options"
-                      ? html`<hikvision-profile-settings
+                      ></wiskey-camera-wall>`
+                    : this._tab === "permission_directory"
+                      ? html`<hikvision-permission-directory
                           .hass=${this.protectedHass}
-                          .settings=${this._data.profile_settings}
                           .stations=${this._data.stations}
-                          @profile-saved=${(e: CustomEvent) => {
-                            if (this._data)
-                              this._data = { ...this._data, profile_settings: e.detail };
+                          .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
+                          @edit-person=${(e: CustomEvent<string>) => {
+                            const user = this._data?.users.find((u) => u.id === e.detail);
+                            if (user) this.edit(user);
                           }}
-                        ></hikvision-profile-settings>`
-                      : this._tab === "whatsapp_templates"
-                        ? html`<wiskey-whatsapp-templates
+                        ></hikvision-permission-directory>`
+                      : this._tab === "profile_options"
+                        ? html`<hikvision-profile-settings
                             .hass=${this.protectedHass}
-                          ></wiskey-whatsapp-templates>`
-                        : this._tab === "media_options"
-                          ? html`<hikvision-media-settings
+                            .settings=${this._data.profile_settings}
+                            .stations=${this._data.stations}
+                            @profile-saved=${(e: CustomEvent) => {
+                              if (this._data)
+                                this._data = { ...this._data, profile_settings: e.detail };
+                            }}
+                          ></hikvision-profile-settings>`
+                        : this._tab === "whatsapp_templates"
+                          ? html`<wiskey-whatsapp-templates
                               .hass=${this.protectedHass}
-                              .settings=${this._data.media_settings}
-                              @media-saved=${(e: CustomEvent) => {
-                                if (this._data)
-                                  this._data = { ...this._data, media_settings: e.detail };
-                              }}
-                            ></hikvision-media-settings>`
-                          : this._tab === "clock_options"
-                            ? html`<hikvision-clock-settings
+                            ></wiskey-whatsapp-templates>`
+                          : this._tab === "media_options"
+                            ? html`<hikvision-media-settings
                                 .hass=${this.protectedHass}
-                                .stations=${this._data.stations}
-                              ></hikvision-clock-settings>`
-                            : this._tab === "investigations"
-                              ? html`<wiskey-investigations
+                                .settings=${this._data.media_settings}
+                                @media-saved=${(e: CustomEvent) => {
+                                  if (this._data)
+                                    this._data = { ...this._data, media_settings: e.detail };
+                                }}
+                              ></hikvision-media-settings>`
+                            : this._tab === "clock_options"
+                              ? html`<hikvision-clock-settings
                                   .hass=${this.protectedHass}
-                                  .authorized=${!!this._session?.is_admin}
-                                  .users=${this._data.users}
                                   .stations=${this._data.stations}
-                                  .zone=${this._data.default_zone ?? UTC_ZONE}
-                                  @open-user=${(event: CustomEvent<string>) => {
-                                    const user = this._data?.users.find(
-                                      (item) => item.id === event.detail,
-                                    );
-                                    if (user) this.openPersonDetails(user);
-                                  }}
-                                ></wiskey-investigations>`
-                              : this._tab === "guest_templates"
-                                ? html`<wiskey-guest-templates
+                                ></hikvision-clock-settings>`
+                              : this._tab === "investigations"
+                                ? html`<wiskey-investigations
                                     .hass=${this.protectedHass}
+                                    .authorized=${!!this._session?.is_admin}
+                                    .users=${this._data.users}
                                     .stations=${this._data.stations}
-                                    .canManage=${this.canManage("users")}
-                                    .timezone=${this._data.default_zone?.name ?? "UTC"}
-                                  ></wiskey-guest-templates>`
-                                : this._tab === "fleet_alerts"
-                                  ? html`<wiskey-fleet-alerts
+                                    .zone=${this._data.default_zone ?? UTC_ZONE}
+                                    @open-user=${(event: CustomEvent<string>) => {
+                                      const user = this._data?.users.find(
+                                        (item) => item.id === event.detail,
+                                      );
+                                      if (user) this.openPersonDetails(user);
+                                    }}
+                                  ></wiskey-investigations>`
+                                : this._tab === "guest_templates"
+                                  ? html`<wiskey-guest-templates
                                       .hass=${this.protectedHass}
                                       .stations=${this._data.stations}
-                                      .canManage=${this.canManage("stations")}
-                                      @open-station=${(event: CustomEvent<string>) => {
-                                        this._deviceFocus = event.detail;
-                                        this.navigate("devices");
-                                      }}
-                                    ></wiskey-fleet-alerts>`
-                                  : this._tab === "visit_requests"
-                                    ? html`<wiskey-visit-requests
+                                      .canManage=${this.canManage("users")}
+                                      .timezone=${this._data.default_zone?.name ?? "UTC"}
+                                    ></wiskey-guest-templates>`
+                                  : this._tab === "fleet_alerts"
+                                    ? html`<wiskey-fleet-alerts
                                         .hass=${this.protectedHass}
                                         .stations=${this._data.stations}
-                                        .canManage=${this.canManage("users")}
-                                        @visit-changed=${() => void this.refresh()}
-                                      ></wiskey-visit-requests>`
-                                    : this._tab === "identity_lifecycle"
-                                      ? html`<wiskey-identity-lifecycle
+                                        .canManage=${this.canManage("stations")}
+                                        @open-station=${(event: CustomEvent<string>) => {
+                                          this._deviceFocus = event.detail;
+                                          this.navigate("devices");
+                                        }}
+                                      ></wiskey-fleet-alerts>`
+                                    : this._tab === "visit_requests"
+                                      ? html`<wiskey-visit-requests
                                           .hass=${this.protectedHass}
-                                          .zone=${this._data.default_zone ?? UTC_ZONE}
-                                          .canManage=${this.canManage("users")}
-                                          .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
                                           .stations=${this._data.stations}
-                                          @access-renewed=${() => void this.refresh()}
-                                          @access-cancelled=${() => void this.refresh()}
-                                          @open-user=${(event: CustomEvent<string>) => {
-                                            const user = this._data?.users.find(
-                                              (item) => item.id === event.detail,
-                                            );
-                                            if (user) this.openPersonDetails(user);
-                                          }}
-                                        ></wiskey-identity-lifecycle>`
-                                      : this._tab === "operations_center"
-                                        ? html`<wiskey-operations-center
-                                            .canCheckpoint=${this._data.api?.commands.includes("jobs/list") ?? false}
+                                          .canManage=${this.canManage("users")}
+                                          @visit-changed=${() => void this.refresh()}
+                                        ></wiskey-visit-requests>`
+                                      : this._tab === "identity_lifecycle"
+                                        ? html`<wiskey-identity-lifecycle
                                             .hass=${this.protectedHass}
-                                            .users=${this._data.users}
+                                            .zone=${this._data.default_zone ?? UTC_ZONE}
+                                            .canManage=${this.canManage("users")}
+                                            .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
                                             .stations=${this._data.stations}
-                                            .canRetryUser=${this.canManage("users")}
-                                            .canRetryStation=${this.canManage("stations")}
-                                          ></wiskey-operations-center>`
-                                        : this._tab === "tools"
-                                          ? this.toolsView()
-                                          : this._tab === "overview"
-                                            ? this.overviewView()
-                                            : this._tab === "users"
-                                              ? this.usersView()
-                                              : this._tab === "devices"
-                                                ? this.devicesView()
-                                                : this._tab === "sync"
-                                                  ? this.syncView()
-                                                  : this._tab === "audit"
-                                                    ? html`<hikvision-admin-audit
-                                                        .hass=${this.protectedHass}
-                                                        .users=${this._data.users}
-                                                        .stations=${this._data.stations}
-                                                        .focusUser=${this._auditUser}
-                                                        .zone=${this._data.default_zone ?? UTC_ZONE}
-                                                        @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
-                                                      ></hikvision-admin-audit>`
-                                                    : this._tab === "health"
-                                                      ? html`<hikvision-intercom-health
-                                                          .callBusy=${this._callBusy}
-                                                          .onCallBusy=${this.setCallBusy}
+                                            @access-renewed=${() => void this.refresh()}
+                                            @access-cancelled=${() => void this.refresh()}
+                                            @open-user=${(event: CustomEvent<string>) => {
+                                              const user = this._data?.users.find(
+                                                (item) => item.id === event.detail,
+                                              );
+                                              if (user) this.openPersonDetails(user);
+                                            }}
+                                          ></wiskey-identity-lifecycle>`
+                                        : this._tab === "operations_center"
+                                          ? html`<wiskey-operations-center
+                                              .canCheckpoint=${this._data.api?.commands.includes("jobs/list") ?? false}
+                                              .hass=${this.protectedHass}
+                                              .users=${this._data.users}
+                                              .stations=${this._data.stations}
+                                              .canRetryUser=${this.canManage("users")}
+                                              .canRetryStation=${this.canManage("stations")}
+                                            ></wiskey-operations-center>`
+                                          : this._tab === "tools"
+                                            ? this.toolsView()
+                                            : this._tab === "overview"
+                                              ? this.overviewView()
+                                              : this._tab === "users"
+                                                ? this.usersView()
+                                                : this._tab === "devices"
+                                                  ? this.devicesView()
+                                                  : this._tab === "sync"
+                                                    ? this.syncView()
+                                                    : this._tab === "audit"
+                                                      ? html`<hikvision-admin-audit
                                                           .hass=${this.protectedHass}
+                                                          .users=${this._data.users}
                                                           .stations=${this._data.stations}
-                                                          .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
-                                                          .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
-                                                          .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
-                                                        ></hikvision-intercom-health>`
-                                                      : this._tab === "schedules"
-                                                        ? html`<hikvision-intercom-schedules
+                                                          .focusUser=${this._auditUser}
+                                                          .zone=${this._data.default_zone ?? UTC_ZONE}
+                                                          @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                                        ></hikvision-admin-audit>`
+                                                      : this._tab === "health"
+                                                        ? html`<hikvision-intercom-health
+                                                            .callBusy=${this._callBusy}
+                                                            .onCallBusy=${this.setCallBusy}
                                                             .hass=${this.protectedHass}
                                                             .stations=${this._data.stations}
-                                                          ></hikvision-intercom-schedules>`
-                                                        : keyed(
-                                                            this.permissionStamp(),
-                                                            html`<hikvision-intercom-events
-                                                              .policy=${this._data.profile_settings}
+                                                            .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
+                                                            .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
+                                                            .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
+                                                          ></hikvision-intercom-health>`
+                                                        : this._tab === "schedules"
+                                                          ? html`<hikvision-intercom-schedules
                                                               .hass=${this.protectedHass}
                                                               .stations=${this._data.stations}
-                                                              .defaultZone=${this._data.default_zone ?? UTC_ZONE}
-                                                              .v4=${isWiskeyAppearance(this._appearance)}
-                                                            ></hikvision-intercom-events>`,
-                                                          )
+                                                            ></hikvision-intercom-schedules>`
+                                                          : keyed(
+                                                              this.permissionStamp(),
+                                                              html`<hikvision-intercom-events
+                                                                .policy=${this._data.profile_settings}
+                                                                .hass=${this.protectedHass}
+                                                                .stations=${this._data.stations}
+                                                                .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                                .v4=${isWiskeyAppearance(this._appearance)}
+                                                                @event-person=${(event: CustomEvent<{ user_id: string }>) => void this.openEventPerson(event.detail.user_id)}
+                                                              ></hikvision-intercom-events>`,
+                                                            )
         }
       </main>
       ${
-        this._detailsModalUser && this._data?.users.find((u) => u.id === this._detailsModalUser)
+        this._detailsModalUser && this.modalPerson() && this._data
           ? html`<wiskey-user-details
               .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
               .v4=${isWiskeyAppearance(this._appearance)}
               .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
-              .canEdit=${this.personEditable(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
+              .canEdit=${this.personEditable(this.modalPerson()!)}
               .hass=${this.protectedHass}
               .messageDraft=${this.messageDrafts.get(this._detailsModalUser) ?? ""}
-              .person=${this.detailPerson(this._data.users.find((u) => u.id === this._detailsModalUser)!)}
+              .person=${this.detailPerson(this.modalPerson()!)}
               .stations=${this._data.stations}
               .policy=${this._data.profile_settings}
               @details-close=${() => (this._detailsModalUser = "")}
               @details-edit=${() => {
-                const user = this._data?.users.find((u) => u.id === this._detailsModalUser);
+                const user = this.modalPerson();
                 if (user) this.edit(this.detailPerson(user));
               }}
             ></wiskey-user-details>`

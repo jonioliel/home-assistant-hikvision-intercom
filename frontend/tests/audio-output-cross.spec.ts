@@ -1,5 +1,70 @@
 import { test, expect } from "@playwright/test";
 
+test("remembered output survives reload, warns on unplugging and stays account scoped", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.outputPresent = sessionStorage.getItem("output-missing") !== "true";
+    for (const prototype of [AudioContext.prototype, HTMLMediaElement.prototype])
+      Object.defineProperty(prototype, "setSinkId", {
+        configurable: true,
+        value: async () => undefined,
+      });
+    Object.defineProperty(Object.getPrototypeOf(navigator.mediaDevices), "enumerateDevices", {
+      configurable: true,
+      value: async () =>
+        window.outputPresent
+          ? [{ kind: "audiooutput", deviceId: "headphones", label: "Test headphones" }]
+          : [],
+    });
+    navigator.mediaDevices.getUserMedia = async () => {
+      throw Error("Unexpected microphone permission");
+    };
+  });
+  const openOutput = async () => {
+    await page.getByRole("button", { name: "View camera", exact: true }).first().click();
+    const audio = page.locator("hikvision-intercom-audio-controls");
+    await audio.locator(".audio-options > summary").click();
+    return audio.locator("wiskey-audio-output");
+  };
+  await page.goto("/");
+  let output = await openOutput();
+  await output.getByRole("button", { name: "Refresh outputs", exact: true }).click();
+  await output.locator("select").selectOption("headphones");
+  await expect(output).toContainText("Listening output selected");
+  expect(
+    await page.evaluate(() => localStorage.getItem("wiskey-output:" + window.demoHass.user.id)),
+  ).toBe("headphones");
+  await page.reload();
+  output = await openOutput();
+  await expect(output.locator("select")).toHaveValue("headphones");
+  await page.evaluate(() => {
+    window.outputPresent = false;
+    sessionStorage.setItem("output-missing", "true");
+    navigator.mediaDevices.dispatchEvent(new Event("devicechange"));
+  });
+  await expect(output.locator("select")).toHaveValue("headphones");
+  await expect(output.getByRole("alert")).toContainText("unavailable");
+  expect(
+    await page.evaluate(() => localStorage.getItem("wiskey-output:" + window.demoHass.user.id)),
+  ).toBe("headphones");
+  await page.reload();
+  output = await openOutput();
+  await expect(output.locator("select")).toHaveValue("");
+  await expect(output.getByRole("alert")).toContainText("unavailable");
+  await page.evaluate(() => {
+    const panel = document.querySelector("hikvision-intercom-panel");
+    window.demoHass = { ...window.demoHass, user: { id: "other-admin", is_admin: true } };
+    panel.hass = window.demoHass;
+  });
+  await expect(output).toHaveCount(0);
+  output = await openOutput();
+  await expect(output.locator("select")).toHaveValue("");
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.includes("/audio/")))).toBe(
+    false,
+  );
+});
+
 test("local output selection fits Hebrew mobile, requests no microphone and sends no station command", async ({
   page,
 }) => {

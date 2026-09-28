@@ -7,6 +7,32 @@ on:
 permissions:
   contents: read
 jobs:
+  dependency-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: python -m pip install -e . pip-audit
+      - name: Audit the runtime environment, including transitive dependencies
+        run: python -m tools.audit_dependencies --output "${{ runner.temp }}/dependency-audit.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit
+          path: ${{ runner.temp }}/dependency-audit.json
+          if-no-files-found: warn
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: pnpm --dir frontend install --frozen-lockfile --ignore-scripts
+      - name: Audit runtime browser dependencies
+        run: pnpm --dir frontend audit --prod --audit-level high
+
   tests:
     runs-on: ubuntu-latest
     strategy:
