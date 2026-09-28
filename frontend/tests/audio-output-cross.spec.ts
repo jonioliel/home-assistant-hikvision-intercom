@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-test("remembered output survives reload, falls back after unplugging and stays account scoped", async ({
+test("remembered output survives reload, warns on unplugging and stays account scoped", async ({
   page,
 }) => {
   await page.addInitScript(() => {
-    window.outputPresent = true;
+    window.outputPresent = sessionStorage.getItem("output-missing") !== "true";
     for (const prototype of [AudioContext.prototype, HTMLMediaElement.prototype])
       Object.defineProperty(prototype, "setSinkId", {
         configurable: true,
@@ -40,12 +40,18 @@ test("remembered output survives reload, falls back after unplugging and stays a
   await expect(output.locator("select")).toHaveValue("headphones");
   await page.evaluate(() => {
     window.outputPresent = false;
+    sessionStorage.setItem("output-missing", "true");
     navigator.mediaDevices.dispatchEvent(new Event("devicechange"));
   });
-  await expect(output.locator("select")).toHaveValue("");
+  await expect(output.locator("select")).toHaveValue("headphones");
+  await expect(output.getByRole("alert")).toContainText("unavailable");
   expect(
     await page.evaluate(() => localStorage.getItem("wiskey-output:" + window.demoHass.user.id)),
   ).toBe("headphones");
+  await page.reload();
+  output = await openOutput();
+  await expect(output.locator("select")).toHaveValue("");
+  await expect(output.getByRole("alert")).toContainText("unavailable");
   await page.evaluate(() => {
     const panel = document.querySelector("hikvision-intercom-panel");
     window.demoHass = { ...window.demoHass, user: { id: "other-admin", is_admin: true } };

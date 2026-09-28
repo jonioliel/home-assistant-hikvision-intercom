@@ -51,12 +51,14 @@ async def test_invalid_request_audit_never_retains_password_or_pin(
     assert ops.data["journal"][-1]["code"] == "invalid_fields"
 
 
-async def test_platform_does_not_shadow_existing_schedule_operation_dispatch(
+async def test_platform_does_not_shadow_existing_operation_dispatch(
     hass, loaded_entry, hass_ws_client
 ):
     client = await hass_ws_client(hass)
-    result = await request(client, "operations/query", query="", filters={}, offset=0, limit=20)
-    assert result["success"]
+    result = await request(client, "operations/query", filters={}, offset=0, limit=20, snapshot="")
+    assert result["success"], result
+    result = await request(client, "schedules/operations_list")
+    assert result["success"], result
 
 
 async def test_report_views_validate_real_filters_and_survive_settings_reload(

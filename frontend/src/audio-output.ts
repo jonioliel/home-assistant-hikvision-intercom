@@ -144,7 +144,7 @@ export class AudioOutput extends LitElement {
       this.selected = savedOutput(this.actor);
       this.busy = false;
       this.error = this.message = "";
-      if (this.authorized && this.selected) void this.refresh();
+      if (this.authorized && this.selected) void this.refresh(true);
     }
   }
   private valid(epoch: number) {
@@ -154,7 +154,7 @@ export class AudioOutput extends LitElement {
     const select = this.renderRoot.querySelector("select");
     if (select) select.value = this.selected;
   }
-  private async refresh() {
+  private async refresh(restoring = false) {
     if (
       !this.authorized ||
       this.busy ||
@@ -174,7 +174,9 @@ export class AudioOutput extends LitElement {
         .slice(0, 64);
       if (this.selected && !this.devices.some((item) => item.deviceId === this.selected)) {
         this.error = this.t("audio_output_missing");
-        this.selected = "";
+        // A new session can use system output when its saved sink is absent.
+        // Do not silently change an explicitly selected destination mid-session.
+        if (restoring) this.selected = "";
       } else this.error = "";
     } catch {
       if (this.valid(epoch)) this.error = this.t("audio_output_failed");
