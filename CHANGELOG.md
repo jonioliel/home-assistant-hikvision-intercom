@@ -6,7 +6,7 @@ Semantic Versioning is used throughout the project.
 
 ## [2.0.0-rc.15] - 2026-09-28
 
-- Translate station-alert paging controls and the unavailable-visitor notice in Hebrew and English, with mobile and deleted-visitor regression checks. This small follow-up includes all rc.14 operations features and preserves their API, data schema and behavior.
+- Translate station-alert paging controls, the unavailable-visitor notice and shared station/relay/storage failure messages in Hebrew and English, with mobile and deleted-visitor regression checks. This small follow-up includes all rc.14 operations features and preserves their API, data schema and behavior.
 
 ## [2.0.0-rc.14] - 2026-09-28
 
