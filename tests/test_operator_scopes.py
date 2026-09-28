@@ -9,6 +9,7 @@ import pytest
 
 from custom_components.hikvision_intercom.access.models import AccessError
 from custom_components.hikvision_intercom.access.user_directory import query_users
+from custom_components.hikvision_intercom.exceptions import HikvisionValidationError
 from custom_components.hikvision_intercom.operator_scope import (
     guard_fields,
     guard_person,
@@ -25,6 +26,7 @@ from custom_components.hikvision_intercom.panel_permissions import (
     preview_policy,
     station_allowed,
 )
+from custom_components.hikvision_intercom.reporting import audience_filter
 
 
 def grant(**updates):
@@ -210,6 +212,25 @@ def test_scoped_profiles_do_not_offer_global_templates_or_shared_groups():
     )
     assert overview["stations"] == [{"id": "front"}]
     assert overview["tombstones"] == [] and overview["sync_operations"] == []
+
+
+def test_event_membership_filter_cannot_select_an_outside_or_shared_group():
+    profiles = {
+        "fields": [],
+        "groups": [
+            {"id": "local", "station_ids": ["front"]},
+            {"id": "outside", "station_ids": ["back"]},
+            {"id": "shared", "station_ids": ["front", "back"]},
+        ],
+    }
+    visible = project_profiles(grant(station_ids=["front"]), profiles)
+    for identifier in ("outside", "shared", "unknown"):
+        with pytest.raises(HikvisionValidationError):
+            audience_filter({"current_group": identifier}, visible, {})
+    base, match = audience_filter({"current_group": "local"}, visible, {})
+    assert base == {} and match is not None
+    # Administrators and unrestricted operators keep the complete group catalog.
+    assert audience_filter({"current_group": "shared"}, profiles, {})[1] is not None
 
 
 async def test_cancelled_permission_save_finishes_commit_before_releasing_lock():

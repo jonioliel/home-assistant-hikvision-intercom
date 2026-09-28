@@ -22,7 +22,7 @@ from .event_trace import EventTrace
 from .events import EventCache, normalize_event, timestamp
 from .exceptions import HikvisionAuthError, HikvisionError, HikvisionUnsupportedError
 from .issues import issue
-from .operator_scope import contains_station, project_event
+from .operator_scope import contains_station, project_event, project_profiles
 from .storage import AccessStore
 
 if TYPE_CHECKING:
@@ -127,14 +127,21 @@ class EventManager:
             async_dispatcher_send(self.hass, SIGNAL_EVENT, dict(row))
         return True
 
-    def _audience(self, filters: dict[str, Any]) -> Any:
+    def _audience(
+        self, filters: dict[str, Any], *, operator_policy: dict[str, Any] | None = None
+    ) -> Any:
         from .reporting import audience_filter
 
         manager = self.hass.data[DOMAIN].get("access")
         settings = self.hass.data[DOMAIN].get("profile_settings")
+        profile = settings.public() if settings else {}
+        if operator_policy is not None:
+            # Validate membership filters against the same visible catalog as the UI.
+            # A known outside group ID must not reveal shared global membership.
+            profile = project_profiles(operator_policy, profile)
         return audience_filter(
             filters,
-            settings.public() if settings else {},
+            profile,
             manager.repository.event_audience()
             if manager and set(filters) & {"current_group", "current_profile"}
             else {},
@@ -144,7 +151,7 @@ class EventManager:
         self, filters: dict[str, Any], *, operator_policy: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         before = len(self.cache.rows)
-        base, match = self._audience(filters)
+        base, match = self._audience(filters, operator_policy=operator_policy)
         if operator_policy is not None:
             audience = match
 
@@ -192,7 +199,7 @@ class EventManager:
             raise HikvisionValidationError("Reports do not accept pagination")
         before = len(self.cache.rows)
         now = datetime.now(UTC)
-        base, match = self._audience(filters)
+        base, match = self._audience(filters, operator_policy=operator_policy)
         if operator_policy is not None:
             audience = match
 

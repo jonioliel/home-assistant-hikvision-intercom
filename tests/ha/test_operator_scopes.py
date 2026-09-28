@@ -652,3 +652,30 @@ async def test_scoped_clock_operator_uses_saved_ntp_without_global_configuration
         )
         assert denied["error"]["code"] == "unauthorized"
         sync.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    "command", ["events/list", "events/report", "events/export", "events/print"]
+)
+async def test_event_group_filters_use_the_scoped_catalog_in_every_output(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token, command
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    admin = await hass_ws_client(hass)
+    profiles = {
+        "fields": [],
+        "groups": [
+            {"id": "local-group", "station_ids": [loaded_entry.entry_id]},
+            {"id": "outside-group", "station_ids": ["outside"]},
+            {"id": "shared-group", "station_ids": [loaded_entry.entry_id, "outside"]},
+        ],
+    }
+    with patch.object(hass.data[DOMAIN]["profile_settings"], "public", return_value=profiles):
+        for identifier in ("outside-group", "shared-group", "unknown-group"):
+            denied = await request(reader, command, filters={"current_group": identifier})
+            assert denied["error"]["code"] == "invalid_fields", denied
+        allowed = await request(reader, command, filters={"current_group": "local-group"})
+        assert allowed["success"], allowed
+        unrestricted = await request(admin, command, filters={"current_group": "shared-group"})
+        assert unrestricted["success"], unrestricted
