@@ -508,36 +508,32 @@ export class GuestTemplatesPanel extends LitElement {
                                   type="button"
                                   class="danger"
                                   ?disabled=${this.busy || this.uncertain}
-                                  @click=${() => {
-                          this.pendingDelete = row.id;
-                        }}
+                                  @click=${() => (this.pendingDelete = row.id)}
                                 >
                                   ${this.t("delete")}
                                 </button>
                               </div>
                               ${
-                      this.pendingDelete === row.id
-                        ? html`<p>${this.t("guest_template_delete_confirm")}</p>
-                            <div class="actions">
-                              <button
-                                type="button"
-                                ?disabled=${this.busy}
-                                @click=${() => {
-                                  this.pendingDelete = "";
-                                }}
-                              >
-                                ${this.t("cancel")}</button
-                              ><button
-                                type="button"
-                                class="danger"
-                                ?disabled=${this.busy || this.uncertain}
-                                @click=${() => void this.mutate("delete", row.id)}
-                              >
-                                ${this.t("guest_template_confirm_delete")}
-                              </button>
-                            </div>`
-                        : nothing
-                    }`
+                                this.pendingDelete === row.id
+                                  ? html`<p>${this.t("guest_template_delete_confirm")}</p>
+                                      <div class="actions">
+                                        <button
+                                          type="button"
+                                          ?disabled=${this.busy}
+                                          @click=${() => (this.pendingDelete = "")}
+                                        >
+                                          ${this.t("cancel")}</button
+                                        ><button
+                                          type="button"
+                                          class="danger"
+                                          ?disabled=${this.busy || this.uncertain}
+                                          @click=${() => void this.mutate("delete", row.id)}
+                                        >
+                                          ${this.t("guest_template_confirm_delete")}
+                                        </button>
+                                      </div>`
+                                  : nothing
+                              }`
                           : nothing
                       }
                     </article>`,

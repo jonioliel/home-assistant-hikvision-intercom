@@ -112,6 +112,7 @@ const slowManagementCommands = new Set([
   "users/delete_unmanaged",
 ]);
 const managementWrites = new Set([
+  "fleet/alerts_action",
   "visits/create",
   "visits/request",
   "visits/decide",

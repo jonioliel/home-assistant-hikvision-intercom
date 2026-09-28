@@ -18,6 +18,7 @@ export function compatible(contract?: ApiContract): boolean {
 // Unknown commands are treated as writes in a mismatched session. Audio stop/mute
 // and capture cancellation must remain available to safely terminate existing work.
 const reads = new Set([
+  "fleet/alerts",
   "visits/operators",
   "visits/list",
   "guest_templates/get",

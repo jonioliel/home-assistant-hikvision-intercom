@@ -387,6 +387,18 @@ export class VisitRequestsPanel extends VisitContext {
       if (epoch === this.epoch) this.busy = false;
     }
   }
+  private chooseDecision(row: VisitRequest, decision: string) {
+    this.review = { row, decision };
+    this.resubmitUser = undefined;
+  }
+  private decisionActions(row: VisitRequest, blocked: boolean) {
+    if (!this.canManage || row.status !== "pending") return nothing;
+    const actor = this.hass?.user?.id;
+    return html`<div class="row actions">
+      ${actor === row.approver_id ? html`<button type="button" ?disabled=${blocked || row.stale || row.user_deleted} @click=${() => this.chooseDecision(row, "approve")}>${this.t("visit_approve")}</button><button type="button" class="danger" ?disabled=${blocked} @click=${() => this.chooseDecision(row, "reject")}>${this.t("visit_reject")}</button>` : nothing}
+      ${actor === row.requested_by || actor === row.approver_id ? html`<button type="button" ?disabled=${blocked} @click=${() => this.chooseDecision(row, "cancel")}>${this.t("visit_cancel_request")}</button>` : nothing}
+    </div>`;
+  }
   render() {
     const rows =
       this.page?.items.filter((row) => this.filter === "all" || row.status === this.filter) ?? [];
@@ -403,8 +415,8 @@ export class VisitRequestsPanel extends VisitContext {
         >${this.t("status")}<select
           .value=${this.filter}
           @change=${(e: Event) => {
-        this.filter = (e.target as HTMLSelectElement).value;
-      }}
+            this.filter = (e.target as HTMLSelectElement).value;
+          }}
         >
           ${["pending", "approved", "rejected", "cancelled", "superseded", "all"].map((status) => html`<option value=${status}>${this.t("visit_status_" + status)}</option>`)}
         </select></label
@@ -493,64 +505,22 @@ export class VisitRequestsPanel extends VisitContext {
       ${this.page && !rows.length ? html`<p>${this.t("visit_empty")}</p>` : nothing}
       <div class="cards">
         ${rows.map(
-        (row) =>
-          html`<article>
-            <div class="row heading">
-              <h3>${row.snapshot.display_name}</h3>
-              <span class="tag">${this.t("visit_status_" + row.status)}</span>
-            </div>
-            ${this.snapshot(row.snapshot)}
-            <p class="sub">
-              ${this.t("visit_approver")}: ${this.name(row.approver_id)} ·
-              ${this.date(row.requested_at)}
-            </p>
-            ${row.decided_at ? html`<p class="sub">${this.t("visit_decided_by")}: ${this.name(row.decided_by)} · ${this.date(row.decided_at)}</p>` : nothing}${row.stale ? html`<p class="notice">${this.t("visit_request_stale")}</p>` : nothing}${row.user_deleted ? html`<p class="notice">${this.t("user_not_found")}</p>` : nothing}
-            ${
-          this.canManage && row.status === "pending"
-            ? html`<div class="row actions">
-                ${
-                  actor === row.approver_id
-                    ? html`<button
-                          type="button"
-                          ?disabled=${blocked || row.stale || row.user_deleted}
-                          @click=${() => {
-                            this.review = { row, decision: "approve" };
-                            this.resubmitUser = undefined;
-                          }}
-                        >
-                          ${this.t("visit_approve")}</button
-                        ><button
-                          type="button"
-                          class="danger"
-                          ?disabled=${blocked}
-                          @click=${() => {
-                            this.review = { row, decision: "reject" };
-                            this.resubmitUser = undefined;
-                          }}
-                        >
-                          ${this.t("visit_reject")}
-                        </button>`
-                    : nothing
-                }${
-                  actor === row.requested_by || actor === row.approver_id
-                    ? html`<button
-                        type="button"
-                        ?disabled=${blocked}
-                        @click=${() => {
-                          this.review = { row, decision: "cancel" };
-                          this.resubmitUser = undefined;
-                        }}
-                      >
-                        ${this.t("visit_cancel_request")}
-                      </button>`
-                    : nothing
-                }
-              </div>`
-            : nothing
-        }
-            ${this.canManage && this.current(row) && !row.user_deleted && (row.stale || ["cancelled", "rejected"].includes(row.status)) ? html`<button type="button" ?disabled=${blocked} @click=${() => void this.prepareResubmit(row)}>${this.t("visit_resubmit")}</button>` : nothing}
-          </article>`,
-      )}
+          (row) =>
+            html`<article>
+              <div class="row heading">
+                <h3>${row.snapshot.display_name}</h3>
+                <span class="tag">${this.t("visit_status_" + row.status)}</span>
+              </div>
+              ${this.snapshot(row.snapshot)}
+              <p class="sub">
+                ${this.t("visit_approver")}: ${this.name(row.approver_id)} ·
+                ${this.date(row.requested_at)}
+              </p>
+              ${row.decided_at ? html`<p class="sub">${this.t("visit_decided_by")}: ${this.name(row.decided_by)} · ${this.date(row.decided_at)}</p>` : nothing}${row.stale ? html`<p class="notice">${this.t("visit_request_stale")}</p>` : nothing}${row.user_deleted ? html`<p class="notice">${this.t("user_not_found")}</p>` : nothing}
+              ${this.decisionActions(row, blocked)}
+              ${this.canManage && this.current(row) && !row.user_deleted && (row.stale || ["cancelled", "rejected"].includes(row.status)) ? html`<button type="button" ?disabled=${blocked} @click=${() => void this.prepareResubmit(row)}>${this.t("visit_resubmit")}</button>` : nothing}
+            </article>`,
+        )}
       </div>
       ${this.page ? html`<div class="row actions"><span class="sub">${this.page.offset + 1}–${this.page.offset + this.page.items.length} / ${this.page.total}</span><button type="button" ?disabled=${this.busy || !this.page.offset} @click=${() => void this.load(Math.max(0, this.page!.offset - 100))}>${this.t("previous")}</button><button type="button" ?disabled=${this.busy || this.page.next_offset === null} @click=${() => void this.load(this.page!.next_offset!)}>${this.t("next")}</button></div>` : nothing}`;
   }
