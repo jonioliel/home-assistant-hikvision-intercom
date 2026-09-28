@@ -17,6 +17,8 @@ from custom_components.hikvision_intercom.panel_permissions import AREAS, FIELDS
 from . import test_audio, test_profiles_rtc, test_tts_audio
 from .test_audio import started
 from .test_events import live
+from .test_fleet_alerts import query as query_alerts
+from .test_fleet_alerts import suppress
 from .test_profiles_rtc import OFFER
 from .test_tts_audio import start_tts
 from .test_websocket import request
@@ -92,6 +94,8 @@ async def test_admin_scope_settings_and_projected_directory(
         "users/adopt",
         "whatsapp/history",
         "users/bulk_preview",
+        "clock/settings_update",
+        "clock/host_apply",
     ],
 )
 async def test_restricted_global_commands_fail_before_payload_or_device_io(
@@ -493,3 +497,124 @@ async def test_credential_viewer_cannot_start_card_collection(
     assert denied["error"]["code"] == "unauthorized"
     card_collector[0].assert_not_called()
     card_collector[1].assert_not_called()
+
+
+async def test_fleet_alerts_scope_applies_before_counts_paging_and_maintenance_lists(
+    hass,
+    loaded_entry,
+    hass_ws_client,
+    hass_read_only_user,
+    hass_read_only_access_token,
+    device_io,
+):
+    manager = get_manager(hass)
+    manager.register("outside", "Outside station", True)
+    loaded_entry.runtime_data.coordinator.last_update_success = False
+    admin = await hass_ws_client(hass)
+    assert (await suppress(admin, "outside"))["success"]
+    assert (await suppress(admin, loaded_entry.entry_id, revision=1))["success"]
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id], phone="none")
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    report = await query_alerts(reader)
+    assert report["success"], report
+    result = report["result"]
+    assert result["total"] == 1 and result["active_count"] == 0
+    assert result["suppressed_count"] == 1 and len(result["suppressions"]) == 1
+    assert result["items"][0]["station_id"] == loaded_entry.entry_id
+    assert "outside" not in json.dumps(result)
+    denied = await request(
+        reader,
+        "fleet/alerts",
+        offset=0,
+        limit=1,
+        station_id="outside",
+        kind="",
+        include_suppressed=True,
+    )
+    assert denied["error"]["code"] == "unauthorized"
+    denied = await suppress(reader, "outside", revision=2)
+    assert denied["error"]["code"] == "unauthorized"
+    restored = await request(
+        reader,
+        "fleet/alerts_action",
+        revision=2,
+        station_id=loaded_entry.entry_id,
+        kind="maintenance",
+        action="restore",
+        duration_minutes=60,
+        reason="planned_maintenance",
+    )
+    assert restored["success"]
+    again = (await query_alerts(reader))["result"]
+    assert again["total"] == 1 and again["active_count"] == 1 and not again["suppressions"]
+    assert len((await query_alerts(admin))["result"]["suppressions"]) == 1
+    device_io["unlock"].assert_not_called()
+    device_io["write_person"].assert_not_called()
+
+
+async def test_outside_binding_after_assignment_removal_is_read_only_in_every_person_view(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    manager = get_manager(hass)
+    local, _, _ = await people(hass, loaded_entry.entry_id)
+    await manager.repository.async_bind("outside", local.id, fingerprint="previously-observed")
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    for command, data in (
+        ("users/get", {"user_id": local.id}),
+        ("users/list", {}),
+        ("users/query", {"query": "", "filters": {}, "offset": 0, "limit": 25, "snapshot": ""}),
+        ("overview", {}),
+    ):
+        reply = (await request(reader, command, **data))["result"]
+        rows = (
+            [reply]
+            if command == "users/get"
+            else reply
+            if command == "users/list"
+            else reply["users"]
+        )
+        assert next(row for row in rows if row["id"] == local.id)["operator_editable"] is False
+        assert "outside" not in json.dumps(reply)
+    denied = await request(
+        reader,
+        "users/update",
+        user_id=local.id,
+        revision=manager.repository.get(local.id).revision,
+        data={"display_name": "Change before removal completed"},
+        sync_now=False,
+    )
+    assert denied["error"]["code"] == "person_scope_shared"
+
+
+async def test_scoped_clock_operator_uses_saved_ntp_without_global_configuration_rights(
+    hass, loaded_entry, hass_ws_client, hass_read_only_user, hass_read_only_access_token
+):
+    await grant(hass, hass_read_only_user, [loaded_entry.entry_id])
+    reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
+    policy = (await request(reader, "clock/settings_get"))["result"]
+    with patch(
+        "custom_components.hikvision_intercom.clock_api.synchronize",
+        AsyncMock(return_value={"clock_verified": True, "configuration_verified": True}),
+    ) as sync:
+        allowed = await request(
+            reader,
+            "clock/station_sync",
+            station_id=loaded_entry.entry_id,
+            revision=policy["revision"],
+            copy_system=True,
+        )
+        assert allowed["success"], allowed
+        sync.assert_awaited_once()
+        assert sync.await_args.args[1] == {
+            key: policy[key] for key in ("server", "port", "interval")
+        }
+        denied = await request(
+            reader,
+            "clock/station_sync",
+            station_id="outside",
+            revision=policy["revision"],
+            copy_system=False,
+        )
+        assert denied["error"]["code"] == "unauthorized"
+        sync.assert_awaited_once()

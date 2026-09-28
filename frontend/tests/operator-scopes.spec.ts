@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { navigate } from "./navigation";
 
 async function scopedOperator(page: Page, shared = false) {
   await page.goto(
@@ -152,4 +153,44 @@ test("permission refresh closes person details and discards a delayed detail res
   expect(
     await page.evaluate(() => document.querySelector("hikvision-intercom-panel").detailCache.size),
   ).toBe(0);
+});
+
+test("scoped station operator keeps the alert and maintenance workflow", async ({ page }) => {
+  await page.goto("/?reader=1&grant=stations:manage,management:view&fleet-alerts=1");
+  await page.evaluate(() => {
+    window.demoData.access.station_ids = ["station-0"];
+    window.demoData.access.fields = {
+      phone: "none",
+      photo: "none",
+      credentials: "none",
+      profile: "none",
+      access: "none",
+    };
+    window.demoData.api.commands = [
+      "overview",
+      "stations/list",
+      "stations/get",
+      "fleet/alerts",
+      "fleet/alerts_action",
+    ];
+    window.demoData.stations = window.demoData.stations.slice(0, 1);
+    window.fleetAlerts.items = window.fleetAlerts.items.filter(
+      (item) => item.station_id === "station-0",
+    );
+    window.demoNotify();
+  });
+  await navigate(page, "Station alerts");
+  const view = page.locator("wiskey-fleet-alerts");
+  await expect(view.locator("article")).toHaveCount(1);
+  await view
+    .getByRole("combobox", { name: "Station maintenance", exact: true })
+    .selectOption("station-0");
+  await view.getByRole("button", { name: "Set maintenance period" }).click();
+  await view.getByRole("button", { name: "Confirm suppression" }).click();
+  await expect(view.getByRole("status")).toContainText("Device operation was preserved");
+  const write = await page.evaluate(() =>
+    window.calls.filter((call) => call.type.endsWith("fleet/alerts_action")).at(-1),
+  );
+  expect(write.station_id).toBe("station-0");
+  expect(write.kind).toBe("maintenance");
 });

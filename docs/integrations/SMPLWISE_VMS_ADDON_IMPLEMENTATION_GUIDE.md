@@ -2,7 +2,7 @@
 
 **Target:** SMPLWISE VMS running as a Home Assistant add-on/app on the same HA installation.
 
-**Target WisKey source:** v2.0.0-rc.15, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
+**Target WisKey source:** v2.0.0-rc.16, 28 September 2026. New operations are documented in the focused references below; the earlier screen map remains applicable.
 
 **Status:** implementation guide derived from this repository; it does not assert that VMS integration or physical station tests have already been completed.
 
@@ -15,6 +15,8 @@
 הקובץ נכתב באנגלית טכנית כדי שאפשר יהיה להעביר אותו ישירות ל־Claude כמפרט מימוש. רשימת הפקודות המעודכנת נמצאת בקובץ JSON הנלווה.
 
 ## Additions in 2.0.0-rc.14
+
+**Operator scopes in rc.16:** [Station and person-field authorization](WISKEY_OPERATOR_SCOPES.md) adds permitted station IDs, five field-category levels, safe projections, scoped creation, station-reader enrollment, fleet alerts and station clock controls. Use the actual operator's `authorization/session` and `overview.api.commands`; erase private caches and close media when grants change. Outside shared identities remain read-only. A Supervisor/service token does not inherit the browser operator's restrictions, and native infrastructure entity permissions remain separate. No namespace or command-shape change is required.
 
 Use the advertised installed commands and existing operator grants. Preserve the distinction between saved intent, synchronization evidence and physical access:
 

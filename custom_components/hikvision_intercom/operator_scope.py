@@ -53,11 +53,18 @@ def editable_person(policy: dict[str, Any], person: dict[str, Any]) -> bool:
     )
 
 
-def project_person(policy: dict[str, Any], person: dict[str, Any]) -> dict[str, Any]:
+def project_person(
+    policy: dict[str, Any],
+    person: dict[str, Any],
+    *,
+    shared_identity_ids: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
     result = deepcopy(person)
     if not restricted(policy):
         return result
-    result["operator_editable"] = editable_person(policy, person)
+    result["operator_editable"] = (
+        editable_person(policy, person) and person.get("id") not in shared_identity_ids
+    )
     result["redacted_fields"] = [field for field in FIELDS if not field_allowed(policy, field)]
     if policy.get("station_ids") is not None and not result["operator_editable"]:
         # Shared identities are read-only; do not expose membership in global groups.
@@ -98,8 +105,17 @@ def project_person(policy: dict[str, Any], person: dict[str, Any]) -> dict[str, 
     return result
 
 
-def project_people(policy: dict[str, Any], people: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [project_person(policy, person) for person in people if visible_person(policy, person)]
+def project_people(
+    policy: dict[str, Any],
+    people: list[dict[str, Any]],
+    *,
+    shared_identity_ids: frozenset[str] = frozenset(),
+) -> list[dict[str, Any]]:
+    return [
+        project_person(policy, person, shared_identity_ids=shared_identity_ids)
+        for person in people
+        if visible_person(policy, person)
+    ]
 
 
 def project_profiles(policy: dict[str, Any], value: dict[str, Any]) -> dict[str, Any]:
@@ -124,7 +140,12 @@ def project_profiles(policy: dict[str, Any], value: dict[str, Any]) -> dict[str,
     return result
 
 
-def project_overview(policy: dict[str, Any], value: dict[str, Any]) -> dict[str, Any]:
+def project_overview(
+    policy: dict[str, Any],
+    value: dict[str, Any],
+    *,
+    shared_identity_ids: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
     if not restricted(policy):
         return value
     result = deepcopy(value)
@@ -134,7 +155,9 @@ def project_overview(policy: dict[str, Any], value: dict[str, Any]) -> dict[str,
     for station in result["stations"]:
         if station.get("last_access"):
             station["last_access"] = project_event(policy, station["last_access"])
-    result["users"] = project_people(policy, result["users"])
+    result["users"] = project_people(
+        policy, result["users"], shared_identity_ids=shared_identity_ids
+    )
     result["user_count"] = len(result["users"])
     if result.get("profile_settings") is not None:
         result["profile_settings"] = project_profiles(policy, result["profile_settings"])

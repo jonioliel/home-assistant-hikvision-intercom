@@ -89,6 +89,8 @@ async def test_legacy_grant_defaults_and_restricted_command_surface():
     assert station_allowed(permissions, actor(), "front")
     assert not station_allowed(permissions, actor(), "back")
     assert command_allowed(permissions, actor(), "stations/test_unlock")
+    assert command_allowed(permissions, actor(), "fleet/alerts")
+    assert command_allowed(permissions, actor(), "fleet/alerts_action")
     assert not command_allowed(permissions, actor(), "sync/all")
     assert not command_allowed(permissions, actor(), "users/csv_export")
     assert not command_allowed(permissions, actor(), "unknown/new_command")
@@ -147,6 +149,17 @@ def test_read_only_and_hidden_fields_cannot_be_written():
     assert preview["actions"]["people_edit"]
     assert not preview["actions"]["whatsapp_send"]
     assert not preview["actions"]["people_export"]
+
+
+def test_outstanding_outside_binding_keeps_visible_person_read_only():
+    policy = grant(station_ids=["front"])
+    row = person()
+    pending = frozenset({row["id"]})
+    assert (
+        project_people(policy, [row], shared_identity_ids=pending)[0]["operator_editable"] is False
+    )
+    assert project_people(policy, [row])[0]["operator_editable"] is True
+    assert row["group_ids"] == ["local"]
 
 
 def test_scoped_profiles_do_not_offer_global_templates_or_shared_groups():

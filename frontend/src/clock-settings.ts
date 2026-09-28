@@ -111,6 +111,7 @@ export class ClockSettingsPanel extends LitElement {
     hass: { attribute: false },
     stations: { attribute: false },
     compact: { type: Boolean },
+    allowedCommands: { attribute: false },
     policy: { state: true },
     busy: { state: true },
     notice: { state: true },
@@ -121,6 +122,7 @@ export class ClockSettingsPanel extends LitElement {
   hass?: Hass;
   stations: Station[] = [];
   compact = false;
+  allowedCommands?: string[];
   private policy?: Policy;
   private busy = false;
   private dirty = false;
@@ -129,12 +131,23 @@ export class ClockSettingsPanel extends LitElement {
   private host?: Host;
   private actor?: string;
   private generation = 0;
-  private requests = new ScopedRequests(() => this.hass);
+  private requests = new ScopedRequests(
+    () => this.hass,
+    (_hass, message) =>
+      typeof message.type === "string" &&
+      message.type.startsWith("hikvision_intercom/") &&
+      this.can(message.type.slice("hikvision_intercom/".length)),
+  );
   private t(key: keyof typeof en) {
     return (this.hass?.language?.startsWith("he") ? he : en)[key];
   }
+  private can(command: string) {
+    return this.allowedCommands
+      ? this.allowedCommands.includes(command)
+      : !!this.hass?.user?.is_admin;
+  }
   protected updated(_changes: PropertyValues) {
-    const actor = this.hass?.user?.id;
+    const actor = JSON.stringify([this.hass?.user?.id, this.allowedCommands, this.compact]);
     if (actor !== this.actor) {
       this.actor = actor;
       this.generation++;
@@ -144,7 +157,7 @@ export class ClockSettingsPanel extends LitElement {
       this.host = undefined;
       this.notice = "";
       this.busy = false;
-      if (this.hass?.user?.is_admin) void this.load();
+      if (this.can("clock/settings_get")) void this.load();
     }
   }
   disconnectedCallback() {
@@ -154,6 +167,7 @@ export class ClockSettingsPanel extends LitElement {
     this.actor = undefined;
   }
   private async load() {
+    if (!this.can("clock/settings_get")) return;
     const g = this.generation;
     this.busy = true;
     try {
@@ -163,7 +177,7 @@ export class ClockSettingsPanel extends LitElement {
       if (g !== this.generation) return;
       this.policy = policy;
       this.dirty = false;
-      if (!this.compact) {
+      if (!this.compact && this.can("clock/host_status")) {
         const host = await this.requests.run<Host>({
           type: "hikvision_intercom/clock/host_status",
         });
@@ -176,7 +190,7 @@ export class ClockSettingsPanel extends LitElement {
     }
   }
   private async save() {
-    if (!this.policy || this.busy) return;
+    if (!this.policy || this.busy || !this.can("clock/settings_update")) return;
     const g = this.generation;
     this.busy = true;
     const { revision, ...values } = this.policy;
@@ -198,7 +212,7 @@ export class ClockSettingsPanel extends LitElement {
     }
   }
   private async apply(stations: Station[], copy: boolean) {
-    if (!this.policy || this.busy || this.dirty) return;
+    if (!this.policy || this.busy || this.dirty || !this.can("clock/station_sync")) return;
     const g = this.generation,
       revision = this.policy.revision;
     this.busy = true;
@@ -236,7 +250,7 @@ export class ClockSettingsPanel extends LitElement {
     }
   }
   private async applyHost() {
-    if (!this.policy || this.busy || this.dirty) return;
+    if (!this.policy || this.busy || this.dirty || !this.can("clock/host_apply")) return;
     const g = this.generation;
     this.busy = true;
     try {
@@ -252,7 +266,7 @@ export class ClockSettingsPanel extends LitElement {
     }
   }
   render() {
-    if (!this.hass?.user?.is_admin) return nothing;
+    if (!this.can("clock/settings_get")) return nothing;
     return html`<section aria-label=${this.t("title")}>
       ${this.compact ? nothing : html`<h2>${this.t("title")}</h2>`}
       ${
@@ -267,7 +281,7 @@ export class ClockSettingsPanel extends LitElement {
                           (key) =>
                             html`<label
                               >${this.t(key)}<input
-                                ?disabled=${this.busy}
+                                ?disabled=${this.busy || !this.can("clock/settings_update")}
                                 type=${key === "server" ? "text" : "number"}
                                 .value=${String(this.policy![key])}
                                 @input=${(e: Event) => {
@@ -284,7 +298,10 @@ export class ClockSettingsPanel extends LitElement {
                         )}
                       </div>
                       <div class="actions">
-                        <button ?disabled=${this.busy} @click=${() => this.save()}>
+                        <button
+                          ?disabled=${this.busy || !this.can("clock/settings_update")}
+                          @click=${() => this.save()}
+                        >
                           ${this.t("save")}</button
                         ><button ?disabled=${this.busy} @click=${() => this.load()}>
                           ${this.t("reload")}
@@ -295,15 +312,15 @@ export class ClockSettingsPanel extends LitElement {
                       <p>${this.t("hostHint")}</p>
                       <p>${this.t(this.host?.synchronized ? "synced" : "unknown")}</p>
                       ${this.host?.config ? html`<p><bdi>${this.host.config.servers.join(", ")}</bdi></p>` : nothing}
-                      ${this.host?.supported ? html`<button ?disabled=${this.busy || this.dirty || this.policy.port !== 123} @click=${() => this.applyHost()}>${this.t("hostApply")}</button>` : html`<p>${this.t("unavailable")}</p>`}
+                      ${this.host?.supported && this.can("clock/host_apply") ? html`<button ?disabled=${this.busy || this.dirty || this.policy.port !== 123} @click=${() => this.applyHost()}>${this.t("hostApply")}</button>` : html`<p>${this.t("unavailable")}</p>`}
                       <div class="actions">
                         <button
-                          ?disabled=${this.busy || this.dirty}
+                          ?disabled=${this.busy || this.dirty || !this.can("clock/station_sync")}
                           @click=${() => this.apply(this.stations, false)}
                         >
                           ${this.t("all")}</button
                         ><button
-                          ?disabled=${this.busy || this.dirty}
+                          ?disabled=${this.busy || this.dirty || !this.can("clock/station_sync")}
                           @click=${() => this.apply(this.stations, true)}
                         >
                           ${this.t("allNow")}
@@ -314,19 +331,23 @@ export class ClockSettingsPanel extends LitElement {
                 (station) =>
                   html`<div class="clock-row">
                     <strong>${station.name}</strong>
-                    <div class="actions">
-                      <button
-                        ?disabled=${this.busy || this.dirty || !station.loaded || !station.online}
-                        @click=${() => this.apply([station], false)}
-                      >
-                        ${this.t("apply")}</button
-                      ><button
-                        ?disabled=${this.busy || this.dirty || !station.loaded || !station.online}
-                        @click=${() => this.apply([station], true)}
-                      >
-                        ${this.t("sync")}
-                      </button>
-                    </div>
+                    ${
+                      this.can("clock/station_sync")
+                        ? html`<div class="actions">
+                            <button
+                              ?disabled=${this.busy || this.dirty || !station.loaded || !station.online}
+                              @click=${() => this.apply([station], false)}
+                            >
+                              ${this.t("apply")}</button
+                            ><button
+                              ?disabled=${this.busy || this.dirty || !station.loaded || !station.online}
+                              @click=${() => this.apply([station], true)}
+                            >
+                              ${this.t("sync")}
+                            </button>
+                          </div>`
+                        : nothing
+                    }
                     <p role="status">${this.results[station.id] ?? ""}</p>
                   </div>`,
               )}

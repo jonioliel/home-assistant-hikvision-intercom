@@ -10,6 +10,8 @@ Semantic Versioning is used throughout the project.
 - Filter and redact records before searching or counting. Keep shared identities read-only when another station or an outstanding device binding is outside the operator's scope. Allow scoped creation only with a permitted station grant; reject hidden/read-only field patches and outside assignments before persistence or device I/O.
 - Close camera/person views and discard caches and delayed detail responses after access changes. Remove unsupported global tools from restricted operators, label hidden fields explicitly, and preserve all existing design variants and unrestricted workflows.
 - Retain station-reader card enrollment for permitted local identities. Bind collection to the operator, station and person, discard the private captured card after permission or assignment changes, and require a fresh authorized confirmation before saving.
+- Keep fleet alerts and maintenance controls usable for scoped operators, deriving counts and policy lists only from permitted stations while preserving outside presentation policies and device state.
+- Allow authorized scoped operators to synchronize a permitted station using saved NTP settings. Gate the compact clock controls by discovered commands; keep central NTP and host configuration outside restricted grants.
 - Accept legacy permission storage and persist extended schema 2 on the next change. Shield permission commits against cancellation so durable and live grants cannot diverge. Add strict typing and transport/browser regressions, VMS scope documentation and focused owner checks. Infrastructure entity permissions remain a separate authorization layer.
 
 ## [2.0.0-rc.15] - 2026-09-28

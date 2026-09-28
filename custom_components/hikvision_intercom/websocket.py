@@ -416,7 +416,22 @@ def overview(hass: HomeAssistant, user: Any | None = None) -> dict[str, Any]:
     data["version"] = VERSION
     # Internal fleet observers have no authenticated panel operator. Their input
     # must retain the full fleet; request handlers always supply the real user.
-    return project_overview(policy, data) if user is not None else data
+    return (
+        project_overview(policy, data, shared_identity_ids=_outside_bound_people(hass, policy))
+        if user is not None
+        else data
+    )
+
+
+def _outside_bound_people(hass: HomeAssistant, policy: dict[str, Any]) -> frozenset[str]:
+    if policy.get("station_ids") is None:
+        return frozenset()
+    return frozenset(
+        uid
+        for station, bindings in get_manager(hass).repository._state["bindings"].items()
+        if not contains_station(policy, station)
+        for uid in bindings
+    )
 
 
 def _operator_policy(hass: HomeAssistant, user: Any | None) -> dict[str, Any] | None:
@@ -444,7 +459,9 @@ def _guard_operator(
         if session is None or session.actor != actor:
             raise AccessError("capture_not_found")
         sid, uid = session.station_id, session.user_id
-    if sid is not None and (not sid or not contains_station(policy, sid)):
+    if sid is not None and (
+        (not sid and command != "fleet/alerts") or (sid and not contains_station(policy, sid))
+    ):
         raise AccessError("unauthorized")
     filters = msg.get("filters", {})
     if isinstance(filters, dict):
@@ -487,10 +504,7 @@ def _guard_operator(
         guard_person(policy, person.public(), mutate=command in person_writes)
         if command in person_writes and policy["station_ids"] is not None:
             # A previously removed grant may still be awaiting device removal.
-            if any(
-                uid in bindings and not contains_station(policy, station)
-                for station, bindings in manager.repository._state["bindings"].items()
-            ):
+            if uid in _outside_bound_people(hass, policy):
                 raise AccessError("person_scope_shared")
         if command == "users/update":
             guard_fields(policy, msg["data"])
@@ -536,9 +550,13 @@ async def _dispatch(
                 "users/temporary_cancel",
                 "cards/capture_confirm",
             }:
-                result = project_person(policy, result)
+                result = project_person(
+                    policy, result, shared_identity_ids=_outside_bound_people(hass, policy)
+                )
             if command == "users/list":
-                result = project_people(policy, result)
+                result = project_people(
+                    policy, result, shared_identity_ids=_outside_bound_people(hass, policy)
+                )
             if command == "profiles/settings_get":
                 result = project_profiles(policy, result)
             if command == "stations/list":
@@ -971,7 +989,9 @@ async def _dispatch_inner(
 
         return query_users(
             project_people(
-                _operator_policy(hass, user) or {}, manager.repository.public()["users"]
+                _operator_policy(hass, user) or {},
+                manager.repository.public()["users"],
+                shared_identity_ids=_outside_bound_people(hass, _operator_policy(hass, user) or {}),
             ),
             query=msg["query"],
             filters=msg["filters"],
@@ -1013,7 +1033,7 @@ async def _dispatch_inner(
     if command in {"fleet/alerts", "fleet/alerts_action"}:
         from .fleet_alerts_api import dispatch_alerts
 
-        return await dispatch_alerts(hass, command, msg, actor)
+        return await dispatch_alerts(hass, command, msg, actor, policy=_operator_policy(hass, user))
     if command == "investigations/query":
         from .investigations_api import investigate
 

@@ -411,6 +411,7 @@ PREVIEW_ACTIONS = {
 # contain hidden fields; those remain available to unrestricted grants and admins.
 SCOPED_STATION_COMMANDS = frozenset(
     {
+        "fleet/alerts_action",
         "stations/get",
         "stations/test_unlock",
         "stations/rescan",
@@ -450,6 +451,8 @@ SCOPED_STATION_COMMANDS = frozenset(
 )
 SCOPED_COMMON_COMMANDS = frozenset(
     {
+        "fleet/alerts",
+        "clock/settings_get",
         "overview",
         "sync/status",
         "appearance/settings_get",

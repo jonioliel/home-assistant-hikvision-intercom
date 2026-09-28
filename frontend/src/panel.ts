@@ -1114,6 +1114,7 @@ export class IntercomManagerPanel extends LitElement {
       ${clock?.error || !clock ? html`<p class="danger">${this.t(clock?.status === "stale" ? "clock_stale" : "clock_read_failed")}</p>` : nothing}
       <hikvision-clock-settings
         .hass=${this.protectedHass}
+        .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
         .stations=${[station]}
         .compact=${true}
       ></hikvision-clock-settings>
@@ -2903,7 +2904,7 @@ export class IntercomManagerPanel extends LitElement {
     if (tab === "tools") return this.canView("stations") || this.canView("management");
     if (!this.canView(this.tabArea(tab))) return false;
     const command: Record<string, string> = {
-      clock_options: "clock/settings_get",
+      clock_options: this.operatorRestricted ? "clock/settings_update" : "clock/settings_get",
       media_options: "media/settings_get",
       whatsapp_templates: "whatsapp/templates_get",
       profile_options: "profiles/settings_get",

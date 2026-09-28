@@ -51,6 +51,10 @@ Projection happens before search, filtering, counting and paging. Hidden phones/
 
 Events are filtered before paging/aggregation; reports, CSV and print use the same rows. Hidden card/portrait data is removed before export. Current group/custom-field audience filters require field visibility. Source details and trace workflows that could reveal hidden fields are unavailable to field-restricted accounts.
 
+`fleet/alerts` also filters station observations before deriving counts, pages and maintenance/snooze lists. An empty `station_id` means all permitted stations, never the entire fleet for a scoped operator. `fleet/alerts_action` may change presentation policies only for a permitted station and still requires station-management permission and the current global alert-policy revision. Policies on outside stations are preserved. Neither operation changes device state.
+
+`clock/settings_get` exposes only the saved NTP server/port/interval and revision. An operator with management-area access may use that revision for `clock/station_sync` on a permitted station. Global NTP preference changes and host configuration/status remain unavailable to scoped grants. The station's compact clock controls consult command discovery and lose their action controls immediately after a permission change. Applying NTP verifies configuration separately from measured clock alignment.
+
 ## Writes and shared identities
 
 Explicit station IDs are checked before lookup or device I/O. A person also assigned to an outside station is read-only; an outstanding outside device binding also blocks mutation after its assignment was removed. This protects global PIN/cards/name/active state at unrelated stations.
