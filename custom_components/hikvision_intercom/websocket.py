@@ -67,6 +67,11 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "visits/operators": {},
+    "visits/list": {"offset": int, "limit": int},
+    "visits/create": {"data": dict, "approver_id": str},
+    "visits/request": {"user_id": str, "revision": int, "approver_id": str},
+    "visits/decide": {"request_id": str, "revision": int, "decision": str},
     "guest_templates/get": {},
     "guest_templates/upsert": {"revision": int, "template_id": str, "values": dict},
     "guest_templates/delete": {"revision": int, "template_id": str},
@@ -862,7 +867,7 @@ async def _dispatch_inner(
         return {
             "pin": manager.repository.generate_unique_pin(exclude_user_id=msg["user_id"] or None)
         }
-    if command in {"users/create", "users/update"} and {
+    if command in {"users/create", "users/update", "visits/create"} and {
         "profile",
         "group_ids",
         "photo",
@@ -889,6 +894,12 @@ async def _dispatch_inner(
             raise AccessError("photo_disabled")
     if command == "users/create":
         return await manager.async_create(_patch(msg["data"]), sync_now=msg.get("sync_now", True))
+    if command.startswith("visits/"):
+        from .visit_requests_api import dispatch_visits
+
+        if command == "visits/create":
+            msg = {**msg, "data": _patch(msg["data"])}
+        return await dispatch_visits(hass, command, msg, actor)
     if command in {"users/update", "users/set_active", "cards/add", "cards/remove"}:
         patch = msg.get("data", {})
         if command == "users/set_active":

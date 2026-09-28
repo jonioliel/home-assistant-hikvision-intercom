@@ -1,4 +1,59 @@
 const en = {
+  visit_requests: "Visit approvals",
+  tools_visit_requests:
+    "Review visitor and contractor requests before activating their access. The selected second operator approves the exact doors and validity window.",
+  visit_require_approval: "Require a second operator's approval",
+  visit_approval_hint:
+    "The visitor will be saved inactive. Access remains disabled until the selected operator reviews and approves the request. No message is sent automatically.",
+  visit_approver: "Approving operator",
+  visit_choose_approver: "Choose another operator",
+  visit_no_approver:
+    "No other operator with user management permission is available. Add an operator in access management or turn off the approval requirement.",
+  visit_queue_hint:
+    "Approval saves an active permission and queues synchronization. Check station synchronization before assuming access is available at the door.",
+  visit_you: "You",
+  visit_operator_unavailable: "Unavailable operator",
+  visit_missing_station: "Unconfigured station",
+  visit_decided_by: "Decision by",
+  visit_review: "Review visit decision",
+  visit_confirm_approve:
+    "Approve this unchanged visit and activate access? Synchronization will be queued for the selected doors.",
+  visit_confirm_reject: "Reject this request? The visitor remains inactive.",
+  visit_confirm_cancel: "Cancel this request? The visitor remains inactive.",
+  visit_confirm_decision: "Confirm decision",
+  visit_approve: "Approve visit",
+  visit_reject: "Reject visit",
+  visit_cancel_request: "Cancel request",
+  visit_resubmit: "Submit a fresh request",
+  visit_send_request: "Send approval request",
+  visit_empty: "No matching requests on this page.",
+  visit_refresh_before_retry:
+    "Refresh the queue before taking another action. A timed-out operation may already have completed; it will not be sent again automatically.",
+  visit_request_saved: "Approval request saved. The visitor remains inactive until approval.",
+  visit_decision_saved: "Decision saved. The visitor remains inactive.",
+  visit_approved_sync:
+    "Visit approved and synchronization queued. Station confirmation is still required.",
+  visit_status_pending: "Awaiting approval",
+  visit_status_approved: "Approved",
+  visit_status_rejected: "Rejected",
+  visit_status_cancelled: "Cancelled",
+  visit_status_superseded: "Replaced by a newer request",
+  visit_status_all: "All requests",
+  visit_second_operator_required:
+    "Choose a different operator. You cannot approve your own request.",
+  visit_approver_unavailable:
+    "The chosen operator no longer has permission to approve. Refresh and choose another operator.",
+  visit_inactive_required:
+    "Only an inactive visitor or contractor can be submitted for approval. Disable access first if a new approval is required.",
+  visit_approval_required:
+    "This visitor requires fresh approval. Submit a new request from Visit approvals instead of activating access directly.",
+  visit_request_stale:
+    "The visitor's details changed after submission. Review the current details and submit a fresh request before approval.",
+  visit_request_closed: "This request is already closed or replaced. Refresh the queue.",
+  visit_request_not_found: "The request no longer exists. Refresh the queue.",
+  visit_request_limit:
+    "The approval queue reached its storage limit. Close obsolete pending requests before creating more.",
+  visit_no_pin: "No personal PIN",
   guest_templates: "Visit templates",
   tools_guest_templates:
     "Reusable doors, visit duration and weekly hours for visitors and contractors. No PIN or card is stored; applying a template fills a form for review.",
@@ -2045,6 +2100,58 @@ const en = {
   wait: "Please wait…",
 };
 const he: Record<keyof typeof en, string> = {
+  visit_requests: "אישורי ביקור",
+  tools_visit_requests:
+    "אישור ביקורי אורחים וקבלנים לפני הפעלת ההרשאה. מפעיל נוסף בודק את הדלתות ואת זמני התוקף שנבחרו.",
+  visit_require_approval: "נדרש אישור של מפעיל נוסף",
+  visit_approval_hint:
+    "האורח יישמר כלא פעיל. הגישה תישאר חסומה עד שהמפעיל שנבחר יבדוק ויאשר את הבקשה. לא תישלח הודעה אוטומטית.",
+  visit_approver: "המפעיל המאשר",
+  visit_choose_approver: "בחירת מפעיל נוסף",
+  visit_no_approver:
+    "אין מפעיל נוסף עם הרשאת ניהול משתמשים. ניתן להוסיף מפעיל בניהול ההרשאות או להסיר את דרישת האישור.",
+  visit_queue_hint:
+    "אישור שומר הרשאה פעילה ומעביר אותה לסנכרון. יש לבדוק את מצב הסנכרון לפני שמניחים שהגישה זמינה בדלת.",
+  visit_you: "אתה",
+  visit_operator_unavailable: "מפעיל שאינו זמין",
+  visit_missing_station: "תחנה שאינה מוגדרת",
+  visit_decided_by: "החלטה של",
+  visit_review: "בדיקת החלטה על ביקור",
+  visit_confirm_approve:
+    "לאשר את פרטי הביקור האלה ולהפעיל את הגישה? ההרשאה תועבר לסנכרון בדלתות שנבחרו.",
+  visit_confirm_reject: "לדחות את הבקשה? האורח יישאר לא פעיל.",
+  visit_confirm_cancel: "לבטל את הבקשה? האורח יישאר לא פעיל.",
+  visit_confirm_decision: "אישור ההחלטה",
+  visit_approve: "אישור ביקור",
+  visit_reject: "דחיית ביקור",
+  visit_cancel_request: "ביטול בקשה",
+  visit_resubmit: "הגשת בקשה מעודכנת",
+  visit_send_request: "שליחת בקשת אישור",
+  visit_empty: "אין בקשות מתאימות בעמוד הזה.",
+  visit_refresh_before_retry:
+    "יש לרענן את הרשימה לפני פעולה נוספת. פעולה שלא התקבלה עליה תשובה עשויה כבר להיות שמורה; היא לא תישלח שוב אוטומטית.",
+  visit_request_saved: "בקשת האישור נשמרה. האורח יישאר לא פעיל עד לאישור.",
+  visit_decision_saved: "ההחלטה נשמרה. האורח נשאר לא פעיל.",
+  visit_approved_sync: "הביקור אושר והועבר לסנכרון. עדיין נדרש אישור מהתחנות.",
+  visit_status_pending: "ממתין לאישור",
+  visit_status_approved: "מאושר",
+  visit_status_rejected: "נדחה",
+  visit_status_cancelled: "בוטל",
+  visit_status_superseded: "הוחלף בבקשה מעודכנת",
+  visit_status_all: "כל הבקשות",
+  visit_second_operator_required: "יש לבחור מפעיל אחר. לא ניתן לאשר בקשה שהגשת בעצמך.",
+  visit_approver_unavailable: "למפעיל שנבחר אין עוד הרשאה לאשר. יש לרענן ולבחור מפעיל אחר.",
+  visit_inactive_required:
+    "רק אורח או קבלן לא פעיל יכול להמתין לאישור. יש לבטל קודם את הגישה אם נדרש אישור חדש.",
+  visit_approval_required:
+    "האורח דורש אישור מעודכן. יש להגיש בקשה חדשה במסך אישורי ביקור לפני הפעלת הגישה.",
+  visit_request_stale:
+    "פרטי האורח השתנו לאחר הגשת הבקשה. יש לבדוק את הפרטים הנוכחיים ולהגיש בקשה מעודכנת לפני אישור.",
+  visit_request_closed: "הבקשה כבר נסגרה או הוחלפה. יש לרענן את הרשימה.",
+  visit_request_not_found: "הבקשה אינה קיימת עוד. יש לרענן את הרשימה.",
+  visit_request_limit:
+    "תור האישורים הגיע למגבלת השמירה. יש לסגור בקשות ישנות שממתינות לאישור לפני יצירת בקשות נוספות.",
+  visit_no_pin: "ללא קוד אישי",
   guest_templates: "תבניות ביקור",
   tools_guest_templates:
     "דלתות, משך ביקור וימי ושעות כניסה לשימוש חוזר עבור אורחים וקבלנים. התבנית אינה שומרת PIN או כרטיס; החלתה ממלאת טופס לבדיקה לפני שמירה.",

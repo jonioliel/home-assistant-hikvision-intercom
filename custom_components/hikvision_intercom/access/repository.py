@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Any, TypeVar
 from uuid import uuid4
 
-from . import sync_tracking
+from . import sync_tracking, visit_requests
 from .admin_audit import append_changes, current_actor, current_reason_code, validate_storage
 from .models import AccessError, ManagedUser, build_user, utc_now
 
@@ -30,7 +30,8 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 10,
+            "schema": 11,
+            "visit_requests": {"revision": 0, "items": {}},
             "sync_operations": {},
             "profile_settings": None,
             "fingerprint_key": secrets.token_hex(32),
@@ -50,8 +51,9 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10)
-            legacy_state = set(self._state) - {"sync_operations"}
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11)
+            previous_state = set(self._state) - {"visit_requests"}
+            legacy_state = previous_state - {"sync_operations"}
             legacy_keys = legacy_state - {
                 "admin_audit",
                 "operation_receipts",
@@ -83,14 +85,21 @@ class AccessRepository:
             if data.get("schema") == 7 and set(data) == legacy_state:
                 data = {**deepcopy(data), "schema": 8, "sync_operations": {}}
                 migrated = True
-            if data.get("schema") == 8 and set(data) == set(self._state):
+            if data.get("schema") == 8 and set(data) == previous_state:
                 data = {**deepcopy(data), "schema": 9}
                 migrated = True
-            if data.get("schema") == 9 and set(data) == set(self._state):
+            if data.get("schema") == 9 and set(data) == previous_state:
                 data = {**deepcopy(data), "schema": 10}
                 migrated = True
+            if data.get("schema") == 10 and set(data) == previous_state:
+                data = {
+                    **deepcopy(data),
+                    "schema": 11,
+                    "visit_requests": {"revision": 0, "items": {}},
+                }
+                migrated = True
             try:
-                if data.get("schema") != 10 or set(data) != set(self._state):
+                if data.get("schema") != 11 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -155,6 +164,7 @@ class AccessRepository:
                     ):
                         raise AccessError("invalid_storage")
                 validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
+                visit_requests.validate(normalized["visit_requests"], normalized["users"])
                 sync_tracking.validate(normalized["sync_operations"])
                 if migrated:
                     sync_tracking.update(normalized, migrated=True)
@@ -270,6 +280,7 @@ class AccessRepository:
                 candidate = deepcopy(self._state)
                 result = change(candidate)
                 self._validate_collisions(candidate)
+                visit_requests.guard_activation(self._state, candidate)
                 sync_tracking.update(candidate)
                 append_changes(self._state, candidate, actor, action, reason_code=reason_code)
                 return candidate, result
@@ -518,7 +529,9 @@ class AccessRepository:
 
         return await self._commit(update, offload=True)
 
-    async def async_create(self, data: dict[str, Any]) -> ManagedUser:
+    async def async_create(
+        self, data: dict[str, Any], *, approval: tuple[str, str] | None = None
+    ) -> ManagedUser:
         def create(state: dict[str, Any]) -> ManagedUser:
             employees = {item["employee_no"] for item in state["users"].values()} | {
                 item["employee_no"] for item in state["tombstones"].values()
@@ -529,9 +542,52 @@ class AccessRepository:
                 self.permission_data(data, state=state), employee_no=employee, now=utc_now()
             )
             state["users"][user.id] = user.private()
+            if approval:
+                visit_requests.create(state, user, approval[0], approval[1])
             return user
 
         return await self._commit(create)
+
+    def visit_requests(self, *, offset: int = 0, limit: int = 100) -> dict[str, Any]:
+        return visit_requests.public(self._state, offset=offset, limit=limit)
+
+    async def async_request_visit(
+        self, user_id: str, *, expected_revision: int, actor: str, approver: str
+    ) -> dict[str, Any]:
+        def request(state: dict[str, Any]) -> dict[str, Any]:
+            raw = state["users"].get(user_id)
+            if raw is None:
+                raise AccessError("user_not_found")
+            user = ManagedUser.from_private(raw)
+            if type(expected_revision) is not int or user.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            return visit_requests.create(state, user, actor, approver)
+
+        return await self._commit(request)
+
+    async def async_decide_visit(
+        self,
+        request_id: str,
+        *,
+        expected_revision: int,
+        actor: str,
+        decision: str,
+        validate: Callable[[ManagedUser], None] | None = None,
+    ) -> dict[str, Any]:
+        def decide(state: dict[str, Any]) -> dict[str, Any]:
+            row, user = visit_requests.prepare_decision(
+                state, request_id, expected_revision, actor, decision
+            )
+            if decision == "approve":
+                if user is None:
+                    raise AccessError("user_not_found")
+                activated = self._update_user(state, user.id, {"active": True}, user.revision)
+                if validate:
+                    validate(activated)
+                row["activated_revision"] = activated.revision
+            return deepcopy(row)
+
+        return await self._commit(decide)
 
     async def async_update(
         self, user_id: str, data: dict[str, Any], *, expected_revision: int
@@ -618,6 +674,7 @@ class AccessRepository:
                 "retired_cards": state["retired_cards"],
                 "retired_pins": state["retired_pins"],
                 "profile_revision": (state["profile_settings"] or {}).get("revision"),
+                "visit_request_revision": state["visit_requests"]["revision"],
             }
         )
 
@@ -639,6 +696,7 @@ class AccessRepository:
                 )
             users.append(user)
         self._validate_collisions(state)
+        visit_requests.guard_activation(self._state, state)
         return users
 
     def preview_bulk(self, changes: list[dict[str, Any]]) -> list[ManagedUser]:

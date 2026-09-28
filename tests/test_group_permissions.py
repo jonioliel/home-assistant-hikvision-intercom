@@ -135,6 +135,7 @@ async def test_legacy_manual_access_stays_personal_after_policy_seed():
     )
     raw = repo.snapshot()
     raw["schema"] = 4
+    raw.pop("visit_requests")
     raw.pop("sync_operations")
     raw.pop("profile_settings")
     raw["users"][user.id].pop("permission_overrides")

@@ -330,6 +330,65 @@ const guestTemplates = {
     : [],
 };
 window.guestTemplates = guestTemplates;
+if (query.has("visits")) {
+  data.api.capabilities.push("visit_host_approval");
+  data.api.commands.push(
+    "visits/operators",
+    "visits/list",
+    "visits/create",
+    "visits/request",
+    "visits/decide",
+  );
+  Object.assign(data.users[3], {
+    access_category: "visitor",
+    responsible_person: "Reception",
+    access_purpose: "Inspection",
+    valid_from: new Date().toISOString(),
+    valid_until: new Date(Date.now() + 86400000).toISOString(),
+  });
+}
+function visitSnapshot(user) {
+  return {
+    display_name: user.display_name,
+    employee_no: user.employee_no,
+    access_category: user.access_category,
+    responsible_person: user.responsible_person,
+    access_purpose: user.access_purpose,
+    valid_from: user.valid_from,
+    valid_until: user.valid_until,
+    pin_configured: user.pin_configured,
+    enabled_cards: user.cards.filter((card) => card.enabled).length,
+    doors: Object.fromEntries(
+      Object.entries(user.assignments)
+        .filter(([, item]) => item.enabled)
+        .map(([id, item]) => [id, item.allowed_locks]),
+    ),
+    timing_schedule: user.access_timing_policy?.schedule ?? null,
+  };
+}
+const visitRequests = {
+  revision: query.has("visits") ? 1 : 0,
+  items: query.has("visits")
+    ? [
+        {
+          id: "visit-1",
+          user_id: data.users[3].id,
+          user_revision: 1,
+          revision: 1,
+          approver_id: "demo-admin",
+          requested_by: "demo-host",
+          requested_at: new Date().toISOString(),
+          status: "pending",
+          decided_by: "",
+          decided_at: null,
+          snapshot: visitSnapshot(data.users[3]),
+          stale: false,
+          user_deleted: false,
+        },
+      ]
+    : [],
+};
+window.visitRequests = visitRequests;
 if (query.has("empty")) {
   data.users = [];
   data.stations = [];
@@ -1414,6 +1473,109 @@ const fake = {
       return structuredClone(user);
     }
     if (command === "guest_templates/get") return structuredClone(guestTemplates);
+    if (command === "visits/operators")
+      return {
+        operators: [
+          { id: "demo-admin", name: "Administrator" },
+          { id: "demo-host", name: "Reception host" },
+        ],
+      };
+    if (command === "visits/list")
+      return {
+        ...structuredClone(visitRequests),
+        items: structuredClone(
+          visitRequests.items.slice(message.offset, message.offset + message.limit),
+        ),
+        total: visitRequests.items.length,
+        offset: message.offset,
+        next_offset: null,
+      };
+    if (command === "visits/create") {
+      if (message.approver_id === this.user.id) throw { code: "visit_second_operator_required" };
+      const source = structuredClone(message.data);
+      const user = {
+        ...source,
+        id: crypto.randomUUID(),
+        employee_no: source.employee_no || "1099",
+        revision: 1,
+        active: false,
+        pin_configured: !!source.pin,
+        cards: source.cards ?? [],
+        assignments: source.assignments ?? {},
+        identity_locked: false,
+      };
+      delete user.pin;
+      if (source.door_permissions)
+        user.assignments = Object.fromEntries(
+          Object.entries(source.door_permissions).map(([id, locks]) => [
+            id,
+            { enabled: true, allowed_locks: locks, sync_state: "pending" },
+          ]),
+        );
+      data.users.push(user);
+      visitRequests.revision++;
+      visitRequests.items.unshift({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        user_revision: 1,
+        revision: 1,
+        approver_id: message.approver_id,
+        requested_by: this.user.id,
+        requested_at: new Date().toISOString(),
+        status: "pending",
+        decided_by: "",
+        decided_at: null,
+        snapshot: visitSnapshot(user),
+        stale: false,
+        user_deleted: false,
+      });
+      return structuredClone(user);
+    }
+    if (command === "visits/decide") {
+      const row = visitRequests.items.find((item) => item.id === message.request_id);
+      if (row.revision !== message.revision) throw { code: "revision_conflict" };
+      if (row.status !== "pending") throw { code: "visit_request_closed" };
+      const user = data.users.find((item) => item.id === row.user_id);
+      if (message.decision === "approve" && (row.stale || user.revision !== row.user_revision))
+        throw { code: "visit_request_stale" };
+      row.status = { approve: "approved", reject: "rejected", cancel: "cancelled" }[
+        message.decision
+      ];
+      row.revision++;
+      row.decided_by = this.user.id;
+      row.decided_at = new Date().toISOString();
+      visitRequests.revision++;
+      if (message.decision === "approve") {
+        user.active = true;
+        user.revision++;
+      }
+      return structuredClone(row);
+    }
+    if (command === "visits/request") {
+      const user = data.users.find((item) => item.id === message.user_id);
+      if (user.revision !== message.revision) throw { code: "revision_conflict" };
+      if (user.active) throw { code: "visit_inactive_required" };
+      for (const row of visitRequests.items)
+        if (row.user_id === user.id && row.status === "pending") row.status = "superseded";
+      visitRequests.revision++;
+      const row = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        user_revision: user.revision,
+        revision: 1,
+        approver_id: message.approver_id,
+        requested_by: this.user.id,
+        requested_at: new Date().toISOString(),
+        status: "pending",
+        decided_by: "",
+        decided_at: null,
+        snapshot: visitSnapshot(user),
+        stale: false,
+        user_deleted: false,
+      };
+      visitRequests.items.unshift(row);
+      return structuredClone(row);
+    }
     if (command === "guest_templates/upsert" || command === "guest_templates/delete") {
       if (message.revision !== guestTemplates.revision) throw { code: "revision_conflict" };
       if (command.endsWith("delete"))

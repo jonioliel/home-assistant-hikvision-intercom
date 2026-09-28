@@ -1123,6 +1123,50 @@
         "api_contract": "int"
       }
     },
+    "hikvision_intercom/visits/create": {
+      "required": {
+        "data": "dict",
+        "approver_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/decide": {
+      "required": {
+        "request_id": "str",
+        "revision": "int",
+        "decision": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/list": {
+      "required": {
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/operators": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/request": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "approver_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
     "hikvision_intercom/whatsapp/history": {
       "required": {
         "user_id": "str",

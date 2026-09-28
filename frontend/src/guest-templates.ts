@@ -352,16 +352,16 @@ export class GuestTemplatesPanel extends LitElement {
         <legend>${this.t("guest_doors")}</legend>
         <div class="doors">
           ${this.stations
-        .filter((station) => station.lock_enabled)
-        .map(
-          (station) =>
-            html`<div class="door">
-              <strong>${station.name}</strong>
-              <div class="row">
-                ${station.integrated_locks.map((lock) => html`<label class="check"><input type="checkbox" .checked=${draft.doors[station.id]?.includes(lock.physical_index) ?? false} @change=${(e: Event) => this.toggleDoor(station, lock.physical_index, (e.target as HTMLInputElement).checked)} />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label>`)}
-              </div>
-            </div>`,
-        )}
+            .filter((station) => station.lock_enabled)
+            .map(
+              (station) =>
+                html`<div class="door">
+                  <strong>${station.name}</strong>
+                  <div class="row">
+                    ${station.integrated_locks.map((lock) => html`<label class="check"><input type="checkbox" .checked=${draft.doors[station.id]?.includes(lock.physical_index) ?? false} @change=${(e: Event) => this.toggleDoor(station, lock.physical_index, (e.target as HTMLInputElement).checked)} />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label>`)}
+                  </div>
+                </div>`,
+            )}
         </div>
         ${Object.keys(draft.doors)
           .filter(
@@ -400,8 +400,8 @@ export class GuestTemplatesPanel extends LitElement {
           type="button"
           ?disabled=${this.busy}
           @click=${() => {
-        this.draft = undefined;
-      }}
+            this.draft = undefined;
+          }}
         >
           ${this.t("cancel")}</button
         ><button
@@ -475,42 +475,47 @@ export class GuestTemplatesPanel extends LitElement {
               ${this.editor()}
               <div class="templates">
                 ${this.library?.items.map(
-        (row) =>
-          html`<article>
-            <h3>${row.label}</h3>
-            <p>${this.t("access_category_" + row.access_category)} · ${row.responsible_person}</p>
-            ${row.access_purpose ? html`<p class="sub">${row.access_purpose}</p>` : nothing}
-            <p>${row.duration_minutes} ${this.t("guest_template_minutes")}</p>
-            <p class="sub">
-              ${Object.entries(row.doors)
-                .map(
-                  ([id, locks]) =>
-                    `${this.stations.find((station) => station.id === id)?.name ?? this.t("temporary_unknown_station")} · ${locks.join(", ")}`,
-                )
-                .join("; ")}
-            </p>
-            <p class="sub">${visitTimingSummary(row.weekly_timing, this.hass?.language ?? "en")}</p>
-            ${this.missing(row) ? html`<p class="error">${this.t("guest_template_stale")}</p>` : nothing}${
-              this.canManage
-                ? html`<div class="actions">
-                      <button
-                        type="button"
-                        ?disabled=${this.busy || this.uncertain}
-                        @click=${() => this.edit(row)}
-                      >
-                        ${this.t("edit")}</button
-                      ><button
-                        type="button"
-                        class="danger"
-                        ?disabled=${this.busy || this.uncertain}
-                        @click=${() => {
+                  (row) =>
+                    html`<article>
+                      <h3>${row.label}</h3>
+                      <p>
+                        ${this.t("access_category_" + row.access_category)} ·
+                        ${row.responsible_person}
+                      </p>
+                      ${row.access_purpose ? html`<p class="sub">${row.access_purpose}</p>` : nothing}
+                      <p>${row.duration_minutes} ${this.t("guest_template_minutes")}</p>
+                      <p class="sub">
+                        ${Object.entries(row.doors)
+                          .map(
+                            ([id, locks]) =>
+                              `${this.stations.find((station) => station.id === id)?.name ?? this.t("temporary_unknown_station")} · ${locks.join(", ")}`,
+                          )
+                          .join("; ")}
+                      </p>
+                      <p class="sub">
+                        ${visitTimingSummary(row.weekly_timing, this.hass?.language ?? "en")}
+                      </p>
+                      ${this.missing(row) ? html`<p class="error">${this.t("guest_template_stale")}</p>` : nothing}${
+                        this.canManage
+                          ? html`<div class="actions">
+                                <button
+                                  type="button"
+                                  ?disabled=${this.busy || this.uncertain}
+                                  @click=${() => this.edit(row)}
+                                >
+                                  ${this.t("edit")}</button
+                                ><button
+                                  type="button"
+                                  class="danger"
+                                  ?disabled=${this.busy || this.uncertain}
+                                  @click=${() => {
                           this.pendingDelete = row.id;
                         }}
-                      >
-                        ${this.t("delete")}
-                      </button>
-                    </div>
-                    ${
+                                >
+                                  ${this.t("delete")}
+                                </button>
+                              </div>
+                              ${
                       this.pendingDelete === row.id
                         ? html`<p>${this.t("guest_template_delete_confirm")}</p>
                             <div class="actions">
@@ -533,10 +538,10 @@ export class GuestTemplatesPanel extends LitElement {
                             </div>`
                         : nothing
                     }`
-                : nothing
-            }
-          </article>`,
-      )}
+                          : nothing
+                      }
+                    </article>`,
+                )}
               </div>
               ${this.library && !this.library.items.length ? html`<p class="sub">${this.t("no_records")}</p>` : nothing}`
       }

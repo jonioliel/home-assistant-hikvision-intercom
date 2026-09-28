@@ -24,6 +24,8 @@ ACTIONS = frozenset(
         "users/delete",
         "users/set_active",
         "users/temporary_cancel",
+        "visits/create",
+        "visits/decide",
         "cards/add",
         "cards/remove",
         "users/csv_apply",
