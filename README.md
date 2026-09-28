@@ -34,6 +34,15 @@ tools remain under Management. The earlier appearances and stored choices keep w
 See the [WisKey 04 guide](docs/WISKEY_V4_APPEARANCE_HE.md) and
 [earlier alternate-interface guide](docs/ALTERNATE_UI_028_HE.md).
 
+## Embed the original screens in SMPLWISE VMS
+
+From **2.0.0-rc.19**, load `/hikvision-intercom?embed=1&tab=users` in a same-origin
+VMS iframe to keep the original authorized screens without a second WisKey toolbar.
+The versioned ready/location/title message channel provides tab/tool discovery and
+navigation without calling internal panel methods. Normal panel opening retains its
+toolbar and behavior. See the [embed contract and VMS instructions](docs/integrations/WISKEY_EMBED_API_V1.md)
+and [reference browser connector](docs/integrations/examples/wiskey-embed-client.mjs).
+
 ## Home Assistant user permissions
 
 Home Assistant administrators can open **Management tools → HA user permissions** and grant each

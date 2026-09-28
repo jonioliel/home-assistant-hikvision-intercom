@@ -7,6 +7,15 @@ import { wiskeyV4Styles } from "./wiskey-v4-styles";
 import { accentOverride, saveAccent, applyAccent, isAccent, type Accent } from "./accent";
 import { mobileDisplay } from "./phone";
 import { usersCompactStyles } from "./users-compact-styles";
+import { embedStyles } from "./embed-styles";
+import {
+  embedApiVersion,
+  panelTabIds,
+  managementToolIds,
+  knownScreen,
+  requestedScreen,
+  screenLocation,
+} from "./panel-location";
 import "./clock-settings";
 import "./station-technical";
 import "./door-programs";
@@ -161,10 +170,12 @@ export class IntercomManagerPanel extends LitElement {
     usersCompactStyles,
     accessStyles,
     wiskeyV4Styles,
+    embedStyles,
   ];
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
+    embed: { state: true },
     _appearance: { attribute: "data-appearance", reflect: true },
     _accent: { attribute: "data-accent", reflect: true },
     _accessMode: { type: Boolean, attribute: "data-access", reflect: true },
@@ -569,12 +580,167 @@ export class IntercomManagerPanel extends LitElement {
     if (!this.tabAvailable(tab)) return;
     const schedules = this.renderRoot.querySelector("hikvision-intercom-schedules") as
       (HTMLElement & { canLeave(): boolean }) | null;
-    if (tab !== this._tab && schedules && !schedules.canLeave()) return;
-    this._tab = tab;
-    if (tab === "users") this.scheduleUserQuery(false);
+    if (tab !== this._tab && schedules && !schedules.canLeave()) {
+      this.publishLocation(true);
+      return;
+    }
+    this.commitTab(tab);
     void this.updateComplete.then(() =>
       this.renderRoot.querySelector<HTMLElement>("main")?.focus({ preventScroll: true }),
     );
+  }
+
+  private commitTab(tab: string) {
+    this._tab = tab;
+    this.publishLocation(true);
+    if (tab === "users") this.scheduleUserQuery(false);
+  }
+
+  private embed = false;
+  private locationPath = "";
+  private pendingLocation: string | null = null;
+  private lastLocation = "";
+  private readySent = false;
+  private lastTitle = "";
+  private kioskActive = false;
+  private previousKiosk = false;
+  private titleObserver?: MutationObserver;
+  private headingObserver?: MutationObserver;
+  private toolHeadingObserver?: MutationObserver;
+  private toolTitleRoot?: ShadowRoot;
+
+  private postParent(message: Record<string, unknown>) {
+    if (window.parent !== window && location.origin !== "null")
+      window.parent.postMessage(message, location.origin);
+  }
+
+  private setEmbed(enabled: boolean) {
+    this.embed = enabled;
+    this.toggleAttribute("data-embed", enabled);
+    if (enabled && !this.kioskActive) {
+      this.previousKiosk = Boolean(
+        (this.hass as (Hass & { kioskMode?: boolean }) | undefined)?.kioskMode,
+      );
+      this.kioskActive = true;
+      // Official frontend sidebar-mixin (20260107.0+): memory only, no dock storage.
+      window.dispatchEvent(new CustomEvent("hass-kiosk-mode", { detail: { enable: true } }));
+    } else if (!enabled && this.kioskActive) {
+      this.kioskActive = false;
+      window.dispatchEvent(
+        new CustomEvent("hass-kiosk-mode", { detail: { enable: this.previousKiosk } }),
+      );
+    }
+  }
+
+  private readLocation = () => {
+    if (location.pathname !== this.locationPath) return;
+    const params = new URLSearchParams(location.search);
+    this.setEmbed(params.get("embed") === "1");
+    this.pendingLocation =
+      requestedScreen(params.get("tab") ?? "overview", params.get("tool")) ?? "overview";
+    this.applyPendingLocation();
+  };
+
+  private applyPendingLocation() {
+    if (!this._data || !this.authorized || this._locked || this.pendingLocation === null) return;
+    const requested = this.pendingLocation;
+    this.pendingLocation = null;
+    const target = this.tabAvailable(requested) ? requested : this.defaultTab();
+    this.navigate(target);
+    // A schedule's existing unsaved-change guard may refuse navigation.
+    this.publishLocation();
+  }
+
+  private parentMessage = (event: MessageEvent) => {
+    if (
+      location.origin === "null" ||
+      event.origin !== location.origin ||
+      event.source !== window.parent ||
+      window.parent === window
+    )
+      return;
+    const data = event.data;
+    if (!data || typeof data !== "object" || data.type !== "wiskey:navigate") return;
+    const target = requestedScreen(data.tab, data.tool);
+    if (
+      !target ||
+      !this._data ||
+      !this.authorized ||
+      this._locked ||
+      location.pathname !== this.locationPath
+    )
+      return;
+    this.navigate(target);
+  };
+
+  private publishLocation(force = false) {
+    if (!this._data || !this.authorized || this._locked || location.pathname !== this.locationPath)
+      return;
+    const current = screenLocation(this._tab);
+    const url = new URL(location.href);
+    url.searchParams.set("tab", current.tab);
+    if (current.tool) url.searchParams.set("tool", current.tool);
+    else url.searchParams.delete("tool");
+    // Keep the router's state, unrelated query parameters and hash intact.
+    if (url.href !== location.href) history.replaceState(history.state, "", url.href);
+    const key = JSON.stringify(current);
+    if (this.readySent && (force || key !== this.lastLocation)) {
+      this.lastLocation = key;
+      this.postParent({ type: "wiskey:location", ...current });
+    }
+  }
+
+  private routeLabel(id: string) {
+    return isWiskeyAppearance(this._appearance) &&
+      ["overview", "users", "devices", "events", "tools"].includes(id)
+      ? this.t("wk4_nav_" + id)
+      : this.t(id);
+  }
+
+  private publishTitle(text: string) {
+    text = text.trim();
+    if (!text || text === this.lastTitle) return;
+    this.lastTitle = text;
+    this.postParent({ type: "wiskey:title", text });
+  }
+
+  private publishHeading = () => {
+    if (!this.readySent || !this._data || !this.authorized || this._locked) return;
+    const main = this.renderRoot.querySelector("main");
+    const toolRoot = [...(main?.children ?? [])].find((element) => element.shadowRoot)?.shadowRoot;
+    if (toolRoot !== this.toolTitleRoot) {
+      this.toolHeadingObserver?.disconnect();
+      this.toolTitleRoot = toolRoot ?? undefined;
+      if (toolRoot) {
+        this.toolHeadingObserver = new MutationObserver(this.publishHeading);
+        this.toolHeadingObserver.observe(toolRoot, {
+          subtree: true,
+          childList: true,
+          characterData: true,
+        });
+      }
+    }
+    const heading = main?.querySelector(".page-heading h2, h2") ?? toolRoot?.querySelector("h2");
+    this.publishTitle(heading?.textContent ?? this.routeLabel(this._tab));
+  };
+
+  private publishEmbedState() {
+    this.applyPendingLocation();
+    if (!this._data || !this.authorized || this._locked) return;
+    if (!this.readySent) {
+      this.readySent = true;
+      this.postParent({
+        type: "wiskey:ready",
+        version: embedApiVersion,
+        tabs: panelTabIds
+          .filter((id) => this.tabAvailable(id))
+          .map((id) => ({ id, label: this.routeLabel(id) })),
+        tools: this.availableTools().map((id) => ({ id, label: this.t(id) })),
+      });
+      this.lastLocation = "";
+    }
+    this.publishLocation();
+    this.publishHeading();
   }
 
   private _data?: Overview;
@@ -694,6 +860,28 @@ export class IntercomManagerPanel extends LitElement {
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
   connectedCallback() {
     super.connectedCallback();
+    this.setAttribute("data-embed-api", String(embedApiVersion));
+    this.locationPath = location.pathname;
+    this.readySent = false;
+    this.lastLocation = "";
+    this.lastTitle = "";
+    window.addEventListener("location-changed", this.readLocation);
+    window.addEventListener("popstate", this.readLocation);
+    window.addEventListener("message", this.parentMessage);
+    this.readLocation();
+    this.headingObserver = new MutationObserver(this.publishHeading);
+    this.headingObserver.observe(this.renderRoot, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+    const title = document.querySelector("title");
+    if (title) {
+      this.titleObserver = new MutationObserver(() => {
+        if (this.readySent) this.publishTitle(document.title);
+      });
+      this.titleObserver.observe(title, { subtree: true, childList: true, characterData: true });
+    }
     this.addEventListener("pointerdown", this.activity);
     this.addEventListener("keydown", this.activity);
     this.idleTimer = setInterval(() => {
@@ -723,6 +911,18 @@ export class IntercomManagerPanel extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("location-changed", this.readLocation);
+    window.removeEventListener("popstate", this.readLocation);
+    window.removeEventListener("message", this.parentMessage);
+    this.titleObserver?.disconnect();
+    this.titleObserver = undefined;
+    this.headingObserver?.disconnect();
+    this.headingObserver = undefined;
+    this.toolHeadingObserver?.disconnect();
+    this.toolHeadingObserver = undefined;
+    this.toolTitleRoot = undefined;
+    this.pendingLocation = null;
+    this.setEmbed(false);
     this.removeEventListener("pointerdown", this.activity);
     this.removeEventListener("keydown", this.activity);
     clearInterval(this.idleTimer);
@@ -825,6 +1025,7 @@ export class IntercomManagerPanel extends LitElement {
     const dialog = this.renderRoot.querySelector("dialog");
     if (dialog && !dialog.open) dialog.showModal();
     this.fitDialog();
+    this.publishEmbedState();
   }
   private async bootstrap() {
     const hass = this.hass;
@@ -990,6 +1191,7 @@ export class IntercomManagerPanel extends LitElement {
             this._data = data;
             this._session = data.access;
             this.syncAppearance();
+            this.applyPendingLocation();
             this.ensureAllowedTab();
             this.refreshValidityZone();
             this._refreshFailed = false;
@@ -2724,7 +2926,7 @@ export class IntercomManagerPanel extends LitElement {
             this.editorAction((u) => {
               this._auditUser = u.id;
               this.close();
-              this._tab = "audit";
+              this.navigate("audit");
             })}
         >
           ${this.t("audit_show_user")}
@@ -3095,10 +3297,12 @@ export class IntercomManagerPanel extends LitElement {
   }
   private ensureAllowedTab() {
     if (this.tabAvailable(this._tab)) return;
-    const first = (["overview", "users", "events", "tools"] as const).find((tab) =>
-      this.tabAvailable(tab),
+    this.commitTab(this.defaultTab());
+  }
+  private defaultTab() {
+    return (
+      ["overview", "users", "events", "tools"].find((tab) => this.tabAvailable(tab)) ?? "overview"
     );
-    this._tab = first ?? "overview";
   }
   private commandAvailable(command: string) {
     return (
@@ -3113,6 +3317,19 @@ export class IntercomManagerPanel extends LitElement {
     );
   }
   private tabAvailable(tab: string) {
+    if (!knownScreen(tab)) return false;
+    if (
+      ["workflow_center", "platform_center", "investigations", "access_control"].includes(tab) &&
+      !this._session?.is_admin
+    )
+      return false;
+    const required: Record<string, string> = {
+      guest_templates: "guest_templates/get",
+      visit_requests: "visits/list",
+      fleet_alerts: "fleet/alerts",
+      investigations: "investigations/query",
+    };
+    if (required[tab] && !this._data?.api?.commands.includes(required[tab])) return false;
     if (tab === "workflow_center" && !this._data?.api?.commands.includes("workflows/get"))
       return false;
     if (
@@ -3171,6 +3388,9 @@ export class IntercomManagerPanel extends LitElement {
       </div>
     </nav>`;
   }
+  private availableTools() {
+    return managementToolIds.filter((id) => this.tabAvailable(id));
+  }
   private toolsView() {
     return html`<div class="page-heading">
         <div>
@@ -3179,51 +3399,15 @@ export class IntercomManagerPanel extends LitElement {
         </div>
       </div>
       <section class="tools-grid" aria-label=${this.t("tools")}>
-        ${[
-          "clock_options",
-          "media_options",
-          "whatsapp_templates",
-          "profile_options",
-          "permission_directory",
-          "workflow_center",
-          "platform_center",
-          "operations_center",
-          "investigations",
-          "camera_wall",
-          "identity_lifecycle",
-          "guest_templates",
-          "visit_requests",
-          "fleet_alerts",
-          "users",
-          "devices",
-          "sync",
-          "audit",
-          "health",
-          "schedules",
-          "access_control",
-        ]
-          .filter(
-            (tab) =>
-              this.tabAvailable(tab) &&
-              (tab !== "guest_templates" ||
-                !!this._data?.api?.commands.includes("guest_templates/get")) &&
-              (tab !== "visit_requests" || !!this._data?.api?.commands.includes("visits/list")) &&
-              (tab !== "fleet_alerts" || !!this._data?.api?.commands.includes("fleet/alerts")) &&
-              (tab !== "investigations" ||
-                (!!this._session?.is_admin &&
-                  !!this._data?.api?.commands.includes("investigations/query"))) &&
-              (tab !== "access_control" || !!this._session?.is_admin) &&
-              (tab !== "workflow_center" || !!this._session?.is_admin),
-          )
-          .map(
-            (tab) =>
-              html`<article class="tool-card">
-                <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
-                  ${icon(tab)}${this.t(tab)}${icon("arrow")}
-                </button>
-                <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
-              </article>`,
-          )}
+        ${this.availableTools().map(
+          (tab) =>
+            html`<article class="tool-card">
+              <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
+                ${icon(tab)}${this.t(tab)}${icon("arrow")}
+              </button>
+              <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
+            </article>`,
+        )}
         ${
           this.canView("management")
             ? html`<article class="tool-card">
@@ -5608,34 +5792,46 @@ export class IntercomManagerPanel extends LitElement {
             : nothing
         }
       </div>`;
-    return html`<div class="app-shell" data-view=${this._tab} dir=${he ? "rtl" : "ltr"}>
-      <header>
-        <div class="head">
-          <button
-            class="quiet"
-            aria-label="Menu"
-            @click=${() => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }))}
-          >
-            ${icon("menu")}
-          </button>
-          <div class="brand" aria-hidden="true">${icon("devices")}</div>
-          <div>
-            <h1>${this.t("title")}</h1>
-            <div class="version">${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi></div>
-          </div>
-          ${this.navigation()}
-          <div class="spacer"></div>
-          <button
-            @click=${() => {
-              this._error = "";
-              void this.refresh();
-            }}
-            ?disabled=${this._busy}
-          >
-            ${icon("sync")} <span class="refresh-label">${this.t("refresh")}</span>
-          </button>
-        </div>
-      </header>
+    return html`<div
+      class="app-shell"
+      data-view=${this._tab}
+      data-embed-api=${embedApiVersion}
+      ?data-embed=${this.embed}
+      dir=${he ? "rtl" : "ltr"}
+    >
+      ${
+        this.embed
+          ? nothing
+          : html`<header>
+              <div class="head">
+                <button
+                  class="quiet"
+                  aria-label="Menu"
+                  @click=${() => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }))}
+                >
+                  ${icon("menu")}
+                </button>
+                <div class="brand" aria-hidden="true">${icon("devices")}</div>
+                <div>
+                  <h1>${this.t("title")}</h1>
+                  <div class="version">
+                    ${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi>
+                  </div>
+                </div>
+                ${this.navigation()}
+                <div class="spacer"></div>
+                <button
+                  @click=${() => {
+                    this._error = "";
+                    void this.refresh();
+                  }}
+                  ?disabled=${this._busy}
+                >
+                  ${icon("sync")} <span class="refresh-label">${this.t("refresh")}</span>
+                </button>
+              </div>
+            </header>`
+      }
       <main tabindex="-1">
         ${!this.canManage(this.tabArea()) ? html`<p class="notice readonly-notice" role="status">${this.t("view_only_mode")}</p>` : nothing}
         ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
