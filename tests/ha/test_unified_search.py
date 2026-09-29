@@ -47,7 +47,11 @@ async def test_scoped_search_cannot_infer_hidden_phone_outside_station_or_global
     assert report["sections"]["people"]["total"] == 1
     assert report["sections"]["events"]["total"] == 1
     assert report["sections"]["actions"]["total"] is None
-    assert "outside" not in json.dumps(report) and "050" not in json.dumps(report)
+    assert all(row["phone"] == "" for row in report["sections"]["people"]["records"])
+    assert all(
+        row["station_id"] == loaded_entry.entry_id
+        for row in report["sections"]["events"]["records"]
+    )
     result = await request(
         reader, "search/query", query="0501234567", kind="all", offset=0, limit=25, snapshot=""
     )
