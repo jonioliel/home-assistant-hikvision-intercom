@@ -262,6 +262,8 @@ if (query.has("lifecycle")) {
       "users/lifecycle",
       "users/data_quality",
       "users/access_scenario",
+      "users/access_compare",
+      "users/access_compare_options",
       "users/access_reviews",
       "users/access_review_preview",
       "users/access_review_decide",
@@ -1597,6 +1599,9 @@ const fake = {
         },
       };
     }
+    if (command === "users/access_compare") return window.comparisonResponse;
+    if (command === "users/access_compare_options")
+      return message.kind === "group" ? window.comparisonGroups : window.comparisonPeople;
     if (command === "users/access_scenario")
       return (
         window.scenarioResponse ?? {

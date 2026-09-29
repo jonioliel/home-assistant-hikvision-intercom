@@ -317,6 +317,8 @@ _READ_USERS = {
     "users/query",
     "users/data_quality",
     "users/access_scenario",
+    "users/access_compare",
+    "users/access_compare_options",
     "users/access_reviews",
     "users/access_review_preview",
     "users/get",
@@ -584,6 +586,8 @@ SCOPED_COMMON_COMMANDS = frozenset(
         "users/data_quality",
         "users/access_review_decide",
         "users/access_scenario",
+        "users/access_compare",
+        "users/access_compare_options",
         "users/access_reviews",
         "users/access_review_preview",
         "users/get",
@@ -624,6 +628,8 @@ FIELD_SCOPED_STATION_COMMANDS = SCOPED_STATION_COMMANDS - {
 }
 FIELD_COMMANDS = {
     "users/access_reviews": ("access", "view"),
+    "users/access_compare": ("access", "view"),
+    "users/access_compare_options": ("access", "view"),
     "users/access_review_preview": ("access", "view"),
     "users/access_review_decide": ("access", "manage"),
     "users/create": ("access", "manage"),

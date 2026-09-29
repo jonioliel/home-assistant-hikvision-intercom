@@ -23,6 +23,7 @@ export const managementToolIds = [
   "identity_lifecycle",
   "data_quality",
   "access_reviews",
+  "access_comparison",
   "guest_templates",
   "visit_requests",
   "fleet_alerts",
