@@ -19,6 +19,7 @@ CANCELLATION_REASONS = frozenset({"visit_cancelled", "visit_completed", "access_
 ACTIONS = frozenset(
     {
         "profiles/settings_update",
+        "platform/lifecycle_apply",
         "users/create",
         "users/update",
         "users/delete",

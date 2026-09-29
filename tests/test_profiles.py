@@ -93,6 +93,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
     user = await original.async_create({"display_name": "Demo"})
     raw = original.snapshot()
     raw["schema"] = 3
+    raw.pop("station_lifecycles", None)
     raw.pop("visit_requests")
     raw.pop("checkpoint_jobs")
     raw.pop("workflows")
@@ -106,7 +107,7 @@ async def test_schema_three_profile_defaults_and_failed_migration():
         await repo.async_load(raw)
     save.side_effect = None
     await repo.async_load(raw)
-    assert repo.snapshot()["schema"] == 13
+    assert repo.snapshot()["schema"] == 14
     assert repo.get(user.id).profile == {} and repo.get(user.id).photo is None
 
 

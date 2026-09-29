@@ -30,7 +30,8 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 13,
+            "schema": 14,
+            "station_lifecycles": {},
             "workflows": workflows.defaults(),
             "checkpoint_jobs": {},
             "visit_requests": {"revision": 0, "items": {}},
@@ -53,8 +54,13 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13)
-            previous_state = set(self._state) - {"visit_requests", "checkpoint_jobs", "workflows"}
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
+            previous_state = set(self._state) - {
+                "visit_requests",
+                "checkpoint_jobs",
+                "workflows",
+                "station_lifecycles",
+            }
             legacy_state = previous_state - {"sync_operations"}
             legacy_keys = legacy_state - {
                 "admin_audit",
@@ -104,13 +110,22 @@ class AccessRepository:
                 if data.get("schema") == 11 and set(data) == set(self._state) - {
                     "checkpoint_jobs",
                     "workflows",
+                    "station_lifecycles",
                 }:
                     data = {**deepcopy(data), "schema": 12, "checkpoint_jobs": {}}
                     migrated = True
-                if data.get("schema") == 12 and set(data) == set(self._state) - {"workflows"}:
+                if data.get("schema") == 12 and set(data) == set(self._state) - {
+                    "workflows",
+                    "station_lifecycles",
+                }:
                     data = {**deepcopy(data), "schema": 13, "workflows": workflows.defaults()}
                     migrated = True
-                if data.get("schema") != 13 or set(data) != set(self._state):
+                if data.get("schema") == 13 and set(data) == set(self._state) - {
+                    "station_lifecycles"
+                }:
+                    data = {**deepcopy(data), "schema": 14, "station_lifecycles": {}}
+                    migrated = True
+                if data.get("schema") != 14 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -174,6 +189,12 @@ class AccessRepository:
                         or not isinstance(tombstone.get("employee_no"), str)
                     ):
                         raise AccessError("invalid_storage")
+                from .station_lifecycle_jobs import validate as validate_lifecycles
+
+                validate_lifecycles(normalized["station_lifecycles"])
+                from .station_lifecycle_jobs import guard as lifecycle_guard
+
+                lifecycle_guard(normalized)
                 validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
                 visit_requests.validate(normalized["visit_requests"], normalized["users"])
                 from .checkpoint_jobs import validate as validate_jobs
@@ -294,6 +315,9 @@ class AccessRepository:
             def prepare() -> tuple[dict[str, Any], T]:
                 candidate = deepcopy(self._state)
                 result = change(candidate)
+                from .station_lifecycle_jobs import guard as lifecycle_guard
+
+                lifecycle_guard(candidate)
                 self._validate_collisions(candidate)
                 visit_requests.guard_activation(self._state, candidate)
                 sync_tracking.update(candidate)
@@ -564,6 +588,34 @@ class AccessRepository:
                     )
                     del state["operation_receipts"][oldest]
             return changed
+
+        return await self._commit(update, offload=True)
+
+    async def async_lifecycle_prepare(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import prepare
+
+        return await self._commit(lambda state: prepare(self, state, **kwargs), offload=True)
+
+    async def async_lifecycle_decide(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import decide
+
+        return await self._commit(lambda state: decide(self, state, **kwargs))
+
+    async def async_lifecycle_apply(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import apply
+
+        return await self._commit(lambda state: apply(self, state, **kwargs), offload=True)
+
+    async def async_lifecycle_mark(
+        self, job_id: str, change: Callable[[dict[str, Any], dict[str, Any]], None]
+    ) -> dict[str, Any]:
+        from .station_lifecycle_jobs import current, validate
+
+        def update(state: dict[str, Any]) -> dict[str, Any]:
+            row = current(state, job_id)
+            change(state, row)
+            validate(state["station_lifecycles"])
+            return row
 
         return await self._commit(update, offload=True)
 

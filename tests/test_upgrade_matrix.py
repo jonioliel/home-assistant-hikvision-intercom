@@ -8,7 +8,7 @@ import pytest
 from custom_components.hikvision_intercom.access.repository import AccessRepository
 
 
-@pytest.mark.parametrize("schema", range(1, 14))
+@pytest.mark.parametrize("schema", range(1, 15))
 async def test_every_supported_schema_upgrades_without_losing_credentials_or_permissions(schema):
     original = AccessRepository(AsyncMock())
     await original.async_load(None)
@@ -24,6 +24,8 @@ async def test_every_supported_schema_upgrades_without_losing_credentials_or_per
     state = original.snapshot()
     expected = deepcopy(state["users"])
     state["schema"] = schema
+    if schema < 14:
+        state.pop("station_lifecycles", None)
     if schema < 13:
         state.pop("workflows")
     if schema < 12:
@@ -46,7 +48,7 @@ async def test_every_supported_schema_upgrades_without_losing_credentials_or_per
     save = AsyncMock()
     upgraded = AccessRepository(save)
     await upgraded.async_load(state)
-    assert upgraded.snapshot()["schema"] == 13
+    assert upgraded.snapshot()["schema"] == 14
     for identity, person in expected.items():
         restored = upgraded.snapshot()["users"][identity]
         for key in ("display_name", "employee_no", "pin", "cards", "assignments", "revision"):
@@ -67,6 +69,7 @@ async def test_preupgrade_copy_restores_matching_data_without_modifying_live_rep
     )
     backup = original.snapshot()
     backup["schema"] = 11
+    backup.pop("station_lifecycles", None)
     backup.pop("workflows")
     backup.pop("checkpoint_jobs")
     saved_copy = deepcopy(backup)

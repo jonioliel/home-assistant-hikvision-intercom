@@ -129,6 +129,8 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     raw = repo.snapshot()
     raw.pop("sync_operations")
     raw["schema"] = schema
+    if schema < 14:
+        raw.pop("station_lifecycles", None)
     raw.pop("visit_requests")
     raw.pop("checkpoint_jobs")
     raw.pop("workflows")
@@ -149,7 +151,7 @@ async def test_all_released_schemas_migrate_atomically_and_keep_unknown_age(sche
     await restored.async_load(raw)
     assert restored.get(user.id).pin.value == user.pin.value
     assert restored.get(user.id).cards[0].card_no == user.cards[0].card_no
-    assert restored.snapshot()["schema"] == 13
+    assert restored.snapshot()["schema"] == 14
     assert pending_age(restored.snapshot(), "a") is None
     operation = restored.public()["sync_operations"][0]
     assert operation["queued_at"] is None
@@ -217,6 +219,7 @@ async def test_schema_seven_preserves_photo_groups_exceptions_and_revocations():
     )
     backup = repo.snapshot()
     backup["schema"] = 7
+    backup.pop("station_lifecycles", None)
     backup.pop("visit_requests")
     backup.pop("checkpoint_jobs")
     backup.pop("workflows")

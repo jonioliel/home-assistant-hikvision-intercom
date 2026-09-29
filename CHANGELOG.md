@@ -4,6 +4,14 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.22] — 2026-09-29
+
+- Add durable administrator-reviewed station replacement and retirement. Commit group inheritance, individual allow/deny exceptions, confirmed physical-lock selections and affected people atomically; retain owned bindings and pending credential cancellations for the existing reconciliation engine.
+- Copy station display name and operational metadata as a resumable stage. Bind preparation to current policy, distinct hardware identities, empty replacement inventory and verified relay mappings; block station-owned schedules and door opening programs pending separate handling.
+- Require explicit application and current second-administrator consent when policy requires it. Persist removal intent and verify fresh source cleanup plus full owned target access readback before removing the source connection. Duplicate calls do not repeat policy transfer or completed removal.
+- Migrate access storage to schema 14 without discarding ownership or cancellation journals. Preserve existing features, themes, the VMS v1 contract and the technical domain hikvision_intercom. Physical acceptance and the remaining fleet-maintenance packages remain separate.
+- Document supported paths and limits in [station lifecycle guide](docs/STATION_LIFECYCLE_TRANSACTIONS_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC22_LIFECYCLE_TESTS_HE.html).
+
 ## [2.0.0-rc.21] — 2026-09-29
 
 - Add sequential station onboarding through the existing authenticated setup flow, preserving per-device identity confirmation, explicit relay testing and physical result confirmation. Failures can be skipped without preventing later stations; late responses never remove a created station.

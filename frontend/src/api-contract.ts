@@ -21,6 +21,8 @@ const reads = new Set([
   "platform/get",
   "platform/config_read",
   "platform/lifecycle_review",
+  "platform/lifecycle_jobs",
+  "platform/lifecycle_plan",
   "platform/integrity",
   "platform/demo",
   "workflows/get",

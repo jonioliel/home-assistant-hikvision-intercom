@@ -86,6 +86,7 @@ class AccessManager:
             lambda coro, name: asyncio.create_task(coro, name=name)
         )
         self._closed = False
+        self.lifecycle_lock = asyncio.Lock()
         self.enrollment = CardEnrollment(self)
         from .bulk_operations import BulkOperations
 

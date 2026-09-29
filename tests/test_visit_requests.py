@@ -326,6 +326,7 @@ async def test_schema_ten_migration_is_durable_and_corrupt_request_cannot_activa
     user, row = await requested(repo)
     legacy = repo.snapshot()
     legacy["schema"] = 10
+    legacy.pop("station_lifecycles", None)
     legacy.pop("visit_requests")
     legacy.pop("checkpoint_jobs")
     legacy.pop("workflows")

@@ -269,6 +269,7 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     manager, user, _ = managed
     state = manager.repository.snapshot()
     state["schema"] = 5
+    state.pop("station_lifecycles", None)
     state.pop("visit_requests")
     state.pop("checkpoint_jobs")
     state.pop("workflows")
@@ -276,7 +277,7 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     save = AsyncMock()
     restored = AccessRepository(save)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 13
+    assert restored.snapshot()["schema"] == 14
     assert restored.get(user.id).private() == manager.repository.get(user.id).private()
     save.assert_awaited_once()
 
@@ -314,6 +315,8 @@ async def test_modern_schema_missing_explicit_exceptions_is_rejected_before_save
     manager, user, _ = managed
     state = manager.repository.snapshot()
     state["schema"] = schema
+    if schema < 14:
+        state.pop("station_lifecycles", None)
     state.pop("visit_requests")
     state.pop("checkpoint_jobs")
     state.pop("workflows")

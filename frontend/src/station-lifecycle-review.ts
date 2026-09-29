@@ -3,6 +3,31 @@ import { styles } from "./styles";
 import { ScopedRequests } from "./request";
 import type { Hass } from "./types";
 
+interface LifecycleJob {
+  id: string;
+  source_id: string;
+  target_id: string | null;
+  state: string;
+  fingerprint: string;
+  own_request: boolean;
+  require_approval: boolean;
+  approval_state: string;
+  source_name: string;
+  target_name: string | null;
+  metadata_applied: boolean;
+}
+type LifecycleMetadata = Record<
+  string,
+  {
+    values: {
+      zone: string;
+      owner: string;
+      tags: string[];
+      window: { enabled: boolean; start: string; end: string; timezone: string; days: number[] };
+    };
+  } | null
+>;
+
 interface Review {
   affected_people: number;
   rows_complete: boolean;
@@ -34,6 +59,11 @@ interface Review {
 class StationLifecycleReview extends LitElement {
   static properties = {
     hass: { attribute: false },
+    transactions: { attribute: false },
+    jobs: { state: true },
+    confirmedJob: { state: true },
+    reviewedJob: { state: true },
+    metadataReview: { state: true },
     catalog: { attribute: false },
     source: { state: true },
     target: { state: true },
@@ -111,6 +141,11 @@ class StationLifecycleReview extends LitElement {
     `,
   ];
   hass?: Hass;
+  transactions = false;
+  private jobs: LifecycleJob[] = [];
+  private confirmedJob = "";
+  private reviewedJob = "";
+  private metadataReview?: LifecycleMetadata;
   catalog: Record<string, string> = {};
   private source = "";
   private target = "";
@@ -127,6 +162,10 @@ class StationLifecycleReview extends LitElement {
     this.epoch++;
     this.requests.cancel();
     this.review = undefined;
+    this.jobs = [];
+    this.confirmedJob = "";
+    this.reviewedJob = "";
+    this.metadataReview = undefined;
     this.error = "";
     this.busy = false;
     this.source = this.target = "";
@@ -165,6 +204,8 @@ class StationLifecycleReview extends LitElement {
             if (this.target === value) this.target = "";
           }
           this.review = undefined;
+          this.reviewedJob = "";
+          this.metadataReview = undefined;
           this.error = "";
         }}
       >
@@ -211,6 +252,184 @@ class StationLifecycleReview extends LitElement {
     } finally {
       if (epoch === this.epoch) this.busy = false;
     }
+  }
+  private async act(command: string, job?: LifecycleJob, approve?: boolean) {
+    if (
+      this.busy ||
+      !this.transactions ||
+      !this.hass?.user?.is_admin ||
+      this.hass.connection.connected === false
+    )
+      return;
+    if (job && command !== "plan" && this.confirmedJob !== job.id) return;
+    const epoch = this.epoch;
+    this.busy = true;
+    this.error = "";
+    try {
+      const reply = await this.requests.run<{
+        impact?: Review;
+        records?: LifecycleJob[];
+        metadata?: LifecycleMetadata;
+      }>(
+        {
+          type: `hikvision_intercom/platform/lifecycle_${command}`,
+          api_contract: 1,
+          ...(job
+            ? {
+                job_id: job.id,
+                fingerprint: job.fingerprint,
+                ...(command === "plan" ? {} : { confirmed: true }),
+                ...(approve === undefined ? {} : { approve }),
+              }
+            : command === "prepare"
+              ? { source_id: this.source, target_id: this.target }
+              : {}),
+        },
+        120000,
+      );
+      if (epoch !== this.epoch || !this.isConnected) return;
+      if (command === "plan" && job && reply.impact) {
+        this.source = job.source_id;
+        this.target = job.target_id ?? "";
+        this.review = reply.impact;
+        this.reviewedJob = job.id;
+        this.metadataReview = reply.metadata;
+      }
+      const result =
+        command === "jobs" && reply.records
+          ? { records: reply.records }
+          : await this.requests.run<{ records: LifecycleJob[] }>(
+              {
+                type: "hikvision_intercom/platform/lifecycle_jobs",
+                api_contract: 1,
+              },
+              30000,
+            );
+      if (epoch === this.epoch && this.isConnected) {
+        this.jobs = result.records;
+        this.confirmedJob = "";
+      }
+    } catch (err) {
+      if (epoch === this.epoch) {
+        this.error = this.copy(
+          "The action was not completed or its response was lost. Reload the saved plans before retrying. Station-owned schedules, opening programs and ownership conflicts must be resolved first.",
+          "הפעולה לא הושלמה או שתשובתה אבדה. רענן תוכניות שמורות לפני ניסיון חוזר. יש להסדיר תחילה לוחות מקומיים, תוכניות פתיחה וחפיפות בעלות.",
+        );
+      }
+    } finally {
+      if (epoch === this.epoch) this.busy = false;
+    }
+  }
+  private savedPlans() {
+    if (!this.transactions) return nothing;
+    const states: Record<string, [string, string]> = {
+      prepared: ["Prepared", "מוכנה"],
+      applied: ["Waiting for verification", "ממתינה לאימות"],
+      verified: ["Managed access cleanup verified", "ניקוי ההרשאות המנוהלות אומת"],
+      removing: ["Connection removal pending", "הסרת חיבור ממתינה"],
+      removed: ["Connection removed", "החיבור הוסר"],
+      rejected: ["Rejected", "נדחתה"],
+    };
+    return html`<section>
+      <h3>${this.copy("Saved lifecycle plans", "תוכניות החלפה והוצאה משימוש")}</h3>
+      <p>
+        ${this.copy(
+          "Prepare reads fresh inventories and saves a reviewed plan. Applying changes the central policy, copies the display name and station metadata, and starts synchronization. Local schedules and opening programs must be handled separately. This workflow does not reset the device or erase public codes.",
+          "הכנה קוראת מלאי עדכני ושומרת תוכנית לסקירה. החלה משנה את המדיניות המרכזית, מעתיקה את השם ופרטי התחנה ומתחילה סנכרון. לוחות מקומיים ותוכניות פתיחה דורשים טיפול נפרד. המסלול אינו מאפס את המכשיר או מוחק קודים ציבוריים.",
+        )}
+      </p>
+      <button
+        ?disabled=${this.busy || !this.source || !this.review || !!this.review.blockers.length}
+        @click=${() => void this.act("prepare")}
+      >
+        ${this.copy("Prepare saved plan", "הכן תוכנית שמורה")}
+      </button>
+      <button ?disabled=${this.busy} @click=${() => void this.act("jobs")}>
+        ${this.copy("Reload saved plans", "רענן תוכניות שמורות")}
+      </button>
+      ${this.jobs.map(
+        (job) =>
+          html`<article aria-label=${this.copy("Saved lifecycle plan", "תוכנית שמורה")}>
+            <strong
+              >${job.source_name}
+              ${job.target_id ? `→ ${job.target_name}` : this.copy("· Retirement", "· הוצאה משימוש")}</strong
+            >
+            <p role="status">
+              ${states[job.state] ? this.copy(...states[job.state]) : job.state}
+              ${job.require_approval ? ` · ${this.copy("Second approval", "אישור נוסף")}: ${job.approval_state}` : ""}
+            </p>
+            ${
+              job.state === "removed" || job.state === "rejected"
+                ? nothing
+                : html`
+                    ${job.state === "prepared" ? html`<button ?disabled=${this.busy} @click=${() => void this.act("plan", job)}>${this.copy("Read this saved plan", "קרא תוכנית שמורה זו")}</button>` : nothing}
+                    <label
+                      ><input
+                        type="checkbox"
+                        .checked=${this.confirmedJob === job.id}
+                        ?disabled=${this.busy || (job.state === "prepared" && this.reviewedJob !== job.id)}
+                        @change=${(event: Event) => {
+                          this.confirmedJob = (event.target as HTMLInputElement).checked
+                            ? job.id
+                            : "";
+                        }}
+                      />${this.copy("I reviewed this plan and confirm the selected action", "סקרתי את התוכנית ואני מאשר את הפעולה הנבחרת")}</label
+                    >
+                    ${
+                      ["prepared", "applied", "verified"].includes(job.state) &&
+                      !job.own_request &&
+                      job.approval_state === "pending"
+                        ? html` <button
+                              ?disabled=${this.busy || this.confirmedJob !== job.id}
+                              @click=${() => void this.act("decide", job, true)}
+                            >
+                              ${this.copy("Approve plan", "אשר תוכנית")}
+                            </button>
+                            <button
+                              ?disabled=${this.busy || this.confirmedJob !== job.id}
+                              @click=${() => void this.act("decide", job, false)}
+                            >
+                              ${this.copy("Reject plan", "דחה תוכנית")}
+                            </button>`
+                        : nothing
+                    }
+                    ${
+                      job.own_request &&
+                      (job.state === "prepared" ||
+                        (job.state === "applied" && !job.metadata_applied))
+                        ? html` <button
+                            ?disabled=${this.busy || this.confirmedJob !== job.id || (job.require_approval && job.approval_state !== "approved")}
+                            @click=${() => void this.act("apply", job)}
+                          >
+                            ${this.copy("Apply reviewed transfer", "החל העברה שנסקרה")}
+                          </button>`
+                        : nothing
+                    }
+                    ${
+                      job.state === "applied" || job.state === "verified"
+                        ? html` <button
+                            ?disabled=${this.busy || this.confirmedJob !== job.id}
+                            @click=${() => void this.act("verify", job)}
+                          >
+                            ${this.copy("Verify synchronization and cleanup", "אמת סנכרון וניקוי")}
+                          </button>`
+                        : nothing
+                    }
+                    ${
+                      job.state === "verified" || job.state === "removing"
+                        ? html` <button
+                            ?disabled=${this.busy || this.confirmedJob !== job.id}
+                            @click=${() => void this.act("remove", job)}
+                          >
+                            ${this.copy("Remove verified source connection", "הסר את חיבור המקור שאומת")}
+                          </button>`
+                        : nothing
+                    }
+                  `
+            }
+          </article>`,
+      )}
+    </section>`;
   }
   private names(ids: string[]) {
     return ids.map((id) => this.catalog[id] ?? id).join(", ") || "—";
@@ -350,6 +569,30 @@ class StationLifecycleReview extends LitElement {
             `
           : nothing
       }
+      ${
+        this.metadataReview
+          ? html`<div class="grid">
+              ${["source", "target"].map((kind) => {
+                const values = this.metadataReview?.[kind]?.values;
+                return html`<article>
+                  <strong
+                    >${kind === "source" ? this.copy("Metadata to copy", "פרטי התחנה שיועתקו") : this.copy("Current replacement metadata", "פרטי התחנה החלופית כעת")}</strong
+                  >
+                  <p>
+                    ${this.copy("Zone", "אזור")}: ${values?.zone || "—"} ·
+                    ${this.copy("Owner", "אחראי")}: ${values?.owner || "—"}
+                  </p>
+                  <p>${this.copy("Tags", "תגיות")}: ${values?.tags.join(", ") || "—"}</p>
+                  <p>
+                    ${this.copy("Maintenance window", "חלון תחזוקה")}:
+                    ${values?.window.enabled ? `${values.window.days.join(", ")} · ${values.window.start}–${values.window.end} · ${values.window.timezone}` : this.copy("No restriction", "ללא הגבלה")}
+                  </p>
+                </article>`;
+              })}
+            </div>`
+          : nothing
+      }
+      ${this.savedPlans()}
     </article>`;
   }
 }

@@ -135,6 +135,7 @@ async def test_legacy_manual_access_stays_personal_after_policy_seed():
     )
     raw = repo.snapshot()
     raw["schema"] = 4
+    raw.pop("station_lifecycles", None)
     raw.pop("visit_requests")
     raw.pop("checkpoint_jobs")
     raw.pop("workflows")
