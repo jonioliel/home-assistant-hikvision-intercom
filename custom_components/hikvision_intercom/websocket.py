@@ -278,6 +278,8 @@ COMMANDS = {
         "confirmed": bool,
     },
     "profiles/settings_get": {},
+    "profiles/versions": {"offset": int, "limit": int},
+    "profiles/versions_compare": {"before_revision": int, "after_revision": int},
     "profiles/settings_update": {"revision": int, "values": dict},
     "profiles/settings_preview": {"revision": int, "values": dict},
     "profiles/settings_apply": {"operation_id": str},
@@ -1396,6 +1398,20 @@ async def _dispatch_inner(
             if _operator_policy(hass, user) is not None
             else "",
         )
+    if command in {"profiles/versions", "profiles/versions_compare"}:
+        from .access.policy_versions import compare as compare_versions
+        from .access.policy_versions import listing as list_versions
+
+        # Historical definitions can disclose old station scopes. Only full administrators
+        # can query these snapshots; delegated settings access does not grant history access.
+        if not user.is_admin:
+            raise AccessError("access_denied")
+        policy = manager.repository.profile_settings()
+        if policy is None:
+            raise AccessError("profile_settings_unavailable")
+        if command == "profiles/versions":
+            return list_versions(policy, msg["offset"], msg["limit"])
+        return compare_versions(policy, msg["before_revision"], msg["after_revision"])
     if command in {"profiles/settings_get", "profiles/settings_update", "users/photo_get"}:
         profile_settings = hass.data[DOMAIN].get("profile_settings")
         if profile_settings is None:

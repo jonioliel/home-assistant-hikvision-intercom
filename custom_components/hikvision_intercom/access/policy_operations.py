@@ -40,6 +40,9 @@ class PolicyOperations:
         proposed = deepcopy(candidate.data)
         # Always issue a revision for the reviewed transaction, including no-op saves.
         proposed["revision"] = revision + 1
+        from .policy_versions import updated
+
+        proposed = updated(prior, proposed, actor, "bulk/group_policy")
         old_groups = {g["id"]: g for g in (prior or {}).get("values", {}).get("groups", [])}
         changed_groups = set()
         for group in proposed["values"]["groups"]:

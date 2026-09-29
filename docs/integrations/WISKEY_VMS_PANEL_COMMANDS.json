@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.32",
+  "integration_version": "2.0.0-rc.33",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -912,6 +912,24 @@
       "required": {
         "revision": "int",
         "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/versions": {
+      "required": {
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/versions_compare": {
+      "required": {
+        "before_revision": "int",
+        "after_revision": "int"
       },
       "optional_common": {
         "api_contract": "int"

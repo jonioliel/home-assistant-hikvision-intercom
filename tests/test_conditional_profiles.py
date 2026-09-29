@@ -94,7 +94,7 @@ async def test_new_person_and_archived_values_preserve_condition_rules_on_restar
     restored = AccessRepository(AsyncMock())
     await restored.async_load(repo.snapshot())
     assert restored.get(guest.id).profile["badge"] == "old"
-    assert restored.profile_settings()["schema"] == 4
+    assert restored.profile_settings()["schema"] == 5
     assert restored.profile_settings()["values"]["fields"][1]["depends_on"]["field_id"] == "role"
 
 
@@ -158,7 +158,7 @@ async def test_condition_save_failure_and_future_schema_do_not_mutate(conditiona
         await manager.policy.apply("admin", review["operation_id"])
     assert repo.snapshot() == before
     future = deepcopy(settings.data)
-    future["schema"] = 5
+    future["schema"] = 6
     with pytest.raises(AccessError, match="invalid_storage"):
         settings.load(future)
     assert repo.snapshot() == before

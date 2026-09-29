@@ -230,7 +230,14 @@ class ProfileSettings:
         self.read = read
         self.save = save
         self.changed = changed
-        self.data: dict[str, Any] = {"schema": 4, "revision": 0, "values": dict(DEFAULTS)}
+        from .access.policy_versions import baseline
+
+        self.data: dict[str, Any] = {
+            "schema": 5,
+            "revision": 0,
+            "values": deepcopy(DEFAULTS),
+            "versions": baseline(0, DEFAULTS),
+        }
         self.lock = asyncio.Lock()
 
     def load(self, data: dict[str, Any] | None) -> None:
@@ -238,9 +245,14 @@ class ProfileSettings:
             return
         try:
             if (
-                set(data) != {"schema", "revision", "values"}
+                set(data)
+                != (
+                    {"schema", "revision", "values", "versions"}
+                    if data.get("schema") == 5
+                    else {"schema", "revision", "values"}
+                )
                 or type(data["schema"]) is not int
-                or data["schema"] not in (1, 2, 3, 4)
+                or data["schema"] not in (1, 2, 3, 4, 5)
                 or type(data["revision"]) is not int
                 or data["revision"] < 0
             ):
@@ -248,7 +260,17 @@ class ProfileSettings:
             values = normalize(data["values"])
         except (ValueError, TypeError, KeyError, AccessError):
             raise AccessError("invalid_storage") from None
-        self.data = {**data, "schema": 4, "values": values}
+        from .access.policy_versions import baseline, validate
+
+        try:
+            versions = (
+                validate(data["versions"], data["revision"], values)
+                if data["schema"] == 5
+                else baseline(data["revision"], values)
+            )
+        except (ValueError, TypeError, KeyError, AccessError):
+            raise AccessError("invalid_storage") from None
+        self.data = {**data, "schema": 5, "values": values, "versions": versions}
 
     def public(self) -> dict[str, Any]:
         if self.read and (data := self.read()) is not None:
@@ -289,7 +311,16 @@ class ProfileSettings:
                 if {v["id"] for v in self.data["values"][key]} - {v["id"] for v in values[key]}:
                     raise AccessError("profile_definition_in_use")
             if values != self.data["values"]:
-                draft = {"schema": 4, "revision": revision + 1, "values": values}
+                from .access.admin_audit import current_actor
+                from .access.policy_versions import updated
+
+                actor, action = current_actor()
+                draft = updated(
+                    self.data,
+                    {"schema": 5, "revision": revision + 1, "values": values},
+                    actor,
+                    action,
+                )
                 await self.save(draft)
                 self.data = draft
                 self.changed()

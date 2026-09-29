@@ -6154,6 +6154,7 @@ export class IntercomManagerPanel extends LitElement {
                         ></hikvision-permission-directory>`
                       : this._tab === "profile_options"
                         ? html`<hikvision-profile-settings
+                            .canHistory=${!!this._session?.is_admin && this._data?.api?.commands.includes("profiles/versions") === true}
                             .hass=${this.protectedHass}
                             .settings=${this._data.profile_settings}
                             .stations=${this._data.stations}

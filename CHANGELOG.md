@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.33] - 2026-09-29
+
+- Added bounded policy versions saved atomically with group and profile-field changes, including a known-current snapshot when upgrading older installations.
+- Administrators can page retained versions and compare fields, conditions and group station grants without restoring policy or changing personal access.
+- Historical scopes remain administrator-only; cancelled requests, failed persistence and stale comparisons cannot publish partial policy history.
+- Added migration, durability, permission and responsive UI regression coverage, a focused acceptance page and additive VMS API documentation.
+
 ## [2.0.0-rc.32] - 2026-09-29
 
 - Add explicit profile-based group suggestions in the saved-person editor, with visible membership evidence and a door impact preview.
