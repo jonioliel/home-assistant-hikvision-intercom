@@ -297,3 +297,57 @@ def test_station_thresholds_use_continuous_observations_and_preserve_other_stati
     assert observed_alerts(stations, history, NOW) == []
     alerts = observed_alerts(stations, history, NOW, {"s1": {"offline": 60}})
     assert [item["station_id"] for item in alerts] == ["s1"]
+
+
+async def test_legacy_operations_upgrade_preserves_all_preferences_and_keys():
+    center = OperationsCenter(AsyncMock())
+    await center.save_record("stations", "s1", 0, STATION, "admin")
+    before = copy.deepcopy(center.data)
+    legacy = copy.deepcopy(before)
+    legacy.pop("door_presets")
+    legacy["schema"] = 1
+    restored = OperationsCenter(AsyncMock())
+    restored.load(legacy)
+    assert restored.data == before
+    assert legacy["schema"] == 1 and "door_presets" not in legacy
+    malformed = {**legacy, "door_presets": {}}
+    with pytest.raises(AccessError, match="storage_corrupt"):
+        restored.load(malformed)
+    assert restored.data == before
+
+
+async def test_saved_door_presets_are_preferences_with_atomic_save_and_revision_guard():
+    save = AsyncMock()
+    center = OperationsCenter(save)
+    preset = {"label": "Staff door", "changes": {"openDuration": 7, "relayReverseEnabled": False}}
+    created = await center.save_record("door_presets", "", 0, preset, "admin")
+    assert center.public("other-admin")["door_presets"][created["id"]]["values"] == preset
+    before = copy.deepcopy(center.data)
+    save.side_effect = OSError("full")
+    with pytest.raises(OSError):
+        await center.save_record(
+            "door_presets", created["id"], 1, {**preset, "label": "Edited"}, "admin"
+        )
+    assert center.data == before
+    save.side_effect = None
+    with pytest.raises(AccessError, match="revision_conflict"):
+        await center.delete_record("door_presets", created["id"], 0, "admin")
+    await center.delete_record("door_presets", created["id"], 1, "admin")
+    assert not center.data["door_presets"]
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {},
+        {"pin": "123456"},
+        {"unlock": True},
+        {"relayReverseEnabled": "false"},
+        {"openDuration": True},
+        {"openDuration": 256},
+        {"doorName": "line\nbreak"},
+    ],
+)
+def test_door_presets_reject_secrets_actions_and_invalid_parameter_types(changes):
+    with pytest.raises(AccessError, match="invalid_fields"):
+        record("door_presets", {"label": "Preset", "changes": changes})

@@ -4,6 +4,14 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.23] — 2026-09-29
+
+- Add shared credential-free door-setting presets and semantic fleet comparisons for the documented relay polarity field, retaining exact false values and per-station advertised capability validation. Saving or choosing a preset does not write a station.
+- Add durable explicitly queued door-configuration jobs for station maintenance windows. Persist intent before writes, recheck current administrator/second approval, hardware identity, lock mappings, captured windows and expected values; cancelled jobs stop pending rows without undoing completed changes. Recover interrupted writes by readback without automatic replay.
+- Continue other stations after individual failures, wait for unavailable stations with a bounded fair resource budget, and expire unexecuted plans after eight days. Existing immediate fleet application and credential revocation remain available.
+- Collect bounded capacity history from newly observed complete cached inventories only. Show advertised user/card limits, stale or unknown evidence and cautious comparable-sample growth estimates; never guess local program capacity or open extra device connections to collect trends.
+- Migrate operations preferences from schema 1 to 2 while preserving existing data, and retain the technical domain, existing designs/features and VMS contract v1. Hardware certification remains separate. See [maintenance guide](docs/FLEET_MAINTENANCE_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC23_MAINTENANCE_TESTS_HE.html).
+
 ## [2.0.0-rc.22] — 2026-09-29
 
 - Add durable administrator-reviewed station replacement and retirement. Commit group inheritance, individual allow/deny exceptions, confirmed physical-lock selections and affected people atomically; retain owned bindings and pending credential cancellations for the existing reconciliation engine.

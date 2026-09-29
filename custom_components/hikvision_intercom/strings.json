@@ -411,6 +411,22 @@
     "operations_center_storage_write": {
       "title": "Operations preferences could not be saved",
       "description": "The mutation was not committed. Check free storage and configuration write permissions, then retry."
+    },
+    "maintenance_jobs_storage_corrupt": {
+      "title": "Maintenance queue is unavailable",
+      "description": "Queue storage failed validation. Scheduled writes are disabled; restore a valid backup before continuing."
+    },
+    "maintenance_jobs_storage_write": {
+      "title": "Maintenance queue could not be saved",
+      "description": "Write intent is persisted before station changes. Check storage and verify any pending outcome before scheduling another plan."
+    },
+    "capacity_history_storage_corrupt": {
+      "title": "Capacity history is unavailable",
+      "description": "Sample history failed validation. Existing inventory and synchronization continue; restore valid history to show trends."
+    },
+    "capacity_history_storage_write": {
+      "title": "Capacity history could not be saved",
+      "description": "Check free storage and write permissions. A trend storage failure never changes station access rights."
     }
   }
 }

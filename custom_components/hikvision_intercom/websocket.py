@@ -79,6 +79,7 @@ USER_FIELDS = {
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
     "platform/get": {},
+    "platform/capacity": {},
     "platform/save": {"collection": str, "record_id": str, "revision": int, "values": dict},
     "platform/delete": {"collection": str, "record_id": str, "revision": int},
     "platform/config_read": {"station_ids": list, "door": int},
@@ -96,6 +97,17 @@ COMMANDS = {
     "platform/lifecycle_verify": {"job_id": str, "fingerprint": str, "confirmed": bool},
     "platform/lifecycle_remove": {"job_id": str, "fingerprint": str, "confirmed": bool},
     "platform/config_preview": {"station_ids": list, "door": int, "changes": dict},
+    "platform/maintenance_preview": {"station_ids": list, "door": int, "changes": dict},
+    "platform/maintenance_enqueue": {"review_id": str, "confirmed": bool},
+    "platform/maintenance_jobs": {},
+    "platform/maintenance_plan": {"job_id": str, "fingerprint": str},
+    "platform/maintenance_decide": {
+        "job_id": str,
+        "fingerprint": str,
+        "approve": bool,
+        "confirmed": bool,
+    },
+    "platform/maintenance_cancel": {"job_id": str, "fingerprint": str, "confirmed": bool},
     "platform/config_apply": {"review_id": str, "confirmed": bool},
     "platform/retention_preview": {"values": dict},
     "platform/retention_apply": {"review_id": str, "confirmed": bool},

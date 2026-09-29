@@ -129,3 +129,53 @@ test("an observed event opens person details and the existing conversation actio
     await page.evaluate(() => window.calls.some((c) => c.type.endsWith("whatsapp/send"))),
   ).toBe(false);
 });
+
+test("door presets retain false relay values and never write before review", async ({ page }) => {
+  const center = await open(page);
+  await center.getByRole("button", { name: "Fleet configuration", exact: true }).click();
+  await center.getByLabel("Reverse relay (optional)", { exact: true }).selectOption("false");
+  await center.getByLabel("Opening duration in seconds (optional)", { exact: true }).fill("7");
+  await center.getByLabel("Door preset name", { exact: true }).fill("Staff door");
+  await center.getByRole("button", { name: "Save door preset", exact: true }).click();
+  const presets = center.getByRole("region", { name: "Saved door settings", exact: true });
+  await expect(presets.getByText("Staff door", { exact: true })).toBeVisible();
+  await expect(presets.getByText("Disabled", { exact: true })).toBeVisible();
+  await center.getByLabel("Reverse relay (optional)", { exact: true }).selectOption("true");
+  await presets.getByRole("button", { name: "Use / edit", exact: true }).click();
+  await expect(center.getByLabel("Reverse relay (optional)", { exact: true })).toHaveValue("false");
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.endsWith("config_apply")))).toBe(
+    false,
+  );
+  await center.getByLabel("Main gate", { exact: true }).check();
+  await center.getByRole("button", { name: "Preview changes", exact: true }).click();
+  const preview = await page.evaluate(() =>
+    window.calls.filter((c) => c.type.endsWith("config_preview")).at(-1),
+  );
+  expect(preview?.changes).toEqual({ openDuration: 7, relayReverseEnabled: false });
+  await expect(
+    center.getByRole("button", { name: "Apply reviewed changes", exact: true }),
+  ).toBeDisabled();
+  await presets.getByRole("button", { name: "Delete preset", exact: true }).click();
+  await expect(presets.getByText("Staff door", { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.endsWith("config_apply")))).toBe(
+    false,
+  );
+});
+
+test("capacity forecasts label observed bounds and never guess unknown limits", async ({
+  page,
+}) => {
+  await page.goto("/?platform&capacity-trends");
+  await navigate(page, "Fleet and reporting");
+  const center = page.locator("wiskey-platform-center");
+  await center.getByRole("button", { name: "Fleet configuration", exact: true }).click();
+  const trends = center.getByRole("article", { name: "Capacity trends", exact: true });
+  await expect(trends.getByText("80 / 100", { exact: true })).toBeVisible();
+  await expect(trends.getByText("Estimated days to limit: 2", { exact: true })).toBeVisible();
+  await expect(trends.getByText("100 / unknown", { exact: true })).toBeVisible();
+  await expect(trends.getByText("Unknown limit", { exact: true })).toBeVisible();
+  await trends.getByRole("button", { name: "Refresh observed trends", exact: true }).click();
+  expect(
+    await page.evaluate(() => window.calls.some((c) => c.type.endsWith("stations/inventory"))),
+  ).toBe(false);
+});
