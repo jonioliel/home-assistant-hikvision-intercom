@@ -24,6 +24,7 @@ export function matchingUsers(
   const text = query.trim().toLocaleLowerCase();
   return users
     .filter((u) => {
+      if (!!u.archived_at !== (filters.state === "archived")) return false;
       if (filters.group && !u.group_ids?.includes(filters.group)) return false;
       if (Object.entries(filters.profile ?? {}).some(([id, v]) => !!v && u.profile?.[id] !== v))
         return false;

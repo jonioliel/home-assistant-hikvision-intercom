@@ -30,7 +30,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 14,
+            "schema": 15,
             "station_lifecycles": {},
             "workflows": workflows.defaults(),
             "checkpoint_jobs": {},
@@ -54,7 +54,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
             previous_state = set(self._state) - {
                 "visit_requests",
                 "checkpoint_jobs",
@@ -125,7 +125,10 @@ class AccessRepository:
                 }:
                     data = {**deepcopy(data), "schema": 14, "station_lifecycles": {}}
                     migrated = True
-                if data.get("schema") != 14 or set(data) != set(self._state):
+                if data.get("schema") == 14 and set(data) == set(self._state):
+                    data = {**deepcopy(data), "schema": 15}
+                    migrated = True
+                if data.get("schema") != 15 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")
@@ -694,6 +697,29 @@ class AccessRepository:
         return await self._commit(
             lambda state: self._update_user(state, user_id, data, expected_revision)
         )
+
+    async def async_archive(
+        self, user_id: str, *, expected_revision: int, archived: bool
+    ) -> ManagedUser:
+        """Keep the identity, history and pending cleanup; restoration stays inactive."""
+        return await self._commit(
+            lambda state: self._archive_user(state, user_id, expected_revision, archived)
+        )
+
+    def _archive_user(
+        self, state: dict[str, Any], user_id: str, revision: int, archived: bool
+    ) -> ManagedUser:
+        if type(archived) is not bool:
+            raise AccessError("invalid_fields")
+        raw = state["users"].get(user_id)
+        if raw is None:
+            raise AccessError("user_not_found")
+        if (raw.get("archived_at") is not None) == archived:
+            raise AccessError("archive_state_changed")
+        user = self._update_user(state, user_id, {"active": False}, revision)
+        user.archived_at = utc_now() if archived else None
+        state["users"][user_id] = user.private()
+        return user
 
     async def async_cancel_temporary(self, user_id: str, *, expected_revision: int) -> ManagedUser:
         """Persist only disable intent, preserving credentials and all door/time rules."""

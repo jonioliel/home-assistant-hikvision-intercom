@@ -110,8 +110,15 @@ def validate(value: Any) -> None:
                     not isinstance(change, dict)
                     or not {"user_id", "revision", "data"}
                     <= set(change)
-                    <= {"user_id", "revision", "data", "delete"}
+                    <= {"user_id", "revision", "data", "delete", "archive"}
                     or not isinstance(change["data"], dict)
+                ):
+                    raise AccessError("invalid_storage")
+                if "archive" in change and (
+                    type(change["archive"]) is not bool
+                    or not change["user_id"]
+                    or change.get("delete")
+                    or change["data"] != {"active": False}
                 ):
                     raise AccessError("invalid_storage")
                 if change["user_id"] is not None:
@@ -272,7 +279,8 @@ def _public_approval(item: dict[str, Any], names: dict[str, str]) -> dict[str, A
             {
                 "name": names.get(change["user_id"], change["data"].get("display_name", "")),
                 "delete": bool(change.get("delete")),
-                "fields": sorted(change["data"]),
+                **({"archive": change["archive"]} if "archive" in change else {}),
+                "fields": sorted(change["data"]) + (["archived_at"] if "archive" in change else []),
             }
             for change in item["changes"]
         ],
@@ -374,6 +382,10 @@ class Workflows:
         for change in changes:
             if change.get("delete"):
                 self.repository._delete_user(candidate, change["user_id"], change["revision"])
+            elif "archive" in change:
+                self.repository._archive_user(
+                    candidate, change["user_id"], change["revision"], change["archive"]
+                )
             else:
                 user = self.repository._bulk_users(candidate, [change])[0]
                 validate_csv_targets(user, self.manager._csv_rules())
@@ -498,6 +510,11 @@ class Workflows:
                     affected.update(self.targets(state, uid))
                 if change.get("delete"):
                     self.repository._delete_user(state, uid, change["revision"])
+                elif "archive" in change:
+                    user = self.repository._archive_user(
+                        state, uid, change["revision"], change["archive"]
+                    )
+                    affected.update(user.assignments)
                 else:
                     user = self.repository._bulk_users(state, [change])[0]
                     validate_csv_targets(user, self.manager._csv_rules())

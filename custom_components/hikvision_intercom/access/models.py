@@ -167,6 +167,7 @@ class ManagedUser:
     access_category: str = "staff"
     responsible_person: str = ""
     access_purpose: str = ""
+    archived_at: str | None = None
 
     def private(self) -> dict[str, Any]:
         return {
@@ -177,6 +178,7 @@ class ManagedUser:
             "access_category": self.access_category,
             "responsible_person": self.responsible_person,
             "access_purpose": self.access_purpose,
+            "archived_at": self.archived_at,
             "access_timing_draft": deepcopy(self.access_timing_draft),
             "access_timing_policy": deepcopy(self.access_timing_policy),
             "active": self.active,
@@ -220,6 +222,16 @@ class ManagedUser:
                 raise AccessError("invalid_storage")
             user.revision, user.updated_at = revision, text_field(data["updated_at"], 40)
             user.identity_locked = boolean(data.get("identity_locked", False))
+            archived = data.get("archived_at")
+            if archived is not None:
+                archived = text_field(archived, 40)
+                try:
+                    instant = datetime.fromisoformat(archived)
+                    if instant.tzinfo is None or user.active:
+                        raise ValueError
+                except ValueError:
+                    raise AccessError("invalid_storage") from None
+            user.archived_at = archived
             for key, assignment in user.assignments.items():
                 saved = data["assignments"][key]
                 desired, applied = saved["desired_revision"], saved.get("applied_revision")
@@ -269,6 +281,8 @@ def build_user(
         employee_no = validate_identifier(data.get("employee_no", employee_no))
         name = text_field(data.get("display_name", previous.display_name if previous else ""), 32)
         active = boolean(data.get("active", previous.active if previous else True))
+        if previous and previous.archived_at is not None and active:
+            raise AccessError("user_archived")
         user_type = data.get("user_type", previous.user_type if previous else "normal")
         if user_type != "normal":
             raise AccessError("unsupported_user_type")
@@ -397,6 +411,7 @@ def build_user(
             access_category=category,
             responsible_person=responsible,
             access_purpose=purpose,
+            archived_at=previous.archived_at if previous else None,
         )
     except HikvisionValidationError:
         raise AccessError("invalid_identifier") from None

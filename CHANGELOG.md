@@ -4,6 +4,13 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.24] — 2026-09-29
+
+- Add administrator-confirmed people archiving with a separate directory filter. Preserve the same identity, groups, personal exceptions, credentials, photo, historical references, hardware ownership and pending cleanup. Archive disables access intent; device revocation still requires successful reconciliation.
+- Restore archived identities inactive. Reject reactivation through general updates, CSV, renewal or bulk bypasses until explicit restoration; retain unique credential reservations. Integrate current separate-administrator approval, revision checks, atomic persistence and audit before/after.
+- Migrate access storage from schema 14 to 15 without erasing old audit records. Encrypted snapshots retain archives; desired-people import skips them rather than recreating historical people. Full system backup covers history and the archive.
+- Preserve the technical domain, existing designs/actions and VMS embed contract v1. See [archive guide](docs/PEOPLE_ARCHIVE_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC24_ARCHIVE_TESTS_HE.html). This delivers package 12; the remaining people/review packages are still open.
+
 ## [2.0.0-rc.23] — 2026-09-29
 
 - Add shared credential-free door-setting presets and semantic fleet comparisons for the documented relay polarity field, retaining exact false values and per-station advertised capability validation. Saving or choosing a preset does not write a station.

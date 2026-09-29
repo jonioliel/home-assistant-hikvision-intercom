@@ -138,6 +138,8 @@ const managementWrites = new Set([
   "users/delete",
   "users/set_active",
   "users/temporary_cancel",
+  "users/archive",
+  "users/unarchive",
   "guest_templates/upsert",
   "guest_templates/delete",
   "users/csv_apply",
@@ -2177,6 +2179,29 @@ export class IntercomManagerPanel extends LitElement {
     );
     if (success) this.close();
   }
+  private async changeArchive(user: Person) {
+    const archived = !!user.archived_at;
+    const command = archived ? "users/unarchive" : "users/archive";
+    if (
+      !this._data?.api?.commands.includes(command) ||
+      !confirm(this.t(archived ? "confirm_unarchive_person" : "confirm_archive_person"))
+    )
+      return;
+    this.approvalLabel = this.t(archived ? "unarchive_person" : "archive_person");
+    const done = await this.run(() =>
+      this.api(command, {
+        user_id: user.id,
+        revision: user.revision,
+        confirmed: true,
+      }),
+    );
+    if (!this._approvalPending) this.approvalLabel = "";
+    if (done) {
+      this._detailsUser = this._detailsModalUser = "";
+      this._selectedUsers = new Set();
+      this.scheduleUserQuery(true);
+    }
+  }
   private async removeUser(user: Person) {
     const targets = new Set([
       ...Object.keys(user.assignments),
@@ -3719,10 +3744,14 @@ export class IntercomManagerPanel extends LitElement {
                   [
                     "state",
                     "user_filter_state",
-                    (this.personField("access")
-                      ? ["active", "inactive", "expired", "upcoming"]
-                      : ["active", "inactive"]
-                    ).map((v) => [v, this.t("filter_" + v)]),
+                    [
+                      ...(this.personField("access")
+                        ? ["active", "inactive", "expired", "upcoming"]
+                        : ["active", "inactive"]),
+                      ...(this._data?.api?.capabilities.includes("people_archive")
+                        ? ["archived"]
+                        : []),
+                    ].map((v) => [v, this.t("filter_" + v)]),
                   ],
                   [
                     "credential",
@@ -3976,7 +4005,9 @@ export class IntercomManagerPanel extends LitElement {
                     <span title=${this.t("user_sync_hint")}
                       >${this.badge(this.personStatus(user))}</span
                     >
-                    <div class="sub">${this.t(user.active ? "active" : "inactive")}</div>
+                    <div class="sub">
+                      ${this.t(user.archived_at ? "filter_archived" : user.active ? "active" : "inactive")}
+                    </div>
                   </td>
                   <td><div class="row">${this.userActions(user)}</div></td>
                 </tr>`,
@@ -4009,7 +4040,7 @@ export class IntercomManagerPanel extends LitElement {
                   >${this.personField("phone") ? mobileDisplay(user.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
                 >
                 · ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
-                ${this.t(user.active ? "active" : "inactive")}
+                ${this.t(user.archived_at ? "filter_archived" : user.active ? "active" : "inactive")}
               </p>
               <p class="sub">
                 ${this.t("pin")}:
@@ -4119,6 +4150,8 @@ export class IntercomManagerPanel extends LitElement {
       .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
       .canRenew=${this._data?.api?.commands.includes("workflows/renew_request") ?? false}
       .canEdit=${this.personEditable(person)}
+      .canArchive=${this._data?.api?.commands.includes(person.archived_at ? "users/unarchive" : "users/archive") ?? false}
+      @details-archive=${() => this.changeArchive(person)}
       .hass=${this.protectedHass}
       .person=${person}
       .stations=${this._data?.stations ?? []}
@@ -4178,7 +4211,7 @@ export class IntercomManagerPanel extends LitElement {
                 </td>
                 <td class="access-person-state">
                   ${this.badge(this.personStatus(u))}<span class="sub"
-                    >${this.t(u.active ? "active" : "inactive")}</span
+                    >${this.t(u.archived_at ? "filter_archived" : u.active ? "active" : "inactive")}</span
                   >
                 </td>
                 <td class="access-person-actions">${this.userActions(u)}</td>
@@ -4714,7 +4747,7 @@ export class IntercomManagerPanel extends LitElement {
                 ><input
                   type="checkbox"
                   .checked=${draft.active}
-                  ?disabled=${!this.personField("access", true)}
+                  ?disabled=${!!draft.archived_at || !this.personField("access", true)}
                   @change=${(event: Event) => this.patchDraft("active", checked(event))}
                 />${this.t("active")}</label
               >
@@ -6177,6 +6210,11 @@ export class IntercomManagerPanel extends LitElement {
               .v4=${isWiskeyAppearance(this._appearance)}
               .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
               .canEdit=${this.personEditable(this.modalPerson()!)}
+              .canArchive=${this._data.api?.commands.includes(this.modalPerson()?.archived_at ? "users/unarchive" : "users/archive") ?? false}
+              @details-archive=${() => {
+                const person = this.modalPerson();
+                if (person) void this.changeArchive(person);
+              }}
               .hass=${this.protectedHass}
               .messageDraft=${this.messageDrafts.get(this._detailsModalUser) ?? ""}
               .person=${this.detailPerson(this.modalPerson()!)}

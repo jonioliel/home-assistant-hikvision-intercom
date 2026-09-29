@@ -8,7 +8,7 @@ import pytest
 from custom_components.hikvision_intercom.access.repository import AccessRepository
 
 
-@pytest.mark.parametrize("schema", range(1, 15))
+@pytest.mark.parametrize("schema", range(1, 16))
 async def test_every_supported_schema_upgrades_without_losing_credentials_or_permissions(schema):
     original = AccessRepository(AsyncMock())
     await original.async_load(None)
@@ -48,7 +48,7 @@ async def test_every_supported_schema_upgrades_without_losing_credentials_or_per
     save = AsyncMock()
     upgraded = AccessRepository(save)
     await upgraded.async_load(state)
-    assert upgraded.snapshot()["schema"] == 14
+    assert upgraded.snapshot()["schema"] == 15
     for identity, person in expected.items():
         restored = upgraded.snapshot()["users"][identity]
         for key in ("display_name", "employee_no", "pin", "cards", "assignments", "revision"):

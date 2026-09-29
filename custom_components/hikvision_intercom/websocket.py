@@ -375,6 +375,8 @@ COMMANDS = {
     "users/create": {"data": dict},
     "users/update": {"user_id": str, "revision": int, "data": dict},
     "users/delete": {"user_id": str, "revision": int},
+    "users/archive": {"user_id": str, "revision": int, "confirmed": bool},
+    "users/unarchive": {"user_id": str, "revision": int, "confirmed": bool},
     "users/set_active": {"user_id": str, "revision": int, "active": bool},
     "users/temporary_cancel": {"user_id": str, "revision": int, "reason_code": str},
     "cards/add": {"user_id": str, "revision": int, "data": dict},
@@ -1240,6 +1242,12 @@ async def _dispatch_inner(
         from .guest_templates_api import dispatch_templates
 
         return await dispatch_templates(hass, command, msg, actor)
+    if command in {"users/archive", "users/unarchive"}:
+        if msg["confirmed"] is not True:
+            raise AccessError("confirmation_required")
+        return await manager.async_archive(
+            msg["user_id"], revision=msg["revision"], archived=command == "users/archive"
+        )
     if command == "users/temporary_cancel":
         return await manager.async_cancel_temporary(msg["user_id"], revision=msg["revision"])
     if command == "users/lifecycle":
