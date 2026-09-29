@@ -260,6 +260,7 @@ if (query.has("lifecycle")) {
       "overview",
       "users/get",
       "users/lifecycle",
+      "users/data_quality",
       "users/duplicate_check",
       "users/create",
       "users/update",
@@ -1592,6 +1593,7 @@ const fake = {
         },
       };
     }
+    if (command === "users/data_quality") return window.qualityResponse;
     if (command === "users/lifecycle") {
       const now = Date.parse("2026-09-23T09:00:00Z");
       const temporaryUsers = data.users

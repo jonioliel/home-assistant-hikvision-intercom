@@ -2,6 +2,12 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.27] — 2026-09-29
+
+- Add a read-only people data quality center for missing metadata, invalid applicable fields and potential duplicates, with archive-aware uniqueness and explicit person review.
+- Apply operator projections before analysis, omit hidden-context checks and secret values, and bound paging and related records against a revision snapshot.
+- Preserve existing person edits, access behavior, themes and VMS embed v1; publish [query guidance](docs/PEOPLE_DATA_QUALITY_HE.md) and [focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC27_QUALITY_TESTS_HE.html).
+
 ## Unreleased
 
 ## [2.0.0-rc.26] — 2026-09-29

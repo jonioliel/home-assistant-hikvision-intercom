@@ -359,6 +359,7 @@ COMMANDS = {
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
     "users/list": {},
+    "users/data_quality": {"kind": str, "state": str, "offset": int, "limit": int, "snapshot": str},
     "users/query": {"query": str, "filters": dict, "offset": int, "limit": int, "snapshot": str},
     "users/csv_export": {},
     "users/csv_inspect": {"csv": str},
@@ -1184,6 +1185,36 @@ async def _dispatch_inner(
         return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command == "users/data_quality":
+        from functools import partial
+
+        from .access.data_quality import report as quality_report
+
+        scope = _operator_policy(hass, user) or {}
+        settings = hass.data[DOMAIN].get("profile_settings")
+        if settings is None:
+            raise AccessError("profile_settings_unavailable")
+        # Snapshot redaction precedes thread work. The outer handler rechecks operator revision.
+        people = project_people(
+            scope,
+            manager.repository.public()["users"],
+            shared_identity_ids=_outside_bound_people(hass, scope),
+        )
+        profiles = project_profiles(scope, settings.public())
+        return await hass.async_add_executor_job(
+            partial(
+                quality_report,
+                people,
+                profiles,
+                kind=msg["kind"],
+                state=msg["state"],
+                offset=msg["offset"],
+                limit=msg["limit"],
+                snapshot=msg["snapshot"],
+                permission_context=str(hass.data[DOMAIN]["panel_permissions"].revision),
+                scoped=restricted(scope),
+            )
+        )
     if command == "users/query":
         from .access.user_directory import query_users
 

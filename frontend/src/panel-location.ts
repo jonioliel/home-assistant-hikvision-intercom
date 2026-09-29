@@ -21,6 +21,7 @@ export const managementToolIds = [
   "investigations",
   "camera_wall",
   "identity_lifecycle",
+  "data_quality",
   "guest_templates",
   "visit_requests",
   "fleet_alerts",
