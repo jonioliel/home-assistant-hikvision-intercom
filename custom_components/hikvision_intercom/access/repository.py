@@ -149,6 +149,8 @@ class AccessRepository:
                     profiles = ProfileSettings(self._save, lambda: None)
                     profiles.load(data["profile_settings"])
                     normalized["profile_settings"] = deepcopy(profiles.data)
+                    if data["profile_settings"]["schema"] != 5:
+                        migrated = True
                 for key, raw in data["users"].items():
                     if require_overrides and "permission_overrides" not in raw:
                         raise AccessError("invalid_storage")
@@ -321,6 +323,18 @@ class AccessRepository:
                 from .station_lifecycle_jobs import guard as lifecycle_guard
 
                 lifecycle_guard(candidate)
+                if (
+                    candidate["profile_settings"] != self._state["profile_settings"]
+                    and candidate["profile_settings"] is not None
+                ):
+                    from .policy_versions import updated
+
+                    candidate["profile_settings"] = updated(
+                        self._state["profile_settings"],
+                        candidate["profile_settings"],
+                        actor,
+                        action,
+                    )
                 self._validate_collisions(candidate)
                 visit_requests.guard_activation(self._state, candidate)
                 sync_tracking.update(candidate)
@@ -550,6 +564,11 @@ class AccessRepository:
         from ..profile_settings import ProfileSettings
 
         checked = ProfileSettings(self._save, lambda: None)
+        if data.get("schema") == 5:
+            from .policy_versions import updated
+
+            actor, action = current_actor()
+            data = updated(self._state["profile_settings"], data, actor, action)
         checked.load(data)
         desired = deepcopy(checked.data)
 

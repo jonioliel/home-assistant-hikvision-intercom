@@ -4,6 +4,7 @@ import { ScopedRequests } from "./request";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
 import { profileApplicability } from "./profile-fields";
+import "./policy-versions";
 
 export interface ProfileDefinition {
   id: string;
@@ -84,6 +85,7 @@ export class ProfileSettingsPanel extends LitElement {
   static properties = {
     hass: { attribute: false },
     settings: { attribute: false },
+    canHistory: { type: Boolean },
     stations: { attribute: false },
     draft: { state: true },
     busy: { state: true },
@@ -96,6 +98,7 @@ export class ProfileSettingsPanel extends LitElement {
   };
   hass?: Hass;
   settings?: ProfilePolicy | null;
+  canHistory = false;
   stations: Station[] = [];
   private draft?: ProfilePolicy;
   private review?: PolicyReview;
@@ -650,6 +653,13 @@ export class ProfileSettingsPanel extends LitElement {
           </button>
         </div>
       </form>
+      <wiskey-policy-versions
+        .hass=${this.hass}
+        .stations=${this.stations}
+        .canView=${this.canHistory && !!this.hass?.user?.is_admin}
+        .context=${JSON.stringify([this.actor, this.canHistory])}
+        .policyRevision=${this.draft?.revision ?? 0}
+      ></wiskey-policy-versions>
       ${this.reviewView()}
       ${this.notice ? html`<p role="status">${this.t(this.notice)}</p>` : nothing}${this.error ? html`<p class="notice error" role="alert">${this.t(this.error)}</p>` : nothing}
     </section>`;

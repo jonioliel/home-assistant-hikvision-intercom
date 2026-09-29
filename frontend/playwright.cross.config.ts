@@ -28,6 +28,7 @@ export default defineConfig({
     "photo-file.spec.ts",
     "access-scenario.spec.ts",
     "permission-reviews.spec.ts",
+    "policy-versions.spec.ts",
     "group-suggestions.spec.ts",
     "access-comparison.spec.ts",
   ],

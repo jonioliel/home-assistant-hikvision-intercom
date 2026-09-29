@@ -262,6 +262,8 @@ if (query.has("lifecycle")) {
       "users/lifecycle",
       "users/data_quality",
       "users/access_scenario",
+      "profiles/versions",
+      "profiles/versions_compare",
       "users/group_suggestions",
       "users/access_compare",
       "users/access_compare_options",
@@ -1006,6 +1008,9 @@ const fake = {
           { id: "reader-user", name: "Reception", active: true, admin: false, owner: false },
         ],
       };
+    if (command === "profiles/versions") return structuredClone(window.policyVersionPage);
+    if (command === "profiles/versions_compare")
+      return structuredClone(window.policyVersionComparison);
     if (command === "profiles/settings_get") return structuredClone(data.profile_settings);
     if (command === "users/pin_check") return { available: true };
     if (command === "users/pin_generate") return { pin: "482615" };

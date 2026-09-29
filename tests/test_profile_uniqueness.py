@@ -148,7 +148,7 @@ async def test_reload_and_old_client_preserve_unique_and_failed_save_is_atomic()
     assert settings.public()["fields"][0]["unique"]
     restored = AccessRepository(AsyncMock())
     await restored.async_load(repo.snapshot())
-    assert restored.profile_settings()["schema"] == 4
+    assert restored.profile_settings()["schema"] == 5
     with pytest.raises(AccessError, match="profile_value_not_unique"):
         await restored.async_create({"display_name": "New", "profile": {"external": "a"}})
     before = repo.snapshot()
