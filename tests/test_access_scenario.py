@@ -145,3 +145,18 @@ def test_readback_is_historical_whitelisted_and_native_does_not_claim_plan(mode)
 def test_invalid_lock_rejected(lock):
     with pytest.raises(AccessError, match="invalid_lock"):
         evaluate(person(), "front", lock, AT)
+
+
+@pytest.mark.parametrize(
+    "bounds",
+    [
+        {"valid_from": None, "valid_until": None},
+        {"valid_from": "2026-09-29T09:00:00Z", "valid_until": None},
+    ],
+)
+def test_incomplete_ha_evidence_never_becomes_an_unlimited_verified_window(bounds):
+    rb = {"mode": "ha", "revision": 4, "checked_at": "2026-09-29T08:00:00Z", **bounds}
+    result = evaluate(person(access_timing_policy=timing()), "front", 1, AT, readback=rb)
+    assert result["desired"]["allowed"]
+    assert result["observed"]["timing"] == {"status": "unavailable"}
+    assert result["physical_result"] == "not_verified"

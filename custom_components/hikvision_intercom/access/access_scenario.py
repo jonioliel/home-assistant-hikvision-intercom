@@ -83,6 +83,11 @@ def evaluate(
     if readback:
         # Explicit whitelist: never expose binding fingerprints, identity or secrets.
         try:
+            if readback.get("mode") not in ("ha", "native") or (
+                readback.get("mode") == "ha"
+                and (readback.get("valid_from") is None or readback.get("valid_until") is None)
+            ):
+                raise AccessError("invalid_validity")
             checked = instant(readback.get("checked_at"))
             inside = contains(readback.get("valid_from"), readback.get("valid_until"), target)
             current = bool(
