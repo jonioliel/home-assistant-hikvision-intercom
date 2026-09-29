@@ -2,6 +2,14 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.34] - 2026-09-29
+
+- Added administrator-reviewed bulk renewal of finite temporary access, with before/after expiry and explicit facility timezone conversion.
+- Extend only expiry; retain doors, group inheritance, personal blocks, schedules, PINs/cards and inactive status. Invalid selections fail atomically.
+- Reuse current dual approval, checkpoint jobs, audited save receipts and no-replay recovery after disconnect or restart.
+- Added behavior, authorization and responsive UI tests, an additive VMS preview command and focused acceptance instructions.
+- External authenticated self-service renewal remains open; this release does not expose a public or VMS identity endpoint.
+
 ## [2.0.0-rc.33] - 2026-09-29
 
 - Added bounded policy versions saved atomically with group and profile-field changes, including a known-current snapshot when upgrading older installations.

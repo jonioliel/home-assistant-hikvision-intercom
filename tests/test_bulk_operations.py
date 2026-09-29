@@ -316,3 +316,94 @@ async def test_capacity_uses_cached_card_records_and_preserves_unselected(
     assert batch.repository.snapshot() == before
     assert first.cards[0].card_no.value not in json.dumps(preview)
     assert second.cards[0].card_no.value not in json.dumps(preview)
+
+
+async def prepare_temporary(batch):
+    for user in batch.repository.users():
+        await batch.repository.async_update(
+            user.id,
+            {"valid_from": "2026-01-01T00:00:00Z", "valid_until": "2035-01-01T00:00:00Z"},
+            expected_revision=user.revision,
+        )
+
+
+async def test_bulk_renewal_changes_only_expiry_and_replays_after_restart(batch):
+    from custom_components.hikvision_intercom.access.csv_transfer import desired_fields
+
+    await prepare_temporary(batch)
+    before = {u.id: desired_fields(u) for u in batch.repository.users()}
+    snapshot = batch.repository.snapshot()
+    review = await batch.bulk.preview(
+        "administrator", request(batch, "renew", until="2036-01-01T00:00:00+02:00")
+    )
+    assert snapshot == batch.repository.snapshot()
+    assert all(row["changed_fields"] == ["valid_until"] for row in review["rows"])
+    assert all(row["valid_until_before"] and row["valid_until_after"] for row in review["rows"])
+    result = await batch.bulk.apply("administrator", review["operation_id"])
+    assert result["changed"] == 2
+    for user in batch.repository.users():
+        after = desired_fields(user)
+        assert after["valid_until"] == "2035-12-31T22:00:00+00:00"
+        assert {k: v for k, v in after.items() if k != "valid_until"} == {
+            k: v for k, v in before[user.id].items() if k != "valid_until"
+        }
+    repo = AccessRepository(AsyncMock())
+    await repo.async_load(batch.repository.snapshot())
+    resumed = AccessManager(repo)
+    assert await resumed.bulk.apply("administrator", review["operation_id"]) == result
+    await resumed.async_close()
+
+
+@pytest.mark.parametrize(
+    "until",
+    ["2034-01-01T00:00:00Z", "2035-01-01T00:00:00Z", "2000-01-01T00:00:00Z", "2036-01-01T00:00:00"],
+)
+async def test_bulk_renewal_rejects_non_extension_and_ambiguous_time(batch, until):
+    await prepare_temporary(batch)
+    before = batch.repository.snapshot()
+    with pytest.raises(AccessError):
+        await batch.bulk.preview("administrator", request(batch, "renew", until=until))
+    assert before == batch.repository.snapshot()
+
+
+async def test_bulk_renewal_rejects_entire_selection_with_unlimited_user(batch):
+    user = batch.repository.users()[0]
+    await batch.repository.async_update(
+        user.id,
+        {"valid_from": "2026-01-01T00:00:00Z", "valid_until": "2035-01-01T00:00:00Z"},
+        expected_revision=user.revision,
+    )
+    before = batch.repository.snapshot()
+    with pytest.raises(AccessError, match="renewal_not_temporary"):
+        await batch.bulk.preview(
+            "administrator", request(batch, "renew", until="2036-01-01T00:00:00Z")
+        )
+    assert before == batch.repository.snapshot()
+
+
+async def test_bulk_renewal_does_not_reactivate_and_rolls_back_on_failed_save(batch):
+    await prepare_temporary(batch)
+    user = batch.repository.users()[0]
+    await batch.repository.async_update(user.id, {"active": False}, expected_revision=user.revision)
+    review = await batch.bulk.preview(
+        "administrator", request(batch, "renew", until="2036-01-01T00:00:00Z")
+    )
+    before = batch.repository.snapshot()
+    batch.repository._save.side_effect = OSError("unavailable")
+    with pytest.raises(OSError):
+        await batch.bulk.apply("administrator", review["operation_id"])
+    assert before == batch.repository.snapshot()
+    batch.repository._save.side_effect = None
+    await batch.bulk.apply("administrator", review["operation_id"])
+    assert not batch.repository.get(user.id).active
+
+
+async def test_bulk_renewal_changed_person_invalidates_review(batch):
+    await prepare_temporary(batch)
+    review = await batch.bulk.preview(
+        "administrator", request(batch, "renew", until="2036-01-01T00:00:00Z")
+    )
+    user = batch.repository.users()[0]
+    await batch.repository.async_update(user.id, {"active": False}, expected_revision=user.revision)
+    with pytest.raises(AccessError, match="bulk_review_stale"):
+        await batch.bulk.apply("administrator", review["operation_id"])

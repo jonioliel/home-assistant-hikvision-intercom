@@ -2,7 +2,7 @@ import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { boundedRequest } from "./request";
 import { styles } from "./styles";
 import { translate } from "./i18n";
-import { formatTime, UTC_ZONE } from "./time";
+import { formatTime, resolveLocalInput, UTC_ZONE, type DisplayZone } from "./time";
 import type { Hass, Person, Station } from "./types";
 import type { ProfilePolicy } from "./profile-settings";
 interface Preview {
@@ -25,6 +25,8 @@ interface Preview {
     overrides_after?: number;
     changed: boolean;
     stations: string[];
+    valid_until_before?: string | null;
+    valid_until_after?: string | null;
   }[];
   capacity: {
     station_id: string;
@@ -104,6 +106,9 @@ export class BulkUsers extends LitElement {
     hass: { attribute: false },
     policy: { attribute: false },
     canCheckpoint: { attribute: false },
+    canRenew: { type: Boolean },
+    zone: { attribute: false },
+    _until: { state: true },
     _profileValue: { state: true },
     users: { attribute: false },
     selected: { attribute: false },
@@ -124,6 +129,9 @@ export class BulkUsers extends LitElement {
   hass?: Hass;
   policy?: ProfilePolicy;
   canCheckpoint = false;
+  canRenew = false;
+  zone: DisplayZone = UTC_ZONE;
+  private _until = "";
   private _profileValue = "";
   users: Person[] = [];
   selected: string[] = [];
@@ -159,6 +167,9 @@ export class BulkUsers extends LitElement {
       this._target,
       this._profileValue,
       this.policy?.revision,
+      this._until,
+      this.zone,
+      this.canRenew,
     ]);
   }
   private reset() {
@@ -222,6 +233,7 @@ export class BulkUsers extends LitElement {
       this.bind(hass.connection);
       this.restore();
     }
+    if (!this.canRenew && this._action === "renew") this._action = "disable";
     const signature = this.stamp();
     if (signature !== this.signature) {
       this.signature = signature;
@@ -272,6 +284,18 @@ export class BulkUsers extends LitElement {
     if (this._busy || !hass?.user?.is_admin || !this._online || hass.connection.connected === false)
       return;
     if ((action === "preview" || action === "apply") && this._unknown && !this._checked) return;
+    let until: string | undefined;
+    if (action === "preview" && this._action === "renew") {
+      if (!this.canRenew) return;
+      try {
+        const value = resolveLocalInput(this._until, this.zone);
+        if (!value || Date.parse(value) <= Date.now()) throw new Error("invalid_validity");
+        until = value;
+      } catch (error) {
+        this._error = this.t((error as Error).message);
+        return;
+      }
+    }
     const epoch = this.epoch,
       stamp = this.stamp(),
       preview = this._preview;
@@ -295,22 +319,28 @@ export class BulkUsers extends LitElement {
     try {
       const message =
         action === "preview"
-          ? {
-              type: "hikvision_intercom/users/bulk_preview",
-              request: {
-                action: this._action,
+          ? this._action === "renew"
+            ? {
+                type: "hikvision_intercom/users/bulk_renewal_preview",
                 selection: this.current(),
-                ...(["assign", "unassign"].includes(this._action)
-                  ? { station_id: this._target }
-                  : {}),
-                ...(this._action === "profile"
-                  ? { profile: { [this._target]: this._profileValue } }
-                  : {}),
-                ...(["group_add", "group_remove"].includes(this._action)
-                  ? { group_ids: [this._target] }
-                  : {}),
-              },
-            }
+                until,
+              }
+            : {
+                type: "hikvision_intercom/users/bulk_preview",
+                request: {
+                  action: this._action,
+                  selection: this.current(),
+                  ...(["assign", "unassign"].includes(this._action)
+                    ? { station_id: this._target }
+                    : {}),
+                  ...(this._action === "profile"
+                    ? { profile: { [this._target]: this._profileValue } }
+                    : {}),
+                  ...(["group_add", "group_remove"].includes(this._action)
+                    ? { group_ids: [this._target] }
+                    : {}),
+                },
+              }
           : action === "recent"
             ? { type: "hikvision_intercom/users/bulk_receipts" }
             : {
@@ -392,7 +422,7 @@ export class BulkUsers extends LitElement {
                 this._approved = false;
               }}
             >
-              ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync", "profile", "group_add", "group_remove", "reset_overrides"].map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.t("bulk_" + a)}</option>`)}
+              ${["enable", "disable", "assign", "unassign", "delete", "remove_pin", "remove_cards", "sync", "profile", "group_add", "group_remove", "reset_overrides", ...(this.canRenew ? ["renew"] : [])].map((a) => html`<option value=${a} ?selected=${a === this._action}>${this.t("bulk_" + a)}</option>`)}
             </select></label
           >
           ${
@@ -446,8 +476,23 @@ export class BulkUsers extends LitElement {
                 /></label>`
               : nothing
           }
+          ${
+            this._action === "renew"
+              ? html`<label
+                    >${this.t("bulk_renew_end")} · ${this.zone.name}<input
+                      type="datetime-local"
+                      aria-label=${this.t("bulk_renew_end")}
+                      .value=${this._until}
+                      ?disabled=${this._busy || !this._online}
+                      @input=${(e: Event) => {
+                        this._until = (e.target as HTMLInputElement).value;
+                      }}
+                  /></label>
+                  <p class="sub">${this.t("bulk_renew_hint")}</p>`
+              : nothing
+          }
           <button
-            ?disabled=${this._busy || !this._online || (!!this._unknown && !this._checked) || !this.current().length || this.current().length > 200 || (["assign", "unassign", "profile", "group_add", "group_remove"].includes(this._action) && !this._target)}
+            ?disabled=${this._busy || !this._online || (this._action === "renew" && !this._until) || (!!this._unknown && !this._checked) || !this.current().length || this.current().length > 200 || (["assign", "unassign", "profile", "group_add", "group_remove"].includes(this._action) && !this._target)}
             @click=${() => this.perform("preview")}
           >
             ${this.t("bulk_preview")}
@@ -471,6 +516,7 @@ export class BulkUsers extends LitElement {
                       html`<p>
                         <strong>${row.display_name}</strong> · <bdi>${row.employee_no}</bdi
                         ><br />${row.changed ? row.changed_fields.map((f) => this.t("audit_field_" + f)).join(", ") : this.t("bulk_no_change")}<br />${row.stations.map((s) => this.stationName(s)).join(", ")}
+                        ${this._preview!.action === "renew" ? html`<br />${this.t("valid_until")}: <bdi>${formatTime(row.valid_until_before, this.hass?.language, this.zone)}</bdi> → <bdi>${formatTime(row.valid_until_after, this.hass?.language, this.zone)}</bdi>` : nothing}
                         ${Object.entries(row.profile_changes ?? {}).map(([id, v]) => html`<br />${this.policy?.fields.find((f) => f.id === id)?.label ?? id}: ${v.before || "—"} → ${v.after || "—"}`)}
                         ${["group_add", "group_remove", "reset_overrides"].includes(this._preview!.action) ? html`<br />${this.t("profile_groups")}: ${(row.groups_before ?? []).map((id) => this.policy?.groups.find((g) => g.id === id)?.label ?? id).join(", ") || "—"} → ${(row.groups_after ?? []).map((id) => this.policy?.groups.find((g) => g.id === id)?.label ?? id).join(", ") || "—"}<br />${this.t("assignments")}: ${(row.permissions_before ?? []).map((id) => this.stationName(id)).join(", ") || "—"} → ${(row.permissions_after ?? []).map((id) => this.stationName(id)).join(", ") || "—"}<br />${this.t("bulk_reset_overrides")}: ${row.overrides_before ?? 0} → ${row.overrides_after ?? 0}` : nothing}
                       </p>`,

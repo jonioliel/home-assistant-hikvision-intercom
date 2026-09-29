@@ -33,6 +33,10 @@ async def dispatch_admin(hass: HomeAssistant, command: str, msg: dict[str, Any],
         return await manager.policy.preview(actor, msg["revision"], msg["values"])
     if command == "profiles/settings_apply":
         return await manager.policy.apply(actor, msg["operation_id"])
+    if command == "users/bulk_renewal_preview":
+        return await manager.bulk.preview(
+            actor, {"action": "renew", "selection": msg["selection"], "until": msg["until"]}
+        )
     if command == "users/bulk_preview":
         return await manager.bulk.preview(actor, msg["request"])
     if command == "users/bulk_apply":

@@ -295,6 +295,7 @@ COMMANDS = {
     "media/provider_discover": {},
     "permissions/directory": {"filters": dict},
     "users/bulk_preview": {"request": dict},
+    "users/bulk_renewal_preview": {"selection": list, "until": str},
     "users/bulk_apply": {"operation_id": str},
     "users/bulk_receipt": {"operation_id": str},
     "users/bulk_receipts": {},

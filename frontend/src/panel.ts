@@ -3985,6 +3985,8 @@ export class IntercomManagerPanel extends LitElement {
           </button>
         </div>
         <hikvision-bulk-users
+          .canRenew=${this._data?.api?.commands.includes("users/bulk_renewal_preview") ?? false}
+          .zone=${this._data?.default_zone ?? UTC_ZONE}
           .canCheckpoint=${this._data?.api?.commands.includes("jobs/bulk_create") ?? false}
           .hass=${this.protectedHass}
           .policy=${this._data?.profile_settings}

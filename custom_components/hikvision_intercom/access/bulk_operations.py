@@ -6,6 +6,7 @@ import asyncio
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import asdict
+from datetime import UTC, datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -13,7 +14,7 @@ from uuid import uuid4
 from ..profile_settings import group_values, profile_values
 from .admin_audit import audit_actor
 from .csv_transfer import desired_fields, validate_csv_targets
-from .models import AccessError, ManagedUser, build_user, text_field, utc_now
+from .models import AccessError, ManagedUser, build_user, text_field, utc_now, valid_period
 
 if TYPE_CHECKING:
     from .manager import AccessManager
@@ -32,6 +33,7 @@ ACTIONS = frozenset(
         "group_add",
         "group_remove",
         "reset_overrides",
+        "renew",
     }
 )
 
@@ -39,7 +41,7 @@ ACTIONS = frozenset(
 def selection(request: dict[str, Any]) -> list[dict[str, Any]]:
     if (
         not isinstance(request, dict)
-        or set(request) - {"action", "selection", "station_id", "profile", "group_ids"}
+        or set(request) - {"action", "selection", "station_id", "profile", "group_ids", "until"}
         or not isinstance(request.get("action"), str)
         or request.get("action") not in ACTIONS
     ):
@@ -70,7 +72,24 @@ def selection(request: dict[str, Any]) -> list[dict[str, Any]]:
             raise AccessError("invalid_fields")
     elif "group_ids" in request:
         raise AccessError("invalid_fields")
+    if request["action"] == "renew":
+        text_field(request.get("until"), 64)
+    elif "until" in request:
+        raise AccessError("invalid_fields")
     return selected
+
+
+def renewal_patch(user: ManagedUser, until: str) -> dict[str, str]:
+    if user.archived_at is not None:
+        raise AccessError("user_archived")
+    if user.valid_until is None:
+        raise AccessError("renewal_not_temporary")
+    _, end = valid_period(user.valid_from, until)
+    if end is None or datetime.fromisoformat(end) <= max(
+        datetime.now(UTC), datetime.fromisoformat(user.valid_until)
+    ):
+        raise AccessError("renewal_not_extension")
+    return {"valid_until": end}
 
 
 def changed_fields(before: ManagedUser, after: ManagedUser) -> list[str]:
@@ -203,6 +222,8 @@ class BulkOperations:
                     data = {"group_ids": sorted(groups)}
                 elif action == "reset_overrides":
                     data = {"permission_overrides": {}}
+                elif action == "renew":
+                    data = renewal_patch(old, request["until"])
 
                 new = (
                     None
@@ -286,6 +307,8 @@ class BulkOperations:
                         "overrides_after": len(new.permission_overrides) if new else 0,
                         "active_before": old.active,
                         "active_after": new.active if new else False,
+                        "valid_until_before": old.valid_until,
+                        "valid_until_after": new.valid_until if new else None,
                     }
                 )
                 if action == "sync":
@@ -413,6 +436,11 @@ class BulkOperations:
             raise AccessError("bulk_review_expired")
         if review["rules"] != self.rules_stamp():
             raise AccessError("bulk_review_stale")
+        if review["action"] == "renew":
+            for change in review["changes"]:
+                renewal_patch(
+                    self.manager.repository.get(change["user_id"]), change["data"]["valid_until"]
+                )
         rules = self.manager._csv_rules()
         receipt = {
             "operation_id": operation_id,
