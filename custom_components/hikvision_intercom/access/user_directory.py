@@ -12,7 +12,7 @@ from .models import AccessError
 
 _FILTER_KEYS = {"group", "profile", "station", "rights", "state", "credential", "sort"}
 _RIGHTS = {"", "assigned", "unassigned", "disabled"}
-_STATES = {"", "active", "inactive", "expired", "upcoming"}
+_STATES = {"", "active", "inactive", "expired", "upcoming", "archived"}
 _CREDENTIALS = {"", "pin", "no_pin", "card", "no_card"}
 _SORTS = {"name", "name_desc", "employee"}
 
@@ -110,6 +110,8 @@ def query_users(
     phone_query = _digits(text)
 
     def matches(user: dict[str, Any]) -> bool:
+        if bool(user.get("archived_at")) != (checked["state"] == "archived"):
+            return False
         if checked["group"] and checked["group"] not in user.get("group_ids", []):
             return False
         if any(

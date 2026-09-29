@@ -20,6 +20,8 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
         "authorization/settings_update",
         "appearance/settings_update",
         "investigations/query",
+        "users/archive",
+        "users/unarchive",
     }
     assert {
         command

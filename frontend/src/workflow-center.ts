@@ -19,7 +19,7 @@ interface Approval {
   state: string;
   label: string;
   expires_at: string;
-  people: { name: string; delete: boolean; fields: string[] }[];
+  people: { name: string; delete: boolean; fields: string[]; archive?: boolean }[];
   inventory: { label: string; status: string }[];
   impact: {
     before: Record<string, unknown> | null;
@@ -331,7 +331,7 @@ export class WorkflowCenter extends LitElement {
     return html`<article>
       <h3>${this.text("גיבוי מוצפן ושחזור אנשים", "Encrypted backup and people restore")}</h3>
       <p class="sub">
-        ${this.text("הקובץ מכיל מידע רגיש מוצפן. שמור את הסיסמה בנפרד. השחזור מייבא אנשים והרשאות לאחר סקירה; רישומי הבעלות והביטול הפעילים נשמרים. תצורת שרת, חיבורים וערכות עיצוב מגובים בגיבוי המערכת המלא.", "The encrypted file contains sensitive data. Keep its passphrase separately. Restore imports reviewed people and access while preserving active ownership and revocation records. Server configuration, connections and themes belong in a full system backup.")}
+        ${this.text("הקובץ מכיל מידע רגיש מוצפן. שמור את הסיסמה בנפרד. השחזור מייבא אנשים והרשאות לאחר סקירה; רישומי הבעלות והביטול הפעילים נשמרים. אנשים בארכיון נשמרים בקובץ המוצפן ואינם נוצרים מחדש בייבוא אנשים. גיבוי מערכת מלא משחזר גם את הארכיון וההיסטוריה. תצורת שרת, חיבורים וערכות עיצוב מגובים בגיבוי המערכת המלא.", "The encrypted file contains sensitive data. Keep its passphrase separately. Restore imports reviewed people and access while preserving active ownership and revocation records. Archived people are retained in the encrypted file and skipped by desired-people import. Full system backup restores the archive and history. Server configuration, connections and themes belong in a full system backup.")}
       </p>
       <label
         >${this.text("סיסמת גיבוי — 12 תווים לפחות", "Backup passphrase — at least 12 characters")}<input
@@ -523,7 +523,7 @@ export class WorkflowCenter extends LitElement {
             </div>
             <p>${this.text("תוקף האישור", "Approval expires")}: <bdi>${item.expires_at}</bdi></p>
             <ul>
-              ${item.people.map((person) => html`<li>${person.name} · ${person.delete ? this.t("delete") : person.fields.map((field) => this.t(field)).join(", ")}</li>`)}
+              ${item.people.map((person) => html`<li>${person.name} · ${person.archive !== undefined ? this.t(person.archive ? "archive_person" : "unarchive_person") : person.delete ? this.t("delete") : person.fields.map((field) => this.t(field)).join(", ")}</li>`)}
             </ul>
             ${item.impact?.map(
               (impact) =>
@@ -537,7 +537,7 @@ export class WorkflowCenter extends LitElement {
                             side
                               ? html`<p>
                                     ${side.display_name} · ${side.employee_no} ·
-                                    ${side.active ? this.t("active") : this.t("inactive")}
+                                    ${side.archived_at ? this.t("filter_archived") : side.active ? this.t("active") : this.t("inactive")}
                                   </p>
                                   <p>
                                     ${String(side.valid_from ?? "—")} →

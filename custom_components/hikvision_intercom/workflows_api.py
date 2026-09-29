@@ -174,6 +174,21 @@ async def dispatch_workflows(
                 {"user_id": person.id, "revision": person.revision, "data": {"cards": cards}}
             ]
             stamp = manager.repository.bulk_stamp()
+        elif original in {"users/archive", "users/unarchive"}:
+            if values.get("confirmed") is not True:
+                raise AccessError("confirmation_required")
+            person = manager.repository.get(values["user_id"])
+            if person.revision != values["revision"]:
+                raise AccessError("revision_conflict")
+            changes = [
+                {
+                    "user_id": person.id,
+                    "revision": person.revision,
+                    "data": {"active": False},
+                    "archive": original == "users/archive",
+                }
+            ]
+            stamp = manager.repository.bulk_stamp()
         elif original in {"users/update", "users/delete", "users/set_active"}:
             person = manager.repository.get(values["user_id"])
             if person.revision != values["revision"]:
@@ -275,6 +290,8 @@ def requires_approval(command: str, msg: dict[str, Any]) -> bool:
         "users/adopt",
         "users/delete_unmanaged",
         "users/temporary_cancel",
+        "users/archive",
+        "users/unarchive",
         "conflicts/resolve",
         "conflicts/resolve_deletion",
         "profiles/settings_update",

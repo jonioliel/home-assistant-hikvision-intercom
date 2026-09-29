@@ -48,6 +48,7 @@ export interface Person {
   access_category?: "staff" | "visitor" | "contractor";
   responsible_person?: string;
   access_purpose?: string;
+  archived_at?: string | null;
   profile?: Record<string, string>;
   group_ids?: string[];
   permission_overrides?: Record<string, "allow" | "deny">;
@@ -292,6 +293,7 @@ export interface Hass {
   };
 }
 export interface Draft {
+  archived_at?: string | null;
   access_timing_draft?: UserTimingDraft | null;
   access_timing_policy?: {
     mode: "ha" | "native";

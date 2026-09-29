@@ -170,7 +170,9 @@ class Backups:
                 "action": "update" if old else "create",
                 "error": None,
             }
-            if old and mode == "add_only":
+            # Desired-people import is not a historical archive restoration.
+            # Keep archived identities in the encrypted snapshot, without recreating them.
+            if user.archived_at is not None or (old and mode == "add_only"):
                 row["action"] = "skip"
             else:
                 change = {

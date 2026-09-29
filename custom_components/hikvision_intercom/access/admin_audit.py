@@ -25,6 +25,8 @@ ACTIONS = frozenset(
         "users/delete",
         "users/set_active",
         "users/temporary_cancel",
+        "users/archive",
+        "users/unarchive",
         "visits/create",
         "visits/decide",
         "cards/add",
@@ -96,6 +98,7 @@ def summary(raw: dict[str, Any] | None) -> dict[str, Any] | None:
         "display_name": raw["display_name"],
         "employee_no": raw["employee_no"],
         "active": raw["active"],
+        "archived_at": raw.get("archived_at"),
         "user_type": raw["user_type"],
         "valid_from": raw["valid_from"],
         "valid_until": raw["valid_until"],
@@ -122,6 +125,7 @@ def changes(before: dict[str, Any] | None, after: dict[str, Any] | None) -> list
         "responsible_person",
         "access_purpose",
         "access_timing_draft",
+        "archived_at",
     ):
         first[key] = (before or {}).get(key)
         last[key] = (after or {}).get(key)
@@ -272,6 +276,7 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             "responsible_person",
             "access_purpose",
             "access_timing_draft",
+            "archived_at",
             "access_timing_policy",
             "permission_overrides",
         }
@@ -281,7 +286,7 @@ def validate_storage(audit: Any, receipts: Any) -> None:
             item = row[side]
             if item is None:
                 continue
-            if not isinstance(item, dict) or set(item) != {
+            if not isinstance(item, dict) or set(item) - {"archived_at"} != {
                 "display_name",
                 "employee_no",
                 "active",
@@ -301,6 +306,10 @@ def validate_storage(audit: Any, receipts: Any) -> None:
                 for key in ("card_count", "enabled_cards")
             ):
                 raise AccessError("invalid_storage")
+            if item.get("archived_at") is not None:
+                _instant(item["archived_at"])
+                if item["active"]:
+                    raise AccessError("invalid_storage")
             for key in ("valid_from", "valid_until"):
                 if item[key] is not None:
                     _instant(item[key])

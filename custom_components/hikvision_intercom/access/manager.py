@@ -782,6 +782,15 @@ class AccessManager:
                 self.request(key)
         self._changed()
 
+    async def async_archive(self, user_id: str, *, revision: int, archived: bool) -> dict[str, Any]:
+        # Disable intent must persist even when equipment cannot be reached.
+        user = await self.repository.async_archive(
+            user_id, expected_revision=revision, archived=archived
+        )
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
     async def async_cancel_temporary(self, user_id: str, *, revision: int) -> dict[str, Any]:
         # Disabling existing access does not require fresh firmware capability reads.
         # Desired disable intent must be saved even when a station is disconnected.

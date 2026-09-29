@@ -304,6 +304,10 @@ if (query.has("paged")) {
   }
 }
 data.user_count = data.users.length;
+if (query.has("people-archive")) {
+  data.api.capabilities.push("people_archive", "user_directory_query");
+  data.api.commands.push("users/query", "users/archive", "users/unarchive");
+}
 if (query.has("guest-templates")) {
   data.api.capabilities.push("guest_visit_templates", "user_timing_enforcement");
   data.api.commands.push("guest_templates/get", "guest_templates/upsert", "guest_templates/delete");
@@ -1724,12 +1728,22 @@ const fake = {
         summary[key] = [];
       return summary;
     }
+    if (command === "users/archive" || command === "users/unarchive") {
+      const person = data.users.find((u) => u.id === message.user_id);
+      if (!person || person.revision !== message.revision) throw { code: "revision_conflict" };
+      if (!message.confirmed) throw { code: "confirmation_required" };
+      person.archived_at = command === "users/archive" ? new Date().toISOString() : null;
+      person.active = false;
+      person.revision++;
+      return structuredClone(person);
+    }
     if (command === "users/query") {
       if (query.has("query-fails")) throw { code: "fixture_query_failed" };
       const text = String(message.query ?? "")
         .trim()
         .toLocaleLowerCase();
       const filtered = data.users
+        .filter((user) => !!user.archived_at === (message.filters?.state === "archived"))
         .filter(
           (user) =>
             !text ||

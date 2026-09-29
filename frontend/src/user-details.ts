@@ -110,6 +110,7 @@ export class UserDetails extends LitElement {
   static properties = {
     canRenew: { type: Boolean },
     canEdit: { type: Boolean },
+    canArchive: { type: Boolean },
     renewing: { state: true },
     renewalNotice: { state: true },
     messageDraft: {},
@@ -541,6 +542,7 @@ export class UserDetails extends LitElement {
   v4 = false;
   canRenew = false;
   canEdit = true;
+  canArchive = false;
   allowedCommands?: string[];
   hass?: Hass;
   person?: Person;
@@ -794,7 +796,9 @@ export class UserDetails extends LitElement {
                     </div>
                     <div>
                       <dt>${this.t("status")}</dt>
-                      <dd>${this.t(p.active ? "active" : "inactive")}</dd>
+                      <dd>
+                        ${this.t(p.archived_at ? "filter_archived" : p.active ? "active" : "inactive")}
+                      </dd>
                     </div>
                     <div>
                       <dt>${this.t("access_category")}</dt>
@@ -1000,7 +1004,17 @@ export class UserDetails extends LitElement {
         ${this.busy ? html`<p role="status">${this.t("wait")}</p>` : nothing}${this.sent ? html`<p role="status">${this.t("accepted")}</p>` : nothing}${this.error ? html`<p class="error" role="alert">${this.t(this.error)}</p>` : nothing}
       </main>
       <footer>
-        ${this.canRenew && this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
+        ${
+          this.canArchive
+            ? html`<button
+                ?disabled=${this.busy}
+                @click=${() => this.dispatchEvent(new CustomEvent("details-archive"))}
+              >
+                ${this.t(this.person?.archived_at ? "unarchive_person" : "archive_person")}
+              </button>`
+            : nothing
+        }
+        ${this.canRenew && !this.person?.archived_at && this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
         <button
           ?disabled=${!this.canEdit}
           @click=${() => {

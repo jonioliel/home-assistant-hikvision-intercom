@@ -72,4 +72,4 @@ async def test_schema_six_phone_migration_is_atomic():
     save.side_effect = None
     await restored.async_load(raw)
     assert restored.get(user.id).phone == ""
-    assert restored.snapshot()["schema"] == 14
+    assert restored.snapshot()["schema"] == 15
