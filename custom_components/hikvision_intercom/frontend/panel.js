@@ -6966,7 +6966,13 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),d.length&&this.log(`Remo
                           <td>
                             ${{group:this.copy("Group","\u05E7\u05D1\u05D5\u05E6\u05D4"),allow:this.copy("Personal grant","\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D9"),deny:this.copy("Personal denial","\u05D7\u05E1\u05D9\u05DE\u05D4 \u05D0\u05D9\u05E9\u05D9\u05EA")}[i.source_permission]??"\u2014"}
                           </td>
-                          <td>${this.names(i.before)}</td>
+                          <td>
+                            ${this.names(i.before)}
+                            <div class="sub">
+                              ${this.copy("Selected physical locks","\u05D1\u05D7\u05D9\u05E8\u05EA \u05DE\u05E0\u05E2\u05D5\u05DC\u05D9\u05DD \u05E4\u05D9\u05D6\u05D9\u05D9\u05DD")}:
+                              ${i.locks.join(", ")||"\u2014"}
+                            </div>
+                          </td>
                           <td>
                             ${i.after===null?this.copy("Blocked by overlap","\u05D7\u05E1\u05D5\u05DD \u05E2\u05E7\u05D1 \u05D7\u05E4\u05D9\u05E4\u05D4"):this.names(i.after)}
                           </td>
@@ -6977,7 +6983,7 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),d.length&&this.log(`Remo
               ${e.rows_complete?g:h`<p>${this.copy("Showing a bounded sample","\u05DE\u05D5\u05E6\u05D2\u05EA \u05D3\u05D2\u05D9\u05DE\u05D4 \u05DE\u05D5\u05D2\u05D1\u05DC\u05EA")}: ${e.row_budget} / ${e.affected_people}</p>`}
             `:g}
       ${this.metadataReview?h`<div class="grid">
-              ${["source","target"].map(i=>{let s=this.metadataReview?.[i]?.values;return h`<article>
+              ${["source","target"].map(i=>{let s=this.metadataReview?.[i]?.values,a=[["Monday","\u05E9\u05E0\u05D9"],["Tuesday","\u05E9\u05DC\u05D9\u05E9\u05D9"],["Wednesday","\u05E8\u05D1\u05D9\u05E2\u05D9"],["Thursday","\u05D7\u05DE\u05D9\u05E9\u05D9"],["Friday","\u05E9\u05D9\u05E9\u05D9"],["Saturday","\u05E9\u05D1\u05EA"],["Sunday","\u05E8\u05D0\u05E9\u05D5\u05DF"]];return h`<article>
                   <strong
                     >${i==="source"?this.copy("Metadata to copy","\u05E4\u05E8\u05D8\u05D9 \u05D4\u05EA\u05D7\u05E0\u05D4 \u05E9\u05D9\u05D5\u05E2\u05EA\u05E7\u05D5"):this.copy("Current replacement metadata","\u05E4\u05E8\u05D8\u05D9 \u05D4\u05EA\u05D7\u05E0\u05D4 \u05D4\u05D7\u05DC\u05D5\u05E4\u05D9\u05EA \u05DB\u05E2\u05EA")}</strong
                   >
@@ -6986,9 +6992,10 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),d.length&&this.log(`Remo
                     ${this.copy("Owner","\u05D0\u05D7\u05E8\u05D0\u05D9")}: ${s?.owner||"\u2014"}
                   </p>
                   <p>${this.copy("Tags","\u05EA\u05D2\u05D9\u05D5\u05EA")}: ${s?.tags.join(", ")||"\u2014"}</p>
+                  ${s?.thresholds?h`<p>${this.copy("Alert thresholds (seconds)","\u05E1\u05E4\u05D9 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05D1\u05E9\u05E0\u05D9\u05D5\u05EA")}: ${this.copy("Offline","\u05E0\u05D9\u05EA\u05D5\u05E7")} ${s.thresholds.offline} · ${this.copy("Stalled sync","\u05E1\u05E0\u05DB\u05E8\u05D5\u05DF \u05EA\u05E7\u05D5\u05E2")} ${s.thresholds.sync_stalled} · ${this.copy("Event gap","\u05E4\u05E2\u05E8 \u05D0\u05D9\u05E8\u05D5\u05E2\u05D9\u05DD")} ${s.thresholds.event_gap}</p>`:g}
                   <p>
                     ${this.copy("Maintenance window","\u05D7\u05DC\u05D5\u05DF \u05EA\u05D7\u05D6\u05D5\u05E7\u05D4")}:
-                    ${s?.window.enabled?`${s.window.days.join(", ")} \xB7 ${s.window.start}\u2013${s.window.end} \xB7 ${s.window.timezone}`:this.copy("No restriction","\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4")}
+                    ${s?.window.enabled?`${s.window.days.map(r=>this.copy(a[r][0],a[r][1])).join(", ")} \xB7 ${s.window.start}\u2013${s.window.end} \xB7 ${s.window.timezone}`:this.copy("No restriction","\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4")}
                   </p>
                 </article>`})}
             </div>`:g}

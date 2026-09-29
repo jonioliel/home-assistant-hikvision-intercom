@@ -23,6 +23,7 @@ type LifecycleMetadata = Record<
       zone: string;
       owner: string;
       tags: string[];
+      thresholds?: { offline: number; sync_stalled: number; event_gap: number };
       window: { enabled: boolean; start: string; end: string; timezone: string; days: number[] };
     };
   } | null
@@ -556,7 +557,13 @@ class StationLifecycleReview extends LitElement {
                           <td>
                             ${({ group: this.copy("Group", "קבוצה"), allow: this.copy("Personal grant", "אישור אישי"), deny: this.copy("Personal denial", "חסימה אישית") } as Record<string, string>)[row.source_permission] ?? "—"}
                           </td>
-                          <td>${this.names(row.before)}</td>
+                          <td>
+                            ${this.names(row.before)}
+                            <div class="sub">
+                              ${this.copy("Selected physical locks", "בחירת מנעולים פיזיים")}:
+                              ${row.locks.join(", ") || "—"}
+                            </div>
+                          </td>
                           <td>
                             ${row.after === null ? this.copy("Blocked by overlap", "חסום עקב חפיפה") : this.names(row.after)}
                           </td>
@@ -574,6 +581,15 @@ class StationLifecycleReview extends LitElement {
           ? html`<div class="grid">
               ${["source", "target"].map((kind) => {
                 const values = this.metadataReview?.[kind]?.values;
+                const weekdays = [
+                  ["Monday", "שני"],
+                  ["Tuesday", "שלישי"],
+                  ["Wednesday", "רביעי"],
+                  ["Thursday", "חמישי"],
+                  ["Friday", "שישי"],
+                  ["Saturday", "שבת"],
+                  ["Sunday", "ראשון"],
+                ] as const;
                 return html`<article>
                   <strong
                     >${kind === "source" ? this.copy("Metadata to copy", "פרטי התחנה שיועתקו") : this.copy("Current replacement metadata", "פרטי התחנה החלופית כעת")}</strong
@@ -583,9 +599,10 @@ class StationLifecycleReview extends LitElement {
                     ${this.copy("Owner", "אחראי")}: ${values?.owner || "—"}
                   </p>
                   <p>${this.copy("Tags", "תגיות")}: ${values?.tags.join(", ") || "—"}</p>
+                  ${values?.thresholds ? html`<p>${this.copy("Alert thresholds (seconds)", "ספי התראה בשניות")}: ${this.copy("Offline", "ניתוק")} ${values.thresholds.offline} · ${this.copy("Stalled sync", "סנכרון תקוע")} ${values.thresholds.sync_stalled} · ${this.copy("Event gap", "פער אירועים")} ${values.thresholds.event_gap}</p>` : nothing}
                   <p>
                     ${this.copy("Maintenance window", "חלון תחזוקה")}:
-                    ${values?.window.enabled ? `${values.window.days.join(", ")} · ${values.window.start}–${values.window.end} · ${values.window.timezone}` : this.copy("No restriction", "ללא הגבלה")}
+                    ${values?.window.enabled ? `${values.window.days.map((day) => this.copy(weekdays[day][0], weekdays[day][1])).join(", ")} · ${values.window.start}–${values.window.end} · ${values.window.timezone}` : this.copy("No restriction", "ללא הגבלה")}
                   </p>
                 </article>`;
               })}

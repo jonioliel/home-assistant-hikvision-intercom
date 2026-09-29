@@ -172,7 +172,7 @@ async def test_actual_connection_removal_unloads_runtime_without_holding_its_lan
 
 
 async def test_metadata_interruption_resumes_without_reapplying_permission_policy(
-    hass, loaded_entry, hass_ws_client, device_io
+    hass, loaded_entry, hass_ws_client, hass_admin_user, device_io
 ):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -225,14 +225,15 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
         identity,
     ):
-        result = await request(
-            client,
+        # Exercise the authenticated dispatcher directly here so failures retain
+        # their traceback; subsequent mutations still use the real WebSocket.
+        result = await dispatch_lifecycle(
+            hass,
             "platform/lifecycle_prepare",
-            source_id=loaded_entry.entry_id,
-            target_id=target.entry_id,
+            {"source_id": loaded_entry.entry_id, "target_id": target.entry_id},
+            hass_admin_user.id,
         )
-        assert result["success"], result
-        job = result["result"]["job"]
+        job = result["job"]
         original = ops.save_record
         with patch.object(ops, "save_record", AsyncMock(side_effect=OSError("disk unavailable"))):
             failed = await action(client, "platform/lifecycle_apply", job)
