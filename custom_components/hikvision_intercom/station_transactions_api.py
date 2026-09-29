@@ -137,6 +137,19 @@ def cleanup_counts(state: dict[str, Any], source: str) -> dict[str, Any]:
     }
 
 
+def forget_removed(manager: Any, row: dict[str, Any]) -> None:
+    # Ordinary unload retains cancellation rows. This workflow proved cleanup first.
+    station = manager.stations.get(row["source_id"])
+    if (
+        row["state"] == "removed"
+        and station is not None
+        and station.driver is None
+        and not manager.engine.jobs(row["source_id"])
+    ):
+        manager.stations.pop(row["source_id"])
+        manager._changed()
+
+
 async def copy_metadata(hass: HomeAssistant, row: dict[str, Any]) -> None:
     """Resume harmless metadata stages separately; permission policy is already durable."""
     if row["metadata_applied"]:
@@ -247,6 +260,7 @@ async def dispatch_lifecycle(
             )
             return {"job": present(hass, row, actor)}
         if command == "platform/lifecycle_remove" and row["state"] == "removed":
+            forget_removed(manager, row)
             return {"job": present(hass, row, actor)}
         # Recover only a persisted removal intent after the connection disappeared.
         if (
@@ -258,6 +272,7 @@ async def dispatch_lifecycle(
                 row["id"],
                 lambda state, record: record.update(state="removed", removed_at=utc_now()),
             )
+            forget_removed(manager, row)
             return {"job": present(hass, row, actor)}
         source, target = row["source_id"], row["target_id"]
         read_stamp = repo.bulk_stamp()
@@ -407,6 +422,7 @@ async def dispatch_lifecycle(
                 row["id"],
                 lambda state, record: record.update(state="removed", removed_at=utc_now()),
             )
+        forget_removed(manager, row)
         manager._changed()
         return {
             "job": present(hass, row, actor),

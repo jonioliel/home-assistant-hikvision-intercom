@@ -1,6 +1,7 @@
 """Real auth/WebSocket lifecycle actions with mocked device transport."""
 
 from copy import deepcopy
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -85,6 +86,8 @@ async def test_second_approval_does_not_apply_and_current_second_admin_is_requir
     assert decision["success"], decision
     assert hass.data[DOMAIN]["access"].repository.snapshot()["users"] == before
     if revoked:
+        await second.close()
+        await hass.async_block_till_done()
         await hass.auth.async_update_user(reviewer, is_active=False)
     applied = await action(client, "platform/lifecycle_apply", job)
     assert applied["success"] is (not revoked), applied
@@ -182,9 +185,7 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         data={**DATA, "host": "192.0.2.11"},
     )
     target.add_to_hass(hass)
-    other = __import__("dataclasses").replace(
-        PROFILE, unique_id="OTHER-SERIAL", serial="OTHER-SERIAL"
-    )
+    other = replace(PROFILE, unique_id="OTHER-SERIAL", serial="OTHER-SERIAL")
     with (
         patch(
             "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
@@ -203,6 +204,7 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         "zone": "West",
         "owner": "Facilities",
         "tags": ["staff"],
+        "thresholds": {"offline": 600, "sync_stalled": 900, "event_gap": 600},
         "window": {
             "enabled": False,
             "days": [],
