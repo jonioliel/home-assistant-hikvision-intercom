@@ -279,6 +279,7 @@ export interface Hass {
   user?: { is_admin: boolean; id?: string };
   states: Record<string, { state: string; attributes: Record<string, any> }>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
+  callApi?<T>(method: string, path: string, parameters?: Record<string, unknown>): Promise<T>;
   connection: {
     connected?: boolean;
     addEventListener?(event: "disconnected" | "ready", callback: () => void): void;

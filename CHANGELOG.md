@@ -4,6 +4,12 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.21] — 2026-09-29
+
+- Add sequential station onboarding through the existing authenticated setup flow, preserving per-device identity confirmation, explicit relay testing and physical result confirmation. Failures can be skipped without preventing later stations; late responses never remove a created station.
+- Add an administrator-only read-only station replacement/retirement impact review: preserve group inheritance and personal denials in the projection, show confirmed physical/API mappings, known ownership, pending cleanup and unknown cached inventory. Bound people rows and recheck authority and station identity after reads.
+- Keep actual permission transfer, decommissioning and the remainder of fleet maintenance open. The new review does not write station settings, revoke access or remove connections. Preserve all previous themes and features; the technical domain remains hikvision_intercom.
+
 ## [2.0.0-rc.20] — 2026-09-29
 
 - Add a lightweight scoped overview and lazy/paged people loading, retaining the legacy overview and VMS embed contracts. Keep off-page filter facets, cross-page selection and explicit directory-error fallback.

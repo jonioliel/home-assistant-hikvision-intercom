@@ -20,6 +20,7 @@ export function compatible(contract?: ApiContract): boolean {
 const reads = new Set([
   "platform/get",
   "platform/config_read",
+  "platform/lifecycle_review",
   "platform/integrity",
   "platform/demo",
   "workflows/get",
