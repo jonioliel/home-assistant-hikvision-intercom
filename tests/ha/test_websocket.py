@@ -22,6 +22,7 @@ def test_every_delegated_command_has_an_explicit_permission_classification():
         "investigations/query",
         "profiles/versions",
         "profiles/versions_compare",
+        "users/bulk_renewal_preview",
         "users/archive",
         "users/unarchive",
     }

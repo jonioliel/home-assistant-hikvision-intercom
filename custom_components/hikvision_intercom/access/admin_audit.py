@@ -38,6 +38,7 @@ ACTIONS = frozenset(
         "cards/capture_confirm",
         "conflicts/resolve",
         "conflicts/resolve_deletion",
+        "bulk/renew",
         "bulk/enable",
         "bulk/disable",
         "bulk/assign",

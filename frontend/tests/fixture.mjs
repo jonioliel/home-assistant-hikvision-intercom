@@ -263,6 +263,7 @@ if (query.has("lifecycle")) {
       "users/data_quality",
       "users/access_scenario",
       "profiles/versions",
+      "users/bulk_renewal_preview",
       "profiles/versions_compare",
       "users/group_suggestions",
       "users/access_compare",

@@ -1375,6 +1375,13 @@ const en = {
   bulk_group_add: "Add to groups",
   bulk_group_remove: "Remove from groups",
   bulk_reset_overrides: "Return to group permissions",
+  bulk_renew: "Renew temporary access",
+  bulk_renew_end: "New expiry",
+  bulk_renew_hint:
+    "Only the expiry is extended. Existing doors, schedules, blocked access and credentials are preserved. Select people with a finite expiry outside the archive.",
+  renewal_not_temporary: "Select only people with a finite expiry for renewal.",
+  renewal_not_extension:
+    "The new expiry must be in the future and later than every selected person's current expiry.",
   bulk_profile_target: "Field or group",
   bulk_profile_value: "New value (blank clears the field)",
   bulk_sync: "Request synchronization",
@@ -3817,6 +3824,12 @@ const he: Record<keyof typeof en, string> = {
   bulk_group_add: "הוספה לקבוצות",
   bulk_group_remove: "הסרה מקבוצות",
   bulk_reset_overrides: "חזרה להרשאות הקבוצה",
+  bulk_renew: "חידוש תוקף זמני",
+  bulk_renew_end: "תוקף חדש עד",
+  bulk_renew_hint:
+    "רק מועד הסיום מוארך. הדלתות, השעות, החסימות האישיות ואמצעי הגישה נשמרים. יש לבחור אנשים בעלי תאריך סיום שאינם בארכיון.",
+  renewal_not_temporary: "יש לבחור לחידוש רק אנשים בעלי תאריך סיום מוגדר.",
+  renewal_not_extension: "התוקף החדש צריך להיות בעתיד ומאוחר מהתוקף הקיים של כל אדם שנבחר.",
   bulk_profile_target: "שדה או קבוצה",
   bulk_profile_value: "ערך חדש (ריק מנקה את השדה)",
   bulk_sync: "בקשת סנכרון",

@@ -29,6 +29,7 @@ export default defineConfig({
     "access-scenario.spec.ts",
     "permission-reviews.spec.ts",
     "policy-versions.spec.ts",
+    "bulk-renewal.spec.ts",
     "group-suggestions.spec.ts",
     "access-comparison.spec.ts",
   ],
