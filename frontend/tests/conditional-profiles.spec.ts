@@ -87,3 +87,39 @@ test("settings store an explicit predicate and unknown applicability remains rea
   );
   expect(saved).toEqual({});
 });
+
+test("text predicates and required values follow stored whitespace normalization", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.demoData.profile_settings.fields = [
+      { id: "role", label: "Role", enabled: true, options: [] },
+      {
+        id: "badge",
+        label: "Badge",
+        enabled: true,
+        options: [],
+        required: true,
+        depends_on: { field_id: "role", value: "staff" },
+      },
+    ];
+    window.demoData.users[0].profile = { role: "visitor", badge: "" };
+    window.demoNotify();
+  });
+  await navigate(page, "Users");
+  await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox", { name: "Role", exact: true }).fill(" staff ");
+  const badge = dialog.getByRole("combobox", { name: /^Badge/ });
+  await expect(badge).toBeVisible();
+  await badge.fill("   ");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  expect(await page.evaluate(() => window.calls.some((c) => c.type.endsWith("users/update")))).toBe(
+    false,
+  );
+  await badge.fill("complete");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});

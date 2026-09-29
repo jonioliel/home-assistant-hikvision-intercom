@@ -52,11 +52,12 @@ async def conditional():
     await manager.async_close()
 
 
+@pytest.mark.parametrize("parent", ["staff", " staff "])
 @pytest.mark.parametrize(
     "value,code", [("", "profile_required"), ("legacy", "profile_value_invalid")]
 )
 async def test_activation_requires_completing_newly_active_child_atomically(
-    conditional, value, code
+    conditional, value, code, parent
 ):
     repo, _, _ = conditional
     user = await repo.async_create(
@@ -65,7 +66,7 @@ async def test_activation_requires_completing_newly_active_child_atomically(
     before = repo.snapshot()
     with pytest.raises(AccessError, match=code):
         await repo.async_update(
-            user.id, {"profile": {**user.profile, "role": "staff"}}, expected_revision=user.revision
+            user.id, {"profile": {**user.profile, "role": parent}}, expected_revision=user.revision
         )
     assert repo.snapshot() == before
     activated = await repo.async_update(

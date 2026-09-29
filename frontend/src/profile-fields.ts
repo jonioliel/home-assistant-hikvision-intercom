@@ -16,7 +16,9 @@ export function profileApplicability(
     const rule = field.depends_on;
     const parent = rule ? evaluate(rule.field_id) : true;
     result[id] =
-      parent === null ? null : parent && (!rule || (values[rule.field_id] ?? "") === rule.value);
+      parent === null
+        ? null
+        : parent && (!rule || (values[rule.field_id] ?? "").trim() === rule.value.trim());
     visiting.delete(id);
     return result[id];
   };
@@ -42,10 +44,10 @@ export function profileError(
   const active = profileApplicability(policy, values);
   const priorActive = profileApplicability(policy, previous ?? {});
   for (const field of policy?.fields ?? []) {
-    const value = values[field.id] ?? "";
+    const value = (values[field.id] ?? "").trim();
     if (
       active[field.id] !== true ||
-      (previous && priorActive[field.id] === true && (previous[field.id] ?? "") === value)
+      (previous && priorActive[field.id] === true && (previous[field.id] ?? "").trim() === value)
     )
       continue;
     if (!validProfileValue(field, value))
