@@ -17,7 +17,7 @@ async def setup_person(
     admin = await hass_ws_client(hass)
     personal = await hass_ws_client(hass, access_token=hass_read_only_access_token)
     manager = get_manager(hass)
-    person = await manager.async_create(
+    created = await manager.async_create(
         {
             "display_name": "Personal record",
             "pin": "918472",
@@ -26,6 +26,7 @@ async def setup_person(
             "valid_until": "2035-01-01T00:00:00Z",
         }
     )
+    person = manager.repository.get(created["id"])
     linked = await request(
         admin,
         "renewal/binding_update",
@@ -141,7 +142,8 @@ async def test_binding_requires_confirmation_and_never_grants_operator_permissio
     hass, loaded_entry, hass_ws_client, hass_read_only_access_token, hass_read_only_user
 ):
     admin = await hass_ws_client(hass)
-    person = await get_manager(hass).async_create({"display_name": "Personal"})
+    created = await get_manager(hass).async_create({"display_name": "Personal"})
+    person = get_manager(hass).repository.get(created["id"])
     result = await request(
         admin,
         "renewal/binding_update",
