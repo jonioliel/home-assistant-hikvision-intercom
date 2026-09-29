@@ -359,6 +359,8 @@ COMMANDS = {
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
     "users/list": {},
+    "users/access_compare": {"left_kind": str, "left_id": str, "right_kind": str, "right_id": str},
+    "users/access_compare_options": {"kind": str, "query": str, "offset": int, "limit": int},
     "users/access_scenario": {"user_id": str, "station_id": str, "lock_id": int, "at": str},
     "users/access_reviews": {
         "user_id": str,
@@ -612,7 +614,8 @@ def _guard_operator(
         return
     manager = get_manager(hass)
     if (
-        command == "users/access_scenario" or command.startswith("users/access_review")
+        command == "users/access_scenario"
+        or command.startswith(("users/access_review", "users/access_compare"))
     ) and not field_allowed(
         policy, "access", "manage" if command == "users/access_review_decide" else "view"
     ):
@@ -1214,6 +1217,41 @@ async def _dispatch_inner(
         return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command.startswith("users/access_compare"):
+        from .access.access_comparison import compare, options
+
+        scope = _operator_policy(hass, user) or {}
+        if not field_allowed(scope, "access"):
+            raise AccessError("field_access_denied")
+        people = project_people(
+            scope,
+            manager.repository.public()["users"],
+            shared_identity_ids=_outside_bound_people(hass, scope),
+        )
+        groups = project_profiles(scope, hass.data[DOMAIN]["profile_settings"].public())["groups"]
+        if command == "users/access_compare_options":
+            return options(
+                people,
+                groups,
+                kind=msg["kind"],
+                query=msg["query"],
+                offset=msg["offset"],
+                limit=msg["limit"],
+            )
+        stations = [
+            {"id": station.id, "name": station.name}
+            for station in manager.stations.values()
+            if contains_station(scope, station.id)
+        ]
+        return compare(
+            people,
+            groups,
+            stations,
+            left_kind=msg["left_kind"],
+            left_id=msg["left_id"],
+            right_kind=msg["right_kind"],
+            right_id=msg["right_id"],
+        )
     if command.startswith("users/access_review"):
         reviews = hass.data[DOMAIN].get("permission_reviews")
         if reviews is None:

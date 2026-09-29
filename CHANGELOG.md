@@ -2,6 +2,21 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.31] — 2026-09-29
+
+### People and group comparisons
+
+- Compare people with people or groups and compare group policies, showing shared
+  and different doors, visible inheritance and personal permission exceptions.
+- Separate explicit door 2 selection from group default door 1 policy; inactive
+  people and disabled groups remain visible without claiming physical admission.
+- Apply operator projections before choices, sources and counts. Hidden global
+  groups cannot be selected or reconstructed; no credential or permission copying.
+- Paged name choices, explicit comparison and stale request disposal support
+  desktop and mobile. Existing themes and VMS embed v1 remain available.
+- [Comparison guide](docs/ACCESS_COMPARISON_HE.md) and
+  [focused installation checks](docs/manual-tests/WISKEY_2.0.0_RC31_COMPARISON_TESTS_HE.html).
+
 ## [2.0.0-rc.30] — 2026-09-29
 
 ### Periodic access reviews
@@ -1549,3 +1564,5 @@ The release workflow reruns required checks on the exact publication commit.
 [2.0.0-rc.29]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.29
 
 [2.0.0-rc.30]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.30
+
+[2.0.0-rc.31]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.31

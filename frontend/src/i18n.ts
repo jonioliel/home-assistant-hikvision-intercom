@@ -483,6 +483,9 @@ const en = {
   guest_save_sync: "Create and sync",
   system_infrastructure: "System infrastructure",
   access_reviews: "Periodic access reviews",
+  access_comparison: "Compare people and groups",
+  tools_access_comparison:
+    "Compare assigned doors, inheritance and personal blocks without copying access.",
   tools_access_reviews:
     "Record a responsible operator decision for a selected door, with recurring due dates and immutable history.",
   data_quality: "People data quality",
@@ -2963,6 +2966,8 @@ const he: Record<keyof typeof en, string> = {
   guest_save_sync: "יצירה וסנכרון",
   system_infrastructure: "תשתית המערכת",
   access_reviews: "ביקורת הרשאות תקופתית",
+  access_comparison: "השוואת אנשים וקבוצות",
+  tools_access_comparison: "דלתות משותפות ושונות, ירושה וחסימות אישיות, ללא העתקת הרשאות.",
   tools_access_reviews: "תיעוד החלטת מפעיל לדלת נבחרת, עם מועד ביקורת חוזר והיסטוריה שמורה.",
   data_quality: "איכות נתוני אנשים",
   tools_data_quality: "סקירת מידע חסר, ערכים לא תקינים וחשד לכפילויות; פתיחת אדם לתיקון מפורש.",
