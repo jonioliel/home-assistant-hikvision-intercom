@@ -38,7 +38,9 @@ async def test_scoped_search_cannot_infer_hidden_phone_outside_station_or_global
             events.key,
             received=datetime.now(UTC),
             selected_api=None,
+            historical=True,
         )
+        assert row is not None
         events.accept(row)
     reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
     result = await search(reader)
