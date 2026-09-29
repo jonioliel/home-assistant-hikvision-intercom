@@ -315,13 +315,13 @@ export class ProfileSettingsPanel extends LitElement {
                 ? html`<details>
                     <summary>${this.t("profile_affected_examples")}</summary>
                     ${field.examples.map(
-                  (person) =>
-                    html`<p>
-                      ${person.display_name} <bdi>${person.employee_no}</bdi> ·
-                      ${this.t(person.reason)}
-                      ${person.archived ? html`· ${this.t("archived")}` : nothing}
-                    </p>`,
-                )}
+                      (person) =>
+                        html`<p>
+                          ${person.display_name} <bdi>${person.employee_no}</bdi> ·
+                          ${this.t(person.reason)}
+                          ${person.archived ? html`· ${this.t("archived")}` : nothing}
+                        </p>`,
+                    )}
                     ${field.examples_truncated ? html`<p>${this.t("profile_examples_bounded")}</p>` : nothing}
                   </details>`
                 : nothing

@@ -8100,10 +8100,10 @@ Schedule: ${l.map(_=>it(_))} pos: ${this.timelinePos}`),d.length&&this.log(`Remo
             ${s.examples.length?h`<details>
                     <summary>${this.t("profile_affected_examples")}</summary>
                     ${s.examples.map(a=>h`<p>
-                      ${a.display_name} <bdi>${a.employee_no}</bdi> ·
-                      ${this.t(a.reason)}
-                      ${a.archived?h`· ${this.t("archived")}`:m}
-                    </p>`)}
+                          ${a.display_name} <bdi>${a.employee_no}</bdi> ·
+                          ${this.t(a.reason)}
+                          ${a.archived?h`· ${this.t("archived")}`:m}
+                        </p>`)}
                     ${s.examples_truncated?h`<p>${this.t("profile_examples_bounded")}</p>`:m}
                   </details>`:m}
           </article>`)}
