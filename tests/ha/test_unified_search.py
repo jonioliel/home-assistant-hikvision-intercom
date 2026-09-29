@@ -2,8 +2,12 @@
 
 import asyncio
 import json
+from datetime import UTC, datetime
 from unittest.mock import patch
 
+import pytest
+
+from custom_components.hikvision_intercom.access.models import AccessError
 from custom_components.hikvision_intercom.const import DOMAIN
 from custom_components.hikvision_intercom.event_manager import get_events
 from custom_components.hikvision_intercom.events import normalize_event
@@ -32,6 +36,8 @@ async def test_scoped_search_cannot_infer_hidden_phone_outside_station_or_global
             {"major": 5, "minor": 150, "time": "2030-01-01T00:00:00Z", "name": name},
             sid,
             events.key,
+            received=datetime.now(UTC),
+            selected_api=None,
         )
         events.accept(row)
     reader = await hass_ws_client(hass, access_token=hass_read_only_access_token)
@@ -129,21 +135,34 @@ async def test_permission_change_while_search_runs_discards_all_results(
 
 
 async def test_account_deactivation_during_executor_never_returns_search_results(
-    hass, loaded_entry, hass_user, hass_ws_client
+    hass, loaded_entry, hass_admin_user
 ):
-    admin = await hass_ws_client(hass)
+    from custom_components.hikvision_intercom.search_api import search as adapter
+
     entered, resume = asyncio.Event(), asyncio.Event()
+    executor = hass.async_add_executor_job
 
     async def delayed(job):
+        if getattr(getattr(job, "func", None), "__module__", "") != (
+            "custom_components.hikvision_intercom.access.unified_search"
+        ):
+            return await executor(job)
         entered.set()
         await resume.wait()
         return job()
 
     with patch.object(hass, "async_add_executor_job", side_effect=delayed):
-        pending = asyncio.create_task(search(admin))
-        await entered.wait()
-        await hass.auth.async_update_user(hass_user, is_active=False)
+        pending = asyncio.create_task(
+            adapter(
+                hass,
+                {"query": "Local", "kind": "all", "offset": 0, "limit": 25, "snapshot": ""},
+                hass_admin_user,
+                {},
+                [],
+            )
+        )
+        await asyncio.wait_for(entered.wait(), 3)
+        await hass.auth.async_update_user(hass_admin_user, is_active=False)
         resume.set()
-        result = await pending
-    assert result["error"]["code"] == "unauthorized"
-    assert "sections" not in json.dumps(result)
+        with pytest.raises(AccessError, match="unauthorized"):
+            await pending
