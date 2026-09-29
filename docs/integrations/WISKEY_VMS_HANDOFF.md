@@ -6,6 +6,8 @@ For a VMS already running as a Home Assistant add-on, start with the [complete a
 
 Station and person-field grants are described in [Operator scope authorization](WISKEY_OPERATOR_SCOPES.md), including legacy defaults, command discovery, shared identities, cache invalidation and the separate native entity boundary.
 
+Additive rc.36 search: see [Unified search API v1](UNIFIED_SEARCH_API_V1.md) for source permissions, bounded paging, retained-history limits and existing-screen navigation. The root API and embed versions stay at v1.
+
 ## Instructions for Claude implementing the VMS client
 
 Build a **server-side HA WebSocket adapter** for this existing integration. Do not reimplement ISAPI in the VMS, copy its private `.storage` JSON, or expose the HA bearer token to browsers. Treat every `station_id`, `user_id`, `event_id`, `revision`, cursor and workflow token as opaque. Start with the read-only flows; gate all writes behind a visible operator confirmation. The companion [command catalog](WISKEY_VMS_PANEL_COMMANDS.json) is generated from the integration's `COMMANDS` registry and lists all registered panel commands and their required top-level field types. It is not an independent, stable `vms/v1` API contract.

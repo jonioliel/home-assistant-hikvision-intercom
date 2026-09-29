@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.36] - 2026-09-29
+
+- Add a compact system search dialog for people, retained access events and administrative changes, with source tabs, deterministic paging and links to existing detail/journal screens.
+- Apply existing area, station and field permissions before matching or counting. Hidden sources have no count; PINs and full card values never enter the search projection. Discard results after account or permission changes.
+- Preserve historical event identity and change evidence without joining current person records. Results cover retained system data, not a claim of complete station history.
+- Publish the additive `search/query` v1 contract, capability discovery and focused acceptance checklist. Existing designs, media, device control and VMS/embed v1 remain compatible.
+
 ## [2.0.0-rc.35] - 2026-09-29
 
 - Add authenticated personal renewal at `/wiskey-renewal`, with administrator-managed one-to-one account bindings, own expiry/requests, explicit submission and cancellation.

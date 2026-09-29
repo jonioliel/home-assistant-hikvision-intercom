@@ -91,6 +91,7 @@ const reads = new Set([
   "users/duplicate_check",
   "users/list",
   "users/query",
+  "search/query",
   "users/photo_get",
 ]);
 // Connection-owned audio RPCs use audio_api.py, not the management dispatcher.

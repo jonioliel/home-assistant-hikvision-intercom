@@ -31,6 +31,7 @@ export default defineConfig({
     "policy-versions.spec.ts",
     "bulk-renewal.spec.ts",
     "personal-renewal.spec.ts",
+    "unified-search.spec.ts",
     "group-suggestions.spec.ts",
     "access-comparison.spec.ts",
   ],

@@ -1,3 +1,4 @@
+import "./unified-search";
 import "./personal-renewal";
 import { fitDialogViewport } from "./dialog-viewport";
 import "./user-details";
@@ -199,6 +200,7 @@ export class IntercomManagerPanel extends LitElement {
     _data: { state: true },
     _session: { state: true },
     _locked: { state: true },
+    _searchOpen: { state: true },
     _reauthOpen: { state: true },
     _approvalPending: { state: true },
     _haConnected: { state: true },
@@ -266,6 +268,7 @@ export class IntercomManagerPanel extends LitElement {
     return this.contractProxy;
   }
   private _locked = false;
+  private _searchOpen = false;
   private _reauthOpen = false;
   private _approvalPending?: Record<string, unknown>;
   private approvalLabel = "";
@@ -775,6 +778,7 @@ export class IntercomManagerPanel extends LitElement {
     this.pendingRequests.clear();
   }
   private clearPrivateState() {
+    this._searchOpen = false;
     this._profileFacets = {};
     this._guestApprovalRequired = false;
     this._guestApprover = "";
@@ -6074,6 +6078,19 @@ export class IntercomManagerPanel extends LitElement {
                 </div>
                 ${this.navigation()}
                 <div class="spacer"></div>
+                ${
+                  this._data?.api?.commands.includes("search/query") === true
+                    ? html`<button
+                        aria-label=${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+                        @click=${() => {
+                          this._detailsModalUser = "";
+                          this._searchOpen = true;
+                        }}
+                      >
+                        ${icon("search")}
+                      </button>`
+                    : nothing
+                }
                 <button
                   @click=${() => {
                     this._error = "";
@@ -6087,6 +6104,20 @@ export class IntercomManagerPanel extends LitElement {
             </header>`
       }
       <main tabindex="-1">
+        ${
+          this.embed && this._data?.api?.commands.includes("search/query") === true
+            ? html`<button
+                class="tools-back"
+                aria-label=${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+                @click=${() => {
+                  this._detailsModalUser = "";
+                  this._searchOpen = true;
+                }}
+              >
+                ${icon("search")}${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+              </button>`
+            : nothing
+        }
         ${!this.canManage(this.tabArea()) ? html`<p class="notice readonly-notice" role="status">${this.t("view_only_mode")}</p>` : nothing}
         ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
         ${!["overview", "users", "events", "tools", ...(isWiskeyAppearance(this._appearance) ? ["devices"] : [])].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
@@ -6319,6 +6350,38 @@ export class IntercomManagerPanel extends LitElement {
                                                                   )
         }
       </main>
+      ${
+        this._searchOpen && this._data?.api?.commands.includes("search/query") === true
+          ? html`<wiskey-unified-search
+              .hass=${this.protectedHass}
+              .context=${JSON.stringify(this._session)}
+              .canView=${true}
+              .canOpenPerson=${this.canView("users") && this.commandAvailable("users/get")}
+              .canOpenEvents=${this.canView("events") && this.commandAvailable("events/list")}
+              .canOpenActions=${this.canView("management") && this.commandAvailable("audit/list")}
+              .stations=${this._data.stations}
+              .zone=${this._data.default_zone ?? UTC_ZONE}
+              @search-close=${() => {
+                this._searchOpen = false;
+                void this.updateComplete.then(() =>
+                  this.renderRoot
+                    .querySelector<HTMLButtonElement>(
+                      'button[aria-label="Search system"],button[aria-label="חיפוש במערכת"]',
+                    )
+                    ?.focus(),
+                );
+              }}
+              @open-user=${(event: CustomEvent<string>) => {
+                this._searchOpen = false;
+                void this.openQualityPerson(event.detail);
+              }}
+              @open-journal=${(event: CustomEvent<string>) => {
+                this._searchOpen = false;
+                this.navigate(event.detail === "events" ? "events" : "audit");
+              }}
+            ></wiskey-unified-search>`
+          : nothing
+      }
       ${
         this._detailsModalUser && this.modalPerson() && this._data
           ? html`<wiskey-user-details
