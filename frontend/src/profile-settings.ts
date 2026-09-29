@@ -501,10 +501,10 @@ export class ProfileSettingsPanel extends LitElement {
                   >${this.t("profile_condition_parent")}<select
                     .value=${f.depends_on?.field_id ?? ""}
                     @change=${(e: Event) => {
-                    const parent = (e.target as HTMLSelectElement).value;
-                    f.depends_on = parent ? { field_id: parent, value: "" } : null;
-                    this.requestUpdate();
-                  }}
+                      const parent = (e.target as HTMLSelectElement).value;
+                      f.depends_on = parent ? { field_id: parent, value: "" } : null;
+                      this.requestUpdate();
+                    }}
                   >
                     <option value="">${this.t("profile_always_applies")}</option>
                     ${draft.fields.filter((p) => p.id !== f.id).map((p) => html`<option value=${p.id}>${p.label}</option>`)}
@@ -518,9 +518,9 @@ export class ProfileSettingsPanel extends LitElement {
                           list=${"condition-options-" + f.id}
                           .value=${f.depends_on.value}
                           @input=${(e: Event) => {
-                    f.depends_on!.value = (e.target as HTMLInputElement).value;
-                    this.requestUpdate();
-                  }}
+                            f.depends_on!.value = (e.target as HTMLInputElement).value;
+                            this.requestUpdate();
+                          }}
                         />
                         <datalist id=${"condition-options-" + f.id}>
                           ${(draft.fields.find((p) => p.id === f.depends_on?.field_id)?.options ?? []).map((option) => html`<option value=${option}></option>`)}
