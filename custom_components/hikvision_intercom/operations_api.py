@@ -69,6 +69,10 @@ async def dispatch_operations(
 ) -> Any:
     if not user or not user.is_active or not user.is_admin:
         raise AccessError("unauthorized")
+    if command.startswith("platform/maintenance_"):
+        from .maintenance_api import dispatch
+
+        return await dispatch(hass, command, msg, actor)
     ops = center(hass)
     catalog = station_catalog(hass)
     from .event_manager import get_events
@@ -118,6 +122,13 @@ async def dispatch_operations(
         from .station_lifecycle_api import review_lifecycle
 
         return await review_lifecycle(hass, msg, actor)
+    if command == "platform/capacity":
+        from .capacity_history import CapacityHistory
+
+        history = hass.data[DOMAIN].get("capacity_history")
+        if not isinstance(history, CapacityHistory):
+            raise AccessError("operations_unavailable")
+        return history.report(catalog, now)
     if command == "platform/get":
         return {
             **ops.public(actor),
@@ -125,6 +136,9 @@ async def dispatch_operations(
             "catalog": catalog,
             "capabilities": [
                 "fleet_configuration_approval",
+                "fleet_door_presets",
+                "fleet_maintenance_queue",
+                "fleet_capacity_trends",
                 "station_lifecycle_review",
                 "station_lifecycle_transactions",
             ],

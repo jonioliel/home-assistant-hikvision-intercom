@@ -19,10 +19,13 @@ export function compatible(contract?: ApiContract): boolean {
 // and capture cancellation must remain available to safely terminate existing work.
 const reads = new Set([
   "platform/get",
+  "platform/capacity",
   "platform/config_read",
   "platform/lifecycle_review",
   "platform/lifecycle_jobs",
   "platform/lifecycle_plan",
+  "platform/maintenance_jobs",
+  "platform/maintenance_plan",
   "platform/integrity",
   "platform/demo",
   "workflows/get",

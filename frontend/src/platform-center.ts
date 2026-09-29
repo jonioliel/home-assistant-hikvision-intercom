@@ -7,6 +7,7 @@ import { downloadText } from "./download";
 import type { Hass, Station } from "./types";
 import { translate } from "./i18n";
 import "./fleet-approval";
+import "./maintenance-queue";
 
 type Values = Record<string, unknown>;
 interface Saved {
@@ -18,6 +19,7 @@ interface Center {
   revision: number;
   stations: Record<string, Saved>;
   templates: Record<string, Saved>;
+  door_presets?: Record<string, Saved>;
   views: Record<string, Saved>;
   reports: Record<string, Saved>;
   catalog: Record<string, string>;
@@ -34,6 +36,27 @@ interface Center {
     byte_limit: number | null;
     count_horizon_days: number | null;
   };
+}
+interface CapacityMetric {
+  count: number | null;
+  advertised_limit: number | null;
+  used_percent: number | null;
+  remaining: number | null;
+  observed_growth_per_day: number | null;
+  estimated_days_to_limit: number | null;
+  alert: string;
+}
+interface CapacityReport {
+  records: {
+    station_id: string;
+    name: string;
+    sampled_at: string | null;
+    fresh: boolean;
+    sample_count: number;
+    sample_span_days: number;
+    users: CapacityMetric;
+    cards: CapacityMetric;
+  }[];
 }
 type Tab =
   | "messages"
@@ -90,6 +113,7 @@ export class PlatformCenter extends LitElement {
     hass: { attribute: false },
     stations: { attribute: false },
     data: { state: true },
+    capacity: { state: true },
     tab: { state: true },
     busy: { state: true },
     error: { state: true },
@@ -189,6 +213,19 @@ export class PlatformCenter extends LitElement {
         border-bottom: 1px solid var(--divider-color);
         vertical-align: top;
       }
+      dl {
+        display: grid;
+        grid-template-columns: minmax(90px, auto) 1fr;
+        gap: 4px 10px;
+        margin-block: 8px;
+      }
+      dt {
+        color: var(--muted);
+      }
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
       .error {
         color: var(--error-color);
       }
@@ -240,6 +277,7 @@ export class PlatformCenter extends LitElement {
   hass?: Hass;
   stations: Station[] = [];
   private data?: Center;
+  private capacity?: CapacityReport;
   private tab: Tab = "messages";
   private busy = false;
   private error = "";
@@ -274,6 +312,7 @@ export class PlatformCenter extends LitElement {
       this.epoch++;
       this.requests.cancel();
       this.data = undefined;
+      this.capacity = undefined;
       this.key = "";
       this.result = this.review = null;
       this.draft = {};
@@ -302,6 +341,9 @@ export class PlatformCenter extends LitElement {
   private async load() {
     const data = await this.api<Center>("get");
     this.data = data;
+    this.capacity = data.capabilities?.includes("fleet_capacity_trends")
+      ? await this.api<CapacityReport>("capacity")
+      : undefined;
   }
   private async action(task: () => Promise<unknown>) {
     if (this.busy || !this.hass?.user?.is_admin) return;
@@ -334,7 +376,10 @@ export class PlatformCenter extends LitElement {
         type=${type}
         .value=${String(this.value(key, fallback))}
         ?disabled=${this.busy}
-        @input=${(e: Event) => this.set(key, type === "number" ? Number((e.target as HTMLInputElement).value) : (e.target as HTMLInputElement).value)}
+        @input=${(e: Event) => {
+          const value = (e.target as HTMLInputElement).value;
+          this.set(key, type === "number" && value !== "" ? Number(value) : value);
+        }}
     /></label>`;
   }
   private options(
@@ -572,6 +617,169 @@ export class PlatformCenter extends LitElement {
         </ol>
       </article>`;
   }
+  private configurationChanges(): Values {
+    const changes: Values = {};
+    for (const key of ["doorName", "openDuration"])
+      if (this.draft[key] !== undefined && this.draft[key] !== "") changes[key] = this.draft[key];
+    const reverse = this.draft.relayReverseEnabled;
+    if (reverse === true || reverse === false || reverse === "true" || reverse === "false")
+      changes.relayReverseEnabled = reverse === true || reverse === "true";
+    return changes;
+  }
+  private configurationSummary(values: Values | null | undefined) {
+    if (!values || !Object.keys(values).length) return "—";
+    return html`<dl>
+      ${(
+        [
+          ["doorName", "Door name", "שם דלת"],
+          ["openDuration", "Opening duration", "משך פתיחה"],
+          ["relayReverseEnabled", "Reverse relay", "היפוך ממסר"],
+        ] as const
+      ).map(([key, en, he]) =>
+        key in values
+          ? html`<dt>${this.copy(en, he)}</dt>
+              <dd>
+                ${typeof values[key] === "boolean" ? (values[key] ? this.copy("Enabled", "מופעל") : this.copy("Disabled", "כבוי")) : String(values[key])}
+                ${key === "openDuration" ? this.copy("seconds", "שניות") : nothing}
+              </dd>`
+          : nothing,
+      )}
+    </dl>`;
+  }
+  private doorPresets() {
+    if (!this.data?.capabilities?.includes("fleet_door_presets")) return nothing;
+    return html`<section aria-label=${this.copy("Saved door settings", "תבניות הגדרות דלת")}>
+      <h3>${this.copy("Saved door settings", "תבניות הגדרות דלת")}</h3>
+      <p class="sub">
+        ${this.copy("Presets fill fields only. Preview reads each selected station's actual capabilities before any change.", "תבנית ממלאת שדות בלבד. הסקירה קוראת את היכולות בפועל של כל תחנה שנבחרה לפני ביצוע שינוי.")}
+      </p>
+      <div class="grid">
+        ${Object.entries(this.data.door_presets ?? {}).map(
+          ([id, row]) =>
+            html`<article>
+              <strong>${String(row.values.label)}</strong
+              >${this.configurationSummary(row.values.changes as Values)}
+              <div class="row">
+                <button
+                  ?disabled=${this.busy}
+                  @click=${() => {
+                    this.draft = {
+                      ...(row.values.changes as Values),
+                      door: this.value("door", 1),
+                      presetLabel: row.values.label,
+                    };
+                    this.editing = id;
+                    this.review = this.result = null;
+                    this.confirmed = false;
+                  }}
+                >
+                  ${this.copy("Use / edit", "בחר / ערוך")}
+                </button>
+                <button
+                  ?disabled=${this.busy}
+                  @click=${() =>
+                    void this.action(async () => {
+                      await this.deleteRecord("door_presets", id);
+                      if (this.editing === id) this.editing = "";
+                      this.review = null;
+                      this.confirmed = false;
+                    })}
+                >
+                  ${this.copy("Delete preset", "מחק תבנית")}
+                </button>
+              </div>
+            </article>`,
+        )}
+      </div>
+      <div class="row">
+        ${this.field("presetLabel", "Door preset name", "שם תבנית הדלת")}
+        <button
+          ?disabled=${this.busy || !String(this.value("presetLabel")).trim() || !Object.keys(this.configurationChanges()).length}
+          @click=${() =>
+            void this.action(() =>
+              this.save("door_presets", this.editing, {
+                label: this.value("presetLabel"),
+                changes: this.configurationChanges(),
+              }),
+            )}
+        >
+          ${this.editing ? this.copy("Save preset changes", "שמור שינויי תבנית") : this.copy("Save door preset", "שמור תבנית דלת")}
+        </button>
+        ${
+          this.editing
+            ? html`<button
+                ?disabled=${this.busy}
+                @click=${() => {
+                  this.editing = "";
+                  this.set("presetLabel", "");
+                }}
+              >
+                ${this.copy("New preset", "תבנית חדשה")}
+              </button>`
+            : nothing
+        }
+      </div>
+    </section>`;
+  }
+  private capacityTrends() {
+    if (!this.data?.capabilities?.includes("fleet_capacity_trends")) return nothing;
+    const labels: Record<string, [string, string]> = {
+      unknown: ["Unknown limit", "מגבלה לא ידועה"],
+      stale: ["Old inventory", "מלאי מיושן"],
+      at_limit: ["Advertised limit reached", "המגבלה המפורסמת הושגה"],
+      near_limit: ["Near advertised limit", "קרוב למגבלה המפורסמת"],
+      growth_to_limit: ["Growth toward limit", "מגמת התקרבות למגבלה"],
+      observed: ["Observed", "נצפה"],
+    };
+    const metric = (m: CapacityMetric) =>
+      html`<div>${m.count ?? "—"} / ${m.advertised_limit ?? this.copy("unknown", "לא ידוע")}</div>
+        <div class="sub">${labels[m.alert] ? this.copy(...labels[m.alert]) : "—"}</div>
+        ${m.used_percent !== null ? html`<div>${m.used_percent}%</div>` : nothing}${m.estimated_days_to_limit !== null ? html`<div>${this.copy("Estimated days to limit", "אומדן ימים עד למגבלה")}: ${m.estimated_days_to_limit}</div>` : nothing}`;
+    return html`<article aria-label=${this.copy("Capacity trends", "מגמות קיבולת")}>
+      <h3>${this.copy("Capacity trends", "מגמות קיבולת")}</h3>
+      <p class="sub">
+        ${this.copy("New samples come only from complete inventory reads, with up to five minutes before collection. Estimates require at least three comparable observations spanning a day. Stale inventory and replacement hardware do not produce forecasts. Program limits remain unknown where no verified interface exists.", "דגימות חדשות נאספות רק מקריאות מלאי מלאות, עד חמש דקות לאחר הקריאה. אומדן דורש לפחות שלוש תצפיות תואמות לאורך יום. מלאי מיושן או ציוד חלופי אינם יוצרים תחזית. מגבלות תוכניות נשארות לא ידועות כשאין ממשק מאומת.")}
+      </p>
+      <button
+        ?disabled=${this.busy}
+        @click=${() =>
+          void this.action(async () => {
+            this.capacity = await this.api<CapacityReport>("capacity");
+          })}
+      >
+        ${this.copy("Refresh observed trends", "רענן מגמות שנצפו")}
+      </button>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.copy("Station", "תחנה")}</th>
+              <th>${this.copy("People / limit", "אנשים / מגבלה")}</th>
+              <th>${this.copy("Cards / limit", "כרטיסים / מגבלה")}</th>
+              <th>${this.copy("Inventory observation", "תצפית מלאי")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(this.capacity?.records ?? []).map(
+              (r) =>
+                html`<tr>
+                  <td>${r.name}</td>
+                  <td>${metric(r.users)}</td>
+                  <td>${metric(r.cards)}</td>
+                  <td>
+                    ${r.sampled_at ? new Date(r.sampled_at).toLocaleString(this.hass?.language) : this.copy("Not observed", "לא נצפה")}
+                    <div class="sub">
+                      ${r.sample_count} ${this.copy("comparable samples", "דגימות תואמות")} ·
+                      ${r.sample_span_days} ${this.copy("days", "ימים")}
+                    </div>
+                  </td>
+                </tr>`,
+            )}
+          </tbody>
+        </table>
+      </div>
+    </article>`;
+  }
   private configurationTab() {
     const selected = this.selectedIds;
     return html`${this.data?.capabilities?.includes("fleet_configuration_approval") ? html`<wiskey-fleet-approval .hass=${this.hass}></wiskey-fleet-approval>` : nothing}
@@ -621,14 +829,18 @@ export class PlatformCenter extends LitElement {
         </button>
         <div class="grid">
           ${this.field("doorName", "New door name (optional)", "שם דלת חדש (רשות)")}${this.field("openDuration", "Opening duration in seconds (optional)", "משך פתיחה בשניות (רשות)", "number")}
+          ${this.options("relayReverseEnabled", "Reverse relay (optional)", "היפוך ממסר (רשות)", [
+            ["", "Keep unchanged", "ללא שינוי"],
+            ["true", "Enabled", "מופעל"],
+            ["false", "Disabled", "כבוי"],
+          ])}
         </div>
+        ${this.doorPresets()}
         <button
           ?disabled=${this.busy || !selected.length}
           @click=${() =>
             void this.action(async () => {
-              const changes: Values = {};
-              for (const k of ["doorName", "openDuration"])
-                if (this.draft[k] !== undefined && this.draft[k] !== "") changes[k] = this.draft[k];
+              const changes = this.configurationChanges();
               this.review = await this.api("config_preview", {
                 station_ids: selected,
                 door: Number(this.value("door", 1)),
@@ -659,6 +871,8 @@ export class PlatformCenter extends LitElement {
             : nothing
         }
       </article>
+      ${this.data?.capabilities?.includes("fleet_maintenance_queue") ? html`<wiskey-maintenance-queue .hass=${this.hass} .stationIds=${this.selectedIds} .door=${Number(this.value("door", 1))} .changes=${this.configurationChanges()}></wiskey-maintenance-queue>` : nothing}
+      ${this.capacityTrends()}
       <article>
         <h3>${this.copy("Observed capacity", "קיבולת נצפית")}</h3>
         <p class="sub">
@@ -710,9 +924,11 @@ export class PlatformCenter extends LitElement {
                     <td>
                       ${row.name ?? this.data?.catalog[String(row.station_id)] ?? row.station_id}
                     </td>
-                    <td>${JSON.stringify(row.configuration ?? row.before ?? {})}</td>
                     <td>
-                      ${row.error || row.code || (row.state === "verified" ? this.copy("Verified", "אומת") : row.state === "failed" ? this.copy("Failed", "נכשל") : JSON.stringify(row.after ?? {}))}
+                      ${this.configurationSummary((row.configuration as { values?: Values } | undefined)?.values ?? (row.before as Values | undefined))}
+                    </td>
+                    <td>
+                      ${row.error || row.code || (row.state === "verified" ? this.copy("Verified", "אומת") : row.state === "failed" ? this.copy("Failed", "נכשל") : this.configurationSummary(row.after as Values | undefined))}
                     </td>
                   </tr>`,
               )}

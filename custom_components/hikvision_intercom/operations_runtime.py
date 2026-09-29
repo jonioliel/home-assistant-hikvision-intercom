@@ -36,6 +36,12 @@ async def async_setup_operations(hass: HomeAssistant) -> None:
         data["operations_center"] = None
         return
     data["operations_center"] = ops
+    from .maintenance_api import setup as setup_maintenance
+
+    await setup_maintenance(hass)
+    from .capacity_runtime import setup as setup_capacity
+
+    await setup_capacity(hass)
     issue(hass, "operations_storage_corrupt", active=False)
     queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=100)
     data["operations_notifications"] = queue
@@ -104,6 +110,12 @@ async def async_setup_operations(hass: HomeAssistant) -> None:
             from .event_manager import get_events
 
             now = datetime.now(UTC)
+            from .capacity_runtime import observe as observe_capacity
+
+            try:
+                await observe_capacity(hass)
+            except Exception:
+                _LOGGER.warning("Capacity history could not be saved; inventory details omitted")
             for identifier, row in list(ops.data["reports"].items()):
                 value = row["values"]
                 local = now.astimezone(ZoneInfo(value["timezone"]))

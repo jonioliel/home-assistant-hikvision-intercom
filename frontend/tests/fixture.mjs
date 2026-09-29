@@ -491,11 +491,18 @@ if (query.has("shared-accent"))
   data.appearance_settings = { revision: 1, default: "wiskey-dark", accent: "purple" };
 const platformCommands = [
   "get",
+  "capacity",
   "save",
   "delete",
   "config_read",
   "config_preview",
   "config_apply",
+  "maintenance_preview",
+  "maintenance_enqueue",
+  "maintenance_jobs",
+  "maintenance_plan",
+  "maintenance_decide",
+  "maintenance_cancel",
   "retention_preview",
   "retention_apply",
   "archive",
@@ -514,6 +521,12 @@ window.platformData = {
   revision: 0,
   stations: {},
   templates: {},
+  door_presets: {},
+  capabilities: [
+    "fleet_door_presets",
+    ...(query.has("maintenance") ? ["fleet_maintenance_queue"] : []),
+    ...(query.has("capacity-trends") ? ["fleet_capacity_trends"] : []),
+  ],
   views: {},
   reports: {},
   journal: [],
@@ -531,6 +544,8 @@ window.platformData = {
     count_horizon_days: 40,
   },
 };
+window.maintenanceJobs = [];
+let maintenanceReview;
 const workflowCommands = [
   "workflows/get",
   "backups/export",
@@ -628,6 +643,84 @@ const fake = {
         delete state[message.collection][message.record_id];
         state.revision++;
         return { revision: state.revision };
+      }
+      if (route === "capacity")
+        return {
+          records: [
+            {
+              station_id: "station-0",
+              name: "Main gate",
+              sampled_at: "2026-09-29T02:00:00Z",
+              fresh: true,
+              sample_count: 3,
+              sample_span_days: 2,
+              users: {
+                count: 80,
+                advertised_limit: 100,
+                used_percent: 80,
+                remaining: 20,
+                observed_growth_per_day: 10,
+                estimated_days_to_limit: 2,
+                alert: "near_limit",
+              },
+              cards: {
+                count: 100,
+                advertised_limit: null,
+                used_percent: null,
+                remaining: null,
+                observed_growth_per_day: null,
+                estimated_days_to_limit: null,
+                alert: "unknown",
+              },
+            },
+          ],
+        };
+      if (route === "maintenance_jobs") return { records: structuredClone(window.maintenanceJobs) };
+      if (route === "maintenance_preview") {
+        maintenanceReview = {
+          review_id: "maintenance-review",
+          queue_count: message.station_ids.length,
+          rows: message.station_ids.map((id) => ({
+            station_id: id,
+            name: state.catalog[id],
+            before: { openDuration: 5 },
+            after: { openDuration: 5, ...message.changes },
+            window: {
+              enabled: true,
+              days: [0, 3],
+              start: "08:00",
+              end: "18:00",
+              timezone: "Asia/Jerusalem",
+            },
+            error: null,
+          })),
+        };
+        return structuredClone(maintenanceReview);
+      }
+      if (route === "maintenance_enqueue") {
+        const job = {
+          id: "queued-plan",
+          fingerprint: "reviewed-fingerprint",
+          actor: this.user.id,
+          own_request: true,
+          state: "queued",
+          created_at: "2026-09-29T02:00:00Z",
+          expires_at: "2026-10-07T02:00:00Z",
+          consent: null,
+          rows: maintenanceReview.rows.map((r) => ({ ...r, state: "pending" })),
+        };
+        window.maintenanceJobs.push(job);
+        return { job_id: job.id, state: job.state };
+      }
+      if (route === "maintenance_cancel") {
+        window.maintenanceJobs.find((j) => j.id === message.job_id).state = "cancelled";
+        return { records: structuredClone(window.maintenanceJobs) };
+      }
+      if (route === "maintenance_decide") {
+        window.maintenanceJobs.find((j) => j.id === message.job_id).state = message.approve
+          ? "queued"
+          : "rejected";
+        return { records: structuredClone(window.maintenanceJobs) };
       }
       if (route === "config_read")
         return {

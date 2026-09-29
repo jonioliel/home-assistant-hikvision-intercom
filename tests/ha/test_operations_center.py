@@ -4,6 +4,8 @@ import json
 from copy import deepcopy
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from custom_components.hikvision_intercom.const import DOMAIN
 from custom_components.hikvision_intercom.operations_center import OperationsCenter
 from custom_components.hikvision_intercom.operations_runtime import audit_denial
@@ -336,3 +338,57 @@ async def test_configured_webhook_and_daily_summaries_use_bounded_metadata_only(
         await tick(now)
         assert len(ops.data["report_runs"]) == 1
         assert client.post.await_count == 1
+
+
+@pytest.mark.parametrize("supported", [False, True])
+async def test_door_preset_requires_fresh_station_support_and_explicit_apply(
+    hass, loaded_entry, hass_ws_client, supported
+):
+    client = await hass_ws_client(hass)
+    preset = {"label": "Door profile", "changes": {"relayReverseEnabled": False}}
+    saved = await request(
+        client, "platform/save", collection="door_presets", record_id="", revision=0, values=preset
+    )
+    assert saved["success"], saved
+    state = await request(client, "platform/get")
+    assert "fleet_door_presets" in state["result"]["capabilities"]
+    assert state["result"]["door_presets"][saved["result"]["id"]]["values"] == preset
+    observed = {
+        "door": 1,
+        "values": {"relayReverseEnabled": True},
+        "constraints": {"relayReverseEnabled": {"type": "boolean"}} if supported else {},
+    }
+    with (
+        patch(
+            "custom_components.hikvision_intercom.operations_api.read_configuration",
+            AsyncMock(return_value=observed),
+        ),
+        patch(
+            "custom_components.hikvision_intercom.technical_api.dispatch_technical",
+            AsyncMock(return_value={"verified": True}),
+        ) as write,
+    ):
+        result = await request(
+            client,
+            "platform/config_preview",
+            station_ids=[loaded_entry.entry_id],
+            door=1,
+            changes=preset["changes"],
+        )
+        assert result["success"], result
+        write.assert_not_awaited()
+        assert result["result"]["apply_count"] == int(supported)
+        if not supported:
+            assert result["result"]["review_id"] is None and result["result"]["rows"][0]["error"]
+        else:
+            token = result["result"]["review_id"]
+            denied = await request(
+                client, "platform/config_apply", review_id=token, confirmed=False
+            )
+            assert not denied["success"]
+            write.assert_not_awaited()
+            applied = await request(
+                client, "platform/config_apply", review_id=token, confirmed=True
+            )
+            assert applied["success"] and applied["result"]["receipts"][0]["state"] == "verified"
+            assert write.await_args.args[2]["changes"] == {"relayReverseEnabled": False}

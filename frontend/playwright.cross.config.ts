@@ -10,6 +10,7 @@ export default defineConfig({
     "overview-summary.spec.ts",
     "embed.spec.ts",
     "platform-center.spec.ts",
+    "maintenance-queue.spec.ts",
     "accent.spec.ts",
     "priority-workflows.spec.ts",
     "operational.spec.ts",

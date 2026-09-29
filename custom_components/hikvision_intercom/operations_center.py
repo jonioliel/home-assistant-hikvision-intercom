@@ -22,7 +22,7 @@ from .whatsapp_templates import render_template
 
 DEFAULT_RETENTION = {"days": 30, "count": 5000, "bytes": 16_777_216}
 DEFAULT_THRESHOLDS = {"offline": 600, "sync_stalled": 900, "event_gap": 600}
-COLLECTIONS = {"stations", "templates", "views", "reports"}
+COLLECTIONS = {"stations", "templates", "views", "reports", "door_presets"}
 
 
 def canonical(value: Any) -> bytes:
@@ -132,6 +132,27 @@ def filters(value: Any) -> dict:
 
 
 def record(collection: str, value: Any) -> dict:
+    if collection == "door_presets":
+        from .client.technical import FIELDS, validate_changes
+        from .exceptions import HikvisionValidationError
+
+        exact(value, {"label", "changes"})
+        changes = value["changes"]
+        # Structural bounds only. Saving a preset does not assert that a station
+        # advertises these fields; actual capabilities are read for every review.
+        bounds = {
+            "doorName": {"type": "text", "min": 1, "max": 64},
+            "openDuration": {"type": "integer", "min": 0, "max": 255},
+            "relayReverseEnabled": {"type": "boolean"},
+        }
+        try:
+            validate_changes(changes, bounds)
+        except HikvisionValidationError:
+            raise AccessError("invalid_fields") from None
+        return {
+            "label": text(value["label"], 120),
+            "changes": {key: changes[key] for key in FIELDS if key in changes},
+        }
     if collection == "stations":
         exact(value, {"zone", "owner", "tags", "thresholds", "window"})
         if not isinstance(value["tags"], list) or len(value["tags"]) > 16:
@@ -236,11 +257,12 @@ class OperationsCenter:
         self._save = save
         self._lock = asyncio.Lock()
         self.data = {
-            "schema": 1,
+            "schema": 2,
             "revision": 0,
             "retention": deepcopy(DEFAULT_RETENTION),
             "stations": {},
             "templates": {},
+            "door_presets": {},
             "views": {},
             "reports": {},
             "journal": [],
@@ -257,6 +279,9 @@ class OperationsCenter:
         if data is None:
             return
         try:
+            if isinstance(data, dict) and type(data.get("schema")) is int and data["schema"] == 1:
+                exact(data, set(self.data) - {"door_presets"})
+                data = {**deepcopy(data), "schema": 2, "door_presets": {}}
             self.validate(data)
         except (AccessError, ValueError, TypeError, KeyError, OverflowError):
             raise AccessError("storage_corrupt") from None
@@ -264,7 +289,7 @@ class OperationsCenter:
 
     def validate(self, data: dict) -> None:
         exact(data, set(self.data))
-        if type(data["schema"]) is not int or data["schema"] != 1:
+        if type(data["schema"]) is not int or data["schema"] != 2:
             raise AccessError("invalid_fields")
         integer(data["revision"], 0, 2**63 - 1)
         retention(data["retention"])
