@@ -3645,9 +3645,7 @@ export class IntercomManagerPanel extends LitElement {
           (typeof value === "object" ? Object.values(value).some(Boolean) : !!value),
       );
     return html`<section class="users-page">
-      <div class="row">
-        ${this._data?.api?.commands.includes("users/data_quality") ? html`<button @click=${() => this.navigate("data_quality")}>${this.t("data_quality")}</button>` : nothing}${this._data?.api?.commands.includes("users/access_reviews") && this.personField("access") ? html`<button @click=${() => this.navigate("access_reviews")}>${this.t("access_reviews")}</button>` : nothing}
-      </div>
+      ${this._data?.api?.commands.includes("users/data_quality") ? html`<button @click=${() => this.navigate("data_quality")}>${this.t("data_quality")}</button>` : nothing}
       <div class="access-users-header">
         <div class="page-heading users-heading">
           <div>

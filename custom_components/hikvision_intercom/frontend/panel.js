@@ -17160,9 +17160,7 @@ Monday, Tuesday, Thursday
       ?disabled=${!this._selectedUsers.has(e.id)&&this._selectedUsers.size>=200}
       @change=${t=>{let s=new Set(this._selectedUsers);t.target.checked?s.add(e.id):s.delete(e.id),this._selectedUsers=s}}
     />`}usersView(){let e=wp(this._data?.users??[],this._query,this._userFilters),t=this.supportsUserDirectory&&this._userPageKey===this.userQueryKey()?this._userPage:void 0,s=t?.total??e.length,a=t?.total_all??this.totalUserCount(),r=this.supportsUserDirectory?Math.min(t?.offset??this._userPageOffset,s?Math.floor((s-1)/this._userPageSize)*this._userPageSize:0):0,o=this.supportsUserDirectory?t?.records??e.slice(r,r+this._userPageSize):e,l=!!this._query.trim()||Object.entries(this._userFilters).some(([c,d])=>c!=="sort"&&(typeof d=="object"?Object.values(d).some(Boolean):!!d));return h`<section class="users-page">
-      <div class="row">
-        ${this._data?.api?.commands.includes("users/data_quality")?h`<button @click=${()=>this.navigate("data_quality")}>${this.t("data_quality")}</button>`:m}${this._data?.api?.commands.includes("users/access_reviews")&&this.personField("access")?h`<button @click=${()=>this.navigate("access_reviews")}>${this.t("access_reviews")}</button>`:m}
-      </div>
+      ${this._data?.api?.commands.includes("users/data_quality")?h`<button @click=${()=>this.navigate("data_quality")}>${this.t("data_quality")}</button>`:m}
       <div class="access-users-header">
         <div class="page-heading users-heading">
           <div>
