@@ -2,6 +2,20 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.30] — 2026-09-29
+
+### Periodic access reviews
+
+- Review people for one selected station and door, with due dates, changed-policy
+  detection, scoped filters and immutable authenticated reviewer receipts.
+- Require current preview, review notes and explicit confirmation; recording a
+  review does not grant, revoke, synchronize or open access. Concurrent and stale
+  previews cannot overwrite newer decisions; durable storage failures preserve history.
+- Preserve field/station operator restrictions, existing person editing, themes,
+  technical domain and VMS embed v1. New commands are additive and discoverable.
+- [Review guide](docs/PERIODIC_ACCESS_REVIEWS_HE.md) and
+  [focused installation checks](docs/manual-tests/WISKEY_2.0.0_RC30_ACCESS_REVIEW_TESTS_HE.html).
+
 ## [2.0.0-rc.29] — 2026-09-29
 
 - Add a read-only access scenario in person details: select a station, physical door and an offset-aware date/time to explain the central permission, validity and enforced schedule.
@@ -1533,3 +1547,5 @@ The release workflow reruns required checks on the exact publication commit.
   PIN change diagnosis, test-user cleanup and remaining acceptance gates are open.
 
 [2.0.0-rc.29]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.29
+
+[2.0.0-rc.30]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.30

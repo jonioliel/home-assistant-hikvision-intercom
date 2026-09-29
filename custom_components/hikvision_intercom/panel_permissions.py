@@ -317,6 +317,8 @@ _READ_USERS = {
     "users/query",
     "users/data_quality",
     "users/access_scenario",
+    "users/access_reviews",
+    "users/access_review_preview",
     "users/get",
     "users/lifecycle",
     "users/duplicate_check",
@@ -331,6 +333,7 @@ _READ_USERS = {
     "whatsapp/media",
 }
 _WRITE_USERS = {
+    "users/access_review_decide",
     "workflows/renew_request",
     "visits/create",
     "visits/request",
@@ -579,7 +582,10 @@ SCOPED_COMMON_COMMANDS = frozenset(
         "users/list",
         "users/query",
         "users/data_quality",
+        "users/access_review_decide",
         "users/access_scenario",
+        "users/access_reviews",
+        "users/access_review_preview",
         "users/get",
         "users/photo_get",
         "users/update",
@@ -617,6 +623,9 @@ FIELD_SCOPED_STATION_COMMANDS = SCOPED_STATION_COMMANDS - {
     "schedules/assess",
 }
 FIELD_COMMANDS = {
+    "users/access_reviews": ("access", "view"),
+    "users/access_review_preview": ("access", "view"),
+    "users/access_review_decide": ("access", "manage"),
     "users/create": ("access", "manage"),
     "users/photo_get": ("photo", "view"),
     "users/pin_check": ("credentials", "manage"),

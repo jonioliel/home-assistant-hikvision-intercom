@@ -262,6 +262,9 @@ if (query.has("lifecycle")) {
       "users/lifecycle",
       "users/data_quality",
       "users/access_scenario",
+      "users/access_reviews",
+      "users/access_review_preview",
+      "users/access_review_decide",
       "users/duplicate_check",
       "users/create",
       "users/update",
@@ -1614,6 +1617,16 @@ const fake = {
           read_only: true,
         }
       );
+    if (command === "users/access_reviews") return window.reviewReport;
+    if (command === "users/access_review_preview") return window.reviewPreview;
+    if (command === "users/access_review_decide") {
+      if (window.reviewError) throw { code: window.reviewError };
+      window.reviewReport = {
+        ...window.reviewReport,
+        records: window.reviewReport.records.map((r) => ({ ...r, status: "completed" })),
+      };
+      return { access_changed: false, receipt: { actor: "authenticated-fixture" } };
+    }
     if (command === "users/data_quality") return window.qualityResponse;
     if (command === "users/lifecycle") {
       const now = Date.parse("2026-09-23T09:00:00Z");

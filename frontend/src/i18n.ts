@@ -482,6 +482,9 @@ const en = {
   guest_back: "Back",
   guest_save_sync: "Create and sync",
   system_infrastructure: "System infrastructure",
+  access_reviews: "Periodic access reviews",
+  tools_access_reviews:
+    "Record a responsible operator decision for a selected door, with recurring due dates and immutable history.",
   data_quality: "People data quality",
   tools_data_quality:
     "Review missing information, invalid values and potential duplicates; open each person for an explicit correction.",
@@ -2959,6 +2962,8 @@ const he: Record<keyof typeof en, string> = {
   guest_back: "חזרה",
   guest_save_sync: "יצירה וסנכרון",
   system_infrastructure: "תשתית המערכת",
+  access_reviews: "ביקורת הרשאות תקופתית",
+  tools_access_reviews: "תיעוד החלטת מפעיל לדלת נבחרת, עם מועד ביקורת חוזר והיסטוריה שמורה.",
   data_quality: "איכות נתוני אנשים",
   tools_data_quality: "סקירת מידע חסר, ערכים לא תקינים וחשד לכפילויות; פתיחת אדם לתיקון מפורש.",
   quality_intro: "מידע מקומי שמור בלבד. התאמות הן מועמדות לסקירה; תיקון מתבצע בעריכת האדם הקיימת.",

@@ -360,6 +360,28 @@ COMMANDS = {
     "events/support": {"event_id": str},
     "users/list": {},
     "users/access_scenario": {"user_id": str, "station_id": str, "lock_id": int, "at": str},
+    "users/access_reviews": {
+        "user_id": str,
+        "station_id": str,
+        "lock_id": int,
+        "state": str,
+        "offset": int,
+        "limit": int,
+        "snapshot": str,
+    },
+    "users/access_review_preview": {"user_id": str, "station_id": str, "lock_id": int},
+    "users/access_review_decide": {
+        "user_id": str,
+        "station_id": str,
+        "lock_id": int,
+        "person_revision": int,
+        "fingerprint": str,
+        "latest_id": str,
+        "decision": str,
+        "reason": str,
+        "cadence_days": int,
+        "confirmed": bool,
+    },
     "users/data_quality": {"kind": str, "state": str, "offset": int, "limit": int, "snapshot": str},
     "users/query": {"query": str, "filters": dict, "offset": int, "limit": int, "snapshot": str},
     "users/csv_export": {},
@@ -589,7 +611,11 @@ def _guard_operator(
     if not restricted(policy):
         return
     manager = get_manager(hass)
-    if command == "users/access_scenario" and not field_allowed(policy, "access"):
+    if (
+        command == "users/access_scenario" or command.startswith("users/access_review")
+    ) and not field_allowed(
+        policy, "access", "manage" if command == "users/access_review_decide" else "view"
+    ):
         raise AccessError("field_access_denied")
     uid = msg.get("user_id")
     sid = msg.get("station_id")
@@ -1188,6 +1214,63 @@ async def _dispatch_inner(
         return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command.startswith("users/access_review"):
+        reviews = hass.data[DOMAIN].get("permission_reviews")
+        if reviews is None:
+            raise AccessError("access_reviews_unavailable")
+        sid = msg["station_id"]
+        if sid not in manager.stations:
+            raise AccessError("station_not_found")
+
+        def current_person() -> dict[str, Any]:
+            current = _operator_policy(hass, user) or {}
+            if not command_allowed(hass.data[DOMAIN].get("panel_permissions"), user, command):
+                raise AccessError("unauthorized")
+            if not field_allowed(
+                current, "access", "manage" if command == "users/access_review_decide" else "view"
+            ):
+                raise AccessError("field_access_denied")
+            if not contains_station(current, sid):
+                raise AccessError("unauthorized")
+            raw = manager.repository.get(msg["user_id"]).public()
+            guard_person(current, raw, mutate=False)
+            return project_person(current, raw)
+
+        scope = _operator_policy(hass, user) or {}
+        if not field_allowed(
+            scope, "access", "manage" if command == "users/access_review_decide" else "view"
+        ):
+            raise AccessError("field_access_denied")
+        if not contains_station(scope, sid):
+            raise AccessError("unauthorized")
+        if command == "users/access_reviews":
+            people = project_people(scope, manager.repository.public()["users"])
+            return reviews.report(
+                people,
+                sid,
+                msg["lock_id"],
+                user_id=msg["user_id"],
+                state=msg["state"],
+                offset=msg["offset"],
+                limit=msg["limit"],
+                snapshot=msg["snapshot"],
+                permission_context=str(hass.data[DOMAIN]["panel_permissions"].revision),
+            )
+        if command == "users/access_review_preview":
+            return reviews.preview(current_person(), sid, msg["lock_id"])
+        return await reviews.decide(
+            current_person,
+            sid,
+            msg["lock_id"],
+            actor=actor,
+            person_revision=msg["person_revision"],
+            expected_fingerprint=msg["fingerprint"],
+            latest_id=msg["latest_id"],
+            decision=msg["decision"],
+            reason=msg["reason"],
+            cadence_days=msg["cadence_days"],
+            confirmed=msg["confirmed"],
+        )
     if command == "users/access_scenario":
         from .access.access_scenario import evaluate
 

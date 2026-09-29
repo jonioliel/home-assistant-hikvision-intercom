@@ -101,7 +101,17 @@ async def async_setup_access(hass: HomeAssistant) -> None:
         hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = templates
 
     from .access.guest_templates import GuestTemplates
+    from .access.permission_reviews import PermissionReviews
     from .ntp_settings import NtpSettings
+
+    review_store = AccessStore(hass, key=f"{DOMAIN}.permission_reviews")
+    reviews = PermissionReviews(review_store.async_save, changed)
+    try:
+        reviews.load(await review_store.async_load())
+    except AccessError:
+        hass.data.setdefault(DOMAIN, {})["permission_reviews"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["permission_reviews"] = reviews
 
     guest_template_store = AccessStore(hass, key=f"{DOMAIN}.guest_templates")
     guest_templates = GuestTemplates(guest_template_store.async_save, changed)

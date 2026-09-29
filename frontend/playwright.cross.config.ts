@@ -27,6 +27,7 @@ export default defineConfig({
     "data-quality.spec.ts",
     "photo-file.spec.ts",
     "access-scenario.spec.ts",
+    "permission-reviews.spec.ts",
   ],
   fullyParallel: true,
   workers: 2,
