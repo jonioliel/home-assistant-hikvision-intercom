@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { navigate } from "./navigation";
+import { readFileSync } from "node:fs";
 async function editor(page: Page, width = 1440) {
   await page.setViewportSize({ width, height: 900 });
   await page.goto("/");
@@ -11,24 +12,9 @@ async function editor(page: Page, width = 1440) {
   await page.getByRole("button", { name: "Edit", exact: true }).first().click();
   return page.getByRole("dialog").locator("hikvision-user-photo");
 }
-async function raster(page: Page, mime: string) {
-  const encoded = await page.evaluate((mime) => {
-    const c = document.createElement("canvas");
-    c.width = 800;
-    c.height = 400;
-    const x = c.getContext("2d")!;
-    for (const [color, left, top] of [
-      ["red", 0, 0],
-      ["green", 0, 200],
-      ["yellow", 400, 0],
-      ["blue", 400, 200],
-    ] as const) {
-      x.fillStyle = color;
-      x.fillRect(left, top, 400, 200);
-    }
-    return c.toDataURL(mime).split(",")[1];
-  }, mime);
-  return Buffer.from(encoded, "base64");
+function raster(mime: string) {
+  // Fixed actual raster files: decoder coverage is independent of browser encoder support.
+  return readFileSync("tests/fixtures/photo-crop." + mime.split("/")[1]);
 }
 async function setFile(photo: Locator, buffer: Buffer, mimeType = "image/png") {
   await photo
@@ -50,7 +36,7 @@ async function pixel(photo: Locator) {
 for (const mime of ["image/png", "image/jpeg", "image/webp"]) {
   test(`local ${mime} crop is normalized and saved only explicitly`, async ({ page }) => {
     const photo = await editor(page, mime === "image/png" ? 390 : 1440);
-    await setFile(photo, await raster(page, mime), mime);
+    await setFile(photo, raster(mime), mime);
     await expect(photo.getByRole("img", { name: "Photo preview", exact: true })).toBeVisible();
     expect(
       await page.evaluate(() => window.calls.filter((c) => c.type.endsWith("users/update")).length),
@@ -89,7 +75,7 @@ for (const mime of ["image/png", "image/jpeg", "image/webp"]) {
 }
 test("invalid, oversized and excessive-pixel files never change the person", async ({ page }) => {
   const photo = await editor(page);
-  const png = await raster(page, "image/png");
+  const png = raster("image/png");
   const largePixels = Buffer.from(png);
   largePixels.writeUInt32BE(9000, 16);
   const cases = [
@@ -115,7 +101,7 @@ test("invalid, oversized and excessive-pixel files never change the person", asy
 for (const reason of ["cancel", "readonly", "connection", "close"] as const) {
   test(`delayed decode is discarded and blob released on ${reason}`, async ({ page }) => {
     const photo = await editor(page);
-    const png = await raster(page, "image/png");
+    const png = raster("image/png");
     await page.evaluate(() => {
       const state = window as typeof window & { finishPhoto?: () => void; revokedPhoto?: number };
       state.revokedPhoto = 0;
