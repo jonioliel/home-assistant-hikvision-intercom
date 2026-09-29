@@ -174,8 +174,10 @@ def prepare(
     if repo.bulk_stamp(state) != stamp:
         raise AccessError("bulk_review_stale")
     records = state["station_lifecycles"]
+    selected = {source, *([target] if target else [])}
     if any(
-        r["source_id"] == source and r["state"] in {"applied", "verified", "removing"}
+        r["state"] in {"applied", "verified", "removing"}
+        and selected.intersection({r["source_id"], r["target_id"]})
         for r in records.values()
     ):
         raise AccessError("lifecycle_already_applied")
@@ -283,6 +285,14 @@ def apply(
     if row["require_approval"] and not (row["approval"] and row["approval"]["approved"]):
         raise AccessError("approval_required")
     source, target = row["source_id"], row["target_id"]
+    selected = {source, *([target] if target else [])}
+    if any(
+        r["id"] != row["id"]
+        and r["state"] in {"applied", "verified", "removing"}
+        and selected.intersection({r["source_id"], r["target_id"]})
+        for r in state["station_lifecycles"].values()
+    ):
+        raise AccessError("lifecycle_already_applied")
     detached = repo.preview_copy()
     detached._state = deepcopy(state)
     from ..client.access import StationInventory

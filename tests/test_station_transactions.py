@@ -318,3 +318,16 @@ async def test_new_second_consent_after_application_never_replays_transfer():
     assert repo.snapshot()["users"] == before
     await apply(repo, row)
     assert repo.snapshot()["users"] == before
+
+
+async def test_two_prepared_empty_station_plans_cannot_be_applied_concurrently():
+    repo = AccessRepository(AsyncMock())
+    await repo.async_load(None)
+    first, competing = await plan(repo), await plan(repo)
+    await apply(repo, first)
+    before = repo.snapshot()
+    with pytest.raises(AccessError, match="lifecycle_already_applied"):
+        await apply(repo, competing)
+    assert repo.snapshot() == before
+    with pytest.raises(AccessError, match="lifecycle_already_applied"):
+        await plan(repo)
