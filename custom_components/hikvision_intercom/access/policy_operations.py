@@ -92,7 +92,11 @@ class PolicyOperations:
                 "rows": rows,
                 "changed": changed,
                 "stations": sorted(targets),
-                "field_changes": field_impact(prior, proposed, state["users"]),
+                "field_changes": field_impact(
+                    prior,
+                    proposed,
+                    state["users"],
+                ),
             }
 
         result = await asyncio.to_thread(plan)
@@ -109,18 +113,21 @@ class PolicyOperations:
             del self.reviews[key]
         while len(self.reviews) >= 100:
             self.reviews.popitem(last=False)
+        blocked = any(row.get("duplicates", 0) for row in result["field_changes"])
         op = uuid4().hex
         self.reviews[op] = {
             "actor": actor,
             "stamp": stamp,
             "rules": rules_stamp,
             "data": proposed,
+            "blocked": blocked,
             "deadline": monotonic() + 300,
             "stations": result["stations"],
         }
         return {
             **result,
             "operation_id": op,
+            "can_apply": not blocked,
             "requires_confirmation": bool(changed_groups or result["field_changes"]),
             "expires_in": 300,
             "device_writes": 0,
@@ -151,6 +158,8 @@ class PolicyOperations:
             raise AccessError("bulk_review_expired")
         if review["rules"] != self.manager.bulk.rules_stamp():
             raise AccessError("bulk_review_stale")
+        if review.get("blocked", False):
+            raise AccessError("profile_value_not_unique")
         rules = self.manager._csv_rules()
         receipt = {
             "operation_id": operation_id,

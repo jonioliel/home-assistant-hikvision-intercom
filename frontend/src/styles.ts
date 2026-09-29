@@ -1,5 +1,15 @@
 import { css } from "lit";
 export const styles = css`
+  .field-impact {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .field-impact summary {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
   .release-feedback {
     margin-block-start: 12px;
     overflow-wrap: anywhere;

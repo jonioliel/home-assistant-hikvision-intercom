@@ -9,7 +9,8 @@ Semantic Versioning is used throughout the project.
 - Review field type, required, enabled and closed-list changes before saving, with missing/invalid counts covering retained and archived people and enabled onboarding templates. Examples are bounded and omit raw values and credentials.
 - Preserve existing values without conversion; explicit edits follow the new rules and unchanged historical values remain compatible with access revocation. Reject direct unreviewed constraint changes for existing people while preserving older clients' rename and suggestion behavior.
 - Reuse atomic policy saves, exact revision reviews and replayable receipts. Preserve all themes, media, permissions and the VMS v1 contract.
-- This is the type-change impact part of package 13. Conditional fields and selected-field uniqueness remain open; round 3 is not complete. [Implementation and limits](docs/PROFILE_IMPACT_HE.md) · [Focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC25_PROFILE_TESTS_HE.html).
+- Add selected-field uniqueness with an explicit collision review, atomic enforcement across create/edit/import/bulk paths and concurrent requests, retained archive reservations, and privacy-preserving errors. Block activation until existing collisions are manually resolved; migrate profile preferences to schema 3 without changing old field rules.
+- This delivers type-change impact and selected-field uniqueness from package 13. Conditional fields remain open; round 3 is not complete. [Implementation and limits](docs/PROFILE_IMPACT_HE.md) · [Focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC25_PROFILE_TESTS_HE.html).
 
 ## [2.0.0-rc.24] — 2026-09-29
 

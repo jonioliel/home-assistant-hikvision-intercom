@@ -14,6 +14,7 @@ export interface ProfileField extends ProfileDefinition {
   options: string[];
   type?: "text" | "select" | "number" | "date";
   required?: boolean;
+  unique?: boolean;
 }
 export interface OnboardingTemplate {
   id: string;
@@ -32,6 +33,7 @@ export interface ProfilePolicy {
 interface PolicyReview {
   operation_id: string;
   requires_confirmation: boolean;
+  can_apply?: boolean;
   changed: number;
   offline: string[];
   field_changes?: {
@@ -44,6 +46,14 @@ interface PolicyReview {
     invalid: number;
     previous_issues: number;
     template_issues: number;
+    duplicates?: number;
+    duplicate_examples?: {
+      user_id: string;
+      display_name: string;
+      employee_no: string;
+      archived: boolean;
+    }[];
+    duplicate_examples_truncated?: boolean;
     examples_truncated: boolean;
     examples: {
       user_id: string;
@@ -166,7 +176,7 @@ export class ProfileSettingsPanel extends LitElement {
     }
   }
   private async applyReview() {
-    if (!this.review || this.pending) return;
+    if (!this.review || this.pending || this.review.can_apply === false) return;
     this.pending = this.review.operation_id;
     this.busy = true;
     try {
@@ -308,8 +318,27 @@ export class ProfileSettingsPanel extends LitElement {
               ${this.t("profile_checked")}: ${field.checked} · ${this.t("profile_missing")}:
               ${field.missing} · ${this.t("profile_invalid")}: ${field.invalid} ·
               ${this.t("profile_previous_issues")}: ${field.previous_issues} ·
-              ${this.t("profile_template_issues")}: ${field.template_issues}
+              ${this.t("profile_template_issues")}: ${field.template_issues} ·
+              ${this.t("profile_duplicates")}: ${field.duplicates ?? 0}
             </p>
+            ${field.after.unique ? html`<p>${this.t("profile_unique")}</p>` : nothing}
+            ${
+              (field.duplicates ?? 0) > 0
+                ? html`<p class="notice error">${this.t("profile_unique_blocked")}</p>
+                    <details>
+                      <summary>${this.t("profile_duplicate_people")}</summary>
+                      ${(field.duplicate_examples ?? []).map(
+                        (person) =>
+                          html`<p>
+                            ${person.display_name}
+                            <bdi>${person.employee_no}</bdi>
+                            ${person.archived ? html` · ${this.t("archived")}` : nothing}
+                          </p>`,
+                      )}
+                      ${field.duplicate_examples_truncated ? html`<p>${this.t("profile_examples_bounded")}</p>` : nothing}
+                    </details>`
+                : nothing
+            }
             ${
               field.examples.length
                 ? html`<details>
@@ -366,7 +395,7 @@ export class ProfileSettingsPanel extends LitElement {
         <button
           class="primary"
           type="button"
-          ?disabled=${this.busy || this.stale || !!this.pending}
+          ?disabled=${this.busy || this.stale || !!this.pending || review.can_apply === false}
           @click=${() => this.applyReview()}
         >
           ${this.t("policy_apply")}
@@ -429,6 +458,13 @@ export class ProfileSettingsPanel extends LitElement {
                     .checked=${f.required ?? false}
                     @change=${(e: Event) => (f.required = (e.target as HTMLInputElement).checked)}
                   />${this.t("profile_field_required")}</label
+                >
+                <label class="check"
+                  ><input
+                    type="checkbox"
+                    .checked=${f.unique ?? false}
+                    @change=${(e: Event) => (f.unique = (e.target as HTMLInputElement).checked)}
+                  />${this.t("profile_unique")}</label
                 >
                 <label
                   >${this.t("profile_suggestions")}<textarea

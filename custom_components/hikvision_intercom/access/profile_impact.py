@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..profile_settings import profile_issue
+from .profile_uniqueness import collisions
 
 
 def signature(field: dict[str, Any]) -> tuple[Any, ...]:
@@ -14,6 +15,7 @@ def signature(field: dict[str, Any]) -> tuple[Any, ...]:
         kind,
         field.get("required", False),
         tuple(field["options"]) if kind == "select" else (),
+        field.get("unique", False),
     )
 
 
@@ -31,6 +33,7 @@ def changed_definitions(
             not field["enabled"]
             or field.get("type", "text") == "text"
             and not field.get("required", False)
+            and not field.get("unique", False)
         ):
             continue
         rows.append(
@@ -40,10 +43,13 @@ def changed_definitions(
 
 
 def field_impact(
-    prior: dict[str, Any] | None, proposed: dict[str, Any], users: dict[str, dict[str, Any]]
+    prior: dict[str, Any] | None,
+    proposed: dict[str, Any],
+    users: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Include archived identities, but never expose raw field values or credentials."""
     rows = changed_definitions(prior, proposed)
+    duplicates = collisions(proposed, list(users.values()))
     for row in rows:
         missing = invalid = previous_issues = 0
         examples: list[dict[str, Any]] = []
@@ -72,6 +78,18 @@ def field_impact(
             examples=examples,
             examples_truncated=missing + invalid > len(examples),
         )
+        duplicate_people = duplicates.get(row["field_id"], [])
+        row["duplicates"] = len(duplicate_people)
+        row["duplicate_examples"] = [
+            {
+                "user_id": person["id"],
+                "display_name": person["display_name"],
+                "employee_no": person["employee_no"],
+                "archived": person.get("archived_at") is not None,
+            }
+            for person in duplicate_people[:20]
+        ]
+        row["duplicate_examples_truncated"] = len(duplicate_people) > 20
         row["template_issues"] = sum(
             profile_issue(row["after"], t["profile"].get(row["field_id"], "")) is not None
             for t in proposed["values"].get("templates", [])

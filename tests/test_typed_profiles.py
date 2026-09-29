@@ -121,7 +121,7 @@ async def test_old_client_cannot_erase_types_templates_or_required(typed):
     assert policy.public()["fields"][0]["type"] == "select"
     assert policy.public()["fields"][0]["required"]
     assert policy.public()["templates"][0]["id"] == "staff"
-    assert policy.data["schema"] == 2
+    assert policy.data["schema"] == 3
 
 
 @pytest.mark.parametrize(
@@ -151,7 +151,7 @@ async def test_profile_schema_one_upgrades_without_inventing_requirements():
     saved = deepcopy(original)
     policy = ProfileSettings(AsyncMock(), lambda: None)
     policy.load(original)
-    assert original == saved and policy.data["schema"] == 2 and policy.public()["revision"] == 7
+    assert original == saved and policy.data["schema"] == 3 and policy.public()["revision"] == 7
     assert (
         policy.public()["fields"][0]["type"] == "text"
         and not policy.public()["fields"][0]["required"]

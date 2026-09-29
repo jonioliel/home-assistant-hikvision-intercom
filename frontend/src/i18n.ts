@@ -854,6 +854,12 @@ const en = {
   profile_value_invalid: "A profile value does not match its field type or allowed options.",
   profile_review_required:
     "Use the policy review before changing field constraints for existing people.",
+  profile_unique: "Unique across people and archive",
+  profile_value_not_unique: "A selected unique field is already reserved for another person.",
+  profile_duplicates: "Conflicting identities",
+  profile_unique_blocked:
+    "Resolve these conflicts manually before applying uniqueness. No people are merged and no values are replaced.",
+  profile_duplicate_people: "People with conflicting values (up to 20)",
   profile_yes: "Yes",
   profile_no: "No",
   profile_checked: "People checked (including archive)",
@@ -3251,6 +3257,12 @@ const he: Record<keyof typeof en, string> = {
   profile_required: "יש להשלים את שדות החובה.",
   profile_value_invalid: "ערך בשדה מותאם אינו תואם לסוג השדה או לרשימת האפשרויות.",
   profile_review_required: "יש להשתמש בסקירת המדיניות לפני שינוי כללי שדות של אנשים קיימים.",
+  profile_unique: "ייחודי בין אנשים וארכיון",
+  profile_value_not_unique: "ערך בשדה ייחודי כבר שמור לאדם אחר.",
+  profile_duplicates: "זהויות עם כפילות",
+  profile_unique_blocked:
+    "יש לתקן את הכפילויות באופן ידני לפני החלת הייחודיות. אין מיזוג אנשים או החלפת ערכים אוטומטית.",
+  profile_duplicate_people: "אנשים עם ערכים כפולים (עד 20)",
   profile_yes: "כן",
   profile_no: "לא",
   profile_checked: "אנשים שנבדקו (כולל ארכיון)",

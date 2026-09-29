@@ -385,6 +385,9 @@ class AccessRepository:
                 if number in cards:
                     raise AccessError("card_conflict")
                 cards[number] = record["id"]
+        from .profile_uniqueness import validate as validate_unique
+
+        validate_unique(state["profile_settings"], list(state["users"].values()))
         for retired in state["retired_pins"].values():
             pin, owner = retired["pin"], retired["user_id"]
             if pin in pins and pins[pin] != owner:
