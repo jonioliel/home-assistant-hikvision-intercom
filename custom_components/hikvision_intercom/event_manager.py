@@ -175,7 +175,11 @@ class EventManager:
         )
 
     def query(
-        self, filters: dict[str, Any], *, operator_policy: dict[str, Any] | None = None
+        self,
+        filters: dict[str, Any],
+        *,
+        operator_policy: dict[str, Any] | None = None,
+        all_records: bool = False,
     ) -> dict[str, Any]:
         before = len(self.cache.rows)
         base, match = self._audience(filters, operator_policy=operator_policy)
@@ -187,7 +191,7 @@ class EventManager:
                     audience is None or audience(row)
                 )
 
-        result = self.cache.query(base, datetime.now(UTC), match=match)
+        result = self.cache.query(base, datetime.now(UTC), match=match, all_records=all_records)
         if len(self.cache.rows) != before:
             self.changed()
         return {

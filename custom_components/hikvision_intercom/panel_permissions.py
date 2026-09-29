@@ -477,6 +477,8 @@ _WRITE_MANAGEMENT = {
 def requirements(command: str) -> tuple[tuple[str, str], ...] | None:
     """Return alternative area/level grants; None means administrator-only."""
 
+    if command == "search/query":
+        return (("users", "view"), ("events", "view"), ("management", "view"))
     if command in {
         "overview",
         "overview/summary",
@@ -574,6 +576,7 @@ SCOPED_STATION_COMMANDS = frozenset(
 )
 SCOPED_COMMON_COMMANDS = frozenset(
     {
+        "search/query",
         "workflows/renew_request",
         "fleet/alerts",
         "clock/settings_get",

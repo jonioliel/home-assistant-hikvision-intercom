@@ -1,5 +1,6 @@
 import { svg } from "lit";
 const paths: Record<string, string> = {
+  search: "M21 21l-6-6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z",
   phone: "M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4c0 2-2 3-4 2C9 19 5 15 3 7c-1-2 0-4 2-4Z",
   hangup: "M3 15v-4c5-5 13-5 18 0v4h-5v-3a13 13 0 0 0-8 0v3Z",
   microphone: "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8",

@@ -78,6 +78,7 @@ USER_FIELDS = {
 }
 CARD_FIELDS = {"id", "card_no", "label", "card_type", "enabled"}
 COMMANDS = {
+    "search/query": {"query": str, "kind": str, "offset": int, "limit": int, "snapshot": str},
     "platform/get": {},
     "platform/capacity": {},
     "platform/save": {"collection": str, "record_id": str, "revision": int, "values": dict},
@@ -1403,6 +1404,20 @@ async def _dispatch_inner(
                 scoped=restricted(scope),
             )
         )
+    if command == "search/query":
+        from .search_api import search
+
+        scope = _operator_policy(hass, user) or {}
+        people = (
+            project_people(
+                scope,
+                manager.repository.public()["users"],
+                shared_identity_ids=_outside_bound_people(hass, scope),
+            )
+            if command_allowed(hass.data[DOMAIN].get("panel_permissions"), user, "users/query")
+            else None
+        )
+        return await search(hass, msg, user, scope, people)
     if command == "users/query":
         from .access.user_directory import query_users
 
