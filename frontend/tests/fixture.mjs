@@ -261,6 +261,7 @@ if (query.has("lifecycle")) {
       "users/get",
       "users/lifecycle",
       "users/data_quality",
+      "users/access_scenario",
       "users/duplicate_check",
       "users/create",
       "users/update",
@@ -1593,6 +1594,26 @@ const fake = {
         },
       };
     }
+    if (command === "users/access_scenario")
+      return (
+        window.scenarioResponse ?? {
+          desired: {
+            allowed: true,
+            reason: "allowed",
+            timing_mode: "unrestricted",
+            draft_ignored: false,
+          },
+          observed: {
+            sync_state: "pending",
+            revision_matches: false,
+            last_sync_at: null,
+            timing: { status: "unavailable" },
+          },
+          station_status: "offline",
+          physical_result: "not_verified",
+          read_only: true,
+        }
+      );
     if (command === "users/data_quality") return window.qualityResponse;
     if (command === "users/lifecycle") {
       const now = Date.parse("2026-09-23T09:00:00Z");

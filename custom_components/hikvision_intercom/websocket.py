@@ -359,6 +359,7 @@ COMMANDS = {
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
     "users/list": {},
+    "users/access_scenario": {"user_id": str, "station_id": str, "lock_id": int, "at": str},
     "users/data_quality": {"kind": str, "state": str, "offset": int, "limit": int, "snapshot": str},
     "users/query": {"query": str, "filters": dict, "offset": int, "limit": int, "snapshot": str},
     "users/csv_export": {},
@@ -588,6 +589,8 @@ def _guard_operator(
     if not restricted(policy):
         return
     manager = get_manager(hass)
+    if command == "users/access_scenario" and not field_allowed(policy, "access"):
+        raise AccessError("field_access_denied")
     uid = msg.get("user_id")
     sid = msg.get("station_id")
     if command.startswith("cards/capture_") and "session_id" in msg:
@@ -1185,6 +1188,23 @@ async def _dispatch_inner(
         return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command == "users/access_scenario":
+        from .access.access_scenario import evaluate
+
+        sid, uid = msg["station_id"], msg["user_id"]
+        station = manager.stations.get(sid)
+        if station is None:
+            raise AccessError("station_not_found")
+        scope = _operator_policy(hass, user) or {}
+        if not field_allowed(scope, "access"):
+            raise AccessError("field_access_denied")
+        person = project_person(scope, manager.repository.get(uid).public())
+        readback = (
+            manager.repository._state["bindings"].get(sid, {}).get(uid, {}).get("timing_readback")
+        )
+        return evaluate(
+            person, sid, msg["lock_id"], msg["at"], station_status=station.status, readback=readback
+        )
     if command == "users/data_quality":
         from functools import partial
 

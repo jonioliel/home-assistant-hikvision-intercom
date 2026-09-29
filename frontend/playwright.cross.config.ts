@@ -26,6 +26,7 @@ export default defineConfig({
     "conditional-profiles.spec.ts",
     "data-quality.spec.ts",
     "photo-file.spec.ts",
+    "access-scenario.spec.ts",
   ],
   fullyParallel: true,
   workers: 2,
