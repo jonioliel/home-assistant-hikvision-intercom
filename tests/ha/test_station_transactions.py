@@ -241,10 +241,23 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         saved = manager.repository.snapshot()["station_lifecycles"][job["id"]]
         assert saved["state"] == "applied" and not saved["metadata_applied"]
         before = deepcopy(manager.repository.snapshot()["users"])
+        with (
+            patch.object(ops, "save_record", AsyncMock(wraps=original)) as save,
+            patch.object(
+                manager.repository,
+                "async_lifecycle_mark",
+                AsyncMock(side_effect=OSError("interrupted after metadata save")),
+            ),
+        ):
+            interrupted = await action(client, "platform/lifecycle_apply", job)
+            assert not interrupted["success"]
+            save.assert_awaited_once()
+        # The copy changed the global operations revision. Resume recognizes
+        # the already-copied content and does not write or reapply policy again.
         with patch.object(ops, "save_record", AsyncMock(wraps=original)) as save:
             resumed = await action(client, "platform/lifecycle_apply", job)
             assert resumed["success"], resumed
-            save.assert_awaited_once()
+            save.assert_not_awaited()
         assert manager.repository.snapshot()["users"] == before
         assert ops.data["stations"][target.entry_id]["values"] == values
         assert target.title == loaded_entry.title

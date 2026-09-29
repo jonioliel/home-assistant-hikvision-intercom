@@ -25,10 +25,11 @@ async def administrators(hass: HomeAssistant, actors: list[str]) -> None:
 
 
 def metadata(hass: HomeAssistant, source: str, target: str | None) -> dict[str, Any]:
-    records = hass.data[DOMAIN]["operations_center"].data["stations"]
+    data = hass.data[DOMAIN]["operations_center"].data
+    records = data["stations"]
     return {
         kind: (
-            {"revision": records[sid]["revision"], "values": deepcopy(records[sid]["values"])}
+            {"revision": data["revision"], "values": deepcopy(records[sid]["values"])}
             if sid and sid in records
             else None
         )
@@ -158,16 +159,23 @@ async def copy_metadata(hass: HomeAssistant, row: dict[str, Any]) -> None:
     if target:
         desired = row["metadata"]["source"]
         current = metadata(hass, row["source_id"], target)
-        if current["source"] != row["metadata"]["source"]:
+
+        # Operations records share one revision. After a successful partial copy,
+        # that revision changes; compare reviewed content while the write itself
+        # still uses the current global revision for compare-and-save.
+        def values(record: dict[str, Any] | None) -> dict[str, Any] | None:
+            return record["values"] if record else None
+
+        if values(current["source"]) != values(row["metadata"]["source"]):
             raise AccessError("bulk_review_stale")
         if desired and (not current["target"] or current["target"]["values"] != desired["values"]):
-            if current["target"] != row["metadata"]["target"]:
+            if values(current["target"]) != values(row["metadata"]["target"]):
                 raise AccessError("bulk_review_stale")
             ops = hass.data[DOMAIN]["operations_center"]
             await ops.save_record(
                 "stations",
                 target,
-                current["target"]["revision"] if current["target"] else 0,
+                ops.data["revision"],
                 desired["values"],
                 row["actor"],
             )
