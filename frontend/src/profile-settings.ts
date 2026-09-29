@@ -34,6 +34,25 @@ interface PolicyReview {
   requires_confirmation: boolean;
   changed: number;
   offline: string[];
+  field_changes?: {
+    field_id: string;
+    label: string;
+    before: ProfileField | null;
+    after: ProfileField;
+    checked: number;
+    missing: number;
+    invalid: number;
+    previous_issues: number;
+    template_issues: number;
+    examples_truncated: boolean;
+    examples: {
+      user_id: string;
+      display_name: string;
+      employee_no: string;
+      reason: string;
+      archived: boolean;
+    }[];
+  }[];
   rows: {
     user_id: string;
     display_name: string;
@@ -267,6 +286,49 @@ export class ProfileSettingsPanel extends LitElement {
         ${this.t("bulk_changed")}: ${review.changed} · ${this.t("offline")}:
         ${names(review.offline)}
       </p>
+      ${(review.field_changes ?? []).map(
+        (field) =>
+          html`<article class="notice field-impact">
+            <h4>${field.label}</h4>
+            <p>
+              ${this.t("before")}:
+              ${field.before ? this.t("profile_type_" + (field.before.type ?? "text")) : "—"} →
+              ${this.t("after")}: ${this.t("profile_type_" + (field.after.type ?? "text"))}
+            </p>
+            <p>
+              ${this.t("profile_field_required")}:
+              ${field.before?.required ? this.t("profile_yes") : this.t("profile_no")} →
+              ${field.after.required ? this.t("profile_yes") : this.t("profile_no")} ·
+              ${this.t("active")}:
+              ${field.before?.enabled ? this.t("profile_yes") : this.t("profile_no")} →
+              ${field.after.enabled ? this.t("profile_yes") : this.t("profile_no")}
+            </p>
+            ${field.before?.type === "select" || field.after.type === "select" ? html`<p>${this.t("profile_suggestions")}: ${field.before?.options.join(", ") || "—"} → ${field.after.options.join(", ") || "—"}</p>` : nothing}
+            <p>
+              ${this.t("profile_checked")}: ${field.checked} · ${this.t("profile_missing")}:
+              ${field.missing} · ${this.t("profile_invalid")}: ${field.invalid} ·
+              ${this.t("profile_previous_issues")}: ${field.previous_issues} ·
+              ${this.t("profile_template_issues")}: ${field.template_issues}
+            </p>
+            ${
+              field.examples.length
+                ? html`<details>
+                    <summary>${this.t("profile_affected_examples")}</summary>
+                    ${field.examples.map(
+                  (person) =>
+                    html`<p>
+                      ${person.display_name} <bdi>${person.employee_no}</bdi> ·
+                      ${this.t(person.reason)}
+                      ${person.archived ? html`· ${this.t("archived")}` : nothing}
+                    </p>`,
+                )}
+                    ${field.examples_truncated ? html`<p>${this.t("profile_examples_bounded")}</p>` : nothing}
+                  </details>`
+                : nothing
+            }
+          </article>`,
+      )}
+      ${(review.field_changes?.length ?? 0) ? html`<p class="notice">${this.t("profile_impact_preserved")}</p>` : nothing}
       ${review.rows.slice(this.page * 50, (this.page + 1) * 50).map(
         (row) =>
           html`<article class="notice">

@@ -1209,8 +1209,19 @@ async def _dispatch_inner(
         if command == "profiles/settings_get":
             return profile_settings.public()
         if command == "profiles/settings_update":
-            from .profile_settings import normalize
+            from .access.profile_impact import changed_definitions
+            from .profile_settings import ProfileSettings, normalize
 
+            async def no_save(_: dict[str, Any]) -> None:
+                pass
+
+            # Resolve omitted fields from older clients before detecting a constraint change.
+            candidate = ProfileSettings(no_save, lambda: None)
+            prior = manager.repository.profile_settings()
+            candidate.load(prior)
+            await candidate.update(msg["revision"], msg["values"])
+            if manager.repository._state["users"] and changed_definitions(prior, candidate.data):
+                raise AccessError("profile_review_required")
             values = normalize(msg["values"])
             previous = {
                 g["id"]: set(g.get("station_ids", [])) for g in profile_settings.public()["groups"]

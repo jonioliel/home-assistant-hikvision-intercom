@@ -13,6 +13,7 @@ from ..profile_settings import ProfileSettings
 from .admin_audit import audit_actor
 from .csv_transfer import desired_fields, validate_csv_targets
 from .models import AccessError, ManagedUser, build_user, text_field, utc_now
+from .profile_impact import field_impact
 
 if TYPE_CHECKING:
     from .manager import AccessManager
@@ -87,7 +88,12 @@ class PolicyOperations:
                             "changed": affects_access,
                         }
                     )
-            return {"rows": rows, "changed": changed, "stations": sorted(targets)}
+            return {
+                "rows": rows,
+                "changed": changed,
+                "stations": sorted(targets),
+                "field_changes": field_impact(prior, proposed, state["users"]),
+            }
 
         result = await asyncio.to_thread(plan)
         if (
@@ -115,7 +121,7 @@ class PolicyOperations:
         return {
             **result,
             "operation_id": op,
-            "requires_confirmation": bool(changed_groups),
+            "requires_confirmation": bool(changed_groups or result["field_changes"]),
             "expires_in": 300,
             "device_writes": 0,
             "offline": [

@@ -129,23 +129,28 @@ def validate_profile(
         value = values.get(key, "")
         if not field["enabled"] or previous is not None and previous.get(key, "") == value:
             continue
-        if not value:
-            if field.get("required", False):
-                raise AccessError("profile_required")
-            continue
-        kind = field.get("type", "text")
-        valid = True
-        if kind == "select":
-            valid = value in field["options"]
-        elif kind == "number":
-            valid = re.fullmatch(r"-?(?:0|[1-9][0-9]{0,14})(?:\.[0-9]{1,8})?", value) is not None
-        elif kind == "date":
-            try:
-                valid = date.fromisoformat(value).isoformat() == value
-            except ValueError:
-                valid = False
-        if not valid:
-            raise AccessError("profile_value_invalid")
+        if issue := profile_issue(field, value):
+            raise AccessError(issue)
+
+
+def profile_issue(field: dict[str, Any], value: str) -> str | None:
+    """Shared validation for writes and read-only policy diagnostics; no coercion."""
+    if not field["enabled"]:
+        return None
+    if not value:
+        return "profile_required" if field.get("required", False) else None
+    kind = field.get("type", "text")
+    valid = True
+    if kind == "select":
+        valid = value in field["options"]
+    elif kind == "number":
+        valid = re.fullmatch(r"-?(?:0|[1-9][0-9]{0,14})(?:\.[0-9]{1,8})?", value) is not None
+    elif kind == "date":
+        try:
+            valid = date.fromisoformat(value).isoformat() == value
+        except ValueError:
+            valid = False
+    return None if valid else "profile_value_invalid"
 
 
 def group_values(value: Any) -> list[str]:
