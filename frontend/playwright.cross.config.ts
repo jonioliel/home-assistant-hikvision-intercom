@@ -25,6 +25,7 @@ export default defineConfig({
     "operator-scopes.spec.ts",
     "conditional-profiles.spec.ts",
     "data-quality.spec.ts",
+    "photo-file.spec.ts",
   ],
   fullyParallel: true,
   workers: 2,
