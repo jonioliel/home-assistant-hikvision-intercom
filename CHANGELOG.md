@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.29] — 2026-09-29
+
+- Add a read-only access scenario in person details: select a station, physical door and an offset-aware date/time to explain the central permission, validity and enforced schedule.
+- Separate the desired result from cached synchronization metadata and historical time interval readback. Native schedule readback is never treated as physical admission proof; draft schedules do not limit predictions.
+- Apply existing station/person/field scopes to the additive VMS v1 command. No station I/O, access changes, unlock or credential disclosure occurs.
+- Periodic owner review decisions remain open in package 16; this release delivers only its scenario portion.
+
 ## [2.0.0-rc.28] — 2026-09-29
 
 - Add local JPEG/PNG/still-WebP photo selection with resource checks before decoding, bounded manual square crop, accessible zoom/position controls and explicit preview acceptance before the existing person save.
@@ -1524,3 +1531,5 @@ The release workflow reruns required checks on the exact publication commit.
 - Phase 0 protocol-tooling prerelease; HA setup/entities arrive in Phase 1.
 - Witnessed active-relay/card/initial-PIN evidence is available;
   PIN change diagnosis, test-user cleanup and remaining acceptance gates are open.
+
+[2.0.0-rc.29]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.29

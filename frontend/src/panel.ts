@@ -4181,6 +4181,7 @@ export class IntercomManagerPanel extends LitElement {
     return html`<wiskey-user-details
       embedded
       .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+      .canScenario=${this._data?.api?.commands.includes("users/access_scenario") ?? false}
       .canRenew=${this._data?.api?.commands.includes("workflows/renew_request") ?? false}
       .canEdit=${this.personEditable(person)}
       .canArchive=${this._data?.api?.commands.includes(person.archived_at ? "users/unarchive" : "users/archive") ?? false}
@@ -6248,6 +6249,7 @@ export class IntercomManagerPanel extends LitElement {
           ? html`<wiskey-user-details
               .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
               .v4=${isWiskeyAppearance(this._appearance)}
+              .canScenario=${this._data?.api?.commands.includes("users/access_scenario") ?? false}
               .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
               .canEdit=${this.personEditable(this.modalPerson()!)}
               .canArchive=${this._data.api?.commands.includes(this.modalPerson()?.archived_at ? "users/unarchive" : "users/archive") ?? false}

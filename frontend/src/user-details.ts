@@ -1,3 +1,4 @@
+import "./access-scenario";
 import { fitDialogViewport } from "./dialog-viewport";
 import { LitElement, html, nothing, css, type PropertyValues } from "lit";
 import { styles } from "./styles";
@@ -44,6 +45,7 @@ const copy = {
   saturday: ["Saturday", "שבת"],
   sunday: ["Sunday", "יום ראשון"],
   details: ["User details", "פרטי משתמש"],
+  scenario: ["Scenario", "תרחיש"],
   chat: ["WhatsApp conversation", "שיחת WhatsApp"],
   prepare: ["Send access details via WhatsApp", "שלח פרטי גישה בווטסאפ"],
   review: ["Review and edit before sending", "בדיקה ועריכה לפני השליחה"],
@@ -108,6 +110,7 @@ const whatsappIcon = html`<svg
 
 export class UserDetails extends LitElement {
   static properties = {
+    canScenario: { type: Boolean },
     canRenew: { type: Boolean },
     canEdit: { type: Boolean },
     canArchive: { type: Boolean },
@@ -165,6 +168,11 @@ export class UserDetails extends LitElement {
       :host([embedded]) header > button {
         display: none;
       }
+      :host([embedded]) header > .quick-edit {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+      }
       :host([embedded]) .portrait {
         width: 52px;
         height: 52px;
@@ -201,8 +209,14 @@ export class UserDetails extends LitElement {
         justify-content: center;
         font-size: 13px;
       }
+      :host([embedded]) footer {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 6px;
+      }
       :host([embedded]) footer button {
         width: 100%;
+        min-width: 0;
       }
       :host([embedded]) .chat {
         max-height: 400px;
@@ -388,6 +402,10 @@ export class UserDetails extends LitElement {
         place-items: center;
         font-size: 28px;
       }
+      .scenario-tab {
+        padding: 7px 6px;
+        font-size: 12px;
+      }
       nav {
         display: flex;
         gap: 8px;
@@ -540,6 +558,7 @@ export class UserDetails extends LitElement {
   messageDraft = "";
   embedded = false;
   v4 = false;
+  canScenario = false;
   canRenew = false;
   canEdit = true;
   canArchive = false;
@@ -615,6 +634,8 @@ export class UserDetails extends LitElement {
     super.disconnectedCallback();
   }
   protected updated(changed: PropertyValues) {
+    if (changed.has("canScenario") && !this.canScenario && this.tab === "scenario")
+      this.tab = "details";
     if (
       !this.hass?.user?.is_admin ||
       this.hass.connection.connected === false ||
@@ -752,6 +773,139 @@ export class UserDetails extends LitElement {
       };
     });
   }
+  // Nested Lit templates otherwise drift on repeated Prettier passes.
+  // prettier-ignore
+  private detailContent(ready: boolean) {
+    const p = this.person!;
+    if (
+      this.tab === "scenario" &&
+      this.canScenario &&
+      !this.fieldHidden("access") &&
+      this.allows("users/access_scenario")
+    )
+      return html`<wiskey-access-scenario
+        .hass=${this.hass}
+        .person=${p}
+        .stations=${this.stations}
+      ></wiskey-access-scenario>`;
+    if (this.tab === "details")
+      return html`<div class="person-grid">
+        <section class="person-profile">
+          <dl>
+            <div>
+              <dt>${this.t("employee_id")}</dt>
+              <dd>${p.employee_no}</dd>
+            </div>
+            <div>
+              <dt>${this.t("status")}</dt>
+              <dd>
+                ${this.t(p.archived_at ? "filter_archived" : p.active ? "active" : "inactive")}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("access_category")}</dt>
+              <dd>${this.t(`access_category_${p.access_category ?? "staff"}`)}</dd>
+            </div>
+            ${
+                p.access_category && p.access_category !== "staff"
+                  ? html`<div>
+                        <dt>${this.t("responsible_person")}</dt>
+                        <dd>${p.responsible_person || "—"}</dd>
+                      </div>
+                      <div>
+                        <dt>${this.t("access_purpose")}</dt>
+                        <dd>${p.access_purpose || "—"}</dd>
+                      </div>`
+                  : nothing
+              }
+            ${this.policy?.fields
+                .filter((f) => f.enabled)
+                .map(
+                  (f) =>
+                    html`<div>
+                      <dt>${f.label}</dt>
+                      <dd>${p.profile?.[f.id] || "—"}</dd>
+                    </div>`,
+                )}
+            <div>
+              <dt>${this.t("profile_groups")}</dt>
+              <dd>
+                ${
+                    this.policy?.groups
+                      .filter((g) => p.group_ids?.includes(g.id))
+                      .map((g) => g.label)
+                      .join(", ") || "—"
+                  }
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("pin")}</dt>
+              <dd>
+                ${this.t(this.fieldHidden("credentials") ? "operator_field_hidden" : p.pin_configured ? "configured" : "not_configured")}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("cards")}</dt>
+              <dd>
+                ${this.fieldHidden("credentials") ? this.t("operator_field_hidden") : p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>${this.t("validity")}</dt>
+              <dd>
+                ${this.fieldHidden("access") ? this.t("operator_field_hidden") : html`${p.valid_from || "—"} → ${p.valid_until || "—"}`}${
+                    p.access_timing_policy
+                      ? html`<p>
+                            ${p.access_timing_policy.schedule.timezone} ·
+                            ${[...p.access_timing_policy.schedule.days, ...p.access_timing_policy.schedule.dates].map((day) => (this.t(day.toLowerCase()) === day.toLowerCase() ? day : this.t(day.toLowerCase()))).join(", ")}
+                          </p>
+                          <p>
+                            ${p.access_timing_policy.schedule.periods.map((w) => `${w.start}–${w.end}`).join(", ")}
+                          </p>`
+                      : nothing
+                  }
+              </dd>
+            </div>
+          </dl>
+        </section>
+        ${p.access_timing_draft && !p.access_timing_policy ? html`<p>${this.t("draftOnly")}</p>` : nothing}
+        <section class="person-grants">
+          ${this.fieldHidden("access") ? html`<p>${this.t("operator_field_hidden")}</p>` : nothing}
+          ${this.v4 ? html`<h3>${this.t("assignments")}</h3>` : nothing}
+          <ul class="rights">
+            ${Object.entries(p.assignments)
+                .filter(([, a]) => a.enabled)
+                .map(
+                  ([id, a]) =>
+                    html`<li>
+                      <span
+                        >${this.stations.find((s) => s.id === id)?.name || id} ·
+                        ${a.allowed_locks.join(", ")}</span
+                      ><span>${this.t(a.sync_state === "synced" ? "synced" : "pending")}</span>
+                    </li>`,
+                )}
+          </ul>
+        </section>
+      </div>`;
+    return html`<p class="sub">${this.t("historyHint")}</p>
+      <button ?disabled=${!ready} @click=${() => this.history()}>${this.t("refresh")}</button>
+      <div class="chat" role="log" aria-label=${this.t("chat")}>
+        ${
+              this.messages?.length
+                ? this.messages.map((m) => {
+                    const media = this.media[m.id];
+                    return html`<article class=${`bubble ${m.outgoing ? "out" : ""}`}>
+                      ${m.quote ? html`<blockquote>${m.quote}</blockquote>` : nothing}
+                      <p>${m.text}</p>
+                      ${m.caption ? html`<p>${m.caption}</p>` : nothing}${media ? (media.mime.startsWith("image/") ? html`<img src=${media.url} alt=${m.caption || m.kind} />` : media.mime.startsWith("video/") ? html`<video controls preload="metadata" src=${media.url}></video>` : media.mime.startsWith("audio/") ? html`<audio controls src=${media.url}></audio>` : html`<a href=${media.url} download=${m.filename || "attachment"}>${this.t("attachment")}</a>`) : m.media_token ? html`<button ?disabled=${this.busy} @click=${() => this.attachment(m)}>${this.t("loadMedia")} · ${m.kind}</button>` : ["image", "video", "audio", "document", "sticker"].includes(m.kind) ? html`<small>${m.kind} · ${this.t("noMedia")}</small>` : nothing}<time
+                        >${m.timestamp ? new Date(m.timestamp * 1000).toLocaleString(this.hass?.language) : ""}</time
+                      >
+                    </article>`;
+                  })
+                : html`<p>${this.t(this.busy ? "wait" : "empty")}</p>`
+            }
+      </div>`;
+  }
   render() {
     const p = this.person;
     if (this.closed || !p || !this.hass?.user?.is_admin) return nothing;
@@ -772,6 +926,7 @@ export class UserDetails extends LitElement {
           >
         </div>
         <button aria-label=${this.t("close")} @click=${() => this.close()}>✕</button>
+        ${this.embedded ? html`<button class="quick-edit" ?disabled=${!this.canEdit} @click=${() => this.dispatchEvent(new CustomEvent("details-edit"))}>${this.t("edit")}</button>` : nothing}
       </header>
       <nav>
         <button aria-pressed=${this.tab === "details"} @click=${() => (this.tab = "details")}>
@@ -783,131 +938,10 @@ export class UserDetails extends LitElement {
         >
           ${whatsappIcon} ${this.t("chat")}
         </button>
+        ${this.canScenario && !this.fieldHidden("access") && this.allows("users/access_scenario") ? html`<button class="scenario-tab" aria-pressed=${this.tab === "scenario"} @click=${() => (this.tab = "scenario")}>${this.t("scenario")}</button>` : nothing}
       </nav>
       <main>
-        ${
-          this.tab === "details"
-            ? html`<div class="person-grid">
-                <section class="person-profile">
-                  <dl>
-                    <div>
-                      <dt>${this.t("employee_id")}</dt>
-                      <dd>${p.employee_no}</dd>
-                    </div>
-                    <div>
-                      <dt>${this.t("status")}</dt>
-                      <dd>
-                        ${this.t(p.archived_at ? "filter_archived" : p.active ? "active" : "inactive")}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>${this.t("access_category")}</dt>
-                      <dd>${this.t(`access_category_${p.access_category ?? "staff"}`)}</dd>
-                    </div>
-                    ${
-                      p.access_category && p.access_category !== "staff"
-                        ? html`<div>
-                              <dt>${this.t("responsible_person")}</dt>
-                              <dd>${p.responsible_person || "—"}</dd>
-                            </div>
-                            <div>
-                              <dt>${this.t("access_purpose")}</dt>
-                              <dd>${p.access_purpose || "—"}</dd>
-                            </div>`
-                        : nothing
-                    }
-                    ${this.policy?.fields
-                      .filter((f) => f.enabled)
-                      .map(
-                        (f) =>
-                          html`<div>
-                            <dt>${f.label}</dt>
-                            <dd>${p.profile?.[f.id] || "—"}</dd>
-                          </div>`,
-                      )}
-                    <div>
-                      <dt>${this.t("profile_groups")}</dt>
-                      <dd>
-                        ${
-                          this.policy?.groups
-                            .filter((g) => p.group_ids?.includes(g.id))
-                            .map((g) => g.label)
-                            .join(", ") || "—"
-                        }
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>${this.t("pin")}</dt>
-                      <dd>
-                        ${this.t(this.fieldHidden("credentials") ? "operator_field_hidden" : p.pin_configured ? "configured" : "not_configured")}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>${this.t("cards")}</dt>
-                      <dd>
-                        ${this.fieldHidden("credentials") ? this.t("operator_field_hidden") : p.cards.map((c) => c.masked_number || c.label).join(", ") || "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>${this.t("validity")}</dt>
-                      <dd>
-                        ${this.fieldHidden("access") ? this.t("operator_field_hidden") : html`${p.valid_from || "—"} → ${p.valid_until || "—"}`}${
-                          p.access_timing_policy
-                            ? html`<p>
-                                  ${p.access_timing_policy.schedule.timezone} ·
-                                  ${[...p.access_timing_policy.schedule.days, ...p.access_timing_policy.schedule.dates].map((day) => (this.t(day.toLowerCase()) === day.toLowerCase() ? day : this.t(day.toLowerCase()))).join(", ")}
-                                </p>
-                                <p>
-                                  ${p.access_timing_policy.schedule.periods.map((w) => `${w.start}–${w.end}`).join(", ")}
-                                </p>`
-                            : nothing
-                        }
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-                ${p.access_timing_draft && !p.access_timing_policy ? html`<p>${this.t("draftOnly")}</p>` : nothing}
-                <section class="person-grants">
-                  ${this.fieldHidden("access") ? html`<p>${this.t("operator_field_hidden")}</p>` : nothing}
-                  ${this.v4 ? html`<h3>${this.t("assignments")}</h3>` : nothing}
-                  <ul class="rights">
-                    ${Object.entries(p.assignments)
-                      .filter(([, a]) => a.enabled)
-                      .map(
-                        ([id, a]) =>
-                          html`<li>
-                            <span
-                              >${this.stations.find((s) => s.id === id)?.name || id} ·
-                              ${a.allowed_locks.join(", ")}</span
-                            ><span
-                              >${this.t(a.sync_state === "synced" ? "synced" : "pending")}</span
-                            >
-                          </li>`,
-                      )}
-                  </ul>
-                </section>
-              </div>`
-            : html`<p class="sub">${this.t("historyHint")}</p>
-                <button ?disabled=${!ready} @click=${() => this.history()}>
-                  ${this.t("refresh")}
-                </button>
-                <div class="chat" role="log" aria-label=${this.t("chat")}>
-                  ${
-                    this.messages?.length
-                      ? this.messages.map((m) => {
-                          const media = this.media[m.id];
-                          return html`<article class=${`bubble ${m.outgoing ? "out" : ""}`}>
-                            ${m.quote ? html`<blockquote>${m.quote}</blockquote>` : nothing}
-                            <p>${m.text}</p>
-                            ${m.caption ? html`<p>${m.caption}</p>` : nothing}${media ? (media.mime.startsWith("image/") ? html`<img src=${media.url} alt=${m.caption || m.kind} />` : media.mime.startsWith("video/") ? html`<video controls preload="metadata" src=${media.url}></video>` : media.mime.startsWith("audio/") ? html`<audio controls src=${media.url}></audio>` : html`<a href=${media.url} download=${m.filename || "attachment"}>${this.t("attachment")}</a>`) : m.media_token ? html`<button ?disabled=${this.busy} @click=${() => this.attachment(m)}>${this.t("loadMedia")} · ${m.kind}</button>` : ["image", "video", "audio", "document", "sticker"].includes(m.kind) ? html`<small>${m.kind} · ${this.t("noMedia")}</small>` : nothing}<time
-                              >${m.timestamp ? new Date(m.timestamp * 1000).toLocaleString(this.hass?.language) : ""}</time
-                            >
-                          </article>`;
-                        })
-                      : html`<p>${this.t(this.busy ? "wait" : "empty")}</p>`
-                  }
-                </div>`
-        }
+        ${this.detailContent(ready)}
         ${
           this.status?.accounts.length
             ? html`<label
@@ -1015,15 +1049,19 @@ export class UserDetails extends LitElement {
             : nothing
         }
         ${this.canRenew && !this.person?.archived_at && this.canEdit && this.person?.valid_from && this.person?.valid_until && this.allows("workflows/renew_request") && !this.fieldHidden("access") ? html`<button @click=${() => (this.renewing = true)}>${this.t("renew_request")}</button>` : nothing}
-        <button
-          ?disabled=${!this.canEdit}
-          @click=${() => {
-            this.dispatchEvent(new CustomEvent("details-edit"));
-            if (!this.embedded) this.close();
-          }}
-        >
-          ${this.t("edit")}
-        </button>
+        ${
+          !this.embedded
+            ? html`<button
+                ?disabled=${!this.canEdit}
+                @click=${() => {
+                  this.dispatchEvent(new CustomEvent("details-edit"));
+                  if (!this.embedded) this.close();
+                }}
+              >
+                ${this.t("edit")}
+              </button>`
+            : nothing
+        }
       </footer>
     </dialog>`;
   }

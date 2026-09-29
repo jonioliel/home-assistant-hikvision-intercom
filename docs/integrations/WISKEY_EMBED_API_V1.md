@@ -266,3 +266,7 @@ not a requirement to repeat the user's previously passed reader/door tests.
 This document confirms the implemented WisKey contract. It does not assert that the
 separately developed VMS has already adopted it or that nested ingress media has been
 physically accepted. See [implementation verification](WISKEY_EMBED_IMPLEMENTATION_CONFIRMATION_HE.md).
+
+### Additive access scenario (rc.29)
+
+Capability `access_scenario` exposes `hikvision_intercom/users/access_scenario` with required `user_id`, `station_id`, `lock_id` (1 or 2) and offset-aware ISO `at` (1970–2037). Existing user-view, station/person scope and access-field visibility are required. The response separates `desired` central policy from `observed` cached synchronization/time-readback evidence; `physical_result` always remains `not_verified`. This command performs no equipment I/O or access mutation. Native `Valid` readback does not verify a weekly plan. Draft schedules are explicitly ignored. See [scenario semantics and screen reproduction](../ACCESS_SCENARIO_HE.md); contract version remains v1 and old commands are unchanged.
