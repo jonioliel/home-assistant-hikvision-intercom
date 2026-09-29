@@ -160,3 +160,20 @@ def test_events_keep_observed_identity_and_actions_keep_historical_names():
     original = deepcopy(rows)
     query(rows, text="Manager", kind="actions", offset=0, limit=25, snapshot="")
     assert rows == original
+
+
+def test_activity_in_another_source_does_not_reset_people_paging():
+    sources = {**source(), "events": []}
+    first = query(sources, text="person", kind="people", offset=0, limit=5, snapshot="")
+    preview = query(sources, text="person", kind="all", offset=0, limit=5, snapshot="")
+    sources["events"].append({"id": "new", "person_name": "Person event"})
+    following = query(
+        sources, text="person", kind="people", offset=5, limit=5, snapshot=first["snapshot"]
+    )
+    assert not following["stale"] and following["offset"] == 5
+    assert following["snapshot"] == first["snapshot"]
+    assert following["sections"]["events"]["total"] == 1
+    combined = query(
+        sources, text="person", kind="all", offset=0, limit=5, snapshot=preview["snapshot"]
+    )
+    assert combined["stale"]

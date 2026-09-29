@@ -150,9 +150,10 @@ def query(
         raise AccessError("invalid_fields")
     if kind != "all" and sources[kind] is None:
         raise AccessError("unauthorized")
+    indexed = sources if kind == "all" else {kind: sources[kind]}
     token = hashlib.sha256(
         json.dumps(
-            [sources, text, kind, permission_context],
+            [indexed, text, kind, permission_context],
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
