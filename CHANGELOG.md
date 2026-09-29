@@ -2,6 +2,12 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.28] — 2026-09-29
+
+- Add local JPEG/PNG/still-WebP photo selection with resource checks before decoding, bounded manual square crop, accessible zoom/position controls and explicit preview acceptance before the existing person save.
+- Normalize only the chosen crop to the existing bounded JPEG format; retain camera capture/retake/removal, field permissions, revision validation and local-only original files. Clear cancelled or unauthorized late decodes, temporary blob URLs and camera tracks.
+- Preserve every design, media/device access behavior and VMS embed v1. Add [photo and VMS guidance](docs/PEOPLE_PHOTO_CROP_HE.md) and [focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC28_PHOTO_TESTS_HE.html). No face enrollment or station image upload.
+
 ## [2.0.0-rc.27] — 2026-09-29
 
 - Add a read-only people data quality center for missing metadata, invalid applicable fields and potential duplicates, with archive-aware uniqueness and explicit person review.

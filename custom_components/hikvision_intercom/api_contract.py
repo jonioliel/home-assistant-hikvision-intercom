@@ -42,6 +42,7 @@ CAPABILITIES = [
     "identity_lifecycle",
     "people_archive",
     "people_data_quality",
+    "local_photo_crop",
     "conditional_profile_fields",
     "temporary_access_cancellation",
     "operational_readiness",
