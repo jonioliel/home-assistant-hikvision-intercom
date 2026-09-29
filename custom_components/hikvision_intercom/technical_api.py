@@ -22,6 +22,16 @@ async def dispatch_technical(hass: HomeAssistant, command: str, msg: dict[str, A
     runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
     if runtime is None or runtime.is_closed:
         raise AccessError("station_unloaded")
+    manager = get_manager(hass)
+    if manager.lifecycle_lock.locked():
+        raise AccessError("device_busy")
+    from .access.station_lifecycle_jobs import frozen_sources
+
+    if entry.entry_id in frozen_sources(manager.repository.snapshot()) and (
+        command == "stations/technical_program_save"
+        or (command == "stations/technical_program_action" and msg.get("action") == "resume")
+    ):
+        raise AccessError("station_retiring")
     client = runtime.client
     busy = hass.data[DOMAIN].setdefault("technical_busy", set())
     if entry.entry_id in busy or len(busy) >= 3:

@@ -144,6 +144,7 @@ async def test_schema_11_migrates_without_changing_people(setup_jobs):
     legacy.pop("checkpoint_jobs")
     legacy.pop("workflows")
     legacy["schema"] = 11
+    legacy.pop("station_lifecycles", None)
     migrated = AccessRepository(AsyncMock())
     await migrated.async_load(legacy)
     assert migrated.snapshot()["users"] == legacy["users"]

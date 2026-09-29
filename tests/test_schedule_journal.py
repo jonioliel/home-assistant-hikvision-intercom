@@ -189,6 +189,7 @@ async def test_schema_one_migration_is_atomic_and_preserves_unknown_outcome():
     await store.async_record(identifier, 1, index=0, step_state="intent")
     old = deepcopy(save.call_args.args[0])
     old["schema"] = 1
+    old.pop("station_lifecycles", None)
     del old["archive"]
     sink = AsyncMock()
     restored = ScheduleJournal(sink)

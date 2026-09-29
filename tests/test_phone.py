@@ -59,6 +59,7 @@ async def test_schema_six_phone_migration_is_atomic():
     user = await repo.async_create({"display_name": "Legacy"})
     raw = repo.snapshot()
     raw["schema"] = 6
+    raw.pop("station_lifecycles", None)
     raw.pop("visit_requests")
     raw.pop("checkpoint_jobs")
     raw.pop("workflows")
@@ -71,4 +72,4 @@ async def test_schema_six_phone_migration_is_atomic():
     save.side_effect = None
     await restored.async_load(raw)
     assert restored.get(user.id).phone == ""
-    assert restored.snapshot()["schema"] == 13
+    assert restored.snapshot()["schema"] == 14

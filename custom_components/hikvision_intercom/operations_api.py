@@ -110,6 +110,10 @@ async def dispatch_operations(
                 raise AccessError("confirmation_required")
             fleet_approval.decide(ops, msg["review_id"], actor, msg["fingerprint"], msg["approve"])
         return fleet_approval.plan(ops, msg["review_id"], actor, catalog)
+    if command.startswith("platform/lifecycle_") and command != "platform/lifecycle_review":
+        from .station_transactions_api import dispatch_lifecycle
+
+        return await dispatch_lifecycle(hass, command, msg, actor)
     if command == "platform/lifecycle_review":
         from .station_lifecycle_api import review_lifecycle
 
@@ -119,7 +123,11 @@ async def dispatch_operations(
             **ops.public(actor),
             "event_usage": usage(events, now),
             "catalog": catalog,
-            "capabilities": ["fleet_configuration_approval", "station_lifecycle_review"],
+            "capabilities": [
+                "fleet_configuration_approval",
+                "station_lifecycle_review",
+                "station_lifecycle_transactions",
+            ],
         }
     if command == "platform/save":
         if msg["collection"] == "stations" and msg["record_id"] not in catalog:
