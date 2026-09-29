@@ -221,9 +221,18 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         serial = "OTHER-SERIAL" if driver.settings.host == "192.0.2.11" else PROFILE.unique_id
         return serial, PROFILE.model, PROFILE.firmware, serial
 
-    with patch(
-        "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
-        identity,
+    async def profile(driver):
+        return other if driver.settings.host == "192.0.2.11" else PROFILE
+
+    with (
+        patch(
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_device_info",
+            identity,
+        ),
+        patch(
+            "custom_components.hikvision_intercom.client.client.HikvisionClient.async_profile",
+            profile,
+        ),
     ):
         # Exercise the authenticated dispatcher directly here so failures retain
         # their traceback; subsequent mutations still use the real WebSocket.
@@ -252,6 +261,10 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
             interrupted = await action(client, "platform/lifecycle_apply", job)
             assert not interrupted["success"]
             save.assert_awaited_once()
+        # Updating the entry title invokes the real runtime reload. The mock
+        # profile must retain the replacement identity throughout that reload.
+        await hass.async_block_till_done()
+        assert target.runtime_data.profile.unique_id == other.unique_id
         # The copy changed the global operations revision. Resume recognizes
         # the already-copied content and does not write or reapply policy again.
         with patch.object(ops, "save_record", AsyncMock(wraps=original)) as save:
@@ -261,5 +274,6 @@ async def test_metadata_interruption_resumes_without_reapplying_permission_polic
         assert manager.repository.snapshot()["users"] == before
         assert ops.data["stations"][target.entry_id]["values"] == values
         assert target.title == loaded_entry.title
+        await hass.async_block_till_done()
     await hass.config_entries.async_unload(target.entry_id)
     await hass.async_block_till_done()
