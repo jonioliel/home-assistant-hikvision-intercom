@@ -359,6 +359,7 @@ COMMANDS = {
     "events/detail": {"event_id": str},
     "events/support": {"event_id": str},
     "users/list": {},
+    "users/group_suggestions": {"user_id": str, "field_ids": list},
     "users/access_compare": {"left_kind": str, "left_id": str, "right_kind": str, "right_id": str},
     "users/access_compare_options": {"kind": str, "query": str, "offset": int, "limit": int},
     "users/access_scenario": {"user_id": str, "station_id": str, "lock_id": int, "at": str},
@@ -615,6 +616,7 @@ def _guard_operator(
     manager = get_manager(hass)
     if (
         command == "users/access_scenario"
+        or command == "users/group_suggestions"
         or command.startswith(("users/access_review", "users/access_compare"))
     ) and not field_allowed(
         policy, "access", "manage" if command == "users/access_review_decide" else "view"
@@ -1217,6 +1219,26 @@ async def _dispatch_inner(
         return overview(hass, user, include_users=command != "overview/summary")
     if command == "users/list":
         return manager.repository.public()["users"]
+    if command == "users/group_suggestions":
+        from .access.group_suggestions import suggest
+
+        scope = _operator_policy(hass, user) or {}
+        if not field_allowed(scope, "access") or not field_allowed(scope, "profile"):
+            raise AccessError("field_access_denied")
+        people = project_people(
+            scope,
+            manager.repository.public()["users"],
+            shared_identity_ids=_outside_bound_people(hass, scope),
+        )
+        profiles = project_profiles(scope, hass.data[DOMAIN]["profile_settings"].public())
+        stations = [
+            {"id": s.id, "name": s.name}
+            for s in manager.stations.values()
+            if contains_station(scope, s.id)
+        ]
+        return suggest(
+            people, profiles, stations, user_id=msg["user_id"], field_ids=msg["field_ids"]
+        )
     if command.startswith("users/access_compare"):
         from .access.access_comparison import compare, options
 

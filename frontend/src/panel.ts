@@ -92,6 +92,7 @@ import "./identity-lifecycle";
 import "./data-quality";
 import "./permission-reviews";
 import "./access-comparison";
+import "./group-suggestions";
 import "./guest-templates";
 import "./visit-requests";
 import "./fleet-alerts";
@@ -3058,6 +3059,46 @@ export class IntercomManagerPanel extends LitElement {
                       >`,
                   )}
               </div>`
+          : nothing
+      }
+      ${
+        draft.id &&
+        this.personField("access") &&
+        this.personField("profile") &&
+        this.commandAvailable("users/group_suggestions")
+          ? html`<wiskey-group-suggestions
+              .hass=${this.protectedHass}
+              .context=${JSON.stringify(this._session)}
+              .userId=${draft.id}
+              .personRevision=${draft.revision}
+              .policyRevision=${policy.revision}
+              .canView=${this.canView("users") && this.personField("access") && this.personField("profile")}
+              .canManage=${this.personEditable(draft as Person) && this.personField("access", true)}
+              .draftUnchanged=${JSON.stringify(draft) === this._editorBaseline && this._validityFrom === localInput(draft.valid_from, this.validityZone()) && this._validityUntil === localInput(draft.valid_until, this.validityZone())}
+              @groups-suggested=${(
+                event: CustomEvent<{
+                  group_ids: string[];
+                  person_revision: number;
+                  policy_revision: number;
+                }>,
+              ) => {
+                const result = event.detail;
+                if (
+                  !this.personEditable(draft as Person) ||
+                  !this.personField("access", true) ||
+                  JSON.stringify(draft) !== this._editorBaseline ||
+                  draft.revision !== result.person_revision ||
+                  policy.revision !== result.policy_revision ||
+                  result.group_ids.some(
+                    (id) => !policy.groups.some((g) => g.enabled && g.id === id),
+                  )
+                )
+                  return;
+                this.patchDraft("group_ids", [
+                  ...new Set([...(draft.group_ids ?? []), ...result.group_ids]),
+                ]);
+              }}
+            ></wiskey-group-suggestions>`
           : nothing
       }
       ${

@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.32] - 2026-09-29
+
+- Add explicit profile-based group suggestions in the saved-person editor, with visible membership evidence and a door impact preview.
+- Revalidate source data before adding selected groups to a draft; preserve personal blocks, relay mappings, credentials and schedules, and reuse existing reviewed save workflows.
+- Scope evidence, counters and eligible fields to the authenticated operator. Do not infer hidden conditional fields or memberships.
+- Add an additive read command for VMS, behavior and browser regressions, and [focused manual checks](docs/manual-tests/WISKEY_2.0.0_RC32_GROUP_SUGGESTIONS_TESTS_HE.html).
+
 ## [2.0.0-rc.31] — 2026-09-29
 
 ### People and group comparisons
