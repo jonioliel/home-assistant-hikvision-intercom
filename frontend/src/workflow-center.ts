@@ -63,6 +63,9 @@ interface Reminder {
   revision: number;
 }
 interface Renewal {
+  personal?: boolean;
+  reviewer?: string | null;
+  current_until?: string | null;
   id: string;
   actor: string;
   name: string;
@@ -1018,8 +1021,10 @@ export class WorkflowCenter extends LitElement {
         (item) =>
           html`<article>
             <h3>${item.name}</h3>
+            ${item.personal ? html`<p class="sub">${this.text("בקשה אישית מחשבון מאומת", "Personal request from a verified account")} · ${this.text("תוקף נוכחי", "Current expiry")}: <bdi>${item.current_until || "—"}</bdi></p>` : nothing}
+            ${item.personal && item.reviewer && item.state === "pending" ? html`<p class="sub">${this.text("ממתינה לאישור מנהל נוסף", "Awaiting a second administrator")}</p>` : nothing}
             <p>${item.reason} · <bdi>${item.until}</bdi> · ${this.t("workflow_" + item.state)}</p>
-            ${item.state === "pending" && item.actor !== this.hass?.user?.id ? html`<div class="actions"><button ?disabled=${this.busy} @click=${() => void this.mutate("workflows/renew_decide", { request_id: item.id, approve: true })}>${this.text("אשר חידוש", "Approve renewal")}</button><button ?disabled=${this.busy} @click=${() => void this.mutate("workflows/renew_decide", { request_id: item.id, approve: false })}>${this.text("דחה", "Reject")}</button></div>` : nothing}
+            ${item.state === "pending" && item.actor !== this.hass?.user?.id ? html`<div class="actions"><button ?disabled=${this.busy || !!(item.personal && this.data?.settings.dual_approval && item.reviewer === this.hass?.user?.id)} @click=${() => void this.mutate("workflows/renew_decide", { request_id: item.id, approve: true })}>${item.personal && this.data?.settings.dual_approval && !item.reviewer ? this.text("העבר לאישור מנהל נוסף", "Forward for second approval") : this.text("אשר חידוש", "Approve renewal")}</button><button ?disabled=${this.busy} @click=${() => void this.mutate("workflows/renew_decide", { request_id: item.id, approve: false })}>${this.text("דחה", "Reject")}</button></div>` : nothing}
           </article>`,
       )}`;
   }

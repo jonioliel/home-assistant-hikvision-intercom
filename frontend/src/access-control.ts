@@ -1,3 +1,4 @@
+import "./renewal-bindings";
 import { LitElement, html, nothing } from "lit";
 import type { Hass, WiskeyPersonField } from "./types";
 
@@ -86,6 +87,7 @@ const rolePresets: Record<string, Record<Area, Level>> = {
 export class WiskeyAccessControl extends LitElement {
   static properties = {
     hass: { attribute: false },
+    canRenewalBindings: { type: Boolean },
     _settings: { state: true },
     _draft: { state: true },
     _busy: { state: true },
@@ -98,6 +100,7 @@ export class WiskeyAccessControl extends LitElement {
     _groups: { state: true },
   };
   hass?: Hass;
+  canRenewalBindings = false;
   private _settings?: PermissionSettings;
   private _draft: Record<string, Policy> = {};
   private _busy = false;
@@ -866,6 +869,7 @@ export class WiskeyAccessControl extends LitElement {
             </article>`;
           })}
         </div>
+        ${this.canRenewalBindings ? html`<wiskey-renewal-bindings .hass=${this.hass}></wiskey-renewal-bindings>` : nothing}
       </section>`;
   }
 }

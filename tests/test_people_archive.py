@@ -157,7 +157,7 @@ async def test_schema14_migrates_old_audit_without_erasing_identity(repo):
                 entry[side].pop("archived_at", None)
     restored = AccessRepository(AsyncMock())
     await restored.async_load(saved)
-    assert restored.snapshot()["schema"] == 15
+    assert restored.snapshot()["schema"] == 16
     assert restored.get(old.id).archived_at is None
     assert restored.snapshot()["admin_audit"]["records"] == saved["admin_audit"]["records"]
 

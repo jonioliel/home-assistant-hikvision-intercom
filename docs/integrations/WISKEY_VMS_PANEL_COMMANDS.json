@@ -1,7 +1,7 @@
 {
   "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
   "integration_domain": "hikvision_intercom",
-  "integration_version": "2.0.0-rc.34",
+  "integration_version": "2.0.0-rc.35",
   "api_contract_version": 1,
   "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
   "commands": {
@@ -931,6 +931,48 @@
         "before_revision": "int",
         "after_revision": "int"
       },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/binding_update": {
+      "required": {
+        "account_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/bindings": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/cancel": {
+      "required": {
+        "request_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/request": {
+      "required": {
+        "revision": "int",
+        "until": "str",
+        "reason": "str",
+        "request_key": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/self": {
+      "required": {},
       "optional_common": {
         "api_contract": "int"
       }

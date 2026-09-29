@@ -42,7 +42,12 @@ async def dispatch_workflows(
             "templates": deepcopy(list(center.data["templates"].values())),
             "reminders": center.reminders(msg["days"]),
             "renewals": [
-                {**item, "name": manager.repository.get(item["user_id"]).display_name}
+                {
+                    **item,
+                    "name": manager.repository.get(item["user_id"]).display_name,
+                    "personal": "binding" in item,
+                    "current_until": manager.repository.get(item["user_id"]).valid_until,
+                }
                 for item in center.data["renewals"].values()
                 if item["user_id"] in manager.repository._state["users"]
             ],
@@ -264,7 +269,20 @@ async def dispatch_workflows(
     if command == "workflows/reminder_action":
         return await center.reminder_action(actor, msg["reminder_id"], msg["action"])
     if command == "workflows/renew_decide":
-        return await center.renewal_decide(actor, msg["request_id"], msg["approve"])
+        from .access.renewal_portal import personal_account
+
+        item = center.data["renewals"].get(msg["request_id"], {})
+        owner = await hass.auth.async_get_user(item["actor"]) if "binding" in item else None
+        reviewer = (
+            await hass.auth.async_get_user(item["reviewer"]) if item.get("reviewer") else None
+        )
+        return await center.renewal_decide(
+            actor,
+            msg["request_id"],
+            msg["approve"],
+            owner_active=personal_account(owner),
+            reviewer_active=bool(personal_account(reviewer) and reviewer.is_admin),
+        )
     raise AccessError("unknown_command")
 
 

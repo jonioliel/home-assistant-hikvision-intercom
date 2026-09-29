@@ -34,7 +34,7 @@ async def test_upgrade_023_preserves_data_and_resets_interrupted_writes():
     repo = AccessRepository(AsyncMock())
     await repo.async_load(data)
     expected = deepcopy(data)
-    expected["schema"] = 15
+    expected["schema"] = 16
     expected["station_lifecycles"] = {}
     from custom_components.hikvision_intercom.access.workflows import defaults
 

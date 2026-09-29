@@ -30,6 +30,7 @@ export default defineConfig({
     "permission-reviews.spec.ts",
     "policy-versions.spec.ts",
     "bulk-renewal.spec.ts",
+    "personal-renewal.spec.ts",
     "group-suggestions.spec.ts",
     "access-comparison.spec.ts",
   ],

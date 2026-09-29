@@ -2,6 +2,13 @@
 
 Semantic Versioning is used throughout the project.
 
+## [2.0.0-rc.35] - 2026-09-29
+
+- Add authenticated personal renewal at `/wiskey-renewal`, with administrator-managed one-to-one account bindings, own expiry/requests, explicit submission and cancellation.
+- Requests do not grant access. A different administrator revalidates owner, binding generation, person revision and finite future extension before atomic save and normal synchronization; configured dual approval requires two distinct active administrators.
+- Preserve all operator permissions, credentials, door policies, existing internal/bulk workflows and VMS/embed v1; migrate central storage to schema16 without a domain change.
+- Add identity lifecycle, persistence, authorization and responsive browser tests, and focused acceptance/VMS documentation. Independent VMS JWT identity federation is not included.
+
 ## [2.0.0-rc.34] - 2026-09-29
 
 - Added administrator-reviewed bulk renewal of finite temporary access, with before/after expiry and explicit facility timezone conversion.

@@ -277,7 +277,7 @@ async def test_schema_five_upgrade_preserves_ownership_and_profile_data(managed)
     save = AsyncMock()
     restored = AccessRepository(save)
     await restored.async_load(state)
-    assert restored.snapshot()["schema"] == 15
+    assert restored.snapshot()["schema"] == 16
     assert restored.get(user.id).private() == manager.repository.get(user.id).private()
     save.assert_awaited_once()
 
