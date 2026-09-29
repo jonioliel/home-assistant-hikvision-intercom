@@ -1,8 +1,4 @@
-"""Strict identity binding kernel for a future authenticated renewal portal.
-
-Not registered as an API or loaded by the runtime yet. A caller must authenticate
-and authorize account management before using this pure planning layer.
-"""
+"""Strict account bindings; the authenticated portal authorizes each caller separately."""
 
 from __future__ import annotations
 

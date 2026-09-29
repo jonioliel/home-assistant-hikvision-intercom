@@ -1,3 +1,4 @@
+import "./personal-renewal";
 import { fitDialogViewport } from "./dialog-viewport";
 import "./user-details";
 import { accessStyles } from "./access-styles";
@@ -6026,6 +6027,8 @@ export class IntercomManagerPanel extends LitElement {
         <p class="loader">${this.t("loading")}</p>
       </div>`;
     if (this._locked) return this.securityOverlay();
+    if (!this.authorized && this._session?.personal_renewal)
+      return html`<wiskey-personal-renewal .hass=${this.hass}></wiskey-personal-renewal>`;
     if (!this.authorized)
       return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
         <h2>${this.t("access_not_granted")}</h2>
@@ -6130,6 +6133,7 @@ export class IntercomManagerPanel extends LitElement {
                   ></wiskey-workflow-center>`
                 : this._tab === "access_control" && this._session?.is_admin
                   ? html`<wiskey-access-control
+                      .canRenewalBindings=${this.commandAvailable("renewal/bindings")}
                       .hass=${this.protectedHass}
                     ></wiskey-access-control>`
                   : this._tab === "camera_wall"

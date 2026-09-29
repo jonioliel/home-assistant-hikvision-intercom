@@ -39,6 +39,7 @@ ACTIONS = frozenset(
         "conflicts/resolve",
         "conflicts/resolve_deletion",
         "bulk/renew",
+        "workflows/renew_decide",
         "bulk/enable",
         "bulk/disable",
         "bulk/assign",

@@ -15,6 +15,11 @@ from custom_components.hikvision_intercom.websocket import COMMANDS
 def test_every_delegated_command_has_an_explicit_permission_classification():
     administrator_only = {
         "authorization/session",
+        "renewal/self",
+        "renewal/request",
+        "renewal/cancel",
+        "renewal/bindings",
+        "renewal/binding_update",
         "authorization/settings_get",
         "authorization/preview",
         "authorization/settings_update",
@@ -63,7 +68,23 @@ async def test_admin_overview_and_panel_registration(hass, loaded_entry, hass_ws
 
 @pytest.mark.parametrize(
     "command",
-    [command for command in COMMANDS if command != "authorization/session"] + ["subscribe"],
+    [
+        command
+        for command in COMMANDS
+        if command
+        not in {
+            "authorization/session",
+            "renewal/self",
+            "renewal/request",
+            "renewal/cancel",
+            "security/session",
+            "security/touch",
+            "security/lock",
+            "security/reauth_start",
+            "security/reauth_step",
+        }
+    ]
+    + ["subscribe"],
 )
 async def test_all_administrative_commands_reject_reader(
     hass, loaded_entry, hass_ws_client, hass_read_only_access_token, command

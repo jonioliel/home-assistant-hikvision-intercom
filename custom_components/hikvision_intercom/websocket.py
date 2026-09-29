@@ -164,6 +164,16 @@ COMMANDS = {
     "workflows/reminder_action": {"reminder_id": str, "action": str},
     "workflows/renew_request": {"user_id": str, "revision": int, "until": str, "reason": str},
     "workflows/renew_decide": {"request_id": str, "approve": bool},
+    "renewal/self": {},
+    "renewal/request": {"revision": int, "until": str, "reason": str, "request_key": str},
+    "renewal/cancel": {"request_id": str},
+    "renewal/bindings": {},
+    "renewal/binding_update": {
+        "account_id": str,
+        "user_id": str,
+        "revision": int,
+        "confirmed": bool,
+    },
     "jobs/list": {},
     "platform/config_pending": {},
     "platform/config_review": {"review_id": str},
@@ -728,6 +738,11 @@ async def _dispatch(
         command,
         reason_code=msg.get("reason_code") if command == "users/temporary_cancel" else None,
     ):
+        from .renewal_portal_api import SELF_COMMANDS
+        from .renewal_portal_api import dispatch as dispatch_renewal
+
+        if command in SELF_COMMANDS:
+            return await dispatch_renewal(hass, command, msg, actor, user)
         policy = _operator_policy(hass, user)
         permissions = hass.data[DOMAIN].get("panel_permissions")
         revision = permissions.revision if isinstance(permissions, PanelPermissions) else 0
@@ -780,6 +795,10 @@ async def _dispatch_inner(
     actor: str = "",
     user: Any | None = None,
 ) -> Any:
+    if command.startswith("renewal/"):
+        from .renewal_portal_api import dispatch as dispatch_renewal
+
+        return await dispatch_renewal(hass, command, msg, actor, user)
     if command.startswith("platform/"):
         from .operations_api import dispatch_operations as dispatch_platform
 
@@ -809,6 +828,9 @@ async def _dispatch_inner(
             }
             if result["is_admin"]:
                 result["areas"] = {area: "manage" for area in result["areas"]}
+        from .access.renewal_portal import personal_account
+
+        result["personal_renewal"] = personal_account(user)
         return result
     if command == "authorization/preview":
         return preview_policy(
@@ -1696,12 +1718,15 @@ def _command_handler(command: str, fields: dict[str, type]) -> Callable[..., Non
             # this avoids exposing a command's required-field contract to callers who do
             # not have access to it.
             user = connection.user
+            from .renewal_portal_api import personal_allowed
+
             permissions = hass.data[DOMAIN].get("panel_permissions")
             if (
                 not user
                 or not user.is_active
                 or command != "authorization/session"
                 and not command_allowed(permissions, user, command)
+                and not personal_allowed(hass, user, command)
             ):
                 raise AccessError("unauthorized")
             # Validate here so HA's humanized schema errors cannot echo credential inputs.

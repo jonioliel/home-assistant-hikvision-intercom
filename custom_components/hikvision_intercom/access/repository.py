@@ -30,7 +30,7 @@ class AccessRepository:
         self._save = save
         self._lock = asyncio.Lock()
         self._state: dict[str, Any] = {
-            "schema": 15,
+            "schema": 16,
             "station_lifecycles": {},
             "workflows": workflows.defaults(),
             "checkpoint_jobs": {},
@@ -54,7 +54,7 @@ class AccessRepository:
                 await self._save(deepcopy(self._state))
                 return
             migrated = False
-            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
             previous_state = set(self._state) - {
                 "visit_requests",
                 "checkpoint_jobs",
@@ -128,7 +128,15 @@ class AccessRepository:
                 if data.get("schema") == 14 and set(data) == set(self._state):
                     data = {**deepcopy(data), "schema": 15}
                     migrated = True
-                if data.get("schema") != 15 or set(data) != set(self._state):
+                if data.get("schema") == 15 and set(data) == set(self._state):
+                    from .renewal_identity import defaults as identity_defaults
+
+                    journal = deepcopy(data["workflows"])
+                    if set(journal) == set(workflows.defaults()) - {"renewal_identity"}:
+                        journal["renewal_identity"] = identity_defaults()
+                    data = {**deepcopy(data), "schema": 16, "workflows": journal}
+                    migrated = True
+                if data.get("schema") != 16 or set(data) != set(self._state):
                     raise AccessError("invalid_storage")
                 if len(bytes.fromhex(data["fingerprint_key"])) != 32:
                     raise AccessError("invalid_storage")

@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from . import renewal_identity
 from .csv_transfer import validate_csv_targets
 from .models import AccessError, ManagedUser, utc_now
 
@@ -24,6 +25,7 @@ def defaults() -> dict[str, Any]:
         "templates": {},
         "reminders": {},
         "renewals": {},
+        "renewal_identity": renewal_identity.defaults(),
     }
 
 
@@ -62,6 +64,7 @@ def validate(value: Any) -> None:
         if type(value["revision"]) is not int or value["revision"] < 0:
             raise AccessError("invalid_storage")
         validate_settings(value["settings"])
+        renewal_identity.checked(value["renewal_identity"])
         for key in ("approvals", "transfers", "inventory", "templates", "reminders", "renewals"):
             if not isinstance(value[key], dict) or len(value[key]) > (
                 2000 if key == "reminders" else 64 if key == "templates" else 500
@@ -212,7 +215,7 @@ def validate(value: Any) -> None:
                 instant(item["until"])
         for item in value["renewals"].values():
             if (
-                set(item)
+                set(item) - {"binding", "request_key", "reviewer"}
                 != {
                     "id",
                     "actor",
@@ -224,7 +227,7 @@ def validate(value: Any) -> None:
                     "created_at",
                     "approver",
                 }
-                or item["state"] not in {"pending", "approved", "rejected"}
+                or item["state"] not in {"pending", "approved", "rejected", "cancelled"}
                 or type(item["revision"]) is not int
                 or item["revision"] < 1
             ):
@@ -234,6 +237,22 @@ def validate(value: Any) -> None:
             text_field(item["reason"], 240)
             instant(item["until"])
             instant(item["created_at"])
+            if "binding" in item or "request_key" in item:
+                proof = item.get("binding")
+                if (
+                    not isinstance(proof, dict)
+                    or set(proof) != {"actor", "user_id", "generation"}
+                    or proof["actor"] != item["actor"]
+                    or proof["user_id"] != item["user_id"]
+                    or type(proof["generation"]) is not int
+                    or proof["generation"] < 1
+                ):
+                    raise AccessError("invalid_storage")
+                text_field(item["request_key"], 64)
+                if item.get("reviewer") is not None:
+                    text_field(item["reviewer"], 128)
+            elif "reviewer" in item:
+                raise AccessError("invalid_storage")
     except (AccessError, ValueError, TypeError, KeyError):
         raise AccessError("invalid_storage") from None
 
@@ -1109,10 +1128,18 @@ class Workflows:
         await self.repository._commit(apply)
         return {"id": identity, "state": "pending"}
 
-    async def renewal_decide(self, actor: str, identity: str, approve: bool) -> dict[str, Any]:
+    async def renewal_decide(
+        self,
+        actor: str,
+        identity: str,
+        approve: bool,
+        *,
+        owner_active: bool = False,
+        reviewer_active: bool = False,
+    ) -> dict[str, Any]:
         affected: set[str] = set()
 
-        def apply(state: dict[str, Any]) -> None:
+        def apply(state: dict[str, Any]) -> bool:
             item = state["workflows"]["renewals"].get(identity)
             if not item or item["state"] != "pending":
                 raise AccessError("operation_not_found")
@@ -1121,16 +1148,42 @@ class Workflows:
             if datetime.fromisoformat(item["created_at"]) + timedelta(days=7) < datetime.now(UTC):
                 raise AccessError("approval_expired")
             if approve:
+                if "binding" in item:
+                    if not owner_active:
+                        raise AccessError("renewal_identity_inactive")
+                    renewal_identity.recheck(
+                        state["workflows"]["renewal_identity"], item["binding"]
+                    )
+                    from .bulk_operations import renewal_patch
+
+                    raw = state["users"].get(item["user_id"])
+                    if not raw or raw.get("archived_at"):
+                        raise AccessError("renewal_person_unavailable")
+                    current = ManagedUser.from_private(raw)
+                    if not current.active:
+                        raise AccessError("renewal_person_unavailable")
+                    renewal_patch(current, item["until"])
+                    if current.revision != item["revision"]:
+                        raise AccessError("revision_conflict")
+                    if state["workflows"]["settings"]["dual_approval"]:
+                        if item.get("reviewer") is None:
+                            item["reviewer"] = actor
+                            return True
+                        if item["reviewer"] == actor:
+                            raise AccessError("separate_approver_required")
+                        if not reviewer_active:
+                            raise AccessError("renewal_approver_inactive")
                 user = self.repository._update_user(
                     state, item["user_id"], {"valid_until": item["until"]}, item["revision"]
                 )
                 validate_csv_targets(user, self.manager._csv_rules())
                 affected.update(user.assignments)
             item.update(state="approved" if approve else "rejected", approver=actor)
+            return False
 
-        await self.repository._commit(apply)
+        awaiting_second = await self.repository._commit(apply)
         for sid in affected:
             if sid in self.manager.stations:
                 self.manager.request(sid)
         self.manager._changed()
-        return {"saved": True}
+        return {"saved": True, **({"awaiting_second_approver": True} if awaiting_second else {})}

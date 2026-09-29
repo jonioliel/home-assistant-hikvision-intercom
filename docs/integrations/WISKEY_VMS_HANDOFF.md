@@ -160,3 +160,6 @@ Until then, the current authenticated WebSocket commands are suitable for a cont
 See [Visit operations API](VISIT_OPERATIONS_API.md) for reusable visit presets, temporary cancellation with reason, revision-aware station status, authorization, storage and failure handling. Regenerate the source-derived catalog with `python -m tools.generate_panel_catalog` after adding a command or changing the version. Its consistency is checked by the test suite.
 
 See also [fleet alerts](FLEET_ALERTS_API.md), [investigation timeline and complete report](INVESTIGATION_TIMELINE_API.md), and [browser-local audio output](BROWSER_AUDIO_OUTPUT.md) for the new operations and their explicit permission/evidence boundaries.
+
+
+Personal renewal (rc.35): [identity-bound API v1](PERSONAL_RENEWAL_API_V1.md). Existing operator/embed v1 remains compatible.

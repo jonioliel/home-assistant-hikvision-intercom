@@ -37,4 +37,13 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         embed_iframe=False,
         trust_external=False,
     )
+    await panel_custom.async_register_panel(
+        hass,
+        frontend_url_path="wiskey-renewal",
+        webcomponent_name="wiskey-renewal-panel",
+        module_url=f"/hikvision_intercom_static/panel.js?v={VERSION}",
+        require_admin=False,
+        embed_iframe=False,
+        trust_external=False,
+    )
     hass.data[DOMAIN]["panel_registered"] = True

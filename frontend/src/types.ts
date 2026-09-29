@@ -260,6 +260,7 @@ export type WiskeyArea = "overview" | "users" | "events" | "stations" | "managem
 export type WiskeyAccessLevel = "none" | "view" | "manage";
 export type WiskeyPersonField = "phone" | "photo" | "credentials" | "profile" | "access";
 export interface AuthorizationSession {
+  personal_renewal?: boolean;
   security?: {
     locked: boolean;
     idle_minutes: number;
