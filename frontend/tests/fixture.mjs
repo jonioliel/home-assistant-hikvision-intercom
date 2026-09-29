@@ -1041,7 +1041,9 @@ const fake = {
       window.fixturePolicyReviews[operation_id] = structuredClone(message);
       return {
         operation_id,
-        requires_confirmation: changed.length > 0,
+        requires_confirmation: changed.length > 0 || (window.fixtureFieldChanges?.length ?? 0) > 0,
+        field_changes: window.fixtureFieldChanges ?? [],
+        can_apply: window.fixtureCanApply ?? true,
         changed: rows.length,
         offline: [],
         rows,

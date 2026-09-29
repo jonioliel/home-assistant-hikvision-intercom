@@ -107,7 +107,7 @@ test("group settings save selected station doors with renamed group and disabled
   expect(saved.values.groups[0].label).toBe("Leadership");
   expect(saved.values.groups[0].station_ids).toEqual(["station-1", "station-4"]);
   await expect(
-    settings.getByRole("heading", { name: "Review group permission changes" }),
+    settings.getByRole("heading", { name: "Review fields and group permissions" }),
   ).toBeVisible();
   expect(
     await page.evaluate(() => window.calls.some((c) => c.type.endsWith("profiles/settings_apply"))),
