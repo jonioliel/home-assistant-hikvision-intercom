@@ -23,6 +23,7 @@ export default defineConfig({
     "investigations.spec.ts",
     "audio-output-cross.spec.ts",
     "operator-scopes.spec.ts",
+    "conditional-profiles.spec.ts",
   ],
   fullyParallel: true,
   workers: 2,

@@ -1,4 +1,28 @@
 import type { ProfileField, ProfilePolicy } from "./profile-settings";
+export function profileApplicability(
+  policy: ProfilePolicy | null | undefined,
+  values: Record<string, string>,
+): Record<string, boolean | null> {
+  const definitions = new Map((policy?.fields ?? []).map((f) => [f.id, f]));
+  const result: Record<string, boolean | null> = {};
+  const visiting = new Set<string>();
+  const evaluate = (id: string): boolean | null => {
+    if (Object.hasOwn(result, id)) return result[id];
+    const field = definitions.get(id);
+    if (!field || visiting.has(id)) return null;
+    if (!field.enabled) return (result[id] = false);
+    if (field.applicability_unknown) return (result[id] = null);
+    visiting.add(id);
+    const rule = field.depends_on;
+    const parent = rule ? evaluate(rule.field_id) : true;
+    result[id] =
+      parent === null ? null : parent && (!rule || (values[rule.field_id] ?? "") === rule.value);
+    visiting.delete(id);
+    return result[id];
+  };
+  for (const field of definitions.values()) evaluate(field.id);
+  return result;
+}
 export function validProfileValue(field: ProfileField, value: string): boolean {
   if (!value) return !field.required;
   if (field.type === "select") return field.options.includes(value);
@@ -15,9 +39,15 @@ export function profileError(
   values: Record<string, string>,
   previous?: Record<string, string>,
 ): string {
+  const active = profileApplicability(policy, values);
+  const priorActive = profileApplicability(policy, previous ?? {});
   for (const field of policy?.fields ?? []) {
     const value = values[field.id] ?? "";
-    if (!field.enabled || (previous && (previous[field.id] ?? "") === value)) continue;
+    if (
+      active[field.id] !== true ||
+      (previous && priorActive[field.id] === true && (previous[field.id] ?? "") === value)
+    )
+      continue;
     if (!validProfileValue(field, value))
       return value ? "profile_value_invalid" : "profile_required";
   }

@@ -1,4 +1,4 @@
-"""Pure conditional-field evaluation; not yet wired into stored policy or UI.
+"""Bounded conditional-field evaluation shared by stored policy and validation.
 
 Keep stored values intact. Callers must separately enforce visibility and compare
 previous applicability when deciding whether historical data may be retained.

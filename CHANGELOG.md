@@ -4,6 +4,14 @@ Semantic Versioning is used throughout the project.
 
 ## Unreleased
 
+## [2.0.0-rc.26] — 2026-09-29
+
+- Add bounded exact-value conditional profile fields with chained applicability, cycle/reference validation, and atomic enforcement when changing a parent activates a required or typed child. Preserve stored inactive values and their uniqueness reservations, including archived people.
+- Review parent/child applicability changes for retained identities and onboarding templates without coercing data. Preserve unchanged historical values for access revocation and omitted rules from older clients; migrate profile settings from schemas 1–3 to schema 4.
+- Hide dependency predicates behind unreadable ancestors, show visible children as applicability-unknown/read-only, and enforce the boundary at the authenticated server before partial profile updates.
+- Add conditional person/template editors and explicit rule controls to all existing designs. Preserve media, access policy and the VMS embed v1 contract; advertise the additive `conditional_profile_fields` capability.
+- Completes package 13 in software after release gates; people/review packages 14–20 remain open. [Conditional fields and VMS guidance](docs/CONDITIONAL_PROFILE_FIELDS_HE.md) · [Focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC26_CONDITIONAL_TESTS_HE.html).
+
 ## [2.0.0-rc.25] — 2026-09-29
 
 - Review field type, required, enabled and closed-list changes before saving, with missing/invalid counts covering retained and archived people and enabled onboarding templates. Examples are bounded and omit raw values and credentials.

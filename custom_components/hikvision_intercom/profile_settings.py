@@ -49,7 +49,11 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
                 or not expected
                 <= set(item)
                 <= expected
-                | ({"station_ids"} if key == "groups" else {"type", "required", "unique"})
+                | (
+                    {"station_ids"}
+                    if key == "groups"
+                    else {"type", "required", "unique", "depends_on"}
+                )
                 or type(item["enabled"]) is not bool
             ):
                 raise AccessError("invalid_fields")
@@ -67,6 +71,7 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
                 if type(unique) is not bool:
                     raise AccessError("invalid_fields")
                 normalized.update(type=kind, required=required, unique=unique)
+                normalized["depends_on"] = deepcopy(item.get("depends_on"))
                 options = item["options"]
                 if not isinstance(options, list) or len(options) > 100:
                     raise AccessError("invalid_fields")
@@ -83,6 +88,11 @@ def normalize(values: dict[str, Any]) -> dict[str, Any]:
             result[key].append(normalized)
         if len({v["id"] for v in result[key]}) != len(items):
             raise AccessError("invalid_fields")
+    from .profile_conditions import validate_conditions
+
+    conditions = validate_conditions(result["fields"])
+    for field in result["fields"]:
+        field["depends_on"] = conditions[field["id"]]
     templates = values.get("templates", [])
     if not isinstance(templates, list) or len(templates) > 32:
         raise AccessError("invalid_fields")
@@ -129,9 +139,15 @@ def validate_profile(
     definitions = {f["id"]: f for f in settings["values"]["fields"]}
     if set(values) - set(definitions):
         raise AccessError("invalid_fields")
+    from .profile_conditions import resolve_applicability
+
+    applicable = resolve_applicability(list(definitions.values()), values)
+    prior_applicable = resolve_applicability(list(definitions.values()), previous or {})
     for key, field in definitions.items():
         value = values.get(key, "")
-        if not field["enabled"] or previous is not None and previous.get(key, "") == value:
+        if not applicable[key] or (
+            previous is not None and prior_applicable[key] and previous.get(key, "") == value
+        ):
             continue
         if issue := profile_issue(field, value):
             raise AccessError(issue)
@@ -214,7 +230,7 @@ class ProfileSettings:
         self.read = read
         self.save = save
         self.changed = changed
-        self.data: dict[str, Any] = {"schema": 3, "revision": 0, "values": dict(DEFAULTS)}
+        self.data: dict[str, Any] = {"schema": 4, "revision": 0, "values": dict(DEFAULTS)}
         self.lock = asyncio.Lock()
 
     def load(self, data: dict[str, Any] | None) -> None:
@@ -224,7 +240,7 @@ class ProfileSettings:
             if (
                 set(data) != {"schema", "revision", "values"}
                 or type(data["schema"]) is not int
-                or data["schema"] not in (1, 2, 3)
+                or data["schema"] not in (1, 2, 3, 4)
                 or type(data["revision"]) is not int
                 or data["revision"] < 0
             ):
@@ -232,7 +248,7 @@ class ProfileSettings:
             values = normalize(data["values"])
         except (ValueError, TypeError, KeyError, AccessError):
             raise AccessError("invalid_storage") from None
-        self.data = {**data, "schema": 3, "values": values}
+        self.data = {**data, "schema": 4, "values": values}
 
     def public(self) -> dict[str, Any]:
         if self.read and (data := self.read()) is not None:
@@ -261,6 +277,7 @@ class ProfileSettings:
                             ("type", "text"),
                             ("required", False),
                             ("unique", False),
+                            ("depends_on", None),
                         ):
                             if key not in field:
                                 field[key] = old_fields.get(field["id"], {}).get(key, default)
@@ -272,7 +289,7 @@ class ProfileSettings:
                 if {v["id"] for v in self.data["values"][key]} - {v["id"] for v in values[key]}:
                     raise AccessError("profile_definition_in_use")
             if values != self.data["values"]:
-                draft = {"schema": 3, "revision": revision + 1, "values": values}
+                draft = {"schema": 4, "revision": revision + 1, "values": values}
                 await self.save(draft)
                 self.data = draft
                 self.changed()

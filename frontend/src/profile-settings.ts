@@ -3,6 +3,7 @@ import { styles } from "./styles";
 import { ScopedRequests } from "./request";
 import { translate } from "./i18n";
 import type { Hass, Station } from "./types";
+import { profileApplicability } from "./profile-fields";
 
 export interface ProfileDefinition {
   id: string;
@@ -15,6 +16,8 @@ export interface ProfileField extends ProfileDefinition {
   type?: "text" | "select" | "number" | "date";
   required?: boolean;
   unique?: boolean;
+  depends_on?: { field_id: string; value: string } | null;
+  applicability_unknown?: boolean;
 }
 export interface OnboardingTemplate {
   id: string;
@@ -42,6 +45,9 @@ interface PolicyReview {
     before: ProfileField | null;
     after: ProfileField;
     checked: number;
+    applicable?: number;
+    inactive?: number;
+    newly_applicable?: number;
     missing: number;
     invalid: number;
     previous_issues: number;
@@ -241,7 +247,20 @@ export class ProfileSettingsPanel extends LitElement {
               />${this.t("active")}</label
             >
             <div class="fields">
-              ${draft.fields.filter((f) => f.enabled).map((f) => html`<label>${f.label}<input maxlength="100" .value=${template.profile[f.id] ?? ""} @input=${(e: Event) => (template.profile[f.id] = (e.target as HTMLInputElement).value)} /></label>`)}
+              ${draft.fields
+                .filter((f) => profileApplicability(draft, template.profile)[f.id])
+                .map(
+                  (f) =>
+                    html`<label
+                      >${f.label}<input
+                        maxlength="100"
+                        .value=${template.profile[f.id] ?? ""}
+                        @input=${(e: Event) => {
+                          template.profile[f.id] = (e.target as HTMLInputElement).value;
+                          this.requestUpdate();
+                        }}
+                    /></label>`,
+                )}
             </div>
             <div class="fields">
               ${draft.groups
@@ -284,6 +303,12 @@ export class ProfileSettingsPanel extends LitElement {
       </button>
     </fieldset>`;
   }
+  private conditionLabel(field: ProfileField | null | undefined) {
+    const rule = field?.depends_on;
+    return rule
+      ? `${this.draft?.fields.find((f) => f.id === rule.field_id)?.label ?? rule.field_id} = ${rule.value || this.t("profile_empty_value")}`
+      : this.t("profile_always_applies");
+  }
   private reviewView() {
     const review = this.review;
     if (!review) return nothing;
@@ -321,6 +346,11 @@ export class ProfileSettingsPanel extends LitElement {
               ${this.t("profile_template_issues")}: ${field.template_issues} ·
               ${this.t("profile_duplicates")}: ${field.duplicates ?? 0}
             </p>
+            <p>
+              ${this.t("profile_condition")}: ${this.conditionLabel(field.before)} →
+              ${this.conditionLabel(field.after)}
+            </p>
+            ${field.applicable !== undefined ? html`<p>${this.t("profile_applicable")}: ${field.applicable} · ${this.t("profile_inactive")}: ${field.inactive} · ${this.t("profile_newly_applicable")}: ${field.newly_applicable}</p>` : nothing}
             ${field.after.unique ? html`<p>${this.t("profile_unique")}</p>` : nothing}
             ${
               (field.duplicates ?? 0) > 0
@@ -429,6 +459,7 @@ export class ProfileSettingsPanel extends LitElement {
       <form @submit=${(e: Event) => this.save(e)}>
         <fieldset ?disabled=${this.busy || !!this.review}>
           <legend>${this.t("profile_fields")}</legend>
+          <p class="sub">${this.t("profile_condition_hint")}</p>
           ${draft.fields.map(
             (f) =>
               html`<div class="profile-definition fields">
@@ -466,6 +497,37 @@ export class ProfileSettingsPanel extends LitElement {
                     @change=${(e: Event) => (f.unique = (e.target as HTMLInputElement).checked)}
                   />${this.t("profile_unique")}</label
                 >
+                <label
+                  >${this.t("profile_condition_parent")}<select
+                    .value=${f.depends_on?.field_id ?? ""}
+                    @change=${(e: Event) => {
+                    const parent = (e.target as HTMLSelectElement).value;
+                    f.depends_on = parent ? { field_id: parent, value: "" } : null;
+                    this.requestUpdate();
+                  }}
+                  >
+                    <option value="">${this.t("profile_always_applies")}</option>
+                    ${draft.fields.filter((p) => p.id !== f.id).map((p) => html`<option value=${p.id}>${p.label}</option>`)}
+                  </select></label
+                >
+                ${
+                  f.depends_on
+                    ? html`<label
+                        >${this.t("profile_condition_value")}<input
+                          maxlength="100"
+                          list=${"condition-options-" + f.id}
+                          .value=${f.depends_on.value}
+                          @input=${(e: Event) => {
+                    f.depends_on!.value = (e.target as HTMLInputElement).value;
+                    this.requestUpdate();
+                  }}
+                        />
+                        <datalist id=${"condition-options-" + f.id}>
+                          ${(draft.fields.find((p) => p.id === f.depends_on?.field_id)?.options ?? []).map((option) => html`<option value=${option}></option>`)}
+                        </datalist>
+                      </label>`
+                    : nothing
+                }
                 <label
                   >${this.t("profile_suggestions")}<textarea
                     rows="2"

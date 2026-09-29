@@ -31,7 +31,7 @@ import "./access-control";
 import "./workflow-center";
 import "./platform-center";
 import "./reauth";
-import { profileError, validProfileValue } from "./profile-fields";
+import { profileApplicability, profileError, validProfileValue } from "./profile-fields";
 import "./profile-settings";
 import "./user-photo";
 import "./media-settings";
@@ -412,6 +412,11 @@ export class IntercomManagerPanel extends LitElement {
     return manage ? level === "manage" : level !== "none";
   }
   private profileField(identity: string, manage = false) {
+    if (
+      manage &&
+      this._data?.profile_settings?.fields.find((f) => f.id === identity)?.applicability_unknown
+    )
+      return false;
     const level = this._session?.profile_fields?.[identity] ?? "manage";
     return this.personField("profile", manage) && (manage ? level === "manage" : level !== "none");
   }
@@ -2997,7 +3002,7 @@ export class IntercomManagerPanel extends LitElement {
 
       <div class="fields">
         ${policy.fields
-          .filter((f) => f.enabled)
+          .filter((f) => profileApplicability(policy, draft.profile ?? {})[f.id] !== false)
           .map(
             (f) =>
               html`<label
@@ -3028,7 +3033,7 @@ export class IntercomManagerPanel extends LitElement {
                           ${f.options.map((o) => html`<option value=${o}></option>`)}
                         </datalist>`
                 }
-                ${f.required ? html`<small>${this.t("profile_field_required")}</small>` : nothing}
+                ${f.applicability_unknown ? html`<small>${this.t("profile_condition_unknown")}</small>` : f.required ? html`<small>${this.t("profile_field_required")}</small>` : nothing}
               </label>`,
           )}
       </div>
@@ -3065,6 +3070,7 @@ export class IntercomManagerPanel extends LitElement {
             ></hikvision-user-photo>`
           : nothing
       }
+      ${policy.fields.some((f) => f.depends_on) ? html`<p class="sub">${this.t("profile_condition_preserved")}</p>` : nothing}
       <p class="sub">${this.t("profile_local_hint")}</p>
     </fieldset>`;
   }

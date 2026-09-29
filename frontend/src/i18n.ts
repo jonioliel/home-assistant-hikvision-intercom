@@ -855,6 +855,20 @@ const en = {
   profile_review_required:
     "Use the policy review before changing field constraints for existing people.",
   profile_unique: "Unique across people and archive",
+  profile_condition: "Field condition",
+  profile_condition_parent: "Show when field",
+  profile_condition_value: "Equals exactly",
+  profile_always_applies: "Always applies",
+  profile_empty_value: "Empty value",
+  profile_applicable: "Applicable people",
+  profile_inactive: "Not applicable",
+  profile_newly_applicable: "Newly applicable",
+  profile_condition_unknown:
+    "Read-only: the condition depends on a field outside your viewing permissions.",
+  profile_condition_preserved:
+    "Values of inactive fields are preserved. Changing a parent may require completing newly active fields.",
+  profile_condition_hint:
+    "Match an exact value in another field. Chained conditions are supported; circular dependencies are rejected. Inactive values remain stored, including unique reservations.",
   profile_value_not_unique: "A selected unique field is already reserved for another person.",
   profile_duplicates: "Conflicting identities",
   profile_unique_blocked:
@@ -3258,6 +3272,19 @@ const he: Record<keyof typeof en, string> = {
   profile_value_invalid: "ערך בשדה מותאם אינו תואם לסוג השדה או לרשימת האפשרויות.",
   profile_review_required: "יש להשתמש בסקירת המדיניות לפני שינוי כללי שדות של אנשים קיימים.",
   profile_unique: "ייחודי בין אנשים וארכיון",
+  profile_condition: "תנאי שדה",
+  profile_condition_parent: "הצג כאשר השדה",
+  profile_condition_value: "שווה בדיוק לערך",
+  profile_always_applies: "ללא תנאי",
+  profile_empty_value: "ערך ריק",
+  profile_applicable: "אנשים שהשדה חל עליהם",
+  profile_inactive: "השדה אינו חל",
+  profile_newly_applicable: "השדה מופעל כעת",
+  profile_condition_unknown: "לקריאה בלבד: התנאי תלוי בשדה שאינו בהרשאות הצפייה שלך.",
+  profile_condition_preserved:
+    "ערכים של שדות שאינם פעילים נשמרים. שינוי שדה אב עשוי לחייב השלמת שדות שהופעלו.",
+  profile_condition_hint:
+    "התאמה לערך מדויק בשדה אחר. ניתן לשרשר תנאים; תלות מעגלית נחסמת. ערכים שאינם פעילים נשמרים, כולל שמירת הייחודיות שלהם.",
   profile_value_not_unique: "ערך בשדה ייחודי כבר שמור לאדם אחר.",
   profile_duplicates: "זהויות עם כפילות",
   profile_unique_blocked:
