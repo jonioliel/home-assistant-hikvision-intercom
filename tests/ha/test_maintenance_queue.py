@@ -95,6 +95,10 @@ async def test_changed_review_does_not_write(hass, loaded_entry, hass_ws_client,
                     "locks": [{"physical_index": 1, "api_id": 2, "confirmed": True}],
                 },
             )
+            # Mapping updates unload/reload the actual runtime. While unloading,
+            # the queue safely waits; test the changed stamp after reload completes.
+            await hass.async_block_till_done()
+            assert loaded_entry.runtime_data is not None
         elif changed == "identity":
             jobs.data["jobs"][identifier]["rows"][0]["identity_stamp"] = "b" * 64
         elif changed == "window":
