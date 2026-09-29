@@ -41,6 +41,7 @@ CAPABILITIES = [
     "intercom_tts",
     "identity_lifecycle",
     "people_archive",
+    "conditional_profile_fields",
     "temporary_access_cancellation",
     "operational_readiness",
 ]

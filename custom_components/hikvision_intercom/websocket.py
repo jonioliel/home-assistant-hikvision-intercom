@@ -626,7 +626,7 @@ def _guard_operator(
         ):
             raise AccessError("field_access_denied")
     if command == "users/create":
-        guard_fields(policy, msg["data"])
+        guard_fields(policy, msg["data"], hass.data[DOMAIN]["profile_settings"].public())
         candidate = manager.repository.permission_data(msg["data"])
         assignments = candidate.get("assignments", {})
         if not isinstance(assignments, dict):
@@ -661,7 +661,7 @@ def _guard_operator(
             if uid in _outside_bound_people(hass, policy):
                 raise AccessError("person_scope_shared")
         if command == "users/update":
-            guard_fields(policy, msg["data"])
+            guard_fields(policy, msg["data"], hass.data[DOMAIN]["profile_settings"].public())
             candidate = manager.repository.permission_data(msg["data"], person)
             assignments = candidate.get("assignments", person.assignments)
             if any(not contains_station(policy, station) for station in assignments):

@@ -126,11 +126,37 @@ def project_people(
     ]
 
 
+def opaque_profile_fields(policy: dict[str, Any], fields: list[dict[str, Any]]) -> set[str]:
+    """Do not let a readable child disclose an unreadable ancestor predicate."""
+    definitions = {field["id"]: field for field in fields}
+    opaque: set[str] = set()
+    for field in fields:
+        current = field
+        visited: set[str] = set()
+        while rule := current.get("depends_on"):
+            parent = rule["field_id"]
+            if (
+                parent in visited
+                or parent not in definitions
+                or not profile_field_allowed(policy, parent)
+            ):
+                opaque.add(field["id"])
+                break
+            visited.add(parent)
+            current = definitions[parent]
+    return opaque
+
+
 def project_profiles(policy: dict[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     result = deepcopy(value)
     if not restricted(policy):
         return result
     result["templates"] = []
+    opaque = opaque_profile_fields(policy, result.get("fields", []))
+    for field in result.get("fields", []):
+        if field["id"] in opaque:
+            field.pop("depends_on", None)
+            field["applicability_unknown"] = True
     if not field_allowed(policy, "profile"):
         result["fields"] = []
     else:
@@ -183,7 +209,13 @@ def project_overview(
     return result
 
 
-def guard_fields(policy: dict[str, Any], patch: dict[str, Any]) -> None:
+def guard_fields(
+    policy: dict[str, Any], patch: dict[str, Any], profiles: dict[str, Any] | None = None
+) -> None:
+    if isinstance(patch.get("profile"), dict) and set(patch["profile"]) & opaque_profile_fields(
+        policy, (profiles or {}).get("fields", [])
+    ):
+        raise AccessError("field_access_denied")
     if isinstance(patch.get("profile"), dict) and any(
         not profile_field_allowed(policy, key, "manage") for key in patch["profile"]
     ):
