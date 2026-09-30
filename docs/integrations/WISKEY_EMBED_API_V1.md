@@ -1,6 +1,6 @@
 # WisKey embedded panel — contract v1 and SMPLWISE VMS handoff
 
-Target build: **2.0.0-rc.19**. Contract version: **1**. Technical domain and route remain
+Target build: **2.0.0-rc.37**. Contract version: **1**. Technical domain and route remain
 `hikvision_intercom` and `/hikvision-intercom`.
 
 ## הוראות קצרות להעברה לצוות VMS
@@ -42,6 +42,9 @@ Other origins and opaque/sandboxed origins are not supported by this channel.
 | `embed=1` | Opt in to embedded layout. Other values or absence use normal layout. |
 | `tab=<id>` | Select a permitted screen. Defaults to `overview`, or the first permitted default screen. |
 | `tool=<id>` | Select a management screen when `tab=tools`. Omit it to show the hub grid. |
+| `density=4|6|8|9|12` | Optional overview card count. Without it, the existing automatic choice uses measured available grid space. An explicit count is never reduced to automatic capacity; the iframe scrolls if needed. Invalid values are ignored. Arx can keep this value per user and pass it on every load. |
+| `wall=4|9|12` | Optional selected camera-wall stream budget. Without it, `density=4|9|12` also sets the wall budget; otherwise the prior default of 4 applies. Invalid values are ignored. |
+| `chrome=none` | Optional only with `embed=1`; removes outer main padding. Absent or other values retain the existing embedded content padding. |
 
 Examples:
 
@@ -52,6 +55,8 @@ Examples:
 /hikvision-intercom?embed=1&tab=tools&tool=schedules
 /hikvision-intercom?embed=1&tab=tools&tool=media_options
 /hikvision-intercom?embed=1&tab=tools&tool=access_control
+/hikvision-intercom?embed=1&chrome=none&tab=camera_wall&wall=12
+/hikvision-intercom?embed=1&tab=overview&density=12
 ```
 
 Canonical top-level IDs are `overview`, `users`, `devices`, `events`, `sync`, `tools`
@@ -151,7 +156,9 @@ infrastructure menu and refresh. Hub cards, tool-back links, forms, sub-navigati
 dialogs, camera controls and ordinary content remain available.
 
 Embedded layout fills its host width/height without an infrastructure-header offset,
-outer margin or content max-width. Existing RTL, responsive layouts and theme/accent
+outer margin or content max-width. With `embed=1`, document and panel edges are transparent,
+have no border, shadow or outer padding, and the document color scheme follows the panel.
+`chrome=none` additionally removes main content padding. Existing RTL, responsive layouts and theme/accent
 preferences are retained. Embed mode itself writes no local/session storage or server
 preference. A new normal URL restores normal presentation.
 

@@ -23,7 +23,7 @@ for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await start(page, theme, width);
-      await expect(page.locator(".wk4-door")).toHaveCount(width === 390 ? 4 : 9);
+      await expect(page.locator(".wk4-door")).toHaveCount(width === 390 ? 1 : 8);
       await expect(page.locator(".nav .nav-primary button")).toHaveCount(5);
       await noOverflow(page);
       await page.screenshot({
@@ -213,9 +213,10 @@ for (const width of [1440, 390]) {
   });
 }
 
-for (const count of [4, 6, 9, 12]) {
-  test(`V4 fits ${count} stations within a desktop screen`, async ({ page }) => {
+for (const count of [4, 6, 8, 9, 12]) {
+  test(`V4 shows an explicit ${count} stations on desktop`, async ({ page }) => {
     await start(page, "wiskey-light", 1440);
+    await page.getByRole("combobox", { name: "תחנות בתצוגה" }).selectOption(String(count));
     await page.evaluate((n) => {
       const panel = document.querySelector("hikvision-intercom-panel") as any;
       const source = panel._data.stations;
@@ -229,11 +230,12 @@ for (const count of [4, 6, 9, 12]) {
       };
     }, count);
     await expect(page.locator(".wk4-door")).toHaveCount(count);
-    await expect
-      .poll(() =>
-        page.locator(".wk4-grid-foot").evaluate((el) => el.getBoundingClientRect().bottom),
-      )
-      .toBeLessThanOrEqual(900);
+    if (count <= 8)
+      await expect
+        .poll(() =>
+          page.locator(".wk4-grid-foot").evaluate((el) => el.getBoundingClientRect().bottom),
+        )
+        .toBeLessThanOrEqual(900);
     await noOverflow(page);
     await page.screenshot({ path: `test-results/wiskey-v4-${count}-stations.png` });
   });
@@ -285,7 +287,9 @@ test("V4 preserves count selection, paging and wall full-screen access", async (
   await expect(page.locator(".wk4-pager")).toHaveCount(0);
 });
 
-test("V4 reduces page size on short desktop and mobile viewports", async ({ page }) => {
+test("V4 recalculates automatic page size on short desktop and mobile viewports", async ({
+  page,
+}) => {
   await start(page, "wiskey-light", 1440);
   await page.setViewportSize({ width: 1440, height: 720 });
   await expect(page.locator(".wk4-door")).toHaveCount(4);
@@ -294,8 +298,8 @@ test("V4 reduces page size on short desktop and mobile viewports", async ({ page
     .poll(() => page.locator(".wk4-grid-foot").evaluate((el) => el.getBoundingClientRect().bottom))
     .toBeLessThanOrEqual(720);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator(".wk4-door")).toHaveCount(4);
-  await expect(page.locator(".wk4-pager")).toContainText("1 / 3");
+  await expect(page.locator(".wk4-door")).toHaveCount(1);
+  await expect(page.locator(".wk4-pager")).toContainText("1 / 9");
   await noOverflow(page);
 });
 

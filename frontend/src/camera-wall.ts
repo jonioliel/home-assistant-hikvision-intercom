@@ -20,15 +20,16 @@ export class CameraWall extends LitElement {
       :host {
         display: block;
         height: auto;
-        overflow: visible;
+        min-width: 0;
       }
       .wall {
         display: grid;
         gap: 12px;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .wall.nine {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(var(--wall-columns, 2), minmax(0, 1fr));
+        max-height: var(--wall-available-height, none);
+        overflow-y: auto;
+        overflow-x: hidden;
+        align-content: start;
       }
       .tile {
         border: 1px solid var(--divider-color);
@@ -40,22 +41,28 @@ export class CameraWall extends LitElement {
         margin: 4px 0 10px;
         font-size: 16px;
       }
+      :host([compact]) > p {
+        display: none;
+      }
+      :host([compact]) h2 {
+        margin: 0 0 6px;
+      }
+      :host([compact]) .tile {
+        padding: 4px;
+      }
+      :host([compact]) .tile h3 {
+        margin: 0 0 4px;
+        font-size: 13px;
+      }
+      :host([compact]) .tile button {
+        min-height: 28px;
+        padding: 3px 8px;
+      }
       .choices {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
         padding: 12px 0;
-      }
-      @media (max-width: 1000px) {
-        .wall.nine {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-      @media (max-width: 600px) {
-        .wall,
-        .wall.nine {
-          grid-template-columns: minmax(0, 1fr);
-        }
       }
     `,
   ];
@@ -65,6 +72,8 @@ export class CameraWall extends LitElement {
     media: { attribute: false },
     version: { type: String },
     suspended: { type: Boolean },
+    requestedLimit: { type: Number },
+    compact: { type: Boolean, reflect: true },
     layouts: { state: true },
     layoutId: { state: true },
     layoutName: { state: true },
@@ -78,6 +87,8 @@ export class CameraWall extends LitElement {
   media?: MediaPolicy | null;
   version = "";
   suspended = false;
+  requestedLimit = 0;
+  compact = false;
   private layouts: CameraLayout[] = [];
   private layoutId = "";
   private layoutName = "";
@@ -87,6 +98,23 @@ export class CameraWall extends LitElement {
   private active = false;
   private limit = 4;
   private selected: string[] = [];
+  private wallResize?: ResizeObserver;
+  private fitWall = () => {
+    const wall = this.renderRoot.querySelector<HTMLElement>(".wall");
+    if (!wall) return;
+    const rect = wall.getBoundingClientRect();
+    const columns = Math.max(1, Math.floor((rect.width + 12) / 232));
+    wall.style.setProperty("--wall-columns", String(columns));
+    wall.style.setProperty(
+      "--wall-available-height",
+      `${Math.max(220, document.documentElement.clientHeight - rect.top - 8)}px`,
+    );
+  };
+  connectedCallback() {
+    super.connectedCallback();
+    this.wallResize = new ResizeObserver(this.fitWall);
+    this.wallResize.observe(this);
+  }
   private actor?: string;
   private authorized = false;
   private t = (key: string) => translate(this.hass?.language ?? "en", key);
@@ -94,10 +122,10 @@ export class CameraWall extends LitElement {
     if (this.actor !== this.hass?.user?.id || this.authorized !== !!this.hass?.user?.is_admin) {
       this.authorized = !!this.hass?.user?.is_admin;
       this.active = false;
-      this.limit = 4;
+      this.limit = this.requestedLimit || 4;
       this.selected = this.stations
         .filter((s) => s.entities.camera)
-        .slice(0, 4)
+        .slice(0, this.limit)
         .map((s) => s.id);
       this.actor = this.hass?.user?.id;
       this.layouts = [];
@@ -109,6 +137,14 @@ export class CameraWall extends LitElement {
       this.selected = this.selected.filter((id) =>
         this.stations.some((s) => s.id === id && s.entities.camera),
       );
+    if (changes.has("requestedLimit") && this.requestedLimit) {
+      this.limit = this.requestedLimit;
+      this.selected = this.stations
+        .filter((s) => s.entities.camera)
+        .slice(0, this.limit)
+        .map((s) => s.id);
+    }
+    this.fitWall();
   }
   private layoutKey() {
     return "wiskey:camera-layouts:v1:" + this.actor;
@@ -129,7 +165,7 @@ export class CameraWall extends LitElement {
           !row ||
           !text(row.id, 64) ||
           !text(row.name, 64) ||
-          ![4, 9].includes(row.limit) ||
+          ![4, 9, 12].includes(row.limit) ||
           !Array.isArray(row.stations) ||
           row.stations.length > row.limit ||
           row.stations.some((id: unknown) => !text(id, 128)) ||
@@ -248,6 +284,7 @@ export class CameraWall extends LitElement {
   }
   disconnectedCallback() {
     this.active = false;
+    this.wallResize?.disconnect();
     super.disconnectedCallback();
   }
   render() {
@@ -261,14 +298,14 @@ export class CameraWall extends LitElement {
       <div class="row">
         <label
           >${this.t("camera_wall_budget")}<select
-            .value=${String(this.limit)}
             @change=${(e: Event) => {
               this.limit = Number((e.target as HTMLSelectElement).value);
               this.selected = this.selected.slice(0, this.limit);
             }}
           >
-            <option value="4">4</option>
-            <option value="9">9</option>
+            <option value="4" ?selected=${this.limit === 4}>4</option>
+            <option value="9" ?selected=${this.limit === 9}>9</option>
+            <option value="12" ?selected=${this.limit === 12}>12</option>
           </select></label
         >
         <button
@@ -287,7 +324,7 @@ export class CameraWall extends LitElement {
           ${this.stations.filter((s) => s.entities.camera).map((s) => html`<label class="check"><input type="checkbox" .checked=${this.selected.includes(s.id)} ?disabled=${!this.selected.includes(s.id) && this.selected.length >= this.limit} @change=${(e: Event) => (this.selected = (e.target as HTMLInputElement).checked ? [...this.selected, s.id] : this.selected.filter((id) => id !== s.id))} />${s.name}</label>`)}
         </div>
       </details>
-      <div class=${this.limit === 9 ? "wall nine" : "wall"}>
+      <div class="wall">
         ${repeat(
           stations,
           (s) => s.id,
