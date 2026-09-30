@@ -481,7 +481,7 @@ export class IntercomManagerPanel extends LitElement {
       const rect = grid.getBoundingClientRect();
       const availableHeight = Math.max(200, document.documentElement.clientHeight - rect.top - 24);
       const columns = Math.max(1, Math.floor((rect.width + 14) / 224));
-      const rows = Math.max(1, Math.floor((availableHeight + 14) / 204));
+      const rows = Math.max(1, Math.floor((availableHeight + 14) / 250));
       const capacity = Math.min(12, columns * rows);
       if (this._wallCapacity !== capacity) this._wallCapacity = capacity;
       return;

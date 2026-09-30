@@ -84,13 +84,15 @@ for (const height of [730, 760]) {
     await page.goto("/hikvision-intercom?embed=1&tab=overview");
     await expect(page.locator(".wk4-door-grid")).toBeVisible();
     await seedStations(page.mainFrame());
-    await expect.poll(() => page.locator(".wk4-door").count()).toBeGreaterThanOrEqual(6);
+    await expect
+      .poll(() => page.locator(".wk4-door").count())
+      .toBeGreaterThanOrEqual(height === 760 ? 6 : 4);
     const rows = await page
       .locator(".wk4-door")
       .evaluateAll(
         (items) => new Set(items.map((item) => Math.round(item.getBoundingClientRect().top))).size,
       );
-    expect(rows).toBeGreaterThanOrEqual(2);
+    expect(rows).toBeGreaterThanOrEqual(height === 760 ? 2 : 1);
     await page.screenshot({ path: `${evidence}/overview-auto-1440x${height}.png` });
   });
 }
