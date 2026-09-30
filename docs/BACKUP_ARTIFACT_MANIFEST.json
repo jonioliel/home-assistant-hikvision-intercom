@@ -1,0 +1,3343 @@
+{
+  "date": "2026-10-01",
+  "purpose": "Cross-machine backup of handoff and V4 design artifacts, not HA state",
+  "excluded": [
+    ".codex-remote-attachments",
+    "private",
+    ".env",
+    ".storage",
+    "environment caches"
+  ],
+  "files": [
+    {
+      "path": "docs/design/v4/app.js",
+      "bytes": 96260,
+      "sha256": "d38cf2c8709befd42832c5f78afd5ca4390494c7606a3003849a252aef47e3db"
+    },
+    {
+      "path": "docs/design/v4/assets/entrance.png",
+      "bytes": 2774174,
+      "sha256": "7a78b3ce9b7f100b08eba17ec2c9443c59cd5f9e96a6afb94a2063248bc567ae"
+    },
+    {
+      "path": "docs/design/v4/assets/Heebo.ttf",
+      "bytes": 122012,
+      "sha256": "18f930b583fa8fe6b40b2f8263b7ac6afbac07adc91a12467874e7467d3ace30"
+    },
+    {
+      "path": "docs/design/v4/assets/OFL.txt",
+      "bytes": 4380,
+      "sha256": "6dd1a72e493340e4e4c0fbb2a4138d2afda7a52590f5ea7be20e1329c1e103f6"
+    },
+    {
+      "path": "docs/design/v4/assets/person-demo.png",
+      "bytes": 2113060,
+      "sha256": "6068931ad979e8f1246ee670a6db92f2705cb0708815c6be163888f9c7c30d86"
+    },
+    {
+      "path": "docs/design/v4/assets/README.md",
+      "bytes": 363,
+      "sha256": "3a12554b5ad8930eb33c412be11c1a5e23551e42b0ee97c38acc7e9a00be02dd"
+    },
+    {
+      "path": "docs/design/v4/DESIGN_SPEC_HE.md",
+      "bytes": 10880,
+      "sha256": "bf3c8da198fda06b88a8c3c027c377907095f7c68ae3caa446be1971b27c2b7a"
+    },
+    {
+      "path": "docs/design/v4/gallery-check.mjs",
+      "bytes": 3709,
+      "sha256": "55306f054eb5deb2f27319ce07d1a5a5be44f6c8f5d351c9d08a6ef8a169f737"
+    },
+    {
+      "path": "docs/design/v4/gallery.html",
+      "bytes": 11696,
+      "sha256": "3d952c2fed8f5f276e0e54a2400dd433540c818bf2b0bbbbd71090c838c0e16f"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/activity.png",
+      "bytes": 104188,
+      "sha256": "6912388dc94ef8d08b7de0c3365d988a9777cf683ad65b9a5f1e3d1cbf4311be"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/appearance.png",
+      "bytes": 65131,
+      "sha256": "2cbb85a48a6a1aa3612938e5a70ff9715c77aa088f062984b7bf1821ba19c9a3"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/audit.png",
+      "bytes": 58727,
+      "sha256": "383e2e8173d7e1f64d34da71b89d92f46b4374069cf2cb077f2daa7c374cf0e2"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/bulk.png",
+      "bytes": 53235,
+      "sha256": "79bf1124bb743b97c12689644b676339a5453b44cbbb8d96a1f50b8600741d7b"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/call-active.png",
+      "bytes": 950233,
+      "sha256": "a85fc1bb44c907f282a3e8ca9bd1000a0983d04b9cc7842981d5cd723b842448"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/call.png",
+      "bytes": 950473,
+      "sha256": "320f35752de14e08ac19ad3cd275f0cf27bb396ed4d7552c3754531492da2c23"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/card.png",
+      "bytes": 50060,
+      "sha256": "d93ff7b8fe41063f0a510c4a1a28b33bd14476831fc7bb9fba02a789041f4456"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/chat.png",
+      "bytes": 119313,
+      "sha256": "ccf63fffe5e5356a2fa3b9cc277d011242421b3129d66fd787af3b92c70b144b"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/clocks.png",
+      "bytes": 78925,
+      "sha256": "a064db8815af7982da3a983e295f5c87f1babc98c7c4ca4ec6426d4f4e47f3c5"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/code-edit.png",
+      "bytes": 42933,
+      "sha256": "3e11d5b739981c6211f685b608760067ce40e8f771e461910e9716e6d9bb8000"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/codes.png",
+      "bytes": 58648,
+      "sha256": "f09b4fa6598ca80cb057c320deda891c31d5da02f2c98e3eead4073da3eaa841"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/credentials.png",
+      "bytes": 51625,
+      "sha256": "9fc1034b8e43575a146a9773f01852f92da11faa77dfc8db465801879858fe8c"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/deployment.png",
+      "bytes": 73514,
+      "sha256": "294084aae1896ff503d917591dc14948ab8140b47fe55d510b92132f7928c1c0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/directory.png",
+      "bytes": 55388,
+      "sha256": "b7976c879f19b6f186aab6be32f5e945274ac437e3d0ac98a93f77591bae3e2f"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/doors.png",
+      "bytes": 79335,
+      "sha256": "895352922a0e3278394cd48e29282c5c5824f5cad55c8dbb7f21569e7b26306d"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/event.png",
+      "bytes": 104458,
+      "sha256": "0076dd03a1ac0f1cee78e5ec145e4429044315a1f1820d9f105b1a1514262cc0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/fields.png",
+      "bytes": 67522,
+      "sha256": "b96ac01e3ac532fc6a16c42d3f3eef623b6d291a77f47c9574d8c1127a2b61de"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/group-edit.png",
+      "bytes": 62355,
+      "sha256": "ba84e2b4cb9ef8cbdd83963206a67f552da5ccee016c4ba10e2860b13e956846"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/groups.png",
+      "bytes": 51185,
+      "sha256": "ebd7ba4774098eb91e194b3b521a2ed58101ebc800df887bf86dac06b93de463"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/health.png",
+      "bytes": 72956,
+      "sha256": "24908807b2ae506005d13f622eddf923ebcfa797e25d884794197fea99c1df1d"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/imports.png",
+      "bytes": 69620,
+      "sha256": "2110210e9478c8e27cc18bc84ca477831ce3a5cb42a792510a710b8dabe82940"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/lifecycle.png",
+      "bytes": 56368,
+      "sha256": "3736f08d0655bfbf56c863702fb88e48542425d50f956ad500209f8b4ff467f7"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/management.png",
+      "bytes": 68793,
+      "sha256": "8c92ebfb6ad8527b7f7be860ca38df8abbdd18dab6105a998a6dbc6809679bb9"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/media.png",
+      "bytes": 72984,
+      "sha256": "429b0779dc7f3dbe7364c0b86408def7c8e25a114f80a2c50afb4a3cc9b44efd"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/operations.png",
+      "bytes": 54725,
+      "sha256": "9a27b0b4eaa4031970bdcd4c56fcf54ebd18c78d4ea4dcd838906b86b7d445fe"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/overview-12.png",
+      "bytes": 307245,
+      "sha256": "82ae8491a4dbe1ab3a1eb41df99db30bb28e8eae1ddcd99ff214e5f5a5138b2a"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/overview.png",
+      "bytes": 448971,
+      "sha256": "b4d89cc0c0a0d9217d7e7e12cdf53e733ee829e0f7c8342d48780df64a5bfd0b"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/people.png",
+      "bytes": 133685,
+      "sha256": "ef6b3fab76b85d9b4bb6407829026f35222275e187a9c2f8d939d93fce654961"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/permissions.png",
+      "bytes": 67167,
+      "sha256": "a8700681b9faec7c56e5e48efa4dd1baa435aa7aaf70fab263df21e72c7699a8"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person-access.png",
+      "bytes": 76981,
+      "sha256": "86c05a2f43e031194374c8253570d22ebdb1dd4728cea0811e9ed604417c92b0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person-always.png",
+      "bytes": 52057,
+      "sha256": "b7216be593a70312e6501a28af21bb60f28f78efa96cbc7f02622449290b87ac"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person-dates.png",
+      "bytes": 72966,
+      "sha256": "9b1074b66a750e7feadfa34bf2744e16de0a31f11d1e53a18e36079a9744445d"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person-edit.png",
+      "bytes": 77147,
+      "sha256": "54b270198c67d80c67f5a12c9b1d690e615269629659c7f75199deb67b01de66"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person-timing.png",
+      "bytes": 72768,
+      "sha256": "9c10d0ba2a79f54d9aabb1aa40a6f0a09c1cd9aa5d99ff183f94c7cd995121aa"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/person.png",
+      "bytes": 95575,
+      "sha256": "24bfbad4926ee5b0c2e798e96288dbb6e6fe3116b5e5b133edb26ae1fd2423bb"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/photo.png",
+      "bytes": 172394,
+      "sha256": "3838b1bc7bec632568730ffc2f7da1e96b4872027fdc042827c293eba666b6fa"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/pin.png",
+      "bytes": 41900,
+      "sha256": "9e367f76196aadea5b9eafa79dabf8f17ea6797fcdb5cad63e08bb7432e1449f"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/program-edit.png",
+      "bytes": 63230,
+      "sha256": "918cc4dafd6a62e4fc09458ed5ebdf73a6294a5ed7020feb77156fec64a3085e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/programs.png",
+      "bytes": 69585,
+      "sha256": "3af230380f63c3a1881d3ca0719aa7134819ea134e8c4e021b6ed064de1df340"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/recovery.png",
+      "bytes": 47583,
+      "sha256": "f97b5ef11853f4dfb27d1a3ef30235f55ef26547767ddba61330d402b0b2affa"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/reports.png",
+      "bytes": 57883,
+      "sha256": "03e586a709afcdcc9d654a886d9eb61b311f12a4188ef8ffefc4eeb56aab67b2"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/schedules.png",
+      "bytes": 65180,
+      "sha256": "2905b34aa4745ef3230b3bc048d61de4964c2b461ecc8629b23a72e1f140482b"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/states.png",
+      "bytes": 65459,
+      "sha256": "03b7eb2b4689244e444f41999a9cec8e2d94477142e8c95c5b32d4c277ddac9e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/station.png",
+      "bytes": 71143,
+      "sha256": "263edffacbb07a46fe4635128815ae1068cd30128a1879730da0b054add13786"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/sync-detail.png",
+      "bytes": 58190,
+      "sha256": "414bfc0712286427e30c05ce7b743cb30654967780ec5a829c00a49caa9290e8"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/sync.png",
+      "bytes": 71773,
+      "sha256": "c4bf6f5de819d8becbded2e24eed0b57eebcbca65ab790014cd821ef8fe031e7"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/technical.png",
+      "bytes": 72140,
+      "sha256": "33826b94b34fdd0cc57a367e4183e35eba7e2def147300068aacd26581a28f59"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/templates.png",
+      "bytes": 81070,
+      "sha256": "da483b896ab354f2a3bfbe2e2f2cae9431a0c532a0d35eb96eca98b464c29509"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-dark/whatsapp.png",
+      "bytes": 77053,
+      "sha256": "b020099ac86878ac44132158e0dd9e3eef27167d198b3279a0f8e69f6907dfb3"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/activity.png",
+      "bytes": 102612,
+      "sha256": "c57ccfac79a22a18feceef0e04300076c9a3ac84bf4a6f63076017fd2a7051d4"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/appearance.png",
+      "bytes": 64999,
+      "sha256": "c78fc74a3de1ece5b8b99caec072861dc8d19be781f70bb4ac23372957b99287"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/audit.png",
+      "bytes": 58402,
+      "sha256": "9077d914570ce99a99fac1ba5d8a339d6c3e4ddc345e646dd178867b22762cf4"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/bulk.png",
+      "bytes": 52677,
+      "sha256": "54b9520c4ff2f7574d5063889e90ea24eb717f7028ec1adedab39a485e67cd03"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/call-active.png",
+      "bytes": 950892,
+      "sha256": "d98fca7536497b01c34db7fb998f8d4bf0719bed3b2f4381bab289427048b1a8"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/call.png",
+      "bytes": 951094,
+      "sha256": "a23e77984312bdbc9a5490915d717c83ecaaf34f2217cec84cd483ae69091bbe"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/card.png",
+      "bytes": 49326,
+      "sha256": "683cb3cd0869563ce6dfbacb9a0d98fa8f387f1ed20219c5daab20273878308e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/chat.png",
+      "bytes": 118495,
+      "sha256": "2c18fb05a533060c4da1ee3b13bf5b9e1b441fbbb9a511112310b4015a28027d"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/clocks.png",
+      "bytes": 77936,
+      "sha256": "fada3c1e505dba0906352e8db2e383732f5402592451e9b1626aae9585439128"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/code-edit.png",
+      "bytes": 42574,
+      "sha256": "e70bc1d5159d10a260a45a32428c92df2866bfbb94fd4706071204f01151a725"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/codes.png",
+      "bytes": 58348,
+      "sha256": "553f8b95fc7faab0480072b82cbad72515261ca6ae7fd2a00771724ad226c731"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/credentials.png",
+      "bytes": 51413,
+      "sha256": "9ad3134be11064d30a3b6d9cfc1c949167c5f794332b3e3f9cf14736182523ab"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/deployment.png",
+      "bytes": 73355,
+      "sha256": "23136005b122aa71eee91f2dac77f4d5b134e1bdf2fb135b341541bea73a0f8e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/directory.png",
+      "bytes": 54449,
+      "sha256": "5b79c9ba5dc4fcb246be3f07d7dcc0bf2111d4d4db6be808b3ed7c1997ef755e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/doors.png",
+      "bytes": 78480,
+      "sha256": "5c8b612bab7081aabb0c550e6770a16b197b8d2cb50443896685e4547de1d702"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/event.png",
+      "bytes": 102927,
+      "sha256": "5a1ec749647bf4a96f70c271ea89f63d6dd4ed00bc6a65cd08a0f3866af85f1e"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/fields.png",
+      "bytes": 67231,
+      "sha256": "129de4ecb5b8b0a4acbe90995587aa752a0d5a061982d553ed552926e1e146bb"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/group-edit.png",
+      "bytes": 61798,
+      "sha256": "7ae8a5b96df7bdfac0247892f0b05b7371a57ee053fa8a26d918546cfdae70c0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/groups.png",
+      "bytes": 51338,
+      "sha256": "20dc5180dbd2b13679127ec0f35eb7de1b1a19906c15860ae0912c3e187e6f81"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/health.png",
+      "bytes": 72511,
+      "sha256": "5cd07b4dcbc458ee3c505376d9c57a3393386cd2d30220bd431353d89eea320f"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/imports.png",
+      "bytes": 68309,
+      "sha256": "04e748b89f60b4637e925f0114584c9d5761bf8fd4fe1180fcb43b52a25faa0a"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/lifecycle.png",
+      "bytes": 55238,
+      "sha256": "391894afc46d0c1d2b0a610bc18f31608e84c4e64570aa3136cd7e1fb7a8f836"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/management.png",
+      "bytes": 68247,
+      "sha256": "1ef0b2fa41a9071e4a926b1c6d60f67c461767ad840f7c2e0e4a5f417118e60c"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/media.png",
+      "bytes": 73130,
+      "sha256": "6dddd6edbefc9ae4b8f62b58aa68a08432b80a1994d539f6ed66a13b896a13f0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/operations.png",
+      "bytes": 54068,
+      "sha256": "2d559bd3b75060780fbbb69238232520399b4081f2fa47b1de11c9ca859dd6f0"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/overview-12.png",
+      "bytes": 307123,
+      "sha256": "7aaa01182b2821726e80f24a78cbe4bca3a58cd2572d44eaac5fce8b4844ea87"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/overview.png",
+      "bytes": 448629,
+      "sha256": "22951566df6df2256b7799330c755bd310f92dde4a6fa34e78f5f7b6062c515b"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/people.png",
+      "bytes": 132611,
+      "sha256": "e4f687574aa981d710b70c11a2e85ae4de767b5795e2077b1e95a24552a444b6"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/permissions.png",
+      "bytes": 66524,
+      "sha256": "de872d3ad1a7d51f45321f9f95baf6c1a647e4bf4ad02030b21e9d02b63eb959"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person-access.png",
+      "bytes": 76262,
+      "sha256": "b0bdf1fff4b5f55f055e5b902987412ef397466ac6ca4c1d148facd38613abed"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person-always.png",
+      "bytes": 51849,
+      "sha256": "d32620cd05285d60bd48f6a35aa620373af3d2e8fc253fedf6502be290495593"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person-dates.png",
+      "bytes": 72323,
+      "sha256": "386e92bd93a07b789e79235c3ad211d2cabdbf7967a6055680d1d510d826cc05"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person-edit.png",
+      "bytes": 76398,
+      "sha256": "cf4cdd1fe9fb034302508bc5f6df3b470f7a236ff1f06517c886ea1c6561cbc9"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person-timing.png",
+      "bytes": 71940,
+      "sha256": "4568d6c761f6649e1b1fb6b585550087e1950a35cb7105ed1401ff372fee2e3f"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/person.png",
+      "bytes": 94926,
+      "sha256": "d3eb9be24d41db54d2b940b4139636ae90f6215997afab1d9825f7a3bdd21f7c"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/photo.png",
+      "bytes": 172160,
+      "sha256": "7aeda423c30e2564897cb83d64c14aa3cae2085a626ee9fab8d5dc3b464723b3"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/pin.png",
+      "bytes": 41460,
+      "sha256": "6d8bf253af8a63c4170e6e2bc8482ee7aa1e3826fdfe8101abcb8f3d416eaa14"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/program-edit.png",
+      "bytes": 62505,
+      "sha256": "dc1632aa94699a6595d96acc56d74e91c401b71d69922a9910090c82dbf7b6b1"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/programs.png",
+      "bytes": 69115,
+      "sha256": "c92c6b2d973418ac59a37cbaf960159bf9ebb91dda1f6aa1ee6501ccccd474cf"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/recovery.png",
+      "bytes": 47470,
+      "sha256": "d86eb9e7aa856cbed8be66ef0cb6936c4a3e80ae6bafa1a1944631e94f7badcb"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/reports.png",
+      "bytes": 57405,
+      "sha256": "507a0bc3dff74cda643397052b5a371f5c95f634127d694dd9a4e60ada9c20f3"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/schedules.png",
+      "bytes": 64144,
+      "sha256": "de64841f60a45a72ab3c03bbb69d1273a762319c9d160b21b03490149bafcd01"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/states.png",
+      "bytes": 65645,
+      "sha256": "900a05322cfb412ec16f4b6de428f470ad37af7634a7d18b2a70e16d129b4c01"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/station.png",
+      "bytes": 71097,
+      "sha256": "59900238dbeb00688b38712fec9df7af5af013f651910318a8b51681b01d02fa"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/sync-detail.png",
+      "bytes": 57829,
+      "sha256": "8cf59e4b7420830bae52533f169530d35980b5b907ef6b5405c72cb018e0c339"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/sync.png",
+      "bytes": 69915,
+      "sha256": "07044b9ad0f2f7a60f0f2fd2b904b96929663b4ffa40865cbfe309649ab3f173"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/technical.png",
+      "bytes": 72100,
+      "sha256": "59c3c499c9b729612b4bee1cfb819325d32e4f4184a7f86625814c4231fecb80"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/templates.png",
+      "bytes": 80365,
+      "sha256": "8d6db50583bec414c881b429f0902f7a39c7536d9f50de09ce2ef19df9ffcc80"
+    },
+    {
+      "path": "docs/design/v4/images/desktop-light/whatsapp.png",
+      "bytes": 76378,
+      "sha256": "a1834669112db7515db22b5ba71be1d447496572130e5d233d323588632cd644"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/appearance-viewport.png",
+      "bytes": 28909,
+      "sha256": "5fa5bde8a2e1075587d6a34608d2cf8e29acc14e73d99a39d585be6bdc16ec87"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/appearance.png",
+      "bytes": 46103,
+      "sha256": "050eaf0c0f96da5a1a17d3217d409ce4ff6a045a7da99e1ca3f38f96639b56f8"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/call-viewport.png",
+      "bytes": 164774,
+      "sha256": "42b37dc6d7df66a01eea9c943c96e9cba453858a566aa1e9a03d5b048bc7d029"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/call.png",
+      "bytes": 164774,
+      "sha256": "42b37dc6d7df66a01eea9c943c96e9cba453858a566aa1e9a03d5b048bc7d029"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/chat-viewport.png",
+      "bytes": 84854,
+      "sha256": "117eaa18d67240d2c83502e94c5dce60d3a3da271d8cc2fcb5547c5968e18f62"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/chat.png",
+      "bytes": 88531,
+      "sha256": "4f774ee688a33016724a3c3a9cd9d313cf3b145f7fa3a876f012c81fae9e473e"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/credentials-viewport.png",
+      "bytes": 40707,
+      "sha256": "6d75f9d9ce94a4a4133f2196c14581b345afbf9154bec45ef1d3e19fbbe63957"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/credentials.png",
+      "bytes": 41103,
+      "sha256": "9c9ca332647dc0a29006540a5358be25de2ab5f7865f16de779db35db9ca9697"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/management-viewport.png",
+      "bytes": 39901,
+      "sha256": "531298ef839d8d3329932ddb153d1e58f31073aef31bbb33a5f18cab42418e34"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/management.png",
+      "bytes": 68017,
+      "sha256": "072b03da8c40b40b54bac9f7176496463329b823fcf852159f97aefdd6410e29"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/overview-viewport.png",
+      "bytes": 159528,
+      "sha256": "ff3e62cae5957cf402f6c46beee2581b0d1979abfe2ae5b6a136b9facfc72d69"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/overview.png",
+      "bytes": 288373,
+      "sha256": "24414b8aac78ae5c34c3e62e72b2c92fe38f4220660005d5a3cc1cd128ffdcf2"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/people-viewport.png",
+      "bytes": 48919,
+      "sha256": "9fbc25affe9e4ed8e7eaa95a8cfce0d06eb6fadca9d2ca7590d21c677b9ef619"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/people.png",
+      "bytes": 65412,
+      "sha256": "e9656f132f5ce148e2482a9add6e6549a562da022ca206296669082343e7ef78"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person-edit-viewport.png",
+      "bytes": 53605,
+      "sha256": "59aeddcfa8852c4cc28d4108bca59f990c184ba0b33dbebfc8fbfbbb8bc042c8"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person-edit.png",
+      "bytes": 68325,
+      "sha256": "90f39cbca780b5ba4cd6429a52f997d5d5c16e9b743fa74098edc0e7ebcbc0d3"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person-timing-viewport.png",
+      "bytes": 42626,
+      "sha256": "b18883ce194daef57d33198ec02c4be42bae5656de19fb6c8475110a9bb465f3"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person-timing.png",
+      "bytes": 67277,
+      "sha256": "6486c7f4a21a59548fe6a2e7b6b63eeca2e86d1f90e3ac7f9cedd07df841bf24"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person-viewport.png",
+      "bytes": 46161,
+      "sha256": "ad3ddee0fd854a7ffbfa9393f56618c459dab4759eea099a34312f7df49d9af3"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/person.png",
+      "bytes": 82298,
+      "sha256": "9a674842207ce56966f45443c9e4675f87a92248fdf060486edd3a0f5d481b06"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/programs-viewport.png",
+      "bytes": 50408,
+      "sha256": "207e568d11fe2ee9e4c080600a6236f1bcbc70f0587081ab29aa619c1a949730"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/programs.png",
+      "bytes": 56427,
+      "sha256": "8e1974143780f73bd39b5defa6c6edb0a50c63c7ab98977af4fac876a5ae54d7"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/station-viewport.png",
+      "bytes": 39330,
+      "sha256": "fe9aeb179d4d10ce97e33af9fe0493965af872f5f4f509c6ccc76d28da2573fb"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/station.png",
+      "bytes": 59827,
+      "sha256": "690079135c8ae8da8852b80a8712aa9de9bbebd8d38d20bc42d944a5cf716edd"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/sync-viewport.png",
+      "bytes": 40030,
+      "sha256": "28a36bdac3ada7a125903613fba8482406ae719110224154428d9189824abfda"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/sync.png",
+      "bytes": 44598,
+      "sha256": "75fcdb7c1187e05cbf65568bf363105ae186233a31159085797db75fd7b3ec18"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/whatsapp-viewport.png",
+      "bytes": 42596,
+      "sha256": "2dc2672c18f5ffc2e0b45204634f3a9b03c9c91475306c534dd877402f4d38a7"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-dark/whatsapp.png",
+      "bytes": 68186,
+      "sha256": "b957e0b68b3cd3c73e63320922e563da39d1102be3d7c9596ae4a1d62aa050de"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/appearance-viewport.png",
+      "bytes": 28669,
+      "sha256": "61a3d4159226996a7edd720d01a7514bde6ea727df9d59f1d998d44cb9a1d8a4"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/appearance.png",
+      "bytes": 45674,
+      "sha256": "370ef5de8d61eed138a3586f5ac11d78fee5100d529beaa6ac8c6272f16ea091"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/call-viewport.png",
+      "bytes": 164795,
+      "sha256": "89985096785bfa2c28b4c5ef5b6b1778292f053c2ac62eed4c7af356507b7093"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/call.png",
+      "bytes": 164795,
+      "sha256": "89985096785bfa2c28b4c5ef5b6b1778292f053c2ac62eed4c7af356507b7093"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/chat-viewport.png",
+      "bytes": 84632,
+      "sha256": "d19705d79cfbc173b28dbfe2184b718007d2c2af8eb0521960a5c8787a900c73"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/chat.png",
+      "bytes": 88143,
+      "sha256": "a5911589e0a4215cb386256ebc4c1fbd28e05ea277fc41f740a0682a6ca55b74"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/credentials-viewport.png",
+      "bytes": 40311,
+      "sha256": "a99bd53ee75e3c7f724b61c564603c40174b3b0cd6549b091e93b86617539ebf"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/credentials.png",
+      "bytes": 40717,
+      "sha256": "a28d9848235302313309343691277745608e96549ec27b98747c239785af0ab7"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/management-viewport.png",
+      "bytes": 39388,
+      "sha256": "7aa322a888468d26bc9f77a55652d7a51eb3275122c8559cabc394c39825d41d"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/management.png",
+      "bytes": 67120,
+      "sha256": "cdb562b972d1fcf278ea2fcee73aa8bb987f2cc43e518d6a1a01c5234787ff22"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/overview-viewport.png",
+      "bytes": 159304,
+      "sha256": "b61093a6715ea510cc3550f1d402711e45aed87ef40baa0cbe353aa23def90b5"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/overview.png",
+      "bytes": 288034,
+      "sha256": "c6b0d8d79bb1751ea6a3e2b89f46f6c9cb479abf98d33ca7a4141de8c38e867b"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/people-viewport.png",
+      "bytes": 47996,
+      "sha256": "b4014538cff30315f88aaea3f9b210fc222667af7993802792e446ad29e5b22f"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/people.png",
+      "bytes": 64138,
+      "sha256": "1403254dca2bd49967eafa9d35358868a04c6c5d73dd5a10584d87253bc842e5"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person-edit-viewport.png",
+      "bytes": 52097,
+      "sha256": "4ba6dfef493c634ea9324020bd34579ef121d4898446dacc38aca5108a8fefd0"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person-edit.png",
+      "bytes": 66520,
+      "sha256": "eaa2edfa72beee09bedf04c6c26b8b690b325529cbb74b239ee006b88a04cfea"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person-timing-viewport.png",
+      "bytes": 41649,
+      "sha256": "895701f48f1a7c37efd234125812060afbd644c09e752f4d301d513cadc0fa93"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person-timing.png",
+      "bytes": 65703,
+      "sha256": "5a9c7a7292b5ea397d70329de15874a8bdc9f91c44fee5174e3c081caf39dd71"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person-viewport.png",
+      "bytes": 45857,
+      "sha256": "7194c2492b74bc8d13fcea388c69ae3f9bbc0d890c792a41773a3b0eadd0ea22"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/person.png",
+      "bytes": 81315,
+      "sha256": "ab3b0be4d107d3216e806bb60e3c4d512e9c86e3144f86d7d45ddb414793657e"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/programs-viewport.png",
+      "bytes": 49782,
+      "sha256": "c6144fb2b5e9cbe2093f4cefb5364d99254abe878ccf8c78fb31e2cbc5acb6c3"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/programs.png",
+      "bytes": 55700,
+      "sha256": "361704b99cd177ca5cad69d4daab80de9937388b3c16542f7afd41fe8f7621ba"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/station-viewport.png",
+      "bytes": 39195,
+      "sha256": "652427bbdade258716b7676661fce5c7814a569a5e602cc3a2b2671f69089611"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/station.png",
+      "bytes": 59478,
+      "sha256": "2baecab0f11f4ac0736db1b6af8593b0877316096ae0d23241f8e2909ac13add"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/sync-viewport.png",
+      "bytes": 38943,
+      "sha256": "764dbd285997f4ce02cce618675fad2bf7c32e864b7bf5ee3feae35b6cec8fcd"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/sync.png",
+      "bytes": 43360,
+      "sha256": "5313b1f8a0043fb476b25d992f8953da146279e7ff768f596570a3cc3796a4ac"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/whatsapp-viewport.png",
+      "bytes": 42325,
+      "sha256": "54e4a69106ce7ad1001ad641e5a638b63984eb3c829090e9fccd050e2f496120"
+    },
+    {
+      "path": "docs/design/v4/images/mobile-light/whatsapp.png",
+      "bytes": 67669,
+      "sha256": "3a1ef49dc57deb98281576ec1d61a62d19be1ac88fc50767762193be20255469"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/call.png",
+      "bytes": 521768,
+      "sha256": "58b586b0a5db2ab190670b4b7ac98588f8263e3184aa1ef903cabaa0eaa6e84e"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/overview.png",
+      "bytes": 412004,
+      "sha256": "c1e452e32153840a6a94c4c8046d4e639bf5e4ce172c4282703c14ce4ebbf02d"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/people.png",
+      "bytes": 130367,
+      "sha256": "1a0451698b7901b31581edbc2a2e24142d61ac505f7ff906e017a5ede29f1538"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/person-timing.png",
+      "bytes": 68407,
+      "sha256": "3484cb1cc2906c72b0d69d542332355e57df9eb431063f271a3e6b699b112215"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/person.png",
+      "bytes": 94215,
+      "sha256": "97e7171c31abc1d58fb68b52ec7c734a8a76047b8edf416837bf8126f31f07ce"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-dark/station.png",
+      "bytes": 66739,
+      "sha256": "dce2098e370ae9e207bd8b2a577971b84502219856ad8aee265be2cecdd8c25c"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/call.png",
+      "bytes": 521910,
+      "sha256": "d4907fbd1399c9886e3264a9f594581cf473c8a935ef97228ea93fc2328898fd"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/overview.png",
+      "bytes": 411804,
+      "sha256": "c67d9441aa5ecb627561b493ad3ea9fb06b53763d04a4d21928ec0146d81ded3"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/people.png",
+      "bytes": 129635,
+      "sha256": "5fc856e5c4cb7d6567b4aedeb0b9d972615e2f1f318ee43e1cca63cbfe4f6d73"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/person-timing.png",
+      "bytes": 67577,
+      "sha256": "5f0a7b5c3db1c58e31a9fdb510ab5af179bb57be506a2aa53963bcd713a2a59a"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/person.png",
+      "bytes": 93420,
+      "sha256": "a69322b552ff96a3e0438fec116fdaa9e903b93e8575b0b527e8d6e5eb7dc089"
+    },
+    {
+      "path": "docs/design/v4/images/tablet-light/station.png",
+      "bytes": 66677,
+      "sha256": "d25418519dae9a73b5f4977c0a39aad5432f9cc15fd25a1bc6bb072831ad4382"
+    },
+    {
+      "path": "docs/design/v4/IMPLEMENTATION_HANDOFF_SOL.md",
+      "bytes": 16576,
+      "sha256": "2c8fc7027f6908b93908ad06dee0ab8172e3af6e150bc940f36405a02dbb59e1"
+    },
+    {
+      "path": "docs/design/v4/index.html",
+      "bytes": 380,
+      "sha256": "00a01ffeec0674e25456c301495aa16eccd7236384f40e5486f475ad9d273473"
+    },
+    {
+      "path": "docs/design/v4/manifest.js",
+      "bytes": 23262,
+      "sha256": "600417a3f129f5cf49f674a2e3928129d256fd9f9442d764041581b1d1d629d0"
+    },
+    {
+      "path": "docs/design/v4/measure.mjs",
+      "bytes": 800,
+      "sha256": "c35b9a7a08c8f2eea2e1c7e8844a265c904f53311a6e76f4d2a92a9fba155556"
+    },
+    {
+      "path": "docs/design/v4/PACKAGE_SHA256.txt",
+      "bytes": 88,
+      "sha256": "fa8682cf50a36afd2fa2732a73a56529ae02f6749d52df10b023b6cda6311baf"
+    },
+    {
+      "path": "docs/design/v4/preview.mjs",
+      "bytes": 1429,
+      "sha256": "552c7a21858f1d1a4bf3c4287623aa33c72d5661faa3610a0cbf19899899a3f9"
+    },
+    {
+      "path": "docs/design/v4/qa/call-light-1440.png",
+      "bytes": 950912,
+      "sha256": "8410711881fdb6598e46fd776fbf2a6a4709a38d9da4260e77e4fb54c3e5b921"
+    },
+    {
+      "path": "docs/design/v4/qa/call-light-390.png",
+      "bytes": 164735,
+      "sha256": "9a17446f42516da42fc06034f137d8cb62db1cfcdbd46dd5a250ce16bd8c92db"
+    },
+    {
+      "path": "docs/design/v4/qa/debug-gallery.mjs",
+      "bytes": 587,
+      "sha256": "e62cba0d06624320fb10cc611d222683c34363547d40653eef774f27be8a054d"
+    },
+    {
+      "path": "docs/design/v4/qa/gallery.png",
+      "bytes": 285775,
+      "sha256": "e671a0406da14fb3502450d0b33474828d99e564f0cfa322a2a259f3f6be63bc"
+    },
+    {
+      "path": "docs/design/v4/qa/GALLERY_VALIDATION.json",
+      "bytes": 1894,
+      "sha256": "08ed493f3d8703a9d64d125d6874da1148918bffc65073e796cc43a55ed8e8b1"
+    },
+    {
+      "path": "docs/design/v4/qa/overview-12-dark-1440.png",
+      "bytes": 406286,
+      "sha256": "89c6290d0d473f97c2d9d3724e305ac6cca84caa14ee47b0376635eec206f3c3"
+    },
+    {
+      "path": "docs/design/v4/qa/overview-light-1440.png",
+      "bytes": 448522,
+      "sha256": "7bbe7c482b3fa4c3602118fc77063cfb9068a765770d78b29bf60d9b60524b71"
+    },
+    {
+      "path": "docs/design/v4/qa/people-light-1440.png",
+      "bytes": 132486,
+      "sha256": "a17ff53e5fe9de5d5fa2198a3b2981f6a3a62372d5e98c2533a99a8a85c1bc09"
+    },
+    {
+      "path": "docs/design/v4/qa/person-dark-390.png",
+      "bytes": 80262,
+      "sha256": "083cdfb0aa90d29166b875691af2c4afe30f0aa1fb63cf8740a7201135a16ce7"
+    },
+    {
+      "path": "docs/design/v4/qa/person-light-1440.png",
+      "bytes": 92630,
+      "sha256": "26059068ca1ba1ceb46020f1e908dd2c32877e76eecffd4918f7c70609002ead"
+    },
+    {
+      "path": "docs/design/v4/qa/VALIDATION.json",
+      "bytes": 126012,
+      "sha256": "10084b0a98177c1b6033910c6cf348417f8f296c7f86968fe7efab65c6c94f77"
+    },
+    {
+      "path": "docs/design/v4/QA_REPORT_HE.md",
+      "bytes": 2818,
+      "sha256": "7e2f60fcb7a8d46378fdbdeb5c2a924278387a4ec3346e542ce97bd6dec00df6"
+    },
+    {
+      "path": "docs/design/v4/render.mjs",
+      "bytes": 7999,
+      "sha256": "b5183955fdac397ed6764775a2a73f05bed23710f5dac825c599ce93306d135a"
+    },
+    {
+      "path": "docs/design/v4/RESEARCH_HE.md",
+      "bytes": 5658,
+      "sha256": "9ac2c30170a3ea3f6605aed10f16461b320fb466d5de52d0c5aa9ebf67edb8ec"
+    },
+    {
+      "path": "docs/design/v4/SCREEN_COVERAGE.md",
+      "bytes": 12175,
+      "sha256": "a384a9ffa36808c6aa8c05427e78440e2b83d37a971ab3ed3acc6acc49b4c2ed"
+    },
+    {
+      "path": "docs/design/v4/screens.json",
+      "bytes": 34622,
+      "sha256": "a57c634155c2c02d12491354acc47d91e5cd9269567a27a3bb8130b3bf6d00a4"
+    },
+    {
+      "path": "docs/design/v4/START_HERE_HE.md",
+      "bytes": 5179,
+      "sha256": "e120a98b9f7ce15fa681901da8a20d031802be765f9d4063d0fb49c1dfd62f93"
+    },
+    {
+      "path": "docs/design/v4/style.css",
+      "bytes": 38689,
+      "sha256": "f2f5dff92892c5c9c9fa1fa5592b8244b40f85f9bc1662f919e6d60bb0b559d4"
+    },
+    {
+      "path": "docs/design/v4/tokens.css",
+      "bytes": 1315,
+      "sha256": "09d80b720edc590b0de166335497d60c86ceaa6201a0434f88914b9e1472d1ed"
+    },
+    {
+      "path": "docs/design/v4/WisKey-Design-V4.zip",
+      "bytes": 22734904,
+      "sha256": "880840c9650a903318361c29e0f5de519bc2309bd6a5bd21c8fd9fe326b94cec"
+    },
+    {
+      "path": "handoff/arx-native-rc37/ACCEPTANCE_HE.md",
+      "bytes": 4502,
+      "sha256": "ecac71e4bb290fa914c1b772ff59101f595788f3b5fcafa983cf5463004490f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/CLAUDE_TASK.md",
+      "bytes": 11688,
+      "sha256": "2d08415dc3356e8cab760dbcd5205a2c702d18d34f7a4d43ad041c4275ef52e8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/ACCEPTANCE_HE.md",
+      "bytes": 4502,
+      "sha256": "ecac71e4bb290fa914c1b772ff59101f595788f3b5fcafa983cf5463004490f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/CHANGELOG.md",
+      "bytes": 158660,
+      "sha256": "e30d2d458b4a631a5df5f199795bf13a685fbf30f0461cdc602fef4b31bae1a4"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/CLAUDE_TASK.md",
+      "bytes": 11688,
+      "sha256": "2d08415dc3356e8cab760dbcd5205a2c702d18d34f7a4d43ad041c4275ef52e8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/__init__.py",
+      "bytes": 2347,
+      "sha256": "e61ad2e4505605484bde499070505873bd9234df367597af0dbfd23975eade94"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/__init__.py",
+      "bytes": 63,
+      "sha256": "17a61cb5aa2eb447f7e39722ac9465b704ed1611cac1e08293fb99f33947cdb2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/acceptance.py",
+      "bytes": 3919,
+      "sha256": "4ec61856395ff9a016ec20af388d20dcc24a9141e0004976080ea4856ae156bc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/access_comparison.py",
+      "bytes": 6247,
+      "sha256": "eb0f6e363e810b7ae82099d0aaf55b07677af0d52fa18f6add33b41ca5b7d36e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/access_scenario.py",
+      "bytes": 4925,
+      "sha256": "be8e98c07e374fe1c9dcbd093bc1136abc937def30b91be6ff3fb85261fb274a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/admin_audit.py",
+      "bytes": 16610,
+      "sha256": "8653937b753d656596d2ef3791546da5aaf3f0c0d42c0ae3e072aaaf6a9c9e91"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/bulk_operations.py",
+      "bytes": 20053,
+      "sha256": "ce9c8bfd689742698679a1b0db5a7dd9506d9d86fc0e5b48152f89c8ab2618cc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/checkpoint_jobs.py",
+      "bytes": 24105,
+      "sha256": "773dae77fdae227174135cd195fadd972e3459339fb82d2e34f1f80c1fd2eee4"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/csv_transfer.py",
+      "bytes": 15567,
+      "sha256": "53fa7f1e368f3ce560a6ba867896d9f4fb4c421d6d1d5d111b4cf95c35519a2a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/data_quality.py",
+      "bytes": 6933,
+      "sha256": "b8f6f94df2891e3d4d31e709ea3f40bf3098c36269da8166cc646cbc597d7ef7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/diagnostics.py",
+      "bytes": 9964,
+      "sha256": "ab55ae6617d8ae145ea103cdf69aa75ca5bc463464a5ad7810957f5cf21bc054"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/encrypted_backup.py",
+      "bytes": 9644,
+      "sha256": "8441ab8a1bf4a2123bfba6e6b7faa5d6c8ca8295a93cde76f71e8a475a332200"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/engine.py",
+      "bytes": 25425,
+      "sha256": "7d8f9c92d201387be62a62718d9a01e13130017406668630dcc1573e498e9d24"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/enrollment.py",
+      "bytes": 9059,
+      "sha256": "d23d1545e6b7c7b346b215a0bc3f60848b549c0c145dfd5e9349f5919b0cf817"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/group_permissions.py",
+      "bytes": 4453,
+      "sha256": "4c224345c1ff546b13b4f247b392599ffeda2fa39316d656b195d5bb42fe63a5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/group_suggestions.py",
+      "bytes": 5374,
+      "sha256": "5da4bb0c4beddef40fce4b2fbe1d7d8e0046252dd1f20916a1783186b0033349"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/guest_templates.py",
+      "bytes": 7628,
+      "sha256": "0213e283d3e846622ffbc55be85cebeac2096bafb36d3cd48844dc31bfc173e0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/hold_open.py",
+      "bytes": 8326,
+      "sha256": "c2a9e3846cfd3f1399a61aeeac0085289d78b2477b576eab69b6f23ce41690b4"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/hold_programs.py",
+      "bytes": 8256,
+      "sha256": "35263320e24ecc7453c3e4d66847bd308ca8d286dd223143a2e2a1195d6f9887"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/identity_lifecycle.py",
+      "bytes": 10777,
+      "sha256": "7865bf05d3be78b785e3ff040e32ba1bca9314ae07466ac44b50aadcc8104371"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/investigations.py",
+      "bytes": 8503,
+      "sha256": "80198d4ba9b8cd4557849d931212f3481e452a0fe28d3db19a21bf868dd21414"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/job_approval.py",
+      "bytes": 3970,
+      "sha256": "f224a147301dc0dc070902bbe54fea9ede1faadcd6d814956fbd500b117fc816"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/manager.py",
+      "bytes": 50948,
+      "sha256": "65e89afb564e1b5a6587cc90d508e2efd115cd475ce700f65b1ed3013c6038ac"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/models.py",
+      "bytes": 16503,
+      "sha256": "51d857b8319961a21a91cfb4e9a4cd8c54a1ab2c4542b04de4324cc5ce7e0947"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/native_timing.py",
+      "bytes": 14476,
+      "sha256": "4fbb4830ca994da2f11a2fa9828eda88305ff81e1d0376c93c7bdde37036a2cf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/normalize.py",
+      "bytes": 7046,
+      "sha256": "8c4373031ee3050b59e5c016ac32a0695d2d7e7fb23ccfcea0ce0f6afd254f99"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/operational_readiness.py",
+      "bytes": 7594,
+      "sha256": "b59d49035484691f9e420bf147c361e9e174bd8b2a50f2ea94e6a48d6edc22d4"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/operations_report.py",
+      "bytes": 5785,
+      "sha256": "69c41e06b133df1598a0b9135fc807ce0f5bd1e76e567dad500d65d4c096ad0e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/permission_audit.py",
+      "bytes": 3522,
+      "sha256": "7b1d4f7032dd93bd5014bd3b28b956d8170d9146edb4f12ea6510658cb71a7f1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/permission_directory.py",
+      "bytes": 3563,
+      "sha256": "e37f4a4bdd2c07467556152c86be9bc66c34adefb5831a67dc0711ef95f708d3"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/permission_reviews.py",
+      "bytes": 12436,
+      "sha256": "f6583d387e02e1302a465910c4872106e0a6fba53ae34c0b97320782705e3b28"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/policy_operations.py",
+      "bytes": 8017,
+      "sha256": "7b8ebe89b7b030e921db5f0d24955efd5c9ebafd919e87701c86bbe448165cda"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/policy_versions.py",
+      "bytes": 6901,
+      "sha256": "cc65ea4d2758ae3b855dcaba354388b8c8aa4a2fe1ab3c135c7c896d69284e81"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/profile_impact.py",
+      "bytes": 5286,
+      "sha256": "b3ad64c0cb0562640efb4eaacd63a97b7718230ae8bd2bbcbd400db6f0961711"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/profile_uniqueness.py",
+      "bytes": 1743,
+      "sha256": "6fd28b1984c2b326015c8a87289e6d333aa493f35ba5ddd41b2799a17b0ac24e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/renewal_identity.py",
+      "bytes": 3745,
+      "sha256": "1f5d99531b9cec6e05367309a2a90d434854cb222f01788308c277a5e1a0911d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/renewal_portal.py",
+      "bytes": 7913,
+      "sha256": "3cab31cdb4a0d3551a137fb2ab42b69eea2e012d2538a3598ad1e6363c9c68f6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/repository.py",
+      "bytes": 66072,
+      "sha256": "d00c51b19f5c8ef3a7ebcca74755a9662290eb2424108162e3b3938c401a2afb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/review.py",
+      "bytes": 4601,
+      "sha256": "f5b879f6c029a29d501b2a768e3520ccb4d2aa6cc17e21b2592f87509df99470"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_assessment.py",
+      "bytes": 3346,
+      "sha256": "a9ae663e3a34d358b37ddfd01f23f7115799fbec651173975da13e137d46303e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_baselines.py",
+      "bytes": 10467,
+      "sha256": "ae93e77972f74ddb992a3498705141c63496a082fb890edda282d212b1dabea3"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_comparison.py",
+      "bytes": 5793,
+      "sha256": "3e1e7005622ee43c696b4d4f239b9f5acd2a627e201c5512273578664e78ace2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_compiler.py",
+      "bytes": 6759,
+      "sha256": "1271b630c2eeab07429d08e8e34198a2aec1ca39d204ae80e96d5a72f0290455"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_executor.py",
+      "bytes": 7485,
+      "sha256": "fd56d0446626126766c3242d28452534cd902d02e4cd021acf9c0a41619b9e04"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_journal.py",
+      "bytes": 15607,
+      "sha256": "41dc1bad280b8b818f5d38b467f5768bf65242bc55ba3ceb966d00fc4df51c43"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_operations.py",
+      "bytes": 17014,
+      "sha256": "32c41ef6092a5582311665c7c73f65ae4b52202114d69ddbe6061d58755012a2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_plans.py",
+      "bytes": 14633,
+      "sha256": "bc46812d7391f01c839f0f3b9f6df67667f7371270c9cd9cc9cc5d8c05911fc0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedule_work_queue.py",
+      "bytes": 5273,
+      "sha256": "1dc2025974db63e5bed84d9059ec28b9dc6a5cc2693c5515593dc9bc57bfcfc5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/schedules.py",
+      "bytes": 13049,
+      "sha256": "b74b51083974f6c988a569389eab1905e3a871debdb8417cc3e57195d8ddcb44"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/station_lifecycle.py",
+      "bytes": 6914,
+      "sha256": "ee85a4613bdb9233f825558191fdb1efe13ab190819c8408682542c366ab15fe"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/station_lifecycle_jobs.py",
+      "bytes": 17611,
+      "sha256": "0ea5e6cb063a3482fbb0fa08899814f1b9814317109593059d69bb80bfdf8386"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/sync_tracking.py",
+      "bytes": 6750,
+      "sha256": "2b1923b35a993a49dfbfb892d03e977a6a6f8703ae99df54daab95ff97bc7f9f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/timing_policy.py",
+      "bytes": 5915,
+      "sha256": "239fc0c870e350d5b71a9ba2bbaf9f5c9799f950ccafeb842e68763668c60e7e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/unified_search.py",
+      "bytes": 6751,
+      "sha256": "febedda15ed6112ad94d5f113401b95c2709b4b93f963048dfed31beaef51c21"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/user_directory.py",
+      "bytes": 8093,
+      "sha256": "a8093dcc5e60d39f125386327436650e40a482b1ef566dc562a07036178b3d02"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/user_timing.py",
+      "bytes": 2096,
+      "sha256": "691bd15b9edbda047e7662762155eafff57a3658b152d98e4fee2b9743f44a9b"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/user_timing_plan.py",
+      "bytes": 4385,
+      "sha256": "8df9913856abd8f8f1530bb7dbd088aa13bcffeb2f6c32c3e730a8f4e715872b"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/validity_transport.py",
+      "bytes": 2312,
+      "sha256": "ba93fa1c6adfefe22b0d1aaca28c5dab7dc2dafa00e8f854a6db9d047e26ab19"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/visit_requests.py",
+      "bytes": 14703,
+      "sha256": "1a8392d5c641159eb6d243fa3e5ed9bd78bbbd896be5cf37d48582ffe4198fc8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access/workflows.py",
+      "bytes": 51066,
+      "sha256": "a2d3c84276f8ac3161cab08e718e47568abfd61b47704dfbb4a46dc563edcf98"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/access_runtime.py",
+      "bytes": 15605,
+      "sha256": "e7fead4512742aa8af008ab2dbe06d6c9106be41a8f5a4855eb3a489de10b87f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/admin_operations_api.py",
+      "bytes": 3581,
+      "sha256": "bac22da3082192629cb9c6c62ada171393288926d4ef46e07805e34e2a341eec"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/api_contract.py",
+      "bytes": 4673,
+      "sha256": "ea460cd23a85d8d9ca7c5ec25d6bb48f8ff04798b43b899dbe33941ca7b313b8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/appearance_settings.py",
+      "bytes": 2669,
+      "sha256": "fc4bb0a1b5f030dc67132e8eac094d8f43ad2a039967e7b527d5c1caa9321e9c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/audio_api.py",
+      "bytes": 13428,
+      "sha256": "c61d4e19c33f303d7d264ee734feb4ed7b9848128fb208d11d8f34a60245a7c2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/audio_tts.py",
+      "bytes": 13223,
+      "sha256": "e0cc1d28220b79e1901fd157b017a426e28ce75ea505f8c5ec283750c46d0849"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/binary_sensor.py",
+      "bytes": 1366,
+      "sha256": "2f7afb97ef8d840cd6a19d92c0b276364a4d06fb43e0df1b1d50e05d0ab6b0ff"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/brand/icon.png",
+      "bytes": 2210,
+      "sha256": "f1df25b95b4dbde159233ed7a1c8930f59684c17cde0c3d077aa6416b6afec47"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/camera.py",
+      "bytes": 1465,
+      "sha256": "97553c156deaa3f0dc91a96a9dcf74036d5c1ed6a5e5221f1dad08547b268454"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/capacity_history.py",
+      "bytes": 8610,
+      "sha256": "87dda96e2d808198206ae13649340d3532b713f8bef2814939a7d934d167cbc6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/capacity_runtime.py",
+      "bytes": 2485,
+      "sha256": "acf9b31ff732fffc7e92bbf39455c5c6e1b6742a1f04f6d4952c2722af9ec0c0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/checkpoint_jobs_api.py",
+      "bytes": 3754,
+      "sha256": "f933472c2c5fdb8b3fd9e5161733add765d83cc0042a83fce68fbb9f16eb3f75"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/__init__.py",
+      "bytes": 48,
+      "sha256": "f0645ac3add8e6fd198d60a8c2f45d52dc4d8f58b6d2aa88487644480273c396"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/access.py",
+      "bytes": 21800,
+      "sha256": "aad2b9237fe7804b8c3a76e659c39751e288ef4dc3a5de6c795731374e527ed6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/audio.py",
+      "bytes": 16088,
+      "sha256": "abb25222ff3215ce6fd8beb909ec1dc7621685a4a2d738e64c5a37fee84e40b6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/capture.py",
+      "bytes": 5364,
+      "sha256": "789e93001850b51afe16115f9570619836ef33dc610a43fcabd0ff53d11b66a3"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/client.py",
+      "bytes": 16147,
+      "sha256": "9ab6468b145ef971f0fde439bae913548231f7586fb89a286c47b52557a3007a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/clock.py",
+      "bytes": 989,
+      "sha256": "2aac6bed888fe25db6b887980fd35d8b4534a98eded8d36097ff8e80b983d2cf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/events.py",
+      "bytes": 12183,
+      "sha256": "15144f7fd94498fc5d624cc075bd520fb0b59c5f199604e5f51654075d7ca0a7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/history_diagnostics.py",
+      "bytes": 4117,
+      "sha256": "e6484555a8a74cb0dcaeab37f79eed1a53a7c4d1f01d37f027721cbb13d14167"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/media.py",
+      "bytes": 8554,
+      "sha256": "fa15989e6cb23ea3b35ea93962e9d8de8ad17ca3d0a467783dc539132df14c41"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/ntp.py",
+      "bytes": 5871,
+      "sha256": "716d7b18e92e661bb9fce57eeb4bb70aacb4b9c27cce2b79cd869dc7920aff43"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/parser.py",
+      "bytes": 6531,
+      "sha256": "da374c7eb90d2d655657d69485cb9eb7c64a39dc9f34998d67cfa5ed4ce3a624"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/probe.py",
+      "bytes": 17985,
+      "sha256": "9502536a64683ed2881ed0d5258627bddfd4dc2d02459da7c2ffbca72dd4b2aa"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/public_codes.py",
+      "bytes": 5729,
+      "sha256": "5a0d1322335050ff73778bbad36db98cfa0f6fc374387b781fdb77ab081444a1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/redaction.py",
+      "bytes": 6863,
+      "sha256": "d786a09fa256b72ceb9ff4e49e593b7d2e88fdce9e6e80c60860e14408d078b5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedule_dependencies.py",
+      "bytes": 6555,
+      "sha256": "30314286b1b50fd4f32565f9e705e8254980fd08f283f83c1675bfb04cfd6f3a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedule_inventory.py",
+      "bytes": 14770,
+      "sha256": "920b88c89344c9981005115ba79785db75e2d2fe581c2fd60d064a8f0824f314"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedule_plan_inspection.py",
+      "bytes": 5711,
+      "sha256": "980ec0af4f79a442f7271c1203095983c3533dc49814d4b616f3309b5dc3a046"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedule_readiness.py",
+      "bytes": 1378,
+      "sha256": "ddfb80f99602b29119dd4b3c81f7bdede7384c96d9d6b6deb18871735e05b9b7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedule_transport.py",
+      "bytes": 4788,
+      "sha256": "f4d6f535017022ae39d3f9ec0dc30f6e282e23b440f99a446db48dbfa9fb7236"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/schedules.py",
+      "bytes": 6436,
+      "sha256": "0ec6e751d65c3cd1aa0e3fe2ddf13fc47efbdca2dd6db7bce8f5875607bc8c24"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/technical.py",
+      "bytes": 8148,
+      "sha256": "a61a5a69d3529878440be4dec0cfbc2044324220a255a67ee92d78e9f2165fe0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/transport.py",
+      "bytes": 1856,
+      "sha256": "a42c3df696a1a658306ee3ca5d676aa5d91dd71f85c84624714ac2a8fd162fb8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/client/tts_audio.py",
+      "bytes": 2964,
+      "sha256": "78c79a6a91b1b99097cda2a1af36e43f9f6c91b9e280a477c5afe365151566be"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/clock.py",
+      "bytes": 6929,
+      "sha256": "01a751fbb67f5ca364a945858dab978b23610f7ecc4efba2ef82171b5bf51771"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/clock_api.py",
+      "bytes": 4135,
+      "sha256": "65b86689f6d7bf1c083d1d4e8283d8574e594522e628890852febd96588d1050"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/clock_health.py",
+      "bytes": 4530,
+      "sha256": "7ed5e21118b949b9dcd46344fd2515987434db0051a57eadc2b0e5f4474f0e51"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/clock_runtime.py",
+      "bytes": 3687,
+      "sha256": "46d87480adc4c664e3165af65436ac70dfa5d20ded4cdb8b342ca9516dff6d89"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/config_flow.py",
+      "bytes": 15537,
+      "sha256": "1f0860bf5b0a0a9f2bda780d1307a95dbb6dd2cf13e8cf1ac902d25ddc0d5d9e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/configuration.py",
+      "bytes": 2657,
+      "sha256": "a3c569a04a0f77dffd451848570664c47d64d22f1db5233ba48e6a6790303756"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/const.py",
+      "bytes": 326,
+      "sha256": "8bfdf1b4c141e6b134dbe798a2ff3e7ea61b414ff4561db74e1cba2f360b1cb7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/coordinator.py",
+      "bytes": 2453,
+      "sha256": "2a3f96c0fc28dd914dac736a5ff1b9f4743fb160451d9edd2d2256fa35d6ab3d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/diagnostics.py",
+      "bytes": 4420,
+      "sha256": "34d93258932a5a6a2c78391edf5922deee8aac80d3510db3f8bbb4c4f068517a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/entity.py",
+      "bytes": 966,
+      "sha256": "8ba8e0a2b1106287c3b2554c89b554e4cbc41e3255d6ebc91b8baa78bb7e3527"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/event.py",
+      "bytes": 1923,
+      "sha256": "d396ad126fabeb66040228ad20a84a75890d115b47b7e2b7c8431f4a52ccded2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/event_diagnostics.py",
+      "bytes": 5366,
+      "sha256": "89f12a7f40d2bdd67b182bd456bf557d38fe8f6a8b67f5c3697824a34b943dd6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/event_manager.py",
+      "bytes": 25220,
+      "sha256": "1a6f598d07a0f8cdd2340e2b49df1a013dc0be763b1e309420d2ba9066373357"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/event_trace.py",
+      "bytes": 6136,
+      "sha256": "add88b5cfdec8c4312604a8ab57c3caf77aaa7d76d0682942793b23cb4c66912"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/events.py",
+      "bytes": 16290,
+      "sha256": "4f791aa19c3ee9df772cb4c18a3bb472b257c3122e0515802436965e7443cb08"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/exceptions.py",
+      "bytes": 1446,
+      "sha256": "a394fc34eca6e2ddb6caca4438cc99ae97c6e433d0d99b9ff4add4923145b5aa"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/fleet_alerts.py",
+      "bytes": 12124,
+      "sha256": "d5cae5af414581d8e5e357894ba39fe54d45da339105cbb8001473e8c834e6aa"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/fleet_alerts_api.py",
+      "bytes": 2261,
+      "sha256": "5368f06ed9ebdd0efa050a4a7eb173c4247cf64e5753c27d95df07654d129983"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/fleet_approval.py",
+      "bytes": 2804,
+      "sha256": "723a88f040b94c5a01a561cb64e697f5287ada4c59f35326575f129c8f943c5a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/fleet_health.py",
+      "bytes": 5207,
+      "sha256": "b0628ee9fe39b6dd532d47eac3835d119d69d22b00e1f1f7cd1232d299acfa94"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/frontend/audio-worklet.js",
+      "bytes": 604,
+      "sha256": "c2cfa40eb531001bdbb7e450210790f39e50ce767d7d6b6d25ecdb7798a3c1ad"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/frontend/Heebo.ttf",
+      "bytes": 122012,
+      "sha256": "18f930b583fa8fe6b40b2f8263b7ac6afbac07adc91a12467874e7467d3ace30"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/frontend/OFL.txt",
+      "bytes": 4380,
+      "sha256": "6dd1a72e493340e4e4c0fbb2a4138d2afda7a52590f5ea7be20e1329c1e103f6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/frontend/panel.js",
+      "bytes": 2369553,
+      "sha256": "62b5c483c7c5240f64f9fe14f27137d47d81d9a9bf9d871dd2de3880dcd74192"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/frontend/panel.js.LEGAL.txt",
+      "bytes": 828,
+      "sha256": "8add47f6bd682d9c4ce399a8c9fee962590f210e9a9fed323a66c9c3ed3daa36"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/guest_templates_api.py",
+      "bytes": 1280,
+      "sha256": "bbb61bdba9ec6dc57b02496a2582d60a608108e5909d78f8710d7dbe7c431200"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/hardening.py",
+      "bytes": 3844,
+      "sha256": "2f2989f087252544f4fb9d2b58d7b995edf88c70a5b809d863129a9af6b6f0db"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/health_api.py",
+      "bytes": 7034,
+      "sha256": "65f1d741cefbfc6de03b310945b78421507f7aa26683e823f3ba72d2d6a0b1e8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/investigations_api.py",
+      "bytes": 1457,
+      "sha256": "4a2751b8f448ef39149d4c8b6570d6fc6eb16823280d0b242a7cbfcf60eba6ae"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/issues.py",
+      "bytes": 4444,
+      "sha256": "ea0f8e15b82a36628910ef10d896440a33c64c2bf989fa4c62d3012ab711445e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/lock.py",
+      "bytes": 2120,
+      "sha256": "729907b02942f7c10347687251ce07d5c18fb08e8725fd57d56133f07568a23f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/log_filter.py",
+      "bytes": 1868,
+      "sha256": "d5e99b42b78dde1fb55a29a4f06d64025132f690e373b7b9c4c2e097bc9d0d54"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/maintenance_api.py",
+      "bytes": 8882,
+      "sha256": "5e0206405165dba76e2871b5dbfed162946f3a63ed24804a2979c8fe775f39fc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/maintenance_jobs.py",
+      "bytes": 15576,
+      "sha256": "9704307add43093481b40f7c9f26d3ae16994d4de69ed7e2a8bc2d89636a2419"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/manifest.json",
+      "bytes": 611,
+      "sha256": "e50fb6645bb36044637f3c9915015b37973266fc9c9200990f11951478c7586f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/media_api.py",
+      "bytes": 3691,
+      "sha256": "2e11a85ea4ff52c9b6f3109bdc587d9166cfdccc561c5f5793fcd1f07908e9b9"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/media_settings.py",
+      "bytes": 5334,
+      "sha256": "43be14b1160d427774dd96f52a6ec9c56e8ce5682ca0d2e78bc8a945f22e9913"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/migrations.py",
+      "bytes": 1255,
+      "sha256": "066fe15440f4c9f1a0e696ebc45f3ae004e5b1601232c260a4ace5fb79ff9d9e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/models.py",
+      "bytes": 2668,
+      "sha256": "bc9cbbd1071723bfb9c12ebae0ae85d583eaff3c45e388249f2d89e6599e9c81"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/mse_api.py",
+      "bytes": 8809,
+      "sha256": "3b448aa2fc125c87eba19daf1d2da7287d9e6628843aff05b23bda1d128098f2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/ntp_settings.py",
+      "bytes": 3517,
+      "sha256": "4afdd271c53c5d1cd59fd47fbbd796dc99201e9e4d28c19f69d354cfe8637358"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/operations_api.py",
+      "bytes": 19395,
+      "sha256": "d2ac8e6eda8359307865c5ac816be05ff742e2d62cbdd3cbad71b28170cb7a19"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/operations_archive.py",
+      "bytes": 4240,
+      "sha256": "3bca7bb03c6a54e566e0c810d409c482c38b356de082f62823025e885c9eede7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/operations_center.py",
+      "bytes": 23937,
+      "sha256": "823cfad9f17b59bcf31c599f22a945a81a7f2031b6f98b3080de77d822327ad1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/operations_runtime.py",
+      "bytes": 10785,
+      "sha256": "b7ef4ea113d242fbf357462e006b3abefa6f9d462b4342a5cef1b653d82bb689"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/operator_scope.py",
+      "bytes": 8712,
+      "sha256": "7e67f99574e4f3035e4c9b3f11181cecc03f35dc8e19ad26bd081ef97f575637"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/panel.py",
+      "bytes": 1724,
+      "sha256": "402e49a9fdec90421d61a6b70d0ec3fdc6527ff96b03cba04ecb4dab4b936f32"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/panel_permissions.py",
+      "bytes": 26261,
+      "sha256": "3b0191b681ebe7546ef4941214c4d0d49823083b88e0aff38791540b14451215"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/panel_security.py",
+      "bytes": 7226,
+      "sha256": "b0abf37a760383728b59fa13d4567ee332ae221821d2b2af8fc30ea6106991cd"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/phone.py",
+      "bytes": 1131,
+      "sha256": "b54a3d516a3f74a824b7283e946eac339abca06ed13f9f40a3e243df3d48194e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/profile_conditions.py",
+      "bytes": 2906,
+      "sha256": "ea8181df7e9c821ece6a2027e63cd9b4913433458cadd872ca22a2cd9be6a58f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/profile_settings.py",
+      "bytes": 13623,
+      "sha256": "af122f60dabdac5f07c25406ac837637fbd93184e5beaa0149a36fd39895e234"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/renewal_portal_api.py",
+      "bytes": 2809,
+      "sha256": "7d54eb085007ede8c7d5c34247cf577f55bea1ba701ff7cb73427f7b7d619c17"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/reporting.py",
+      "bytes": 7907,
+      "sha256": "48ee56b2b8a4d1cfab7b87170840e0b696ba57dbec72127f238b6c0ec8936ea5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/rtc_api.py",
+      "bytes": 9849,
+      "sha256": "7f4d5654c0036d85cc89e9b7ca88c09bdda4f65c4f52fad0dbb353138b7276a1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/runtime.py",
+      "bytes": 15064,
+      "sha256": "feb7be2ee9a3ee630d1ee6d79544ffc8d7012d347eaf1ec2176ddc9594865524"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/schedule_operations_api.py",
+      "bytes": 8403,
+      "sha256": "d326e8ddc8708d94f6b1021b79db945bf558726b2035567f5c6d1307d68b9ad7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/schedule_plan_api.py",
+      "bytes": 4798,
+      "sha256": "92a3732302cf1ff70ba2a32c1f448759d48a49087cb753f4706edd81595b6cdc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/search_api.py",
+      "bytes": 3000,
+      "sha256": "d00b9fa56ef8c4d4623f6797e5f93a5e846c00147d9a4519076e975978385f09"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/sensor.py",
+      "bytes": 4123,
+      "sha256": "a9ee9ba6e31137b6318493a84ade49cad322beddc4ecb0475cda6be8f59c8db0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/services.yaml",
+      "bytes": 617,
+      "sha256": "826865dbef8e4d3019267c2a24322ecb6502e758a551e08f443d2006cb6dfb11"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/station_lifecycle_api.py",
+      "bytes": 4415,
+      "sha256": "28c8f0d7d824634f2e5a2ae31b6624d2771c14bb26d3aeb5a9e14a39a71e621c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/station_transactions_api.py",
+      "bytes": 19552,
+      "sha256": "8c91eb7cc84c5c3ec5b4257c441369fead4c50b20a4669a1f3c93fafec35da00"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/storage.py",
+      "bytes": 3860,
+      "sha256": "30b03125afb35c5023fa7d97282b98e1ef62eabacff43df68599125a2836ac7c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/strings.json",
+      "bytes": 18603,
+      "sha256": "34bb09f1fb99f45b82d104521f05cd9ecad9617d06d9c622dc6c02456164f63f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/technical_api.py",
+      "bytes": 10461,
+      "sha256": "0d7c7b473b850d950884a362a022b56605c85319c21856cb2c20d12e5e829717"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/translations/en.json",
+      "bytes": 18603,
+      "sha256": "34bb09f1fb99f45b82d104521f05cd9ecad9617d06d9c622dc6c02456164f63f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/translations/he.json",
+      "bytes": 22642,
+      "sha256": "dab7d83d3a4ab9e8c2a3b3a35b3f9d1c871d2c52b87e059f7cebc9e26bfff0d7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/visit_requests_api.py",
+      "bytes": 1903,
+      "sha256": "d218135f27ec4dbed1f4dcf62ef61dd6d0db703766ea75e07b276ebbac46e850"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/websocket.py",
+      "bytes": 80155,
+      "sha256": "e5a228ea32dfb48bde8186a7a06f165ddc0798946285850f1b1ada0bd4f0b93a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/whatsapp_api.py",
+      "bytes": 14147,
+      "sha256": "3b6920df7a6f1de11a626b40ba3bfab887370869ef5f4bd8a47a7feabbd5bdd7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/whatsapp_messages.py",
+      "bytes": 3288,
+      "sha256": "573abecaab0c680b7c0a0d75bcbab2702ec5c082ee8c58adbfc900503ea470a1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/whatsapp_templates.py",
+      "bytes": 4946,
+      "sha256": "b91d4b22775caf6736a4e78cc0b2e62f4e48593ef433652ad0168ad1fd293b7f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/custom_components/hikvision_intercom/workflows_api.py",
+      "bytes": 15351,
+      "sha256": "3da580826d7db8d6484ee020bd4c5d65f96ce438b22b41dab4fa8e0aeedc32e2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/camera-wall-1440x900.png",
+      "bytes": 82534,
+      "sha256": "7d66f4e9d7bbf085333b84f0986b67101cbe57abc5ad186d76bc1245e8129482"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/camera-wall-1920x1080.png",
+      "bytes": 76408,
+      "sha256": "009b3f08ce00e36e3ae2eead88da633bdbdea0985c7849e7a5ec04c9506e823f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/camera-wall-390x844.png",
+      "bytes": 36054,
+      "sha256": "64ef6d43c3b9035516182614b0089f1307d1e9b5380c07c68454a2a6047a0ea8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/embed-transparent-1440x900.png",
+      "bytes": 131675,
+      "sha256": "a8138d5af2270193867f61d9ffcc6d16dfca35a1def09b8ab63a99c48fb3fd2a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/overview-auto-1440x730.png",
+      "bytes": 94125,
+      "sha256": "5cbeac630765bc95894d33f0efccad4bfbceba7e2dafdb90f8513201accffa0d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/evidence/arx-rc37/overview-auto-1440x760.png",
+      "bytes": 106602,
+      "sha256": "804a287fe0d6883c229ba9d400de0fefccf29e781fb1b7f0372cc7054005eb11"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/ARX_RC37_HANDOFF_HE.md",
+      "bytes": 7041,
+      "sha256": "7db95590199433b827bae562d4d1f8190cf4c9386668d8d23930adb7e7c8dd15"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/BROWSER_AUDIO_OUTPUT.md",
+      "bytes": 2667,
+      "sha256": "538cd958fc6545dc1d6f67dceb7f029efd26a2cf5aa5b7cdf2bd10488607a983"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/examples/wiskey-addon-readonly.mjs",
+      "bytes": 3378,
+      "sha256": "a66395fb32faf9118d0fc27424fd7791e88b71d325e16ffcab1f9de5a16d6440"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/examples/wiskey-embed-client.mjs",
+      "bytes": 4600,
+      "sha256": "d3324a405161b2a84c61ce9b1065f8f13429da51239c85cd89f9ab5c814a2ace"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/FLEET_ALERTS_API.md",
+      "bytes": 3385,
+      "sha256": "7b840dc3ba4aa550ef6dc2991527f6b92ea569fa820d5eb8139d4b17c2a7d516"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/INVESTIGATION_TIMELINE_API.md",
+      "bytes": 5481,
+      "sha256": "af606b174d8c2ffc2a4341a623d5a5a92f4519469392cf77ab624b340d52fb55"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/PERSONAL_RENEWAL_API_V1.md",
+      "bytes": 5621,
+      "sha256": "c3f7a93dc72fa14171c69d6b1a427443b86984b27430a95e491d77a8c1555f50"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/SMPLWISE_OPERATIONS_RC18_HE.md",
+      "bytes": 10105,
+      "sha256": "36feb21d48296a08c241e36e1fad3068b82facead2f23a335b26a78e9882e1bd"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/SMPLWISE_ORDERED_SPRINT1_API.md",
+      "bytes": 5045,
+      "sha256": "9eda862f210819c2842168a19887e83d5d521242997640e9a560318b4127d686"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/SMPLWISE_RC17_WORKFLOWS_API.md",
+      "bytes": 7192,
+      "sha256": "b8a5e1ba4e97e17330d09762b98522a078c367c5ffa0029951f4b711b229bb2d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/SMPLWISE_STATION_LIFECYCLE_REVIEW_API.md",
+      "bytes": 3080,
+      "sha256": "cc0293a9536c3c917fc1081004a9a8e99c6003c2ce1008fed8885d8b8f2cad6c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/SMPLWISE_VMS_ADDON_IMPLEMENTATION_GUIDE.md",
+      "bytes": 38339,
+      "sha256": "7ad20594fdc9a394c5b28f1dbfd635cd2e30de9feffe80b93eedf13ab7e854bb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/UNIFIED_SEARCH_API_V1.md",
+      "bytes": 3919,
+      "sha256": "d8c20be785cdd4e49ec332a331f8bb5bfb1073a23f4764a34411907879bc44d3"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/VISIT_OPERATIONS_API.md",
+      "bytes": 9858,
+      "sha256": "072c952cf82ab4e2b3d07b935df657e517115a4cce40b4b94aa757b92174c832"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_EMBED_API_V1.md",
+      "bytes": 16045,
+      "sha256": "543a4e4668f907868bd976c38e49522a32a8a85d96e205b2d503343d2604fdf8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_EMBED_HANDOFF_HE.html",
+      "bytes": 4344,
+      "sha256": "7acc30e1bc7ac29e7a3212d7dcdda449b0980ea6ff30b8eda5cc8faf3e4eedf4"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_EMBED_IMPLEMENTATION_CONFIRMATION_HE.md",
+      "bytes": 4007,
+      "sha256": "e062431688a207d1c82b4225a9ffadf7dc3c2ef73cbe0316d27b26687f4fe22f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_OPERATOR_SCOPES.md",
+      "bytes": 11219,
+      "sha256": "9db61509db4cdaa0f6e59f101bc98a62b3d0fa8ad2f3325a58c5e59be0e13e0f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_VMS_HANDOFF.md",
+      "bytes": 22247,
+      "sha256": "b1cbfbbe20a4502fac46d1919b53e8968d53b9acc7bae6e0bda25ae408f50421"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/docs/integrations/WISKEY_VMS_PANEL_COMMANDS.json",
+      "bytes": 50146,
+      "sha256": "a8752cc70798a39312b3e92181fa933f59b2ecbe1f77bddf2e89ea05ace70dbd"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/build.mjs",
+      "bytes": 503,
+      "sha256": "313f611e4cb1b99d464cc782321cb88f7530608ce144337c2e79d3a5557629de"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/package.json",
+      "bytes": 706,
+      "sha256": "3dbf5c14d15357ddb13a7ba130853f87072053710141d1501dcf747c4d06df1b"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/pnpm-lock.yaml",
+      "bytes": 18746,
+      "sha256": "c761c5445ff58f86a8257f0c0fff6e8336896dcb94f6d6c9a2506d404efaebdb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/accent.ts",
+      "bytes": 2092,
+      "sha256": "626846a1bce92239cddf917ac466ba9a93014b6ae2da3b6d647a77962e53dbb6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/access-comparison.ts",
+      "bytes": 14832,
+      "sha256": "268ca5a04867ce15f45d87685354a2d07301d24470da5e90ee45626233391f82"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/access-control.ts",
+      "bytes": 36045,
+      "sha256": "22fc41efc9f592a5225ecf3d6ecd949a0ae56357bc3e19e3e327888c6dcccbbf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/access-overview.ts",
+      "bytes": 8336,
+      "sha256": "cdf443e1374460542ed446607ee8d898f85ffee8214d6680149928091dcb829f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/access-scenario.ts",
+      "bytes": 10226,
+      "sha256": "6937018afe603f6bae8fbb0b161152b955f90266067ce8f7800ea1f4fd310f21"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/access-styles.ts",
+      "bytes": 35139,
+      "sha256": "df806905cf1ebe13b3ea0c253bc949fb327d7fa87edbd5fe20a1e90305ac98aa"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/admin-audit.ts",
+      "bytes": 21442,
+      "sha256": "c44e7b8be84e668d9ab728e82bf2bca3032f23df9cb0810ad5c2e9e33a2ca1f1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/admin-styles.ts",
+      "bytes": 3191,
+      "sha256": "33fe61b9de528da8c30fc22adb08a40ca3cdc05313bd4966d09de93afbdf3c05"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/api-contract.ts",
+      "bytes": 4702,
+      "sha256": "4c47dcfdc7fb19ed855651a3e5eab1d5385f47cda2b7027f6f584f2d1853b290"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/appearance.ts",
+      "bytes": 12456,
+      "sha256": "449abbe067b29764dcce53457d0d6474d48924a30b3131fa7b5f7d39280dcf46"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/audio-codec.ts",
+      "bytes": 703,
+      "sha256": "b9f795154e5067ca7db5c993755054dc60ca32e40e29beedb9f9cb4a69764cfc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/audio-controls.ts",
+      "bytes": 45889,
+      "sha256": "aced3181d21753b010eecb92c3a4e64438cb3f0bb74b1c0fbde136010b2b61ab"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/audio-output.ts",
+      "bytes": 9023,
+      "sha256": "e1c18313f810711541b4999e94273b25775214e766bb5bcc9ac2db94f1853f11"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/audio-worklet.ts",
+      "bytes": 876,
+      "sha256": "46a979615946f2d45a4a6b1db5d68d28d160f7ccd07206a59f2fce9b1d2c5d77"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/bulk-users.ts",
+      "bytes": 22492,
+      "sha256": "521cdecbdcf28adc06ad72f1dd22a3698b108acbdb73a6bc781ba50210dd0de5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/call-controls.ts",
+      "bytes": 13663,
+      "sha256": "78aeacdf89dee339c05659e7f077c061befc56408aec9d338d5a220e4913f671"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/camera-mse.ts",
+      "bytes": 6938,
+      "sha256": "fb1e1b8320490b18b42dd7f46121217b85031ae9071320c81ceeb643b6ec11a5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/camera-rtc.ts",
+      "bytes": 10297,
+      "sha256": "9613ad704211a3f9ebd58adddf5d3743d3ab9170254840fecc68c4328f6474fe"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/camera-signaling.ts",
+      "bytes": 2401,
+      "sha256": "8115f53411e6220f60381ccbd82fdec546c18e1c91694db9ed6d8871b85a673e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/camera-wall.ts",
+      "bytes": 12288,
+      "sha256": "c8b60834d8edb1b80410a6c57c4f98b8f0cce2480ce7ba2933bee6a9d210982f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/camera.ts",
+      "bytes": 26882,
+      "sha256": "1b8df7b1f68cf01c831789b48951114b805dd17a7a55b8d1dcbf4e8e94c03a52"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/checkpoint-jobs.ts",
+      "bytes": 15663,
+      "sha256": "dfb3dc8d4c1e3365a2187ac15a971e6decda93740adffba9eaf8994cdfbb88f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/clock-settings.ts",
+      "bytes": 15033,
+      "sha256": "aa6f4c0c9f04df7d122e2fcb40dd0372bf8740cd84c6ace460eb73672f05b43f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/data-quality.ts",
+      "bytes": 11145,
+      "sha256": "c361a04c1aea3776fb538b28200437374e01d9c9fb240879d78aa019b8deebe0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/deployment-plans.ts",
+      "bytes": 17864,
+      "sha256": "4b0834a95793a410a79985404337d954f9f62e1b53e1f79db3ee1d87f910633d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/dialog-viewport.ts",
+      "bytes": 1020,
+      "sha256": "b9818ed322b58c701fd4e691511017bd58c764bbbc6b8c220c8602d74ce56cae"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/door-programs.ts",
+      "bytes": 17731,
+      "sha256": "01285c017d70d1326b66c5a04d5b7dfefe1c17b4e6bd9236768353a2df7d039d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/download.ts",
+      "bytes": 326,
+      "sha256": "8284e53b4e5d3ce82b0580558282b378def0e331b4069ee07105856296987032"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/embed-styles.ts",
+      "bytes": 792,
+      "sha256": "247c876bfcdacd12ed31f176abee3561dfa1f01549252bf2dede116def641700"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/event-tools.ts",
+      "bytes": 11345,
+      "sha256": "917f378ce71adf5b6aa1c5a8f8badeaa5b91a881401d5c3a17907d69a41c8e61"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/events.ts",
+      "bytes": 45466,
+      "sha256": "a1b5bfc122e1fe51fa0074413eaee8aeead0943864204692be0bbdd3276ad93c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/fleet-alerts.ts",
+      "bytes": 16111,
+      "sha256": "6487a87c790b20bcf2ff45672fa815b7a55155cddd1eeb6c7a4fd2f6394c9446"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/fleet-approval.ts",
+      "bytes": 7369,
+      "sha256": "9b2d10da891d4515ae2608b25771c29c234634106ea5f5ba0d4698fbc63af1fc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/fleet-clocks.ts",
+      "bytes": 4736,
+      "sha256": "7d1444ebb49e836569725be347c15fffb0023950d18da62ac08fb9374c3ebb79"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/group-suggestions.ts",
+      "bytes": 12666,
+      "sha256": "16155696704492e9a9f34569157ab6989f358fc7451d5572e85e061f2324d362"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/guest-templates.ts",
+      "bytes": 21080,
+      "sha256": "5fd0bbf6dc4dd62191a3b5859e6185c956ced0a9ef985a52c7d9572b916c3cfb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/header-styles.ts",
+      "bytes": 2302,
+      "sha256": "4f41a5531b5fe0887977d4dab7bacaade174c07c39377858b9b2014af3069a52"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/health.ts",
+      "bytes": 33716,
+      "sha256": "1539f3d3f92ad39257b1ace2f2e2e826b8d4278124084cd26fded00abb5c2f4d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/hold-open.ts",
+      "bytes": 5917,
+      "sha256": "1c9e479d1b8f2f78861c2fc3f4b26ffc9e6d0de31783889817c1b6c47837a4ba"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/i18n.ts",
+      "bytes": 328273,
+      "sha256": "0c056f9e45e5b29ee18c03a71b9cb30814782abd928dbdc30cb603e284254db7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/icons.ts",
+      "bytes": 1854,
+      "sha256": "29d1bdca7ec83ca0fb54da8032a533fd9691e13f2b7ccd1e54f16b6289faf31d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/identity-lifecycle.ts",
+      "bytes": 22037,
+      "sha256": "3a3825c59f88cad29b8ca7211404837dcd8f91c5b673e628c3a6524eae85c864"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/interface-styles.ts",
+      "bytes": 14713,
+      "sha256": "7c9ebdb5e3ea0d69d4400618e5a5453052106451d248833ac57caaf70f53fe30"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/investigations.ts",
+      "bytes": 24993,
+      "sha256": "8ca87fd7b9351eb11a2154ced7971a9b014d790720e28204e24c01fa4c34d32d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/live-clock.ts",
+      "bytes": 2749,
+      "sha256": "9171f30178ac63cb6f3d8808c1c6f7cd7e68da8fd47d061f3630b27bb48886d2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/maintenance-queue.ts",
+      "bytes": 14597,
+      "sha256": "442aec2cfb5b73b3b309e910c1a660cdbc2d8232d23b423f898e38e8c9f8365c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/media-evidence.ts",
+      "bytes": 2880,
+      "sha256": "b17220869d0d96846c69545e687e4c24a1ca101bbfc943d74c78ead3e2f3a457"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/media-settings.ts",
+      "bytes": 15979,
+      "sha256": "36086c797471808c73f37b666bc9d480b559bd16d824fd7cb93118a09152df92"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/microphone-input.ts",
+      "bytes": 9765,
+      "sha256": "d80c9649950aa4152c3889d1d181ef5a24027f0a1c541f7ffd9e3f3a85f6f96f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/modern-styles.ts",
+      "bytes": 17813,
+      "sha256": "aa5b0cdb75f2b42e4f350154ddb40becafbb635027200e6dac78a9b6e37eaa0f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/operations-center.ts",
+      "bytes": 15057,
+      "sha256": "bbb09003a48ab3adfb7c0351fe6a941f177b2ea4bc689ec8dd98e03b0c32fea2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/overview-styles.ts",
+      "bytes": 4896,
+      "sha256": "2cafb1dedf2c1caa6d3f62a8adfe296201e203e3faa0988ed7ee547c096b2f92"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/panel-location.ts",
+      "bytes": 1613,
+      "sha256": "23eb3ffcbf596e67f14670893c597b3dceea8adeba689d3dff2e7bc57c2954f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/panel.ts",
+      "bytes": 277302,
+      "sha256": "036c2794feaa67bc036f9b4ea37d6ccdb8c0e39c4f0ad32d821d015081fec1ea"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/permission-directory.ts",
+      "bytes": 7403,
+      "sha256": "7a90049c27bc5d013a1e92fe29c9e5e395e18af5ff4dcd9f6e095fdcd169540c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/permission-reviews.ts",
+      "bytes": 22449,
+      "sha256": "63c420c29bef10dc7503030ebcacf1bbebfe2c9acccf5812de95aeb08268ca6d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/personal-renewal.ts",
+      "bytes": 17591,
+      "sha256": "510b598dcc162ca83d2f926a37e38078cc5eb67cf27132a906131f613bab61a6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/phone.ts",
+      "bytes": 443,
+      "sha256": "88dc4de51d4c34e0e58c0c4d4a9ec89e982e80e24481a1fff6688620d72e5d41"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/photo-file.ts",
+      "bytes": 3660,
+      "sha256": "982b275b54d81ce01525bc46e9b713425c2e4ef79a6df7bdefb7c0fa4102ae38"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/platform-center.ts",
+      "bytes": 67389,
+      "sha256": "fe36a77c9f9f7231aafa8721b0c70ee47d251df2a06c4d8450688e2d5c6f7a15"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/playback-watchdog.ts",
+      "bytes": 1831,
+      "sha256": "3ccf74142fdeb42ac6c76b10bb1efe8f6b57738943e33163ba770caaa0f4137a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/policy-versions.ts",
+      "bytes": 12121,
+      "sha256": "23e9a25274c715fe936d2522caeb2311dba45421b0651b89982b69080c994f9d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/profile-fields.ts",
+      "bytes": 2332,
+      "sha256": "de564648074e5ee2cf625a9a843aff382fd37f65a80bd81d5f28c736c71067bf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/profile-settings.ts",
+      "bytes": 25855,
+      "sha256": "24e2e5576e13e76969cb9c8ea1a4ca3842fcd3b40e6e7918193bf9de9823573d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/public-codes.ts",
+      "bytes": 10669,
+      "sha256": "cf065504310fba5846b2f687f79c695d50ceda4fdb0b0ae2348a76af5fb7f915"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/reauth.ts",
+      "bytes": 5556,
+      "sha256": "6d1c4736dd3f5a17702e6c0dbb5f7cad9d71f54f2bf63adf7693f49022a820df"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/renewal-bindings.ts",
+      "bytes": 14945,
+      "sha256": "9dd79b2bcbe6ad41fb57b4a136a2ee91104984dca98a8f21734815b8a447de35"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/report-tools.ts",
+      "bytes": 11576,
+      "sha256": "f6410054958be1f8f8862a6ac1eb8046065cf3212987629c3ee892a6bd708426"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/request.ts",
+      "bytes": 2503,
+      "sha256": "27bcecaccad12192d71808b98d429d076bc3d86b6df843e622633a33ab3ae13c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/saved-user-views.ts",
+      "bytes": 9743,
+      "sha256": "1446e22d1adcb35d0b5553a72c61ee6bdbaad06dff81e6e600de8b089701bf0a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/schedule-operations.ts",
+      "bytes": 14016,
+      "sha256": "c03430160922457f6bc98b65ee3cfc801b896f2d10c1e4c38c07ed60b1ea6a68"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/schedules.ts",
+      "bytes": 48604,
+      "sha256": "6b2d4ac5992dbc9f3ba46691e3576609fff4b0c5b85b184a1ed541d09d20f430"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/station-lifecycle-review.ts",
+      "bytes": 26043,
+      "sha256": "a993a2817b5eaafe4d9543702b38c2683f75f150398ba7703a944dc88c59b637"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/station-onboarding.ts",
+      "bytes": 18449,
+      "sha256": "aa253490868426d5d9d6df8f7b46c76069e6929a703c94253eda8a9fc4f6874e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/station-settings-styles.ts",
+      "bytes": 3000,
+      "sha256": "f22c35d74f574731ccb1ef1684783d9af27969b02763232d5ca7c2b69aa7e875"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/station-technical.ts",
+      "bytes": 14788,
+      "sha256": "d11575218a125a189aa6629e2e7d879f4bb0ba8983421adf7c9b1db20a51b255"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/styles.ts",
+      "bytes": 17800,
+      "sha256": "cb46330eaec41e92e3d0aeaecb87274ca328321f1df5a5de7329afb92a9eb4b8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/temporary-cancel.ts",
+      "bytes": 9626,
+      "sha256": "9b06249e0f7c34bfa90941a920a0d4bf54309e195bf89bef37ce31efac6710f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/temporary-validity.ts",
+      "bytes": 11134,
+      "sha256": "7452289f91a2989c09f07c2831a9f3ce9fbc2a2ea303ff277b2ede159ea36372"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/time.ts",
+      "bytes": 4383,
+      "sha256": "7fba5119e327c9f4d6f95f5e2bee0126ac6ec30fa2520683868c9904e106e669"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/timing-validity.ts",
+      "bytes": 3108,
+      "sha256": "ebe5243eba610cd4d25a9390509542568e942c2ba9ec2a8489d7cc6dbfc279bf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/tts-controls.ts",
+      "bytes": 16360,
+      "sha256": "9f85c74f32259cb896bde7aeec65775a56983dfd75c16ea2185840988a8dd57e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/types.ts",
+      "bytes": 10116,
+      "sha256": "de3cd16e97e32e87c8068e26c6d174a7c181ac60d04d3fac9435c2f033260e9e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/unified-search.ts",
+      "bytes": 17788,
+      "sha256": "7220050aab34659a6bca36ebd88bcb6441f43645c628e901711fb44d60620f61"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/usb-card-input.ts",
+      "bytes": 3984,
+      "sha256": "153af5c77a3175e42a463a0b68d3e325663ffbdc86c02b329f608bc9fd7b46cb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/user-details.ts",
+      "bytes": 37237,
+      "sha256": "6953ef113acf09995ef74183289162ea892ac362af7e2414645f585008a049d7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/user-filters.ts",
+      "bytes": 2825,
+      "sha256": "58c2322df021c284eb10254081b4161123093bd120ab25011059fbcf5cc2da9d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/user-photo.ts",
+      "bytes": 15983,
+      "sha256": "dd28f67cbe7f7f47df9f0248602b57dacd0a9f8ecdfb3b7fcb2eae65347b50fb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/user-timing.ts",
+      "bytes": 8755,
+      "sha256": "037325ea567cdf1b6a4cc4f0379d9b5eb508bc896fa86ed72bb6bbcb7a8579ba"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/users-compact-styles.ts",
+      "bytes": 1579,
+      "sha256": "809f7a19e06b65ad4f63d4bf839e3973354d7540e779b1a857b03e6046f50c0d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/visit-requests.ts",
+      "bytes": 21143,
+      "sha256": "b594fd2c18d8f5debd525b05aac89f25e08666b887dd7d6a4cfd3a676327c92e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/whatsapp-templates.ts",
+      "bytes": 10820,
+      "sha256": "077c9a94377bf049eecc628818b6169a2222787a6dd93b9b2c63b99e98dc6c42"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/wiskey-v4-overview.ts",
+      "bytes": 10139,
+      "sha256": "1ad70b5ec1abe27b9396880fd43a485d184968972ff6c53fe0367351f55fab17"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/wiskey-v4-styles.ts",
+      "bytes": 29317,
+      "sha256": "17bc031614a742758e8ccb0a16e569d3d955e0169cfb9ac4b85893af3c4a1dfb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/src/workflow-center.ts",
+      "bytes": 49541,
+      "sha256": "f16dfc693cabddf371177a0f640604bcf8976e88427f565077f179c57376784e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/tests/arx-handoff.spec.ts",
+      "bytes": 5910,
+      "sha256": "0c8478185d34bf14937e8b0a9a176b004f7b27097cf11ad20248986573edba38"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/frontend/tests/wiskey-v4.spec.ts",
+      "bytes": 14439,
+      "sha256": "6b65cdb86b5a7e5145c250545dc1b5362751f23900947d473fac7e0e090eb5b5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/accent.ts",
+      "bytes": 2092,
+      "sha256": "626846a1bce92239cddf917ac466ba9a93014b6ae2da3b6d647a77962e53dbb6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/access-comparison.ts",
+      "bytes": 14832,
+      "sha256": "268ca5a04867ce15f45d87685354a2d07301d24470da5e90ee45626233391f82"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/access-control.ts",
+      "bytes": 36045,
+      "sha256": "22fc41efc9f592a5225ecf3d6ecd949a0ae56357bc3e19e3e327888c6dcccbbf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/access-overview.ts",
+      "bytes": 8336,
+      "sha256": "cdf443e1374460542ed446607ee8d898f85ffee8214d6680149928091dcb829f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/access-scenario.ts",
+      "bytes": 10226,
+      "sha256": "6937018afe603f6bae8fbb0b161152b955f90266067ce8f7800ea1f4fd310f21"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/access-styles.ts",
+      "bytes": 35139,
+      "sha256": "df806905cf1ebe13b3ea0c253bc949fb327d7fa87edbd5fe20a1e90305ac98aa"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/admin-audit.ts",
+      "bytes": 21442,
+      "sha256": "c44e7b8be84e668d9ab728e82bf2bca3032f23df9cb0810ad5c2e9e33a2ca1f1"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/admin-styles.ts",
+      "bytes": 3191,
+      "sha256": "33fe61b9de528da8c30fc22adb08a40ca3cdc05313bd4966d09de93afbdf3c05"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/api-contract.ts",
+      "bytes": 4702,
+      "sha256": "4c47dcfdc7fb19ed855651a3e5eab1d5385f47cda2b7027f6f584f2d1853b290"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/appearance.ts",
+      "bytes": 12456,
+      "sha256": "449abbe067b29764dcce53457d0d6474d48924a30b3131fa7b5f7d39280dcf46"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/audio-codec.ts",
+      "bytes": 703,
+      "sha256": "b9f795154e5067ca7db5c993755054dc60ca32e40e29beedb9f9cb4a69764cfc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/audio-controls.ts",
+      "bytes": 45889,
+      "sha256": "aced3181d21753b010eecb92c3a4e64438cb3f0bb74b1c0fbde136010b2b61ab"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/audio-output.ts",
+      "bytes": 9023,
+      "sha256": "e1c18313f810711541b4999e94273b25775214e766bb5bcc9ac2db94f1853f11"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/audio-worklet.ts",
+      "bytes": 876,
+      "sha256": "46a979615946f2d45a4a6b1db5d68d28d160f7ccd07206a59f2fce9b1d2c5d77"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/bulk-users.ts",
+      "bytes": 22492,
+      "sha256": "521cdecbdcf28adc06ad72f1dd22a3698b108acbdb73a6bc781ba50210dd0de5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/call-controls.ts",
+      "bytes": 13663,
+      "sha256": "78aeacdf89dee339c05659e7f077c061befc56408aec9d338d5a220e4913f671"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/camera-mse.ts",
+      "bytes": 6938,
+      "sha256": "fb1e1b8320490b18b42dd7f46121217b85031ae9071320c81ceeb643b6ec11a5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/camera-rtc.ts",
+      "bytes": 10297,
+      "sha256": "9613ad704211a3f9ebd58adddf5d3743d3ab9170254840fecc68c4328f6474fe"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/camera-signaling.ts",
+      "bytes": 2401,
+      "sha256": "8115f53411e6220f60381ccbd82fdec546c18e1c91694db9ed6d8871b85a673e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/camera-wall.ts",
+      "bytes": 12288,
+      "sha256": "c8b60834d8edb1b80410a6c57c4f98b8f0cce2480ce7ba2933bee6a9d210982f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/camera.ts",
+      "bytes": 26882,
+      "sha256": "1b8df7b1f68cf01c831789b48951114b805dd17a7a55b8d1dcbf4e8e94c03a52"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/checkpoint-jobs.ts",
+      "bytes": 15663,
+      "sha256": "dfb3dc8d4c1e3365a2187ac15a971e6decda93740adffba9eaf8994cdfbb88f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/clock-settings.ts",
+      "bytes": 15033,
+      "sha256": "aa6f4c0c9f04df7d122e2fcb40dd0372bf8740cd84c6ace460eb73672f05b43f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/data-quality.ts",
+      "bytes": 11145,
+      "sha256": "c361a04c1aea3776fb538b28200437374e01d9c9fb240879d78aa019b8deebe0"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/deployment-plans.ts",
+      "bytes": 17864,
+      "sha256": "4b0834a95793a410a79985404337d954f9f62e1b53e1f79db3ee1d87f910633d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/dialog-viewport.ts",
+      "bytes": 1020,
+      "sha256": "b9818ed322b58c701fd4e691511017bd58c764bbbc6b8c220c8602d74ce56cae"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/door-programs.ts",
+      "bytes": 17731,
+      "sha256": "01285c017d70d1326b66c5a04d5b7dfefe1c17b4e6bd9236768353a2df7d039d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/download.ts",
+      "bytes": 326,
+      "sha256": "8284e53b4e5d3ce82b0580558282b378def0e331b4069ee07105856296987032"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/embed-styles.ts",
+      "bytes": 792,
+      "sha256": "247c876bfcdacd12ed31f176abee3561dfa1f01549252bf2dede116def641700"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/event-tools.ts",
+      "bytes": 11345,
+      "sha256": "917f378ce71adf5b6aa1c5a8f8badeaa5b91a881401d5c3a17907d69a41c8e61"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/events.ts",
+      "bytes": 45466,
+      "sha256": "a1b5bfc122e1fe51fa0074413eaee8aeead0943864204692be0bbdd3276ad93c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/fleet-alerts.ts",
+      "bytes": 16111,
+      "sha256": "6487a87c790b20bcf2ff45672fa815b7a55155cddd1eeb6c7a4fd2f6394c9446"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/fleet-approval.ts",
+      "bytes": 7369,
+      "sha256": "9b2d10da891d4515ae2608b25771c29c234634106ea5f5ba0d4698fbc63af1fc"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/fleet-clocks.ts",
+      "bytes": 4736,
+      "sha256": "7d1444ebb49e836569725be347c15fffb0023950d18da62ac08fb9374c3ebb79"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/group-suggestions.ts",
+      "bytes": 12666,
+      "sha256": "16155696704492e9a9f34569157ab6989f358fc7451d5572e85e061f2324d362"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/guest-templates.ts",
+      "bytes": 21080,
+      "sha256": "5fd0bbf6dc4dd62191a3b5859e6185c956ced0a9ef985a52c7d9572b916c3cfb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/header-styles.ts",
+      "bytes": 2302,
+      "sha256": "4f41a5531b5fe0887977d4dab7bacaade174c07c39377858b9b2014af3069a52"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/health.ts",
+      "bytes": 33716,
+      "sha256": "1539f3d3f92ad39257b1ace2f2e2e826b8d4278124084cd26fded00abb5c2f4d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/hold-open.ts",
+      "bytes": 5917,
+      "sha256": "1c9e479d1b8f2f78861c2fc3f4b26ffc9e6d0de31783889817c1b6c47837a4ba"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/i18n.ts",
+      "bytes": 328273,
+      "sha256": "0c056f9e45e5b29ee18c03a71b9cb30814782abd928dbdc30cb603e284254db7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/icons.ts",
+      "bytes": 1854,
+      "sha256": "29d1bdca7ec83ca0fb54da8032a533fd9691e13f2b7ccd1e54f16b6289faf31d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/identity-lifecycle.ts",
+      "bytes": 22037,
+      "sha256": "3a3825c59f88cad29b8ca7211404837dcd8f91c5b673e628c3a6524eae85c864"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/interface-styles.ts",
+      "bytes": 14713,
+      "sha256": "7c9ebdb5e3ea0d69d4400618e5a5453052106451d248833ac57caaf70f53fe30"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/investigations.ts",
+      "bytes": 24993,
+      "sha256": "8ca87fd7b9351eb11a2154ced7971a9b014d790720e28204e24c01fa4c34d32d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/live-clock.ts",
+      "bytes": 2749,
+      "sha256": "9171f30178ac63cb6f3d8808c1c6f7cd7e68da8fd47d061f3630b27bb48886d2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/maintenance-queue.ts",
+      "bytes": 14597,
+      "sha256": "442aec2cfb5b73b3b309e910c1a660cdbc2d8232d23b423f898e38e8c9f8365c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/media-evidence.ts",
+      "bytes": 2880,
+      "sha256": "b17220869d0d96846c69545e687e4c24a1ca101bbfc943d74c78ead3e2f3a457"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/media-settings.ts",
+      "bytes": 15979,
+      "sha256": "36086c797471808c73f37b666bc9d480b559bd16d824fd7cb93118a09152df92"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/microphone-input.ts",
+      "bytes": 9765,
+      "sha256": "d80c9649950aa4152c3889d1d181ef5a24027f0a1c541f7ffd9e3f3a85f6f96f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/modern-styles.ts",
+      "bytes": 17813,
+      "sha256": "aa5b0cdb75f2b42e4f350154ddb40becafbb635027200e6dac78a9b6e37eaa0f"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/operations-center.ts",
+      "bytes": 15057,
+      "sha256": "bbb09003a48ab3adfb7c0351fe6a941f177b2ea4bc689ec8dd98e03b0c32fea2"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/overview-styles.ts",
+      "bytes": 4896,
+      "sha256": "2cafb1dedf2c1caa6d3f62a8adfe296201e203e3faa0988ed7ee547c096b2f92"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/panel-location.ts",
+      "bytes": 1613,
+      "sha256": "23eb3ffcbf596e67f14670893c597b3dceea8adeba689d3dff2e7bc57c2954f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/panel.ts",
+      "bytes": 277302,
+      "sha256": "036c2794feaa67bc036f9b4ea37d6ccdb8c0e39c4f0ad32d821d015081fec1ea"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/permission-directory.ts",
+      "bytes": 7403,
+      "sha256": "7a90049c27bc5d013a1e92fe29c9e5e395e18af5ff4dcd9f6e095fdcd169540c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/permission-reviews.ts",
+      "bytes": 22449,
+      "sha256": "63c420c29bef10dc7503030ebcacf1bbebfe2c9acccf5812de95aeb08268ca6d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/personal-renewal.ts",
+      "bytes": 17591,
+      "sha256": "510b598dcc162ca83d2f926a37e38078cc5eb67cf27132a906131f613bab61a6"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/phone.ts",
+      "bytes": 443,
+      "sha256": "88dc4de51d4c34e0e58c0c4d4a9ec89e982e80e24481a1fff6688620d72e5d41"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/photo-file.ts",
+      "bytes": 3660,
+      "sha256": "982b275b54d81ce01525bc46e9b713425c2e4ef79a6df7bdefb7c0fa4102ae38"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/platform-center.ts",
+      "bytes": 67389,
+      "sha256": "fe36a77c9f9f7231aafa8721b0c70ee47d251df2a06c4d8450688e2d5c6f7a15"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/playback-watchdog.ts",
+      "bytes": 1831,
+      "sha256": "3ccf74142fdeb42ac6c76b10bb1efe8f6b57738943e33163ba770caaa0f4137a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/policy-versions.ts",
+      "bytes": 12121,
+      "sha256": "23e9a25274c715fe936d2522caeb2311dba45421b0651b89982b69080c994f9d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/profile-fields.ts",
+      "bytes": 2332,
+      "sha256": "de564648074e5ee2cf625a9a843aff382fd37f65a80bd81d5f28c736c71067bf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/profile-settings.ts",
+      "bytes": 25855,
+      "sha256": "24e2e5576e13e76969cb9c8ea1a4ca3842fcd3b40e6e7918193bf9de9823573d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/public-codes.ts",
+      "bytes": 10669,
+      "sha256": "cf065504310fba5846b2f687f79c695d50ceda4fdb0b0ae2348a76af5fb7f915"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/reauth.ts",
+      "bytes": 5556,
+      "sha256": "6d1c4736dd3f5a17702e6c0dbb5f7cad9d71f54f2bf63adf7693f49022a820df"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/renewal-bindings.ts",
+      "bytes": 14945,
+      "sha256": "9dd79b2bcbe6ad41fb57b4a136a2ee91104984dca98a8f21734815b8a447de35"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/report-tools.ts",
+      "bytes": 11576,
+      "sha256": "f6410054958be1f8f8862a6ac1eb8046065cf3212987629c3ee892a6bd708426"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/request.ts",
+      "bytes": 2503,
+      "sha256": "27bcecaccad12192d71808b98d429d076bc3d86b6df843e622633a33ab3ae13c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/saved-user-views.ts",
+      "bytes": 9743,
+      "sha256": "1446e22d1adcb35d0b5553a72c61ee6bdbaad06dff81e6e600de8b089701bf0a"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/schedule-operations.ts",
+      "bytes": 14016,
+      "sha256": "c03430160922457f6bc98b65ee3cfc801b896f2d10c1e4c38c07ed60b1ea6a68"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/schedules.ts",
+      "bytes": 48604,
+      "sha256": "6b2d4ac5992dbc9f3ba46691e3576609fff4b0c5b85b184a1ed541d09d20f430"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/station-lifecycle-review.ts",
+      "bytes": 26043,
+      "sha256": "a993a2817b5eaafe4d9543702b38c2683f75f150398ba7703a944dc88c59b637"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/station-onboarding.ts",
+      "bytes": 18449,
+      "sha256": "aa253490868426d5d9d6df8f7b46c76069e6929a703c94253eda8a9fc4f6874e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/station-settings-styles.ts",
+      "bytes": 3000,
+      "sha256": "f22c35d74f574731ccb1ef1684783d9af27969b02763232d5ca7c2b69aa7e875"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/station-technical.ts",
+      "bytes": 14788,
+      "sha256": "d11575218a125a189aa6629e2e7d879f4bb0ba8983421adf7c9b1db20a51b255"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/styles.ts",
+      "bytes": 17800,
+      "sha256": "cb46330eaec41e92e3d0aeaecb87274ca328321f1df5a5de7329afb92a9eb4b8"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/temporary-cancel.ts",
+      "bytes": 9626,
+      "sha256": "9b06249e0f7c34bfa90941a920a0d4bf54309e195bf89bef37ce31efac6710f5"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/temporary-validity.ts",
+      "bytes": 11134,
+      "sha256": "7452289f91a2989c09f07c2831a9f3ce9fbc2a2ea303ff277b2ede159ea36372"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/time.ts",
+      "bytes": 4383,
+      "sha256": "7fba5119e327c9f4d6f95f5e2bee0126ac6ec30fa2520683868c9904e106e669"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/timing-validity.ts",
+      "bytes": 3108,
+      "sha256": "ebe5243eba610cd4d25a9390509542568e942c2ba9ec2a8489d7cc6dbfc279bf"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/tts-controls.ts",
+      "bytes": 16360,
+      "sha256": "9f85c74f32259cb896bde7aeec65775a56983dfd75c16ea2185840988a8dd57e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/types.ts",
+      "bytes": 10116,
+      "sha256": "de3cd16e97e32e87c8068e26c6d174a7c181ac60d04d3fac9435c2f033260e9e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/unified-search.ts",
+      "bytes": 17788,
+      "sha256": "7220050aab34659a6bca36ebd88bcb6441f43645c628e901711fb44d60620f61"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/usb-card-input.ts",
+      "bytes": 3984,
+      "sha256": "153af5c77a3175e42a463a0b68d3e325663ffbdc86c02b329f608bc9fd7b46cb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/user-details.ts",
+      "bytes": 37237,
+      "sha256": "6953ef113acf09995ef74183289162ea892ac362af7e2414645f585008a049d7"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/user-filters.ts",
+      "bytes": 2825,
+      "sha256": "58c2322df021c284eb10254081b4161123093bd120ab25011059fbcf5cc2da9d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/user-photo.ts",
+      "bytes": 15983,
+      "sha256": "dd28f67cbe7f7f47df9f0248602b57dacd0a9f8ecdfb3b7fcb2eae65347b50fb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/user-timing.ts",
+      "bytes": 8755,
+      "sha256": "037325ea567cdf1b6a4cc4f0379d9b5eb508bc896fa86ed72bb6bbcb7a8579ba"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/users-compact-styles.ts",
+      "bytes": 1579,
+      "sha256": "809f7a19e06b65ad4f63d4bf839e3973354d7540e779b1a857b03e6046f50c0d"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/visit-requests.ts",
+      "bytes": 21143,
+      "sha256": "b594fd2c18d8f5debd525b05aac89f25e08666b887dd7d6a4cfd3a676327c92e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/whatsapp-templates.ts",
+      "bytes": 10820,
+      "sha256": "077c9a94377bf049eecc628818b6169a2222787a6dd93b9b2c63b99e98dc6c42"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/wiskey-v4-overview.ts",
+      "bytes": 10139,
+      "sha256": "1ad70b5ec1abe27b9396880fd43a485d184968972ff6c53fe0367351f55fab17"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/wiskey-v4-styles.ts",
+      "bytes": 29317,
+      "sha256": "17bc031614a742758e8ccb0a16e569d3d955e0169cfb9ac4b85893af3c4a1dfb"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/reference/frontend/src/workflow-center.ts",
+      "bytes": 49541,
+      "sha256": "f16dfc693cabddf371177a0f640604bcf8976e88427f565077f179c57376784e"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/START_HERE_HE.md",
+      "bytes": 5887,
+      "sha256": "aafc5b9cbb3b244643f40024eb99fb77590b2d903a1e0ba322644ccb10b30791"
+    },
+    {
+      "path": "handoff/arx-native-rc37/package/VERSION_COMMIT.txt",
+      "bytes": 130,
+      "sha256": "c2701cc47d7d0423795ccd419e567a0abc612698928a67a454cec02e7919c67c"
+    },
+    {
+      "path": "handoff/arx-native-rc37/START_HERE_HE.md",
+      "bytes": 5887,
+      "sha256": "aafc5b9cbb3b244643f40024eb99fb77590b2d903a1e0ba322644ccb10b30791"
+    },
+    {
+      "path": "handoff/WisKey-Arx-2.0.0-rc.37-handoff.zip",
+      "bytes": 2094919,
+      "sha256": "d7718f5ae14b11ac874e94d85ee5c3abe330f0b591abe870fb8842cb08f8330b"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/ADAPTER.md",
+      "bytes": 2491,
+      "sha256": "6e7e24ab7e70a4b3da540af874546aabcb1858acba5481296cbb0e150b5a11c7"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/ANSWERS.md",
+      "bytes": 15795,
+      "sha256": "d64718760429f89f1c660d4d92cf7bc95b138de26c16f4fa29916b772855c9c9"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/AUDIO.md",
+      "bytes": 4884,
+      "sha256": "01f1143f7fa8bff70f72be97d7f132894e8a96e33d0b83f7071202a5a127664c"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/CHANGES_SINCE_RC37.md",
+      "bytes": 459,
+      "sha256": "c9bcf6aeb244e34b7f490adcacf05a22ca856ba08be4e4f328f2f4ec3e3040aa"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/DATA_MODEL.md",
+      "bytes": 8505,
+      "sha256": "7d9bcfb3867b36cab067d7e7ca87cb0771132e6756ba833667f66e89361e3281"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/DECISIONS_WISKEY_ARX.md",
+      "bytes": 3715,
+      "sha256": "15c31081f3296011e28cc7e1a98764a4a8e62accea6e6b0ec7f0c8f218af487c"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/DELEGATION.md",
+      "bytes": 4621,
+      "sha256": "e673258ec00d79b4783d27f538e9b874068a510ad6bd505b759ab70f545b64cf"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/errors/catalog.json",
+      "bytes": 166531,
+      "sha256": "6044dc2625302f4be8fb8d49f972635e1829a8e91d17ba4dc16c2cfe6dcac0c1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/events/catalog.json",
+      "bytes": 2297,
+      "sha256": "9a05fa7e0273a0ed2e3a5d605e89946ce56c756db4acc463cda2b00871c94277"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/EVOLUTION.md",
+      "bytes": 2452,
+      "sha256": "e988e4a0e9cbae66e7419f13640ab0a62dee5256d3ab24d0cee13d39156a596d"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/examples/arx-readonly-client.mjs",
+      "bytes": 2143,
+      "sha256": "838b277f86add4c7595793e35eac39fabc78d629fe5ffa7a11f3723d2b4a24f4"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/examples/arx-readonly-client.test.mjs",
+      "bytes": 2045,
+      "sha256": "532b7221bb88ce079edd89b78065f2f24f2012232cf847731932b8d3a6bd2afd"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/examples/README.md",
+      "bytes": 710,
+      "sha256": "36ec883cf68dc5f7fc59320cb27895503e8a4b5e771fa71cd95a052922f7075c"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/MEDIA.md",
+      "bytes": 4536,
+      "sha256": "0a7a6f7849daeccde022bb6c3733eebcdd8b873464d6134f732555281b575000"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/README.md",
+      "bytes": 3364,
+      "sha256": "5c1f722a77ec71426668198bdb3cfa18b0e4ac41d2a3cce3b8f3c05f24bc3778"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/request/ARX_REQUEST.md",
+      "bytes": 49497,
+      "sha256": "d7904bf7a7f27137063685685f24359088b2914ea96ba8a47b704bc1218e1aa5"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/schemas/commands.static.json",
+      "bytes": 350640,
+      "sha256": "2e3cd9325f182712b99f97e50a11fb902bf5b2c63d5cc3ab6eaca46c96da8c8f"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/schemas/errors.static.json",
+      "bytes": 166531,
+      "sha256": "6044dc2625302f4be8fb8d49f972635e1829a8e91d17ba4dc16c2cfe6dcac0c1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/SCOPES.md",
+      "bytes": 7559,
+      "sha256": "b4d471b8e191bbc2917316d558e77ee35a9070cb588258c89d720aa1cb395c11"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/source/WisKey-Arx-native-integration-rc37.zip",
+      "bytes": 2660043,
+      "sha256": "e9bbaec922f6cf1f413a0febad0b137a0d026e67b83e6265c765ebe9420548a6"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37/tools/generate_static_catalog.py",
+      "bytes": 8861,
+      "sha256": "36dd6b5abd3d1cb5a09fe4e0cc9cf8a2efb7c7ce93454d966e5eb0f955950d06"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/CHANGES_SINCE_RC37_CONTRACT1.md",
+      "bytes": 1109,
+      "sha256": "2eb87461e8ef8f581357f0adea3a0b30a8b519a8f20a888575e8c59dfc7a6b07"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/DECISIONS_WISKEY_ARX.md",
+      "bytes": 5226,
+      "sha256": "f8de161fae1b07cbe712f9bb328e289328ca1f3d7a3608fbb9b264328a111189"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/DELEGATION_V0.2.md",
+      "bytes": 14009,
+      "sha256": "a175f5054677fcb07dfad795e13d2bba93e1dbf42ebb86db7a2d6d3b685c5b5d"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/LICENSE",
+      "bytes": 1096,
+      "sha256": "84dd9f1b887230cec87efb15b654a01aff6ef959445b2cb94db71a68c0593336"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/README.md",
+      "bytes": 1620,
+      "sha256": "2a55b20af5cfa40951426839de751913eb169e9776e8ea9b84ae0fe8acaeac03"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/REPLY_TO_ARX_HE.md",
+      "bytes": 7946,
+      "sha256": "3ac5d4b11963b293963db673253af5cb7ad6542fc57fa95f0220dff0078c119c"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/request/Arx-decisions-reply-to-Codex-2026-10-01.md",
+      "bytes": 24179,
+      "sha256": "52ace94ed4a99315a24eab6a64a8cca515bed161bd6c14cf1d0a0f8a1a8a71a8"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/schemas/commands.static.json",
+      "bytes": 350640,
+      "sha256": "2e3cd9325f182712b99f97e50a11fb902bf5b2c63d5cc3ab6eaca46c96da8c8f"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/schemas/errors.static.json",
+      "bytes": 166531,
+      "sha256": "6044dc2625302f4be8fb8d49f972635e1829a8e91d17ba4dc16c2cfe6dcac0c1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/tools/generate_static_catalog.py",
+      "bytes": 8861,
+      "sha256": "36dd6b5abd3d1cb5a09fe4e0cc9cf8a2efb7c7ce93454d966e5eb0f955950d06"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.2/VERIFICATION.json",
+      "bytes": 839,
+      "sha256": "54a10e37ba623a4fbb80f7020a675b5085d624281108ef640da622a156c617dd"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/BACKGROUND_PROJECTION_DRAFT.md",
+      "bytes": 3038,
+      "sha256": "e2905f61db89c9e9abac5cec853d9e32adece2f0670c03adb0ffff64175d4929"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/CHANGES_SINCE_RC37_CONTRACT2.md",
+      "bytes": 1138,
+      "sha256": "9a0c0c96c0a48ad519c43b5dfd7a5c1d6f827460fab1836e433d8f34dc7f16f9"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/DECISIONS_WISKEY_ARX.md",
+      "bytes": 7280,
+      "sha256": "7cd0aedfc79a71c8d202524e369f11cd084c94658ab7a518890d8be7bd36147d"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/DELEGATION_V0.2.md",
+      "bytes": 14009,
+      "sha256": "a175f5054677fcb07dfad795e13d2bba93e1dbf42ebb86db7a2d6d3b685c5b5d"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/DELEGATION_V0.3_ADDENDUM.md",
+      "bytes": 2768,
+      "sha256": "ac8f425e505fe002f2c3507f317427711f5b36eb529ab76651e0345e63e95da1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/LICENSE",
+      "bytes": 1096,
+      "sha256": "84dd9f1b887230cec87efb15b654a01aff6ef959445b2cb94db71a68c0593336"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/README.md",
+      "bytes": 1292,
+      "sha256": "642a5e99764e342a85208e52a799735580e9a4a514a33b29aa641c77af466256"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/REPLY_TO_ARX_HE.md",
+      "bytes": 5542,
+      "sha256": "5885e2065c332a37dce7a9d66096b24938d57008b73db290c3ce4aab16f8848c"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/request/Arx-decisions-reply-2-to-Codex-2026-10-01.md",
+      "bytes": 11994,
+      "sha256": "5943a4ba8d2247da3643a8a24b2e098ef40f133b9b6cb1df0e5c4513e43a0916"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/request/Arx-decisions-reply-to-Codex-2026-10-01.md",
+      "bytes": 24179,
+      "sha256": "52ace94ed4a99315a24eab6a64a8cca515bed161bd6c14cf1d0a0f8a1a8a71a8"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/schemas/background-summary.proposed.schema.json",
+      "bytes": 938,
+      "sha256": "91d3fd727f9b6799f346ce8671010259d205b46928c6003af25ff543454d6a41"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/schemas/commands.static.json",
+      "bytes": 350640,
+      "sha256": "2e3cd9325f182712b99f97e50a11fb902bf5b2c63d5cc3ab6eaca46c96da8c8f"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/schemas/errors.static.json",
+      "bytes": 166531,
+      "sha256": "6044dc2625302f4be8fb8d49f972635e1829a8e91d17ba4dc16c2cfe6dcac0c1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/tools/generate_static_catalog.py",
+      "bytes": 8861,
+      "sha256": "36dd6b5abd3d1cb5a09fe4e0cc9cf8a2efb7c7ce93454d966e5eb0f955950d06"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.3/VERIFICATION.json",
+      "bytes": 844,
+      "sha256": "23c82a39a728e55e39a849ba9d1ba454dd0fb67be5bbec18c5743c964d4b359b"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/CHANGES_SINCE_RC37_CONTRACT3.md",
+      "bytes": 961,
+      "sha256": "ad214816abe3c3faf696db48e1318cdd274004403f5dfcd929d397fbc498293f"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/DECISIONS_WISKEY_ARX.md",
+      "bytes": 9586,
+      "sha256": "e949d5cd58e9c70b79ae29e1dcf9b25a6b29587c5392ab1de9e3962f8291de2b"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/DELEGATION_V0.4_ADDENDUM.md",
+      "bytes": 4790,
+      "sha256": "09bf42909b55ae47c9644425cb3327e72b0234eb2551808931b699214706f8af"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/LICENSE",
+      "bytes": 1096,
+      "sha256": "84dd9f1b887230cec87efb15b654a01aff6ef959445b2cb94db71a68c0593336"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/README.md",
+      "bytes": 1088,
+      "sha256": "7602e431b54557f841418d37927d971cfab5f2a230179b0b5dff3336af2666ed"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/REPLY_TO_ARX_HE.md",
+      "bytes": 6602,
+      "sha256": "d03a6f946a7575478a5af2efc2dcffc9ab0a430cce209530f0fa9ca77c4eb0ac"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/request/Arx-decisions-reply-2-to-Codex-2026-10-01.md",
+      "bytes": 11994,
+      "sha256": "5943a4ba8d2247da3643a8a24b2e098ef40f133b9b6cb1df0e5c4513e43a0916"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/request/Arx-decisions-reply-3-to-Codex-2026-10-01.md",
+      "bytes": 9045,
+      "sha256": "4978c8c9faf8a180eb9884ff8f65d5404723a5f477c61b73d5f7237a8bee548d"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/request/Arx-decisions-reply-to-Codex-2026-10-01.md",
+      "bytes": 24179,
+      "sha256": "52ace94ed4a99315a24eab6a64a8cca515bed161bd6c14cf1d0a0f8a1a8a71a8"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/schemas/background-summary.proposed.schema.json",
+      "bytes": 1150,
+      "sha256": "fb5c96bc9223ede5e7a9bda7f20bb47a13627b260356595cc81ac56980551d88"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/schemas/commands.static.json",
+      "bytes": 350640,
+      "sha256": "2e3cd9325f182712b99f97e50a11fb902bf5b2c63d5cc3ab6eaca46c96da8c8f"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/schemas/errors.static.json",
+      "bytes": 166531,
+      "sha256": "6044dc2625302f4be8fb8d49f972635e1829a8e91d17ba4dc16c2cfe6dcac0c1"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/tools/generate_static_catalog.py",
+      "bytes": 8861,
+      "sha256": "36dd6b5abd3d1cb5a09fe4e0cc9cf8a2efb7c7ce93454d966e5eb0f955950d06"
+    },
+    {
+      "path": "handoff/wiskey-arx-contract-rc37.4/VERIFICATION.json",
+      "bytes": 727,
+      "sha256": "36f5228d5d2886f1f2cb03a64b12246873009e37312b1f33ee45d39c593b3123"
+    },
+    {
+      "path": "handoff/wiskey-arx-native-contract-rc37-contract.1.zip",
+      "bytes": 2706307,
+      "sha256": "7c694362a2c12d9520e20db03df6d638447a8eb137e9a910af82be5024853421"
+    },
+    {
+      "path": "handoff/wiskey-arx-native-contract-rc37-contract.2.zip",
+      "bytes": 48560,
+      "sha256": "9cd49d6f14312c994211ff96a00a01033e406700bdd96953857d86226498d7e6"
+    },
+    {
+      "path": "handoff/wiskey-arx-native-contract-rc37-contract.3.zip",
+      "bytes": 57357,
+      "sha256": "4eb60dd42dea208afdf2e38db5e57364072cf415e8f052cd22ccbb00cc237b9e"
+    },
+    {
+      "path": "handoff/wiskey-arx-native-contract-rc37-contract.4.zip",
+      "bytes": 55316,
+      "sha256": "5475f22bf289bcd95731b84ea7c972fde037c9d653de540762fa31c146f162ce"
+    },
+    {
+      "path": "handoff/WisKey-Arx-native-integration-rc37.zip",
+      "bytes": 2660043,
+      "sha256": "e9bbaec922f6cf1f413a0febad0b137a0d026e67b83e6265c765ebe9420548a6"
+    }
+  ]
+}

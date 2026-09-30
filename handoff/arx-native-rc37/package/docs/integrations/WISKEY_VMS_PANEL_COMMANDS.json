@@ -1,0 +1,2094 @@
+{
+  "source": "custom_components/hikvision_intercom/websocket.py:COMMANDS",
+  "integration_domain": "hikvision_intercom",
+  "integration_version": "2.0.0-rc.37",
+  "api_contract_version": 1,
+  "note": "Source-derived panel command fields only. Every command also requires integer id and string type. Subscription and audio/TTS use separate handlers. Authorization, nested schemas, workflow tokens, response shapes, and physical outcomes require the handoff document and source.",
+  "commands": {
+    "hikvision_intercom/acceptance/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/acceptance/update": {
+      "required": {
+        "station_id": "str",
+        "step": "str",
+        "state": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/appearance/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/appearance/settings_update": {
+      "required": {
+        "revision": "int",
+        "default": "str",
+        "accent": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/audit/export": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/audit/list": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/authorization/preview": {
+      "required": {
+        "policy": "dict",
+        "station_groups": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/authorization/session": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/authorization/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/authorization/settings_update": {
+      "required": {
+        "revision": "int",
+        "users": "dict",
+        "station_groups": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/export": {
+      "required": {
+        "passphrase": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/backups/preview": {
+      "required": {
+        "content": "str",
+        "passphrase": "str",
+        "mapping": "dict",
+        "mode": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/add": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/capture_cancel": {
+      "required": {
+        "session_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/capture_confirm": {
+      "required": {
+        "session_id": "str",
+        "label": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/capture_start": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "reader_id": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/capture_status": {
+      "required": {
+        "session_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/reader_capabilities": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/cards/remove": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "card_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/clock/host_apply": {
+      "required": {
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/clock/host_status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/clock/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/clock/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/clock/station_sync": {
+      "required": {
+        "station_id": "str",
+        "revision": "int",
+        "copy_system": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/conflicts/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/conflicts/resolve": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "review_token": "str",
+        "revision": "int",
+        "direction": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/conflicts/resolve_deletion": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/conflicts/review": {
+      "required": {
+        "station_id": "str",
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/detail": {
+      "required": {
+        "event_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/export": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/history_inspect": {
+      "required": {
+        "station_id": "str",
+        "start": "str",
+        "end": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/list": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/print": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/report": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/support": {
+      "required": {
+        "event_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/trace_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/trace_start": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/events/trace_stop": {
+      "required": {
+        "station_id": "str",
+        "capture_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/fleet/alerts": {
+      "required": {
+        "offset": "int",
+        "limit": "int",
+        "station_id": "str",
+        "kind": "str",
+        "include_suppressed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/fleet/alerts_action": {
+      "required": {
+        "revision": "int",
+        "station_id": "str",
+        "kind": "str",
+        "action": "str",
+        "duration_minutes": "int",
+        "reason": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/fleet/inventory_export": {
+      "required": {
+        "format": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/delete": {
+      "required": {
+        "revision": "int",
+        "template_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/guest_templates/upsert": {
+      "required": {
+        "revision": "int",
+        "template_id": "str",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/health/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/health/history": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/health/refresh": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/investigations/query": {
+      "required": {
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/action": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/approval_decide": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "review_id": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/approval_request": {
+      "required": {
+        "job_id": "str",
+        "revision": "int",
+        "action": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/approval_review": {
+      "required": {
+        "job_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/bulk_create": {
+      "required": {
+        "operation_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/csv_create": {
+      "required": {
+        "content": "str",
+        "mode": "str",
+        "review_token": "str",
+        "column_map": "dict",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/errors": {
+      "required": {
+        "job_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/jobs/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/call": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/provider_check": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/provider_discover": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/media/signal": {
+      "required": {
+        "station_id": "str",
+        "command": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/operations/query": {
+      "required": {
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/overview": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/overview/summary": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/permissions/directory": {
+      "required": {
+        "filters": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/archive": {
+      "required": {
+        "month": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/capacity": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_decide": {
+      "required": {
+        "review_id": "str",
+        "fingerprint": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_pending": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_preview": {
+      "required": {
+        "station_ids": "list",
+        "door": "int",
+        "changes": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_read": {
+      "required": {
+        "station_ids": "list",
+        "door": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/config_review": {
+      "required": {
+        "review_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/delete": {
+      "required": {
+        "collection": "str",
+        "record_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/demo": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/import_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/import_preview": {
+      "required": {
+        "content": "str",
+        "mapping": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/integrity": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_apply": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_decide": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_jobs": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_plan": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_prepare": {
+      "required": {
+        "source_id": "str",
+        "target_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_remove": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_review": {
+      "required": {
+        "source_id": "str",
+        "target_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/lifecycle_verify": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_cancel": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_decide": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str",
+        "approve": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_enqueue": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_jobs": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_plan": {
+      "required": {
+        "job_id": "str",
+        "fingerprint": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/maintenance_preview": {
+      "required": {
+        "station_ids": "list",
+        "door": "int",
+        "changes": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/report": {
+      "required": {
+        "collection": "str",
+        "record_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/retention_apply": {
+      "required": {
+        "review_id": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/retention_preview": {
+      "required": {
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/save": {
+      "required": {
+        "collection": "str",
+        "record_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/webhook_key": {
+      "required": {
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/platform/webhook_save": {
+      "required": {
+        "revision": "int",
+        "values": "dict",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/settings_apply": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/settings_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/settings_preview": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/versions": {
+      "required": {
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/profiles/versions_compare": {
+      "required": {
+        "before_revision": "int",
+        "after_revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/binding_update": {
+      "required": {
+        "account_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/bindings": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/cancel": {
+      "required": {
+        "request_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/request": {
+      "required": {
+        "revision": "int",
+        "until": "str",
+        "reason": "str",
+        "request_key": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/renewal/self": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/assess": {
+      "required": {
+        "station_id": "str",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/baseline_clear": {
+      "required": {
+        "station_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/baseline_save": {
+      "required": {
+        "station_id": "str",
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/create": {
+      "required": {
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/delete": {
+      "required": {
+        "schedule_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/dependencies": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/import_apply": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/import_preview": {
+      "required": {
+        "document": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_archive": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_cancel": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_check": {
+      "required": {
+        "job_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_claim_confirm": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_claim_preview": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_claim_release": {
+      "required": {
+        "claim_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_create": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/operations_list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_delete": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_export": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_preview": {
+      "required": {
+        "station_id": "str",
+        "schedule_id": "str",
+        "revision": "int",
+        "bindings": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_recheck": {
+      "required": {
+        "plan_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/plan_save": {
+      "required": {
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/preview": {
+      "required": {
+        "data": "dict",
+        "date": "str",
+        "time": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/readiness": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/schedules/update": {
+      "required": {
+        "schedule_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/search/query": {
+      "required": {
+        "query": "str",
+        "kind": "str",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/lock": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/reauth_start": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/reauth_step": {
+      "required": {
+        "flow_id": "str",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/session": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/security/touch": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/clock_refresh": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/inventory": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/permission_audit": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/rescan": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_codes_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_codes_write": {
+      "required": {
+        "station_id": "str",
+        "slot": "int",
+        "action": "str",
+        "door": "int",
+        "expected": "bool",
+        "old_pin": "str",
+        "new_pin": "str",
+        "compatibility": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_get": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_hold_delete": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_hold_get": {
+      "required": {
+        "station_id": "str",
+        "door": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_hold_save": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "policy": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_program_action": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_program_list": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_program_save": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "revision": "int",
+        "policy": "dict",
+        "enabled": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_relays": {
+      "required": {
+        "station_id": "str",
+        "expected": "list",
+        "locks": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/technical_update": {
+      "required": {
+        "station_id": "str",
+        "door": "int",
+        "expected": "dict",
+        "changes": "dict",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/stations/test_unlock": {
+      "required": {
+        "station_id": "str",
+        "lock": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/support/bundle": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/sync/all": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/sync/diagnostics": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/sync/station": {
+      "required": {
+        "station_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/sync/status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/sync/user": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/upgrade/readiness": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_compare": {
+      "required": {
+        "left_kind": "str",
+        "left_id": "str",
+        "right_kind": "str",
+        "right_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_compare_options": {
+      "required": {
+        "kind": "str",
+        "query": "str",
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_review_decide": {
+      "required": {
+        "user_id": "str",
+        "station_id": "str",
+        "lock_id": "int",
+        "person_revision": "int",
+        "fingerprint": "str",
+        "latest_id": "str",
+        "decision": "str",
+        "reason": "str",
+        "cadence_days": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_review_preview": {
+      "required": {
+        "user_id": "str",
+        "station_id": "str",
+        "lock_id": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_reviews": {
+      "required": {
+        "user_id": "str",
+        "station_id": "str",
+        "lock_id": "int",
+        "state": "str",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/access_scenario": {
+      "required": {
+        "user_id": "str",
+        "station_id": "str",
+        "lock_id": "int",
+        "at": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/adopt": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/archive": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/bulk_apply": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/bulk_preview": {
+      "required": {
+        "request": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/bulk_receipt": {
+      "required": {
+        "operation_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/bulk_receipts": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/bulk_renewal_preview": {
+      "required": {
+        "selection": "list",
+        "until": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/create": {
+      "required": {
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/csv_apply": {
+      "required": {
+        "csv": "str",
+        "mode": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/csv_export": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/csv_inspect": {
+      "required": {
+        "csv": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/csv_preview": {
+      "required": {
+        "csv": "str",
+        "mode": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/data_quality": {
+      "required": {
+        "kind": "str",
+        "state": "str",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/delete": {
+      "required": {
+        "user_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/delete_unmanaged": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "review_token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/duplicate_check": {
+      "required": {
+        "user_id": "str",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/get": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/group_suggestions": {
+      "required": {
+        "user_id": "str",
+        "field_ids": "list"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/ignore": {
+      "required": {
+        "station_id": "str",
+        "employee_no": "str",
+        "ignored": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/lifecycle": {
+      "required": {
+        "warning_days": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/list": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/photo_get": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/pin_check": {
+      "required": {
+        "user_id": "str",
+        "pin": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/pin_generate": {
+      "required": {
+        "user_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/query": {
+      "required": {
+        "query": "str",
+        "filters": "dict",
+        "offset": "int",
+        "limit": "int",
+        "snapshot": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/set_active": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "active": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/temporary_cancel": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "reason_code": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/unarchive": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/users/update": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "data": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/create": {
+      "required": {
+        "data": "dict",
+        "approver_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/decide": {
+      "required": {
+        "request_id": "str",
+        "revision": "int",
+        "decision": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/list": {
+      "required": {
+        "offset": "int",
+        "limit": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/operators": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/visits/request": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "approver_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/history": {
+      "required": {
+        "user_id": "str",
+        "account": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/media": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "token": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/preview": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "language": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/send": {
+      "required": {
+        "user_id": "str",
+        "account": "str",
+        "token": "str",
+        "message": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/status": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/templates_get": {
+      "required": {},
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/whatsapp/templates_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/apply": {
+      "required": {
+        "request_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/decide": {
+      "required": {
+        "request_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/get": {
+      "required": {
+        "days": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_issue": {
+      "required": {
+        "card_id": "str",
+        "user_id": "str",
+        "revision": "int",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_return": {
+      "required": {
+        "card_id": "str",
+        "revision": "int",
+        "delete": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/inventory_save": {
+      "required": {
+        "card_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/reminder_action": {
+      "required": {
+        "reminder_id": "str",
+        "action": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/renew_decide": {
+      "required": {
+        "request_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/renew_request": {
+      "required": {
+        "user_id": "str",
+        "revision": "int",
+        "until": "str",
+        "reason": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/settings_update": {
+      "required": {
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/submit": {
+      "required": {
+        "command": "str",
+        "values": "dict",
+        "label": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/template_delete": {
+      "required": {
+        "template_id": "str",
+        "revision": "int"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/template_save": {
+      "required": {
+        "template_id": "str",
+        "revision": "int",
+        "values": "dict"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_begin": {
+      "required": {
+        "transfer_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_finish": {
+      "required": {
+        "transfer_id": "str",
+        "cancel": "bool",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_recheck": {
+      "required": {
+        "transfer_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_review": {
+      "required": {
+        "transfer_id": "str",
+        "approve": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/transfer_start": {
+      "required": {
+        "kind": "str",
+        "source": "str",
+        "target": "str",
+        "revision": "int",
+        "value": "str",
+        "confirmed": "bool"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    },
+    "hikvision_intercom/workflows/withdraw": {
+      "required": {
+        "request_id": "str"
+      },
+      "optional_common": {
+        "api_contract": "int"
+      }
+    }
+  }
+}

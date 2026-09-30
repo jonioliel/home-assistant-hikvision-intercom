@@ -1,0 +1,374 @@
+"""Own the central access repository once and expose administrator sync actions."""
+
+import asyncio
+from typing import Any
+
+import voluptuous as vol
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.service import async_register_admin_service
+
+from .access.acceptance import Acceptance
+from .access.manager import AccessManager
+from .access.models import AccessError
+from .access.repository import AccessRepository
+from .access.schedule_baselines import ScheduleBaselines
+from .access.schedule_journal import ScheduleJournal
+from .access.schedule_operations import ScheduleOperations
+from .access.schedule_plans import SchedulePlans
+from .access.schedule_work_queue import ScheduleWorkQueue
+from .access.schedules import ScheduleLibrary
+from .client.technical import hold_command
+from .configuration import managed_locks
+from .const import DOMAIN
+from .issues import issue
+from .storage import AccessStore
+
+SIGNAL_ACCESS_CHANGED = f"{DOMAIN}_access_changed"
+
+
+def get_manager(hass: HomeAssistant) -> AccessManager:
+    return hass.data[DOMAIN]["access"]
+
+
+async def async_setup_access(hass: HomeAssistant) -> None:
+    if DOMAIN in hass.data and "access" in hass.data[DOMAIN]:
+        return
+    store = AccessStore(hass)
+    repository = AccessRepository(store.async_save)
+    try:
+        await repository.async_load(await store.async_load())
+    except AccessError:
+        issue(hass, "users_storage_corrupt", active=True)
+        raise
+    issue(hass, "users_storage_corrupt", active=False)
+
+    @callback
+    def changed() -> None:
+        # The signal carries no personal data. Each subscriber is re-authorized before refresh.
+        async_dispatcher_send(hass, SIGNAL_ACCESS_CHANGED)
+
+    from .panel_permissions import PanelPermissions
+
+    permission_store = AccessStore(hass, key=f"{DOMAIN}.panel_permissions")
+    panel_permissions = PanelPermissions(permission_store.async_save, changed)
+    try:
+        panel_permissions.load(await permission_store.async_load())
+    except AccessError:
+        issue(hass, "panel_permissions_storage_corrupt", active=True)
+        panel_permissions.recover_from_invalid_storage()
+        hass.data.setdefault(DOMAIN, {})["panel_permissions"] = panel_permissions
+    else:
+        issue(hass, "panel_permissions_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["panel_permissions"] = panel_permissions
+
+    from .appearance_settings import AppearanceSettings
+
+    appearance_store = AccessStore(hass, key=f"{DOMAIN}.appearance_settings")
+    appearance = AppearanceSettings(appearance_store.async_save, changed)
+    try:
+        appearance.load(await appearance_store.async_load())
+    except AccessError:
+        # Preserve invalid storage until repaired; do not silently overwrite it.
+        hass.data.setdefault(DOMAIN, {})["appearance_settings"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["appearance_settings"] = appearance
+
+    from .media_settings import MediaSettings
+
+    media_store = AccessStore(hass, key=f"{DOMAIN}.media_settings")
+    media = MediaSettings(media_store.async_save, changed)
+    try:
+        media.load(await media_store.async_load())
+    except AccessError:
+        issue(hass, "media_settings_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["media_settings"] = None
+    else:
+        issue(hass, "media_settings_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["media_settings"] = media
+
+    from .whatsapp_templates import WhatsAppTemplates
+
+    template_store = AccessStore(hass, key=f"{DOMAIN}.whatsapp_templates")
+    templates = WhatsAppTemplates(template_store.async_save, changed)
+    try:
+        templates.load(await template_store.async_load())
+    except AccessError:
+        hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["whatsapp_templates"] = templates
+
+    from .access.guest_templates import GuestTemplates
+    from .access.permission_reviews import PermissionReviews
+    from .ntp_settings import NtpSettings
+
+    review_store = AccessStore(hass, key=f"{DOMAIN}.permission_reviews")
+    reviews = PermissionReviews(review_store.async_save, changed)
+    try:
+        reviews.load(await review_store.async_load())
+    except AccessError:
+        hass.data.setdefault(DOMAIN, {})["permission_reviews"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["permission_reviews"] = reviews
+
+    guest_template_store = AccessStore(hass, key=f"{DOMAIN}.guest_templates")
+    guest_templates = GuestTemplates(guest_template_store.async_save, changed)
+    try:
+        guest_templates.load(await guest_template_store.async_load())
+    except AccessError:
+        # Preserve a corrupt file; an unrelated user update must not replace it.
+        hass.data.setdefault(DOMAIN, {})["guest_templates"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["guest_templates"] = guest_templates
+
+    ntp_store = AccessStore(hass, key=f"{DOMAIN}.ntp_settings")
+    ntp = NtpSettings(ntp_store.async_save, changed)
+    try:
+        ntp.load(await ntp_store.async_load())
+    except AccessError:
+        hass.data.setdefault(DOMAIN, {})["ntp_settings"] = None
+    else:
+        hass.data.setdefault(DOMAIN, {})["ntp_settings"] = ntp
+
+    from .profile_settings import ProfileSettings
+
+    profile_store = AccessStore(hass, key=f"{DOMAIN}.profile_settings")
+
+    async def save_profiles(data: dict[str, Any]) -> None:
+        manager = hass.data[DOMAIN].get("access")
+        before = {u.id: u.revision for u in repository.users()}
+        try:
+            await repository.async_profile_settings(data, manager._validate if manager else None)
+        finally:
+            # A cancelled caller can still have completed the durable commit.
+            if manager:
+                for user in repository.users():
+                    if before.get(user.id) != user.revision:
+                        manager.request_user(user.id)
+                changed()
+
+    profiles = ProfileSettings(save_profiles, changed, repository.profile_settings)
+    # Do not silently discard corrupt field definitions or reuse their identities.
+    try:
+        central = repository.profile_settings()
+        profiles.load(central if central is not None else await profile_store.async_load())
+        if central is None:
+            await repository.async_profile_settings(profiles.data)
+    except AccessError:
+        issue(hass, "profile_settings_storage_corrupt", active=True)
+        hass.data[DOMAIN]["profile_settings"] = None
+    else:
+        issue(hass, "profile_settings_storage_corrupt", active=False)
+        hass.data[DOMAIN]["profile_settings"] = profiles
+
+    from .access.hold_open import HoldOpenDrafts
+
+    hold_store = AccessStore(hass, key=f"{DOMAIN}.hold_open_drafts")
+    hold_drafts = HoldOpenDrafts(hold_store.async_save)
+    hold_drafts.load(await hold_store.async_load())
+    hass.data[DOMAIN]["hold_open_drafts"] = hold_drafts
+
+    from datetime import timedelta
+
+    from homeassistant.helpers.event import async_track_time_interval
+
+    from .access.hold_programs import HoldPrograms
+
+    program_store = AccessStore(hass, key=f"{DOMAIN}.hold_programs")
+
+    async def send_hold(item: dict[str, Any], command: str) -> None:
+        entry = hass.config_entries.async_get_entry(item["station_id"])
+        runtime = getattr(entry, "runtime_data", None)
+        if runtime is None or runtime.is_closed or runtime.profile.unique_id != item["identity"]:
+            raise AccessError("station_unloaded")
+        if not any(
+            lock.physical_index == item["door"] and lock.api_id == item["api_id"]
+            for lock in runtime.locks
+        ):
+            raise AccessError("operation_unsupported")
+        await hold_command(runtime.client, item["api_id"], command, commissioned=True)
+
+    programs = HoldPrograms(program_store.async_save, send_hold)
+    programs.load(await program_store.async_load())
+    hass.data[DOMAIN]["hold_programs"] = programs
+    program_tick_lock = asyncio.Lock()
+
+    async def tick_programs(now: Any) -> None:
+        if program_tick_lock.locked():
+            return
+        async with program_tick_lock:
+            await programs.tick(now)
+
+    stop_program_timer = async_track_time_interval(hass, tick_programs, timedelta(seconds=15))
+
+    schedule_store = AccessStore(hass, key=f"{DOMAIN}.schedules")
+    schedules = ScheduleLibrary(schedule_store.async_save, changed)
+    try:
+        await schedules.async_load(await schedule_store.async_load())
+    except AccessError:
+        issue(hass, "schedules_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["schedules"] = None
+    else:
+        issue(hass, "schedules_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["schedules"] = schedules
+
+    acceptance_store = AccessStore(hass, key=f"{DOMAIN}.acceptance")
+    acceptance = Acceptance(acceptance_store.async_save)
+    try:
+        await acceptance.async_load(await acceptance_store.async_load())
+    except AccessError:
+        issue(hass, "acceptance_storage_corrupt", active=True)
+        hass.data[DOMAIN]["acceptance"] = None
+    else:
+        issue(hass, "acceptance_storage_corrupt", active=False)
+        hass.data[DOMAIN]["acceptance"] = acceptance
+
+    from .fleet_alerts import FleetAlerts
+    from .fleet_health import FleetHealth
+
+    alert_store = AccessStore(hass, key=f"{DOMAIN}.fleet_alerts")
+    fleet_alerts = FleetAlerts(alert_store.async_save, changed)
+    try:
+        fleet_alerts.load(await alert_store.async_load())
+    except AccessError:
+        issue(hass, "fleet_alerts_storage_corrupt", active=True)
+        hass.data[DOMAIN]["fleet_alerts"] = None
+    else:
+        issue(hass, "fleet_alerts_storage_corrupt", active=False)
+        hass.data[DOMAIN]["fleet_alerts"] = fleet_alerts
+
+    fleet_store = AccessStore(hass, key=f"{DOMAIN}.fleet_health")
+    fleet_health = FleetHealth(fleet_store.async_save)
+    try:
+        fleet_health.load(await fleet_store.async_load())
+    except AccessError:
+        issue(hass, "fleet_health_storage_corrupt", active=True)
+        hass.data[DOMAIN]["fleet_health"] = None
+    else:
+        issue(hass, "fleet_health_storage_corrupt", active=False)
+        hass.data[DOMAIN]["fleet_health"] = fleet_health
+
+    baseline_store = AccessStore(hass, key=f"{DOMAIN}.schedule_baselines")
+    baselines = ScheduleBaselines(baseline_store.async_save)
+    try:
+        await baselines.async_load(await baseline_store.async_load())
+    except AccessError:
+        issue(hass, "schedule_baselines_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["schedule_baselines"] = None
+    else:
+        issue(hass, "schedule_baselines_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["schedule_baselines"] = baselines
+
+    plan_store = AccessStore(hass, key=f"{DOMAIN}.schedule_plans")
+    plans = SchedulePlans(plan_store.async_save)
+    try:
+        await plans.async_load(await plan_store.async_load())
+    except AccessError:
+        issue(hass, "schedule_plans_storage_corrupt", active=True)
+        hass.data.setdefault(DOMAIN, {})["schedule_plans"] = None
+    else:
+        issue(hass, "schedule_plans_storage_corrupt", active=False)
+        hass.data.setdefault(DOMAIN, {})["schedule_plans"] = plans
+
+    journal_store = AccessStore(hass, key=f"{DOMAIN}.schedule_journal")
+    journal = ScheduleJournal(journal_store.async_save)
+    operations_store = AccessStore(hass, key=f"{DOMAIN}.schedule_operations")
+    operations = ScheduleOperations(operations_store.async_save)
+    for key, database, persistence in (
+        ("schedule_journal", journal, journal_store),
+        ("schedule_operations", operations, operations_store),
+    ):
+        try:
+            await database.async_load(await persistence.async_load())
+        except AccessError:
+            issue(hass, f"{key}_storage_corrupt", active=True)
+            hass.data[DOMAIN][key] = None
+        else:
+            issue(hass, f"{key}_storage_corrupt", active=False)
+            hass.data[DOMAIN][key] = database
+
+    from .schedule_operations_api import preflight
+
+    queue = ScheduleWorkQueue(
+        operations,
+        lambda job: preflight(hass, job),
+        changed,
+        lambda coro: hass.async_create_background_task(
+            coro, "hikvision schedule preflight", eager_start=False
+        ),
+    )
+    hass.data[DOMAIN]["schedule_queue"] = queue
+
+    manager = AccessManager(
+        repository,
+        changed=changed,
+        task_factory=lambda coro, name: hass.async_create_background_task(
+            coro, name, eager_start=False
+        ),
+    )
+    if hass.data[DOMAIN].get("schedule_journal") is not None:
+        from .access.native_timing import NativeTiming
+
+        manager.engine.native_timing = NativeTiming(journal, repository)
+    hass.data.setdefault(DOMAIN, {})["access"] = manager
+    from .access.encrypted_backup import Backups
+    from .access.workflows import Workflows
+    from .panel_security import PanelSecurity
+
+    workflows_center = Workflows(manager)
+    hass.data[DOMAIN]["workflows"] = workflows_center
+    hass.data[DOMAIN]["backups"] = Backups(manager)
+    hass.data[DOMAIN]["panel_security"] = PanelSecurity(hass, workflows_center)
+
+    from .operations_runtime import async_setup_operations
+
+    await async_setup_operations(hass)
+
+    from .access.checkpoint_jobs import CheckpointJobs
+
+    async def authorize_job(actor: str) -> bool:
+        user = await hass.auth.async_get_user(actor)
+        return bool(user and user.is_active and user.is_admin)
+
+    checkpoint_jobs = CheckpointJobs(manager, authorize_job)
+    hass.data[DOMAIN]["checkpoint_jobs"] = checkpoint_jobs
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        manager.register(entry.entry_id, entry.title, bool(managed_locks(entry.data)))
+
+    async def stop(_event: Event) -> None:
+        stop_program_timer()
+        await checkpoint_jobs.close()
+        if hass.data[DOMAIN].get("fleet_health") is not None:
+            await fleet_health.async_flush()
+        await queue.close()
+        await manager.async_close()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop)
+    _register_services(hass, manager)
+
+
+@callback
+def _register_services(hass: HomeAssistant, manager: AccessManager) -> None:
+    async def action(call: ServiceCall) -> None:
+        try:
+            if call.service == "sync_all":
+                manager.request_all()
+            elif call.service == "rescan_station":
+                await manager.async_rescan(call.data["station_id"])
+            elif call.service == "sync_user":
+                manager.request_user(call.data["user_id"])
+            else:
+                manager.request(call.data["station_id"])
+        except AccessError as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="access_action_failed",
+                translation_placeholders={"reason": err.code},
+            ) from None
+
+    for name in ("sync_user", "sync_station", "sync_all", "rescan_station"):
+        key = "user_id" if name == "sync_user" else "station_id"
+        fields: dict[Any, Any] = {} if name == "sync_all" else {vol.Required(key): str}
+        async_register_admin_service(hass, DOMAIN, name, action, vol.Schema(fields))

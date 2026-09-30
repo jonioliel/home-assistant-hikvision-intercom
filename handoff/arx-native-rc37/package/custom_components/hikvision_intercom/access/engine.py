@@ -1,0 +1,563 @@
+"""Reconcile explicit ownership with durable intent and readback after every write."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Awaitable, Callable
+from copy import deepcopy
+from dataclasses import dataclass
+from functools import partial
+
+from ..client.access import AccessClient, StationInventory
+from ..client.clock import ClockClient
+from ..exceptions import (
+    HikvisionAuthError,
+    HikvisionConnectionError,
+    HikvisionDeviceError,
+    HikvisionError,
+    HikvisionTimeoutError,
+)
+from .diagnostics import SyncDiagnostics, error_code
+from .models import AccessError, ManagedUser, utc_now
+from .native_timing import NativeTiming
+from .normalize import assignment_doors, canonical, desired_cards, desired_person, merge_person
+from .repository import AccessRepository
+from .validity_transport import local_validity, owned_utc_echo
+
+
+@dataclass(slots=True)
+class ReconcileResult:
+    completed: int = 0
+    failed: int = 0
+    retry: bool = False
+    offline: bool = False
+    last_error: str | None = None
+
+
+class SyncEngine:
+    PERSON_TIMEOUT = 180
+
+    def __init__(
+        self,
+        repository: AccessRepository,
+        *,
+        concurrency: int = 3,
+        changed: Callable[[], None] | None = None,
+        diagnostics: SyncDiagnostics | None = None,
+    ) -> None:
+        self.native_timing: NativeTiming | None = None
+        self._timing_clocks: set[str] = set()
+        self.repository = repository
+        self.diagnostics = diagnostics or SyncDiagnostics(repository.fingerprint)
+        self._slots = asyncio.Semaphore(concurrency)
+        self._changed = changed or (lambda: None)
+
+    def jobs(self, station: str) -> list[str]:
+        state = self.repository.snapshot()
+        users = {key for key, value in state["users"].items() if station in value["assignments"]}
+        users |= set(state["bindings"].get(station, {}))
+        users |= {
+            item["user_id"]
+            for item in [*state["retired_cards"].values(), *state["retired_pins"].values()]
+            if station in item["targets"] and station not in item["confirmed"]
+        }
+        tombstones = {
+            key
+            for key, value in state["tombstones"].items()
+            if station in value["targets"] and station not in value["confirmed"]
+        }
+        return sorted(tombstones) + sorted(users - tombstones)
+
+    async def async_reconcile(self, station: str, driver: AccessClient) -> ReconcileResult:
+        result = ReconcileResult()
+        self._timing_clocks.discard(station)
+        async with self._slots:
+            if driver.capabilities is None:
+                self.diagnostics.stage(station, None, "capabilities")
+                await driver.async_capabilities()
+            self.diagnostics.stage(station, None, "inventory")
+            inventory = await driver.async_inventory()
+            self.diagnostics.finish(station, None)
+            for user_id in self.jobs(station):
+                self.diagnostics.stage(station, user_id, "identity")
+                failure: Exception | None = None
+                outcome = "succeeded"
+                deadline = asyncio.timeout(self.PERSON_TIMEOUT)
+                try:
+                    async with deadline, driver.transaction():
+                        state = self.repository.snapshot()
+                        raw = state["users"].get(user_id)
+                        assignment = raw["assignments"].get(station) if raw else None
+                        if not (
+                            assignment
+                            and assignment["sync_state"] == "synced"
+                            and assignment["applied_revision"] == raw["revision"]
+                        ):
+                            await self.repository.async_mark(station, user_id, "syncing")
+                            self._changed()
+                        await self._person(station, user_id, driver, inventory)
+                except (AccessError, HikvisionError, TimeoutError) as err:
+                    failure = err
+                    if isinstance(err, TimeoutError) and not deadline.expired():
+                        # Unexpected failures (including persistence) must not permit more writes.
+                        raise
+                    failure = (
+                        HikvisionTimeoutError("Person reconciliation deadline exceeded")
+                        if isinstance(err, TimeoutError)
+                        else err
+                    )
+                    code = error_code(failure)
+                    result.last_error = result.last_error or code
+                    if code == "revision_conflict":
+                        result.retry = True
+                        await self.repository.async_mark(station, user_id, "pending")
+                    else:
+                        result.failed += 1
+                        status = "error"
+                        if code == "connection_failed":
+                            # A timed-out person operation is not proof the station is offline.
+                            # Refresh inventory before proceeding after an uncertain write.
+                            result.retry = True
+                            try:
+                                async with asyncio.timeout(20):
+                                    await driver.client.async_confirm_identity()
+                                    inventory = await driver.async_inventory()
+                            except HikvisionAuthError:
+                                raise
+                            except (HikvisionConnectionError, HikvisionTimeoutError, TimeoutError):
+                                result.offline = True
+                                result.last_error = code
+                            status = "offline" if result.offline else "pending"
+                        elif code == "device_busy":
+                            status = "pending"
+                            result.retry = True
+                        elif code in {
+                            "unmanaged_employee",
+                            "device_changed",
+                            "card_owned_elsewhere",
+                            "pin_owned_elsewhere",
+                            "ambiguous_write",
+                            "device_conflict",
+                        }:
+                            status = "conflict"
+                        await self.repository.async_mark(station, user_id, status, code)
+                        if isinstance(err, HikvisionAuthError):
+                            raise
+                        if result.offline:
+                            break
+                except asyncio.CancelledError:
+                    outcome = "cancelled"
+                    raise
+                except Exception as err:
+                    failure = err
+                    raise
+                else:
+                    result.completed += 1
+                finally:
+                    self.diagnostics.finish(station, user_id, error=failure, outcome=outcome)
+                    self._changed()
+        return result
+
+    async def _person(
+        self, station: str, user_id: str, driver: AccessClient, inventory: StationInventory
+    ) -> None:
+        caps = driver.capabilities
+        assert caps is not None
+        state = self.repository.snapshot()
+        raw = state["users"].get(user_id)
+        tombstone = state["tombstones"].get(user_id)
+        if raw is None and tombstone is None:
+            return
+        user = ManagedUser.from_private(raw if raw is not None else tombstone["record"])
+        assignment = user.assignments.get(station) if raw is not None else None
+        present = bool(raw is not None and user.active and assignment and assignment.enabled)
+        if not driver.client.enabled_doors:
+            raise AccessError("station_has_no_managed_lock")
+        if assignment and (
+            not assignment.allowed_locks <= driver.client.physical_doors.keys()
+            or assignment.schedule_template is not None
+        ):
+            raise AccessError("unmanaged_lock")
+        binding = state["bindings"].get(station, {}).get(user_id)
+        # Refresh this person under the station transaction, including all of their cards.
+        self.diagnostics.stage(station, user_id, "person_read")
+        current = await driver.async_person(user.employee_no)
+        merge_person(inventory, user.employee_no, current)
+        recovered_echo = False
+        try:
+            current_fingerprint = self.repository.fingerprint(
+                canonical(current, user.employee_no, caps)
+            )
+        except AccessError as err:
+            if (
+                err.code != "validity_timezone_mismatch"
+                or not binding
+                or binding["employee_no"] != user.employee_no
+            ):
+                raise
+            intent = binding.get("intent") or {}
+            recovered = owned_utc_echo(
+                current,
+                user.employee_no,
+                caps,
+                self.repository.fingerprint,
+                {
+                    binding["fingerprint"],
+                    intent.get("desired_fingerprint"),
+                    intent.get("before_fingerprint"),
+                },
+            )
+            if recovered is None:
+                raise
+            # This proves record ownership only, not validity enforcement.
+            current = recovered
+            recovered_echo = True
+            current_fingerprint = self.repository.fingerprint(
+                canonical(current, user.employee_no, caps)
+            )
+        if binding is None:
+            if current.users:
+                raise AccessError("unmanaged_employee")
+            if not present:
+                await self.repository.async_confirm_absent(station, user_id, revision=user.revision)
+                return
+        elif binding["employee_no"] != user.employee_no:
+            raise AccessError("device_changed")
+        elif not current.users and not present:
+            await self.repository.async_confirm_absent(station, user_id, revision=user.revision)
+            return
+        elif current_fingerprint != binding["fingerprint"]:
+            intent = binding.get("intent")
+            if intent and current_fingerprint in {
+                intent["desired_fingerprint"],
+                intent.get("before_fingerprint"),
+            }:
+                # The previous response was lost, but exact readback proves its configuration.
+                await self.repository.async_record_observation(
+                    station, user_id, fingerprint=current_fingerprint, applied_revision=None
+                )
+            else:
+                raise AccessError("ambiguous_write" if intent else "device_changed")
+        elif binding.get("intent"):
+            # The state still matches the journal's before-image; clear that completed read phase.
+            await self.repository.async_record_observation(
+                station, user_id, fingerprint=current_fingerprint, applied_revision=None
+            )
+
+        if not present:
+            await self._remove(station, user, driver, inventory, current)
+            return
+        api_id = assignment_doors(user, station, driver.client.physical_doors)
+        person = desired_person(user, api_id, caps)
+        timing = user.access_timing_policy
+        if timing:
+            try:
+                if timing["mode"] == "native":
+                    if self.native_timing is None:
+                        raise AccessError("schedule_runtime_unavailable")
+                    person["RightPlan"] = await self.native_timing.ensure(
+                        station, user, driver, api_id
+                    )
+                elif station not in self._timing_clocks:
+                    clock = await ClockClient(driver.client).async_read()
+                    measurement = clock["measurement"]
+                    if (
+                        measurement["status"] != "measured"
+                        or abs(measurement["estimated_skew_seconds"])
+                        + measurement["uncertainty_seconds"]
+                        > 10
+                    ):
+                        raise AccessError("schedule_station_clock_unverified")
+                    self._timing_clocks.add(station)
+            except (AccessError, HikvisionError):
+                # A timing activation failure must not retain a previously unlimited
+                # managed grant. Do not create credentials on a failed deployment.
+                if current.users:
+                    denied = deepcopy(current)
+                    denied.users[user.employee_no].update(
+                        Valid={
+                            "enable": True,
+                            "beginTime": "2000-01-01T00:00:00",
+                            "endTime": "2000-01-01T00:01:00",
+                            "timeType": "local",
+                        }
+                    )
+                    if canonical(denied, user.employee_no, caps) != canonical(
+                        current, user.employee_no, caps
+                    ):
+                        await self._step(
+                            station,
+                            user,
+                            driver,
+                            inventory,
+                            current,
+                            denied,
+                            "update",
+                            lambda: driver.async_write_person(
+                                {
+                                    "employeeNo": user.employee_no,
+                                    "Valid": denied.users[user.employee_no]["Valid"],
+                                },
+                                create=False,
+                            ),
+                            step="update_person",
+                        )
+                raise
+        cards = desired_cards(user, caps)
+        if not current.users and len(inventory.users) >= caps.max_users:
+            raise AccessError("person_capacity")
+        if len(inventory.cards) - len(current.cards) + len(cards) > caps.max_cards:
+            raise AccessError("card_capacity")
+        for number in cards:
+            existing = inventory.cards.get(number)
+            if existing and existing["employeeNo"] != user.employee_no:
+                raise AccessError("card_owned_elsewhere")
+        if user.pin and caps.pin_field:
+            if any(
+                other.get(caps.pin_field) == user.pin.value
+                for number, other in inventory.users.items()
+                if number != user.employee_no
+            ):
+                raise AccessError("pin_owned_elsewhere")
+        if current.users and current.users[user.employee_no].get("RightPlan") != []:
+            if self.native_timing is None or not self.native_timing.owns(
+                station, user, current.users[user.employee_no].get("RightPlan")
+            ):
+                raise AccessError("schedule_unverified")
+
+        absolute_validity = deepcopy(person["Valid"])
+        if person["Valid"]["enable"] and (
+            recovered_echo
+            or current.users.get(user.employee_no, {}).get("Valid", {}).get("timeType") == "local"
+        ):
+            person["Valid"] = await local_validity(driver.client, person["Valid"])
+        desired = StationInventory({user.employee_no: person}, cards)
+        desired_normal = canonical(desired, user.employee_no, caps)
+        actual_normal = canonical(current, user.employee_no, caps)
+        if desired_normal["person"] != actual_normal["person"]:
+            expected = deepcopy(current)
+            create = not bool(current.users)
+            expected.users[user.employee_no] = {**current.users.get(user.employee_no, {}), **person}
+            payload = deepcopy(person)
+            if not create:
+                actual_person = actual_normal["person"]
+                desired_fields = desired_normal["person"]
+                payload = {
+                    key: value
+                    for key, value in payload.items()
+                    if key == "employeeNo"
+                    or actual_person.get("pin" if key == caps.pin_field else key)
+                    != desired_fields.get("pin" if key == caps.pin_field else key)
+                }
+            if create and caps.pin_field and payload.get(caps.pin_field) == "":
+                payload.pop(caps.pin_field)
+            current = await self._step(
+                station,
+                user,
+                driver,
+                inventory,
+                current,
+                expected,
+                "create" if create else "update",
+                lambda: driver.async_write_person(payload, create=create),
+                step="create_person" if create else "update_person",
+            )
+        # Remove obsolete cards before adding new ones, so replacement works at capacity.
+        for number in list(current.cards):
+            if number not in cards:
+                expected = deepcopy(current)
+                del expected.cards[number]
+                current = await self._step(
+                    station,
+                    user,
+                    driver,
+                    inventory,
+                    current,
+                    expected,
+                    "update",
+                    partial(driver.async_delete_card, number),
+                    step="delete_card",
+                )
+        for number, card in cards.items():
+            existing = current.cards.get(number)
+            if existing is not None and existing.get("cardType") == card["cardType"]:
+                continue
+            expected = deepcopy(current)
+            expected.cards[number] = card
+            current = await self._step(
+                station,
+                user,
+                driver,
+                inventory,
+                current,
+                expected,
+                "update",
+                partial(
+                    driver.async_write_card,
+                    user.employee_no,
+                    number,
+                    card["cardType"],
+                    create=existing is None,
+                ),
+                step="create_card" if existing is None else "update_card",
+            )
+        if (
+            person["Valid"]["enable"]
+            and current.users.get(user.employee_no, {}).get("Valid", {}).get("timeType") == "local"
+            and person["Valid"]["timeType"] == "UTC"
+        ):
+            person["Valid"] = await local_validity(driver.client, person["Valid"])
+            desired_normal = canonical(
+                StationInventory({user.employee_no: person}, cards), user.employee_no, caps
+            )
+        if canonical(current, user.employee_no, caps) != desired_normal:
+            raise AccessError("readback_mismatch")
+        # A new centrally created user with no credential changes still needs an ownership binding.
+        await self.repository.async_record_observation(
+            station,
+            user.id,
+            fingerprint=self.repository.fingerprint(desired_normal),
+            applied_revision=user.revision,
+            timing_readback={
+                "mode": user.access_timing_policy["mode"],
+                "valid_from": absolute_validity["beginTime"]
+                if absolute_validity["enable"]
+                else None,
+                "valid_until": absolute_validity["endTime"]
+                if absolute_validity["enable"]
+                else None,
+                "revision": user.revision,
+                "checked_at": utc_now(),
+            }
+            if user.access_timing_policy
+            else None,
+        )
+        await self.repository.async_confirm_card_removals(station, user.id, set(current.cards))
+        actual_pin = canonical(current, user.employee_no, caps)["person"]["pin"]
+        if isinstance(actual_pin, str):
+            await self.repository.async_confirm_pin_removals(station, user.id, actual_pin)
+
+    async def _step(
+        self,
+        station: str,
+        user: ManagedUser,
+        driver: AccessClient,
+        inventory: StationInventory,
+        before: StationInventory,
+        expected: StationInventory,
+        operation: str,
+        write: Callable[[], Awaitable[None]],
+        *,
+        step: str,
+    ) -> StationInventory:
+        caps = driver.capabilities
+        assert caps is not None
+        before_hash = self.repository.fingerprint(canonical(before, user.employee_no, caps))
+        expected_hash = self.repository.fingerprint(canonical(expected, user.employee_no, caps))
+        binding = self.repository.snapshot()["bindings"].get(station, {}).get(user.id)
+        if binding is not None and before_hash != binding["fingerprint"]:
+            raise AccessError("device_changed")
+        self.diagnostics.stage(station, user.id, "journal")
+        await self.repository.async_write_intent(
+            station,
+            user.id,
+            revision=user.revision,
+            expected_fingerprint=binding["fingerprint"] if binding else None,
+            desired_fingerprint=expected_hash,
+            operation=operation,
+            before_fingerprint=before_hash,
+        )
+        self.diagnostics.stage(station, user.id, step)
+        await write()
+        self.diagnostics.stage(station, user.id, "readback")
+        for attempt in range(4):
+            after = await driver.async_person(user.employee_no)
+            try:
+                observed_hash = self.repository.fingerprint(
+                    canonical(after, user.employee_no, caps)
+                )
+            except AccessError as err:
+                if err.code != "validity_timezone_mismatch":
+                    raise
+                echo = owned_utc_echo(
+                    after, user.employee_no, caps, self.repository.fingerprint, {expected_hash}
+                )
+                if echo is None:
+                    raise
+                try:
+                    corrected = deepcopy(echo)
+                    corrected.users[user.employee_no]["Valid"] = await local_validity(
+                        driver.client, expected.users[user.employee_no]["Valid"]
+                    )
+                except Exception:
+                    raise err from None
+                await self.repository.async_record_observation(
+                    station, user.id, fingerprint=expected_hash, applied_revision=None
+                )
+                return await self._step(
+                    station,
+                    user,
+                    driver,
+                    inventory,
+                    echo,
+                    corrected,
+                    "update",
+                    partial(
+                        driver.async_write_person,
+                        {
+                            "employeeNo": user.employee_no,
+                            "Valid": corrected.users[user.employee_no]["Valid"],
+                        },
+                        create=False,
+                    ),
+                    step="update_person",
+                )
+            if observed_hash == expected_hash:
+                await self.repository.async_record_observation(
+                    station, user.id, fingerprint=observed_hash, applied_revision=None
+                )
+                merge_person(inventory, user.employee_no, after)
+                return after
+            if observed_hash != before_hash:
+                raise AccessError("readback_mismatch")
+            if attempt < 3:
+                await asyncio.sleep(0.25 * (attempt + 1))
+        raise HikvisionDeviceError("Access write did not converge during readback")
+
+    async def _remove(
+        self,
+        station: str,
+        user: ManagedUser,
+        driver: AccessClient,
+        inventory: StationInventory,
+        current: StationInventory,
+    ) -> None:
+        for number in list(current.cards):
+            expected = deepcopy(current)
+            del expected.cards[number]
+            current = await self._step(
+                station,
+                user,
+                driver,
+                inventory,
+                current,
+                expected,
+                "delete",
+                partial(driver.async_delete_card, number),
+                step="delete_card",
+            )
+        if current.users:
+            current = await self._step(
+                station,
+                user,
+                driver,
+                inventory,
+                current,
+                StationInventory(),
+                "delete",
+                lambda: driver.async_delete_person(user.employee_no),
+                step="delete_person",
+            )
+        if current.users or current.cards:
+            raise AccessError("delete_not_verified")
+        await self.repository.async_confirm_absent(station, user.id, revision=user.revision)

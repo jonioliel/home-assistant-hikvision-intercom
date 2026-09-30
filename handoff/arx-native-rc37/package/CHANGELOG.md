@@ -1,0 +1,1612 @@
+# Changelog
+
+Semantic Versioning is used throughout the project.
+
+## [2.0.0-rc.37] - 2026-09-30
+
+- Arx request 1: expand the selected camera wall to 12 streams, arrange tiles from measured container width, compact its embedded toolbar, and raise each authenticated MSE/RTC bridge ceiling from 9 to 12 connections. Playback still depends on actual camera, network, browser, and go2rtc capacity.
+- Arx request 2: compute automatic overview density from the measured grid and available frame height. Explicit 4/6/8/9/12 selections display the requested number of cards and scroll within the frame when needed.
+- Arx request 3: accept optional URL `density` and `wall` values so Arx can restore selections per user; no new WisKey storage or message is introduced.
+- Arx request 4: make `embed=1` document and panel edges transparent, remove external host decoration, and accept optional `chrome=none` for zero main padding.
+- Arx request 5: Companion authentication forwarding remains a separate integration experiment; it is not implemented in this release.
+
+## [2.0.0-rc.36] - 2026-09-29
+
+- Add a compact system search dialog for people, retained access events and administrative changes, with source tabs, deterministic paging and links to existing detail/journal screens.
+- Apply existing area, station and field permissions before matching or counting. Hidden sources have no count; PINs and full card values never enter the search projection. Discard results after account or permission changes.
+- Preserve historical event identity and change evidence without joining current person records. Results cover retained system data, not a claim of complete station history.
+- Publish the additive `search/query` v1 contract, capability discovery and focused acceptance checklist. Existing designs, media, device control and VMS/embed v1 remain compatible.
+
+## [2.0.0-rc.35] - 2026-09-29
+
+- Add authenticated personal renewal at `/wiskey-renewal`, with administrator-managed one-to-one account bindings, own expiry/requests, explicit submission and cancellation.
+- Requests do not grant access. A different administrator revalidates owner, binding generation, person revision and finite future extension before atomic save and normal synchronization; configured dual approval requires two distinct active administrators.
+- Preserve all operator permissions, credentials, door policies, existing internal/bulk workflows and VMS/embed v1; migrate central storage to schema16 without a domain change.
+- Add identity lifecycle, persistence, authorization and responsive browser tests, and focused acceptance/VMS documentation. Independent VMS JWT identity federation is not included.
+
+## [2.0.0-rc.34] - 2026-09-29
+
+- Added administrator-reviewed bulk renewal of finite temporary access, with before/after expiry and explicit facility timezone conversion.
+- Extend only expiry; retain doors, group inheritance, personal blocks, schedules, PINs/cards and inactive status. Invalid selections fail atomically.
+- Reuse current dual approval, checkpoint jobs, audited save receipts and no-replay recovery after disconnect or restart.
+- Added behavior, authorization and responsive UI tests, an additive VMS preview command and focused acceptance instructions.
+- External authenticated self-service renewal remains open; this release does not expose a public or VMS identity endpoint.
+
+## [2.0.0-rc.33] - 2026-09-29
+
+- Added bounded policy versions saved atomically with group and profile-field changes, including a known-current snapshot when upgrading older installations.
+- Administrators can page retained versions and compare fields, conditions and group station grants without restoring policy or changing personal access.
+- Historical scopes remain administrator-only; cancelled requests, failed persistence and stale comparisons cannot publish partial policy history.
+- Added migration, durability, permission and responsive UI regression coverage, a focused acceptance page and additive VMS API documentation.
+
+## [2.0.0-rc.32] - 2026-09-29
+
+- Add explicit profile-based group suggestions in the saved-person editor, with visible membership evidence and a door impact preview.
+- Revalidate source data before adding selected groups to a draft; preserve personal blocks, relay mappings, credentials and schedules, and reuse existing reviewed save workflows.
+- Scope evidence, counters and eligible fields to the authenticated operator. Do not infer hidden conditional fields or memberships.
+- Add an additive read command for VMS, behavior and browser regressions, and [focused manual checks](docs/manual-tests/WISKEY_2.0.0_RC32_GROUP_SUGGESTIONS_TESTS_HE.html).
+
+## [2.0.0-rc.31] — 2026-09-29
+
+### People and group comparisons
+
+- Compare people with people or groups and compare group policies, showing shared
+  and different doors, visible inheritance and personal permission exceptions.
+- Separate explicit door 2 selection from group default door 1 policy; inactive
+  people and disabled groups remain visible without claiming physical admission.
+- Apply operator projections before choices, sources and counts. Hidden global
+  groups cannot be selected or reconstructed; no credential or permission copying.
+- Paged name choices, explicit comparison and stale request disposal support
+  desktop and mobile. Existing themes and VMS embed v1 remain available.
+- [Comparison guide](docs/ACCESS_COMPARISON_HE.md) and
+  [focused installation checks](docs/manual-tests/WISKEY_2.0.0_RC31_COMPARISON_TESTS_HE.html).
+
+## [2.0.0-rc.30] — 2026-09-29
+
+### Periodic access reviews
+
+- Review people for one selected station and door, with due dates, changed-policy
+  detection, scoped filters and immutable authenticated reviewer receipts.
+- Require current preview, review notes and explicit confirmation; recording a
+  review does not grant, revoke, synchronize or open access. Concurrent and stale
+  previews cannot overwrite newer decisions; durable storage failures preserve history.
+- Preserve field/station operator restrictions, existing person editing, themes,
+  technical domain and VMS embed v1. New commands are additive and discoverable.
+- [Review guide](docs/PERIODIC_ACCESS_REVIEWS_HE.md) and
+  [focused installation checks](docs/manual-tests/WISKEY_2.0.0_RC30_ACCESS_REVIEW_TESTS_HE.html).
+
+## [2.0.0-rc.29] — 2026-09-29
+
+- Add a read-only access scenario in person details: select a station, physical door and an offset-aware date/time to explain the central permission, validity and enforced schedule.
+- Separate the desired result from cached synchronization metadata and historical time interval readback. Native schedule readback is never treated as physical admission proof; draft schedules do not limit predictions.
+- Apply existing station/person/field scopes to the additive VMS v1 command. No station I/O, access changes, unlock or credential disclosure occurs.
+- Periodic owner review decisions remain open in package 16; this release delivers only its scenario portion.
+
+## [2.0.0-rc.28] — 2026-09-29
+
+- Add local JPEG/PNG/still-WebP photo selection with resource checks before decoding, bounded manual square crop, accessible zoom/position controls and explicit preview acceptance before the existing person save.
+- Normalize only the chosen crop to the existing bounded JPEG format; retain camera capture/retake/removal, field permissions, revision validation and local-only original files. Clear cancelled or unauthorized late decodes, temporary blob URLs and camera tracks.
+- Preserve every design, media/device access behavior and VMS embed v1. Add [photo and VMS guidance](docs/PEOPLE_PHOTO_CROP_HE.md) and [focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC28_PHOTO_TESTS_HE.html). No face enrollment or station image upload.
+
+## [2.0.0-rc.27] — 2026-09-29
+
+- Add a read-only people data quality center for missing metadata, invalid applicable fields and potential duplicates, with archive-aware uniqueness and explicit person review.
+- Apply operator projections before analysis, omit hidden-context checks and secret values, and bound paging and related records against a revision snapshot.
+- Preserve existing person edits, access behavior, themes and VMS embed v1; publish [query guidance](docs/PEOPLE_DATA_QUALITY_HE.md) and [focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC27_QUALITY_TESTS_HE.html).
+
+## Unreleased
+
+## [2.0.0-rc.26] — 2026-09-29
+
+- Add bounded exact-value conditional profile fields with chained applicability, cycle/reference validation, and atomic enforcement when changing a parent activates a required or typed child. Preserve stored inactive values and their uniqueness reservations, including archived people.
+- Review parent/child applicability changes for retained identities and onboarding templates without coercing data. Preserve unchanged historical values for access revocation and omitted rules from older clients; migrate profile settings from schemas 1–3 to schema 4.
+- Hide dependency predicates behind unreadable ancestors, show visible children as applicability-unknown/read-only, and enforce the boundary at the authenticated server before partial profile updates.
+- Add conditional person/template editors and explicit rule controls to all existing designs. Preserve media, access policy and the VMS embed v1 contract; advertise the additive `conditional_profile_fields` capability.
+- Completes package 13 in software after release gates; people/review packages 14–20 remain open. [Conditional fields and VMS guidance](docs/CONDITIONAL_PROFILE_FIELDS_HE.md) · [Focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC26_CONDITIONAL_TESTS_HE.html).
+
+## [2.0.0-rc.25] — 2026-09-29
+
+- Review field type, required, enabled and closed-list changes before saving, with missing/invalid counts covering retained and archived people and enabled onboarding templates. Examples are bounded and omit raw values and credentials.
+- Preserve existing values without conversion; explicit edits follow the new rules and unchanged historical values remain compatible with access revocation. Reject direct unreviewed constraint changes for existing people while preserving older clients' rename and suggestion behavior.
+- Reuse atomic policy saves, exact revision reviews and replayable receipts. Preserve all themes, media, permissions and the VMS v1 contract.
+- Add selected-field uniqueness with an explicit collision review, atomic enforcement across create/edit/import/bulk paths and concurrent requests, retained archive reservations, and privacy-preserving errors. Block activation until existing collisions are manually resolved; migrate profile preferences to schema 3 without changing old field rules.
+- This delivers type-change impact and selected-field uniqueness from package 13. Conditional fields remain open; round 3 is not complete. [Implementation and limits](docs/PROFILE_IMPACT_HE.md) · [Focused installation acceptance](docs/manual-tests/WISKEY_2.0.0_RC25_PROFILE_TESTS_HE.html).
+
+## [2.0.0-rc.24] — 2026-09-29
+
+- Add administrator-confirmed people archiving with a separate directory filter. Preserve the same identity, groups, personal exceptions, credentials, photo, historical references, hardware ownership and pending cleanup. Archive disables access intent; device revocation still requires successful reconciliation.
+- Restore archived identities inactive. Reject reactivation through general updates, CSV, renewal or bulk bypasses until explicit restoration; retain unique credential reservations. Integrate current separate-administrator approval, revision checks, atomic persistence and audit before/after.
+- Migrate access storage from schema 14 to 15 without erasing old audit records. Encrypted snapshots retain archives; desired-people import skips them rather than recreating historical people. Full system backup covers history and the archive.
+- Preserve the technical domain, existing designs/actions and VMS embed contract v1. See [archive guide](docs/PEOPLE_ARCHIVE_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC24_ARCHIVE_TESTS_HE.html). This delivers package 12; the remaining people/review packages are still open.
+
+## [2.0.0-rc.23] — 2026-09-29
+
+- Add shared credential-free door-setting presets and semantic fleet comparisons for the documented relay polarity field, retaining exact false values and per-station advertised capability validation. Saving or choosing a preset does not write a station.
+- Add durable explicitly queued door-configuration jobs for station maintenance windows. Persist intent before writes, recheck current administrator/second approval, hardware identity, lock mappings, captured windows and expected values; cancelled jobs stop pending rows without undoing completed changes. Recover interrupted writes by readback without automatic replay.
+- Continue other stations after individual failures, wait for unavailable stations with a bounded fair resource budget, and expire unexecuted plans after eight days. Existing immediate fleet application and credential revocation remain available.
+- Collect bounded capacity history from newly observed complete cached inventories only. Show advertised user/card limits, stale or unknown evidence and cautious comparable-sample growth estimates; never guess local program capacity or open extra device connections to collect trends.
+- Migrate operations preferences from schema 1 to 2 while preserving existing data, and retain the technical domain, existing designs/features and VMS contract v1. Hardware certification remains separate. See [maintenance guide](docs/FLEET_MAINTENANCE_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC23_MAINTENANCE_TESTS_HE.html).
+
+## [2.0.0-rc.22] — 2026-09-29
+
+- Add durable administrator-reviewed station replacement and retirement. Commit group inheritance, individual allow/deny exceptions, confirmed physical-lock selections and affected people atomically; retain owned bindings and pending credential cancellations for the existing reconciliation engine.
+- Copy station display name and operational metadata as a resumable stage. Bind preparation to current policy, distinct hardware identities, empty replacement inventory and verified relay mappings; block station-owned schedules and door opening programs pending separate handling.
+- Require explicit application and current second-administrator consent when policy requires it. Persist removal intent and verify fresh source cleanup plus full owned target access readback before removing the source connection. Duplicate calls do not repeat policy transfer or completed removal.
+- Migrate access storage to schema 14 without discarding ownership or cancellation journals. Preserve existing features, themes, the VMS v1 contract and the technical domain hikvision_intercom. Physical acceptance and the remaining fleet-maintenance packages remain separate.
+- Document supported paths and limits in [station lifecycle guide](docs/STATION_LIFECYCLE_TRANSACTIONS_HE.md) and [focused acceptance](docs/manual-tests/WISKEY_2.0.0_RC22_LIFECYCLE_TESTS_HE.html).
+
+## [2.0.0-rc.21] — 2026-09-29
+
+- Add sequential station onboarding through the existing authenticated setup flow, preserving per-device identity confirmation, explicit relay testing and physical result confirmation. Failures can be skipped without preventing later stations; late responses never remove a created station.
+- Add an administrator-only read-only station replacement/retirement impact review: preserve group inheritance and personal denials in the projection, show confirmed physical/API mappings, known ownership, pending cleanup and unknown cached inventory. Bound people rows and recheck authority and station identity after reads.
+- Keep actual permission transfer, decommissioning and the remainder of fleet maintenance open. The new review does not write station settings, revoke access or remove connections. Preserve all previous themes and features; the technical domain remains hikvision_intercom.
+
+## [2.0.0-rc.20] — 2026-09-29
+
+- Add a lightweight scoped overview and lazy/paged people loading, retaining the legacy overview and VMS embed contracts. Keep off-page filter facets, cross-page selection and explicit directory-error fallback.
+- Replace the nine-station soak limit with explicit station/concurrency budgets. Extend loopback resilience checks to slow media consumers, dropped upload, credential revocation recovery and fragmented/duplicate events; these simulations are not physical station certification.
+- Add bounded request, synchronization and door-acknowledgement quality observations with P95, failure percentages and startup reference windows. Transport gaps remain distinct from lost events; command acknowledgements remain distinct from physical door results.
+- Add masked second-operator reviews for CSV/bulk checkpoint jobs and fleet configuration. Bind approval to reviewed rows or the exact short-lived fleet plan, recheck current approver authority, and require explicit owner resume/apply. Approval never automatically starts work or writes device settings.
+- Recheck dependency compatibility and retain the narrowly scoped cryptography review without widening advisory exemptions or forcing an incompatible shared-runtime upgrade.
+- Preserve all themes, people/group permissions, media, TTS, manual WhatsApp, schedules and the existing technical domain. Optional job approval data requires restoring a matching data backup when downgrading.
+
+## [2.0.0-rc.19] — 2026-09-28
+
+- Add opt-in `embed=1` for the original WisKey screens in a same-origin SMPLWISE VMS iframe. Omit only the WisKey top toolbar; retain content navigation, dialogs, existing themes, media controls and server-side permissions. Normal panel opening retains its toolbar.
+- Add `tab`/`tool` deep links, canonical replace-state URLs, router-state/query/hash preservation, popstate/infrastructure-location handling and the existing unsaved-schedule guard.
+- Expose embed contract v1 through `data-embed-api`, permission-filtered ready catalogs, location/title notifications and validated parent navigation. Reject different origins, non-parent senders, unknown IDs and locked/revoked sessions; navigation performs no device or data mutations.
+- Use the official memory-only kiosk event with `detail.enable`, restore the observed state on exit, and avoid persistent sidebar preferences. Embedded layouts fill their iframe host in all existing appearances.
+- Supply [VMS implementation instructions](docs/integrations/WISKEY_EMBED_API_V1.md), a tested [reference adapter](docs/integrations/examples/wiskey-embed-client.mjs), and [implementation verification](docs/integrations/WISKEY_EMBED_IMPLEMENTATION_CONFIRMATION_HE.md). The separate VMS still needs to adopt the adapter and verify its actual ingress/media deployment. Technical domain, registration and storage are unchanged.
+
+## [2.0.0-rc.18] — 2026-09-28
+
+- Add an administrator fleet and reporting workspace alongside existing tools and themes: station zones, owners, tags, maintenance windows and per-station alert thresholds.
+- Add language/category/credential message variants with missing-field warnings and proof-based event-to-person navigation. WhatsApp delivery still requires editable preview and explicit send.
+- Read and compare advertised door settings across up to 12 stations, then apply reviewed changes sequentially with identity, current-value and maintenance-window checks. Record each result independently; enabled dual approval blocks unsupported fleet batches.
+- Add day/count/byte event retention with a reviewed deletion preview, atomic policy persistence and preservation of concurrent arrivals. Export retained monthly UTC records as portable Ed25519-signed archives.
+- Add actor-private server-saved report filters and local scheduled count summaries, browser-local remembered speaker selection, opt-in HTTPS/HMAC metadata webhooks and secret-free infrastructure events.
+- Add bounded denial auditing, read-only integrity checks, dependency security checks, reviewed station-mapped preferences transfer and a synthetic commissioning checklist. Existing encrypted people backups remain separate.
+- Preserve explicit output selection with a warning when a speaker is unplugged. A new camera session can use system output when its remembered device is unavailable. Python dependency scanning reports three narrowly reviewed, expiring cryptography findings on the infrastructure-owned pin; affected APIs are unused here. See [security review](docs/DEPENDENCY_SECURITY_REVIEW.md), including server-wide limits.
+- No station credentials, physical relay mappings or access rights are replaced by the preferences importer. Automatic station replacement, continuous active media measurements and physical acceptance remain separate follow-up work. No release claim substitutes for speaker, reader or full-server restore checks.
+- Focused owner checks: [rc.18 acceptance](docs/manual-tests/WISKEY_2.0.0_RC18_PLATFORM_TESTS_HE.html); [implementation and limits](docs/NEXT_TEN_SPRINT_2026_09_28_HE.md); [external interface guide](docs/integrations/SMPLWISE_OPERATIONS_RC18_HE.md).
+
+## [2.0.0-rc.17] - 2026-09-28
+
+- Add six selectable leading colors to both V4 themes, with personal and shared defaults; preserve other themes, semantic status colors and active drafts/media.
+- Add durable, actor-owned CSV/bulk jobs with per-row atomic checkpoints, pause/resume/cancel, restart recovery, isolated row failures and a safe error CSV.
+- Add authenticated AES-GCM access backups with passphrase encryption, collision previews, explicit import approval and replay-safe application. Import restores reviewed people and desired access; full infrastructure backups remain necessary for host recovery and rollback.
+- Extend operator scopes with individual custom-field permissions and named station groups. Preserve hidden/read-only values during updates and deny hidden-field search predicates.
+- Add optional shared-screen idle locks and fresh local password/MFA authentication for sensitive actions. Reconnects stay locked; private views and live audio are cleared on locking. Both policies are disabled by default.
+- Add an optional second-administrator approval queue for supported access changes, with masked before/after impact, revision checks, separate approval/application and withdrawal. Unsupported access-changing commands are blocked when this policy is enabled.
+- Add controlled card transfer, employee identity replacement and user merge. Wait for station revocation readback before reassignment; preserve pending removal through outages/restarts. Add card inventory, temporary holders, return, lost/blocked status and optional transfer approval.
+- Add reusable staff access presets for groups, doors, profile fields, infrastructure-managed hours and editable message drafts. Presets never contain PINs/cards and do not save or transmit automatically.
+- Add start/expiry reminders with acknowledge/snooze and manually reviewed messages, plus renewal requests requiring another administrator. Existing guests, media, TTS and WhatsApp paths remain available.
+- Access schema 13 atomically migrates supported schemas 1–12. Code-only downgrade is unsupported: rollback requires the matching pre-upgrade integration files and full configuration/storage backup. See the sprint guide and RC17 acceptance checklist.
+
+## [2.0.0-rc.16] - 2026-09-28
+
+- Add optional station scopes and separate hidden, view-only and editable person-field grants for infrastructure operators. Enforce scopes in WebSocket reads and writes, event paging/reports/exports, and MSE/RTC/audio/TTS station routes. Existing grants retain all stations and existing field access; active administrators retain full access.
+- Filter and redact records before searching or counting. Validate event membership filters against the scoped group catalog, so known outside/shared group IDs cannot reveal membership through lists, reports or exports. Keep shared identities read-only when another station or an outstanding device binding is outside the operator's scope. Allow scoped creation only with a permitted station grant; reject hidden/read-only field patches and outside assignments before persistence or device I/O.
+- Close camera/person views and discard caches and delayed detail responses after access changes. Remove unsupported global tools from restricted operators, label hidden fields explicitly, and preserve all existing design variants and unrestricted workflows.
+- Retain station-reader card enrollment for permitted local identities. Bind collection to the operator, station and person, discard the private captured card after permission or assignment changes, and require a fresh authorized confirmation before saving.
+- Keep fleet alerts and maintenance controls usable for scoped operators, deriving counts and policy lists only from permitted stations while preserving outside presentation policies and device state.
+- Allow authorized scoped operators to synchronize a permitted station using saved NTP settings. Gate the compact clock controls by discovered commands; keep central NTP and host configuration outside restricted grants.
+- Extend the unsaved role preview with card enrollment, spoken broadcasts, station maintenance and clock synchronization, using the command enforcement rules. Distinguish general identity editing from read-only access or credential fields.
+- Add account search and granted/restricted/denied filters to operator administration. Preserve unsaved changes and all hidden accounts in the complete revision-checked permission save.
+- Clear stale person searches and filters after effective permission changes, hide filters for unavailable fields, and sanitize saved views before loading. Reject direct directory filters on hidden credentials, profiles or access rules instead of presenting misleading redacted matches.
+- Recreate an open event journal after effective permission changes, cancelling old reads/reports and clearing retained private state. Preserve its context when another account's permission revision changes. Ensure hidden labels stay hidden despite layout styles.
+- Accept legacy permission storage and persist extended schema 2 on the next change. Shield permission commits against cancellation so durable and live grants cannot diverge. Add strict typing and transport/browser regressions, VMS scope documentation and focused owner checks. Infrastructure entity permissions remain a separate authorization layer.
+
+## [2.0.0-rc.15] - 2026-09-28
+
+- Translate station-alert paging controls, the unavailable-visitor notice and shared station/relay/storage failure messages in Hebrew and English, with mobile and deleted-visitor regression checks. This small follow-up includes all rc.14 operations features and preserves their API, data schema and behavior.
+
+## [2.0.0-rc.14] - 2026-09-28
+
+- Add reusable visitor/contractor presets and a dedicated temporary-access cancellation action with a reason, audit record and revision-aware synchronization status. Preserve existing identities, credentials, door assignments and time rules.
+- Add optional approval by a selected second operator. Save the inactive visitor and pending request atomically; only the named approver can activate the unchanged, unexpired visit. Editing requires a fresh request, and ordinary or bulk activation cannot bypass approval. Filter approval queues on the server before paging, including own approvals, own requests and safe identity/purpose search.
+- Add cached fleet alerts for persistent disconnection, stalled/error/conflicting synchronization, event-stream gaps and repeatedly measured clock deviation. Store explicit snoozes and maintenance periods durably, with reasons, expiry and restoration; underlying station faults remain visible and no device action is performed.
+- Add an administrator-only investigation timeline combining access events, saved permission changes and retained synchronization evidence, with conservative identity attribution and personal saved filters. Download one page or a consistent full report of up to 5,000 retained matching records; changed evidence cancels the report without a partial file.
+- Add explicit, window-local listening output selection in supporting secure browsers. Route both camera and fallback receive audio to the selected output; preserve default mobile playback and all existing microphone, PTT, MSE/RTC/HLS, TTS and camera behavior. Failed selection restores the previous output or stops listening; no microphone or sound opens automatically.
+- Migrate the user repository to schema 11 before startup publishes data. Include the new template and fleet-alert policy stores in configuration backups; rollback requires the matching pre-upgrade backup. Keep the `hikvision_intercom` HACS domain/path, API contract 1 and all existing appearances.
+- Expand server, real-infrastructure transport, Chromium, Firefox and WebKit regression coverage; update VMS handoff documentation and provide a focused Hebrew owner checklist linked to earlier unreported physical and stability tests.
+
+## [2.0.0-rc.13] - 2026-09-28
+
+- Add a visitor/contractor lifecycle section with bounded reports, complete summary counts, responsible person, purpose, validity dates and filters for upcoming, current, expiring, expired and disabled people. Classify expiry at the exact end instant consistently with the existing access model; validity status does not claim physical access or completed synchronization.
+- Renew an outer validity period through a before/after review and explicit confirmation using the existing revision-checked, audited user update and synchronization queue. Retain credentials, door permissions, active state and additional time rules. Keep renewal unavailable to viewers, reject stale edits and discard late responses after operator-context changes.
+- Preserve the previous lifecycle API response, existing appearances, HACS domain/path and dashboard live/still preference. Add browser and server regression coverage, cross-browser renewal checks, and a focused Hebrew acceptance sheet linked from the cumulative test catalog.
+
+## [2.0.0-rc.12] - 2026-09-28
+
+- Add a read-only media-path check inside camera audio diagnostics. Report decoded video, incoming RTC/MSE or ISAPI evidence and outgoing microphone delivery separately, including incoming audio codec and available RTC jitter.
+- Keep untested paths distinct from failures, label the sample time, and include the latest evidence sample in the audio diagnostic download. The check does not start listening, open a microphone, send audio or change playback settings; transport evidence does not prove physical audibility.
+
+## [2.0.0-rc.11] - 2026-09-28
+
+- Add an administrator-only, read-only preview of proposed operator access. The server evaluates selected actions using the same command classification as actual authorization, including door control, user changes and exports, event access, station settings and system settings.
+- Keep previews separate from saving, clear them as soon as a draft changes, and reject invalid policies before previewing. Existing area grants and enforcement remain unchanged; per-station and per-field scopes remain future work.
+
+## [2.0.0-rc.10] - 2026-09-28
+
+- Add an observed anomaly digest to event activity reports. Count access denials, PIN attempt limits, exceptional unlocks and doors not closed separately from authentication totals, with a ranked station breakdown.
+- Drill into an anomaly type or station using the existing server-side event filters while retaining the report's applied criteria. Counts include only retained events matching the report; no missing activity is inferred.
+
+## [2.0.0-rc.9] - 2026-09-28
+
+- Add a fleet overview to station health with connected and attention counts, a one-click attention filter, and clear per-station reasons for disconnection, pending synchronization, recorded sync errors, or clock deviation. It uses existing cached reports and current connection state without extra device commands.
+- Preserve the rc.7 entry-dashboard preference for muted live video or refreshing still images, and the rc.8 temporary-access improvements.
+
+## [2.0.0-rc.8] - 2026-09-28
+
+- Classify people as staff, visitors or contractors without changing the device-level Hikvision user type. Temporary categories require a bounded validity window and a named responsible person, validated on the server as well as in the creation form.
+- Show category, responsible person and purpose in user details and identity lifecycle reports. Preserve existing people as staff on upgrade and round-trip the new fields through CSV.
+- Keep administrative-only category and purpose edits out of station synchronization, while changes to time windows and door permissions continue through the existing enforcement path.
+
+## [2.0.0-rc.7] - 2026-09-27
+
+- Add a fleet-wide entry-dashboard camera preference: muted live video (the existing default) or a still image refreshed every ten seconds while visible. Selecting a still never starts a card stream; selecting the image still opens the full live camera and controls. Existing saved media policies retain the live default.
+- Add a guided temporary-access creation flow that requires a bounded validity period, a PIN or card, and at least one authorized door before saving through the existing user synchronization path.
+- Record a bounded seven-day health timeline for each station, including online transitions, poll latency, synchronization and event-stream state. Show those observations alongside the existing station diagnostics without sending device commands.
+- Add event-type filters and quick investigations for denied entries, PIN attempt limits and doors left open; preserve these filters in saved report queries.
+- Add administrator role templates using the existing server-enforced area permissions, plus read-only media capability and audio-channel evidence in station health. Per-station and per-field operator restrictions and a physical media self-test remain follow-up work.
+- Document the HA add-on connection path, WisKey command/permission boundary, complete VMS screen-parity map and media integration limits for SMPLWISE VMS.
+
+## [2.0.0-rc.6] - 2026-09-27
+
+- Use “תשתית המערכת” (system infrastructure) throughout WisKey-owned Hebrew and English screens, settings, permission management, diagnostics and integration repair messages in place of visible Home Assistant/HA branding.
+- Preserve the `hikvision_intercom` integration domain, HACS layout, API identifiers and stored enforcement modes. The media provider check still uses its existing API response while the panel presents the localized system-infrastructure label.
+- Update browser regression expectations and add a focused Hebrew visual checklist. No station configuration or access permissions change.
+
+## [2.0.0-rc.5] - 2026-09-27
+
+- Play muted live video, using the saved HLS/RTC/MSE transport, in visible WisKey 04 entry-center station cards instead of periodically refreshed still images. Suspend the card streams when a dialog opens, the page is hidden, or the cards leave the viewport; the full camera dialog retains its explicit audio controls.
+- Make the full camera image a keyboard-accessible button that opens the corresponding station, with the existing camera badge retained. Hide player diagnostics from compact previews and keep the video aspect ratio intact.
+- Add browser coverage for muted playback, image-click navigation, stream suspension and resumption, alongside a focused Hebrew live-system checklist. No station configuration or access permissions change.
+
+## [2.0.0-rc.4] - 2026-09-27
+
+- Display saved quick TTS announcements as full-width, vertically stacked buttons in the camera dialog, with complete text and no horizontal scrolling in desktop and mobile layouts.
+- Keep the existing selected-station send action and add responsive browser regression coverage plus a focused Hebrew visual checklist.
+
+## [2.0.0-rc.3] - 2026-09-27
+
+- Prevent the previously selected layout from appearing during initial load: restore a saved personal appearance on the first render and wait for the first overview before mounting the full interface for a shared default.
+- Keep an explicit loading and retry view while the first overview is pending or fails, without changing the HACS package path, integration domain, permissions, or station controls.
+- Add a slow-overview browser regression and a focused Hebrew visual acceptance checklist.
+
+## [2.0.0-rc.2] - 2026-09-26
+
+- Restore the existing `hikvision_intercom` package, Home Assistant domain, API/panel routes and private storage namespace while keeping **smplwise access control** as the visible integration and HACS name.
+- Existing v1.11.x installations can update through HACS without deleting station entries, users, cards, permissions, events, or settings. No domain migration is required; restart Home Assistant after updating.
+- Replace the v2.0.0-rc.1 migration instructions with a focused recovery path and regression checks for the HACS package layout. The earlier RC remains in release history but must not be selected for an existing installation.
+- Keep the source-derived VMS handoff and command catalog, corrected to the retained `hikvision_intercom/` API namespace.
+
+## [2.0.0-rc.1] - 2026-09-26
+
+- Introduced `smplwise_access_control` as a successor integration domain and package. This RC could not update existing HACS installations and was superseded by v2.0.0-rc.2. Keep Hikvision as the first vendor adapter while preparing a vendor-neutral product identity.
+- Include a backup-first offline migration tool for existing Home Assistant config entries, entity/device registries, repairs and private stores. This is a **manual domain migration**, not a one-click HACS update: rehearse it on a full HA configuration copy before using it on the live system.
+- Preserve station entry IDs, entity IDs, user and permission stores, and provide a Hebrew migration checklist and rollback instructions.
+- Publish a source-derived VMS command catalog and integration handoff for external clients using a dedicated HA user token.
+
+## [1.11.1] - 2026-09-26
+
+- Route explicit camera listening through the WebKit playback audio session on supported mobile browsers, then restore the prior session when listening ends or the camera closes. This addresses silent Web Audio output on iOS while retaining the existing camera gain and microphone paths.
+- Move the compact camera refresh control into the action row below the video so it cannot cover the stream.
+- Show only the active transport label (MSE, RTC or HLS) on live video instead of the long audio explanation.
+- Add focused mobile layout, audio-session lifecycle and transport-label regressions; physical mobile speaker audibility remains an operator acceptance check.
+
+
+## [1.11.0] - 2026-09-25
+
+- Move intercom TTS voice and language selection from each camera window into administrator-managed, fleet-wide media settings. Retain the Home Assistant default option and migrate existing saved media policies without loss.
+- Add up to ten editable quick announcements. Operators can send a saved phrase with one click to the selected station while keeping the free-text composer, playback status and stop controls.
+- Validate phrases and voice preferences, preserve settings across reloads and old-client updates, and prevent TTS-only changes from restarting an open camera player.
+- Add backend and browser coverage plus a focused Hebrew acceptance checklist for verifying actual loudspeaker playback.
+
+## [1.10.1] - 2026-09-25
+
+- Keep the WisKey 04 light and dark background across the full Home Assistant viewport on short-content pages, including the entry dashboard and people view. The four earlier appearances are unchanged.
+- Add tall-screen browser regression coverage for both appearances inside an auto-height Home Assistant-style container.
+
+## [1.10.0] - 2026-09-24
+
+- Add opt-in WisKey 04 light and dark appearances alongside the four existing appearances. Shared defaults, personal overrides and stored preferences retain their existing behavior.
+- Add a compact, responsive entry dashboard with live status and clock, filtered station cards, independent door controls, recent activity, adaptive 4–12 station paging and the existing full-screen control. Camera previews preserve their aspect ratio.
+- Use the existing people, station, event and management routes in the new horizontal/mobile navigation. People have direct filter and saved-view controls, while a wide person dialog shows the available profile and authorized doors without a narrow nested inspector.
+- Present activity as a selectable event table with a detail panel and expandable filters/report tools; station overviews link directly to opening schedules and public codes. Existing filtering, exports, event evidence and station actions remain available.
+- Place the existing call video and controls beside a compact TTS composer on desktop and stack them on mobile. Audio, microphone, call signaling, announcements, camera playback and door commands continue through the existing components and authorization checks.
+- Add browser coverage for both appearances, mobile and desktop views, 4/6/9/12 station density, audio packet transport, navigation, person details, station tabs and the appearance picker. No integration storage migration or ISAPI command change is required.
+
+## [1.9.3] - 2026-09-24
+
+- Correct station health diagnostics so “pending synchronization tasks” counts only unresolved user, credential and deletion work instead of every managed user assigned to the station.
+- Keep the reconcile work inventory unchanged; the fix affects the operator-facing cached metric only and uses the same durable pending-state calculation as upgrade readiness and fleet inventory.
+- Add regression coverage proving a fully synchronized person remains eligible for future reconciliation without being reported as queued.
+- Consolidate automated, live read-only and physical acceptance evidence into the Hebrew test catalog, pre-completing covered checks and leaving only state-changing or physical tests for the operator.
+
+## [1.9.2] - 2026-09-24
+
+- Accept bounded streaming WAV responses whose data chunk uses the standard unknown-length sentinel while continuing to reject empty, truncated, incompatible or genuinely over-one-minute audio.
+- Fix short Google Translate TTS messages being reported as longer than one minute.
+- Refit the camera dialog to the viewport so the undistorted 16:9 video, call controls and announcement composer remain visible together without internal scrolling at desktop, tablet and mobile widths.
+- Compact call, relay, fullscreen and TTS controls while retaining accessible labels, keyboard operation and existing audio ownership rules.
+- Extend codec and responsive browser regressions and update the consolidated Hebrew acceptance worksheet.
+
+## [1.9.1] - 2026-09-23
+
+- Add an administrator upgrade-readiness check that inspects cached storage, config-entry schema, loaded state, station connectivity and pending synchronization without contacting an intercom.
+- Add privacy-safe fleet inventory downloads in JSON and spreadsheet-safe UTF-8 CSV with model, firmware, capacity, utilization and sync health. Exports omit addresses, credentials and personal access data.
+- Classify storage or unsupported schema as upgrade blockers while keeping offline stations and queued synchronization visible as warnings requiring operator review.
+- Add a Hebrew backup and rollback guide and one interactive pending-test catalog that separates previously confirmed behavior, software checks, regression checks and physical acceptance.
+- Preserve older-server compatibility by advertising and rendering the new controls only when the server exposes their read-only commands.
+
+## [1.9.0] - 2026-09-23
+
+- Add a responsive Identity lifecycle center for expiring and expired access, possible duplicate identities, and active people without an enabled PIN or card.
+- Detect possible duplicates by normalized name, phone number, employee number and active-card suffix while never returning PINs or complete card numbers. Reports and bounded JSON exports contain safe projections only.
+- Check duplicate candidates before user creation or update. Employee-number collisions block the save; name, phone or card-suffix matches require an explicit operator decision, while editing excludes the current person.
+- Classify lifecycle reads under the existing Users view grant and keep the Management tools navigation boundary. Older servers retain the existing user-save flow when the new capability is absent.
+- Add backend, authorization, responsive desktop/mobile and user-save regressions, a Hebrew operator guide and a self-contained 1.9.0 manual-test worksheet.
+- Add a cached fleet support bundle with pseudonymous station references and no credentials, addresses, person names, phone numbers or complete card numbers; downloading it never contacts a station.
+
+## [1.8.0] - 2026-09-23
+
+- Add explicit typed announcements to the selected intercom using configured Home Assistant TTS engines, including Google Translate TTS and automatic Hebrew `iw` selection.
+- Request bounded 8 kHz mono WAV from Home Assistant, validate it strictly, convert PCM16 to G.711 μ-law and stream 100 ms packets through the field-verified Hikvision TwoWayAudio channel.
+- Keep announcements connection-owned and cancellable on stop, dialog close, backgrounding, disconnect, call termination and station unload; microphone and TTS sessions cannot compete for the same station.
+- Enforce delegated WisKey management permissions, configured-engine validation, 500-character and 60-second limits, generation timeout, concurrency limits and log privacy. Announcements never operate a relay or mutate access data.
+- Add responsive Hebrew/English controls, backend codec and lifecycle coverage, browser regressions across TTS, microphone and WebRTC, an operator guide and a self-contained 1.8.0 Hebrew manual-test worksheet.
+
+## [1.7.0] - 2026-09-22
+
+- Add a responsive, paginated background-operations center for per-user/per-station synchronization, CSV imports and bulk changes, with live refresh, filters, friendly names and targeted retry.
+- Persist actor-scoped CSV import receipts atomically with the central user changes. Receipts survive navigation and restart without storing PINs, card numbers, credentials or raw device payloads.
+- Add per-station CSV capacity previews for current, projected and peak users, cards and PINs. Unsupported or stale limits remain explicitly unknown.
+- Load complete user details through the bounded user endpoint only when opened, with a 60-second, 100-record browser cache and safe fallback for older servers.
+- Classify operations reads and retry actions under the existing delegated HA permission areas, and retain independent per-station workers so one failed target does not stop the rest.
+- Add backend, authorization and responsive browser regressions plus a self-contained 1.7.0 Hebrew manual-test worksheet.
+
+## [1.6.0] - 2026-09-22
+
+- Add a backward-compatible `users/query` API with bounded pages, server-side search, profile/group/station/state/credential filters, deterministic sorting and a privacy-safe snapshot token.
+- Add responsive user-directory pagination at 25, 50, 100 or 200 records per page. Search is debounced, stale responses are ignored and selection remains available across pages.
+- Retain the complete existing user workflow and local filtering as a fallback when the server does not advertise the new capability or a page read fails. Editing, bulk actions, photos, sync and saved views keep their existing contracts.
+- Add regression coverage for 126-user browser paging, legacy-server fallback, request bounds, credentials, dates, profile/group filters, last-four-card search and snapshot changes.
+- Add the organized 84-item continuation roadmap and a self-contained browser test worksheet for each development round.
+
+## [1.5.7] - 2026-09-18
+
+- Make **Start listening** use the already negotiated MSE/RTC camera audio track directly. It stays muted by default and is enabled only by the explicit listening action; listen-only mode no longer opens an ISAPI TwoWayAudio session.
+- Add a browser speech gain stage with a limiter for DS-KV6124-E1 streams whose valid G.711 track is published far below audible level. Disabling or closing listening sets the gain to zero and remutes the media element.
+- Open the authenticated HA/ISAPI channel only when the operator starts talking, mute camera playback during transmission, close the talk session after release, and restore camera listening. This prevents a long-lived device talk channel from competing with the RTSP/MSE source.
+- Extend playback reports with the gain graph, gain value and audio-context state. Add regressions proving listen-only mode opens no ISAPI session and the explicit playback action applies and removes the protected gain.
+- Verify both live stations advertise one input and one output but return `notSupport` for AudioIn configuration, so WisKey does not invent an unsupported device-side microphone-volume write. Live Chrome decoded H.264 + FLAC while the measured audio remained approximately -81 dBFS RMS before browser gain.
+
+## [1.5.6] - 2026-09-18
+
+- Restore audible camera monitoring in both go2rtc player modes. MSE now negotiates a compatible audio track alongside video, including go2rtc's FLAC repackaging of the intercom's G.711 audio; RTC uses the already negotiated live audio track.
+- Make **Start listening** explicitly unmute the camera stream, mute it while the microphone is transmitting to prevent feedback, restore it after talk ends, and mute it again on stop, close, background, disconnect or permission loss.
+- Keep the authenticated HA/ISAPI path for microphone transmission and as the receive fallback when the selected camera transport has no audio track. Avoid playing both receive sources at once.
+- Extend playback diagnostics with RTC audio-track state, inbound audio RTP counters/codec, MSE audio inclusion, the selected playback source and the media element mute state.
+- Verify against the installed go2rtc service that station 192.168.99.151 negotiates a live audio track with Opus, PCMU and PCMA support. The saved global MSE preference was restored after the read-only probe.
+
+## [1.5.5] - 2026-09-18
+
+- Separate camera video from the two-way audio path in the camera dialog. Remove the browser's misleading native mute control, label MSE/RTC/HLS as video-only, and rename the explicit ISAPI action to **Start listening** / **פתח האזנה**.
+- Keep toggle-to-talk active across transient browser-window focus loss while retaining immediate release for PTT, backgrounding, dialog closure, disconnect and call termination.
+- Request browser automatic microphone gain control and add independent live/peak station-input meters.
+- Add server-side non-silent byte counters in both directions so diagnostics distinguish real microphone/station signal from keepalive silence; no audio samples, credentials or session tokens are stored or exported.
+- Add regressions for focus loss, real station signal, video-only player controls, G.711 signal counters and responsive Hebrew/English camera controls.
+
+## [1.5.4] - 2026-09-18
+
+- Fix toggle-to-talk stopping immediately on touch devices when the browser emits `pointercancel` after the activation tap. Toggle mode now keeps capturing and transmitting until the explicit stop action.
+- Preserve push-to-talk safety behavior: pointer cancellation still releases the microphone immediately in PTT mode.
+- Add regressions that reproduce the touch cancellation path and verify continuing packet transmission in toggle mode and release in PTT mode. The complete 44-test audio suite covers local input, device selection, receive, transmit, mute, cleanup and all four designs.
+- Compare the current path with the previously working audio implementation and verify read-only against stations 151 and 153 that G.711 mu-law support, audio volume and talk volume remain configured; no codec or ISAPI transport change is required for this regression.
+
+## [1.5.3] - 2026-09-18
+
+- Fix a restored microphone selection displaying "Browser default" while requesting a previously saved device ID. Selected options now reflect the actual device requested, including a saved device that is no longer listed.
+- Preserve explicit device choice: resetting to browser default clears the stored ID and applies to both the local input test and intercom talk. Changing selection clears the previous talk error; refreshing available inputs clears resolved selection warnings.
+- Distinguish an unavailable selected device from a browser with no available microphone in both local testing and talk. Keep permission and busy-device errors separate.
+- Add a regression covering a disconnected saved device, visible selection, local test failure, explicit reset, local input meter and subsequent microphone transmission. No fallback silently switches to a different input.
+
+## [1.5.2] - 2026-09-17
+
+- Fix audio disconnecting immediately after activation: connection-owned audio packet and diagnostics requests no longer pass through the unrelated management-command allowlist or receive its API envelope. Server-side authorization, session ownership and compatibility checks remain enforced.
+- Move call-state refresh from the large call dock to a compact, labelled 44-pixel icon beside the camera. It remains disabled during pending reads/signals or disconnection; refresh does not start audio or operate a door.
+- Add production-contract audio receive/transmit/mute regressions across all four designs, authorization-boundary checks and responsive camera-toolbar coverage.
+- Verify the installed Home Assistant instance can open a receive-only audio session and receive a packet from station 151. The frontend rejection was reproduced before the fix; no microphone transmission or door operation was performed in this live check.
+
+## [1.5.1] - 2026-09-17
+
+- Separate the selected inline profile from explicitly opened user dialogs. Moving from Users to Events or another screen no longer opens the previously selected person's details; returning to Users retains the selection.
+- Keep switching to a narrow layout from opening a profile automatically. Explicit mobile profile opening and editing remain available.
+- Widen and compact the Access profile inspector, arrange authorized doors in two columns and remove its nested scroll container. All fields remain present; exceptionally long profiles flow with the normal page scroll.
+- Add light/dark navigation, responsive transition and full-profile regression tests, including eight authorized doors and custom fields.
+
+## [1.5.0] - 2026-09-17
+
+- Add WisKey Access Light and Access Dark as two additional designs, preserving the existing Current and Modern appearances.
+- Introduce a compact access-management overview with contextual station details, proportionate camera previews and independent door actions.
+- Add a dense people workspace with an inline profile inspector on desktop, compact mobile cards, one-line phone numbers and collapsible secondary tools.
+- Adapt navigation, user editing, station management, activity, synchronization and management tools to the shared design palette. Mobile navigation stays at the bottom with safe-area spacing; existing permission checks remain authoritative.
+- Add a durable shared default appearance that only Home Assistant administrators can change. Existing personal browser choices remain intact; users can return to following the shared default.
+- Bundle the licensed Heebo font locally, without external font requests. Preserve drafts, media controls and current operational API contracts when changing appearance.
+- Add persistence, authorization, revision-conflict, failed-save, responsive layout and interaction regression coverage. See `docs/ACCESS_DESIGN_HE.md`.
+
+## [1.4.0] - 2026-09-17
+
+- Add durable per-user WisKey authorization for active Home Assistant users across Overview, Users, Events, Intercom stations and Management tools, with independent none/view/manage levels.
+- Add a responsive administrator permission editor under Management tools. HA administrators retain full recovery access; non-administrators require an explicit assignment.
+- Filter navigation and API contracts by the authenticated user, mark view-only screens, hide door/call controls without manage access and prevent navigation into ungranted areas.
+- Enforce grants server-side for every panel WebSocket command, MSE/RTC video, two-way audio, calls and door release. Unknown commands fail closed.
+- Re-authorize live subscriptions and media sessions so revocation applies to already-open browsers; corrupt permission storage denies delegated access and creates a Repair without blocking administrator recovery.
+- Add revision-conflict, persistence, invalid-storage, delegated-read, denied-write, live-revocation and responsive browser coverage. See `docs/HA_USER_PERMISSIONS_HE.md`.
+
+## [1.3.0] - 2026-09-17
+
+- Distinguish personal-PIN access, card-only access and users without an active credential in WhatsApp access messages; security wording now matches the actual credential.
+- Add `credential_section` and `security_notice` variables to the editable WhatsApp templates while keeping existing `pin` templates compatible.
+- Check PIN availability while an administrator types and block saving a PIN already owned by another central user.
+- Add a server-generated six-digit unique PIN action that fills both confirmation fields without exposing existing credentials.
+- Keep the repository's atomic collision validation as the final authority, including deleted users and previous PINs awaiting station removal.
+
+## [1.2.0] - 2026-09-17
+
+- Redesign the default WhatsApp access message with a clear organization heading, personal-code block, numbered authorized doors and a prominent no-sharing warning.
+- Keep unrestricted messages concise; add date, weekday and hour sections only for an active enforced access policy.
+- Add administrator-managed Hebrew and English templates for unrestricted and scheduled access, with live preview, safe literal variables, revision-aware saving and built-in reset.
+- Keep final per-user review and editing mandatory before sending; template changes never trigger a message.
+- Preserve explicit inactive, unenforced-draft and pending-synchronization warnings outside customizable marketing text.
+
+## [1.1.0] - 2026-09-17
+
+- Add an administrator user-details dialog with portrait, profile fields, groups, permissions and validity.
+- Integrate the installed FaserF WhatsApp account: editable access-message preview, explicit single-use send confirmation and stored conversation viewer. Nothing sends automatically.
+- Display stored text and supported media through an authenticated HA bridge, with bounded attachment loading and explicit unavailable-history/media states.
+- Normalize Israeli mobile display to `05X-xxx-xxxx`, use international recipients for WhatsApp, and prevent phone-column wrapping.
+- Compact user search, saved views, filters and selection controls.
+- Add recipient-isolation, confirmation, stale-user, duplicate-send, error-redaction and responsive dialog regression tests. See `docs/WHATSAPP_HE.md` for setup and provider limitations.
+
+## [1.0.0] - 2026-09-16
+
+### Changed
+- Promoted the tested RC13 build to the first stable WisKey release so standard HACS update tracking can discover it without enabling pre-release versions.
+
+### Verification
+- The promoted build passed HACS and Hassfest validation, Python tests on 3.12 and 3.14, Home Assistant tests, and desktop/mobile browser suites.
+- The release contains the approved intercom call-view redesign and compact synchronization labels from RC13 without behavioral changes.
+
+## [1.0.0-rc.13] - 2026-09-16
+
+### Changed
+- Redesigned the intercom viewer around a central, aspect-preserving video and a responsive control dock below it.
+- Rounded answer/reject/end-call icons, separate speaker and microphone controls, explicit microphone-live status and input meter, door actions and fullscreen.
+- Audio setup and diagnostics are collapsible; existing PTT/toggle preferences, transport selection and session cleanup remain intact.
+- Call actions remain capability/state-gated. Signaling acknowledgement remains distinct from actual call state and microphone transmission.
+- Synchronization headers show readable station names; station/person diagnostic references are available through compact disclosure controls.
+
+## [1.0.0-rc.12] - 2026-09-16
+
+### Fixed
+- A busy user no longer stops later users in the station synchronization pass.
+- Bounded person reconciliation; a timeout triggers fresh identity/inventory checks before continuing other users, preserving uncertain-write journals for retry.
+- Actual station outages, authentication failures and persistence failures still stop unsafe writes; other stations remain independent.
+- Person errors remain in their own synchronization cell instead of being repeated in the station heading. Expandable, wrapping error details keep the matrix compact on desktop and mobile.
+
+## [1.0.0-rc.11] - 2026-09-16
+
+### Added
+- Central editable NTP server preferences (default time.windows.com), UDP port and poll interval.
+- Per-station and fleet actions to apply NTP or copy Home Assistant time immediately and restore NTP mode, preserving device timezone/DST.
+- Capability and readback checks, separate configuration/clock alignment results, and independent results for offline or failing stations.
+- Home Assistant host NTP configuration via supported Supervisor API, feature-gated for HA OS 18.3+. Older hosts receive explicit setup guidance rather than a false success.
+
+## [1.0.0-rc.10] - 2026-09-16
+
+### Added
+- Public PIN administration: list configured public slots, add, replace using the current PIN, and delete one slot using its current PIN. Transient credentials are never persisted or returned in reports.
+- Explicit compatibility option for stations whose public-code capability endpoint reports unsupported. This attempts the vendor web-client contract once; it does not claim support or retry uncertain writes.
+
+### Changed
+- HA opening programs are accessible from both station layouts. Active programs can be opened for editing through a guided pause and restore step; unsuccessful restoration remains pending.
+- Public-code writes verify station identity, selected managed output, fresh slot state, ISAPI acknowledgement and slot readback. An acknowledged replacement is not proof of physical PIN acceptance.
+
+### Verification
+- Automated client and UI lifecycle coverage, including stale status, unsupported capability, lost responses, and no secret echo.
+- Physical public-PIN acceptance and hold/restore remain pending owner testing. No public codes or door outputs were changed automatically for this release.
+- See [HA programs and public codes](docs/HA_PROGRAMS_PUBLIC_CODES_HE.md).
+
+
+## [1.0.0-rc.9] - 2026-09-16
+
+- Recover user synchronization after cancelling timed validity when firmware echoes an owned UTC write with a contradictory local label. Recovery requires an exact managed-record fingerprint matching the durable journal; external changes remain blocked.
+- Rewrite a proven UTC echo using explicit station-local timestamps and verify readback. Conversion uses a fresh measured station clock and its rules at the target dates, rejecting ambiguous DST hours and untrusted clocks.
+- Preserve absolute timestamps in timing status while keeping the device wire representation consistent.
+- Use an unambiguous expired local interval when timing activation fails, preserving the original schedule/clock error instead of masking it with a secondary timezone failure.
+- Cover cancellation recovery, external-change protection, local rewrite, name-only updates, seasonal offsets and DST ambiguity with regression tests.
+
+
+## [1.0.0-rc.8] - 2026-09-16
+
+- Preserve the full camera frame in the overview, with proportion-aware desktop columns and touch-friendly mobile paging. Eight stations use four columns on a wide screen instead of three shallow cropped rows.
+- Split modern station management into Overview, Opening programs, Public codes and Settings.
+- Add persistent Home Assistant door-opening programs: weekly and date windows, save inactive, activate, pause and remove. Activation requires the station to advertise both alwaysOpen and close; each command rechecks identity and managed relay mapping.
+- Persist command ownership before opening. After restart or uncertain acknowledgement, restore controlled operation before considering a new opening. Offline removal stays pending until restoration is acknowledged.
+- Display existing saved plans and permit deletion. Public PIN slots show configured, empty or unknown without exposing secrets.
+- Native station hold-open deployment and public PIN add/change/delete remain unavailable until their write contracts are verified. HA opening programs depend on HA/network availability; physical hold-open/restore acceptance is still pending.
+
+
+## [1.0.0-rc.7] - 2026-09-16
+
+- Redesign the modern overview as a viewport-fitted camera grid, with 4/6/9/12 density selection, search, fullscreen, live clock and compact counters.
+- Keep station positions stable during ringing; show only configured door actions and move activity/details into a keyboard-accessible dialog.
+- Page stations on smaller displays instead of shrinking controls; support any fleet size without treating 12 as a device limit. The existing appearance remains available.
+- Preserve authenticated camera previews and explicit live-video opening; no station settings or access rules are changed by this release.
+
+## [1.0.0-rc.6] - 2026-09-16
+
+- Activate weekly and selected-date user access from the user editor, with an explicit choice of Home Assistant finite validity windows or guarded native ISAPI schedules. Existing saved drafts are not activated by upgrading; choose an enforcement method and save/synchronize.
+- HA-managed schedules install only the current or next allowed UTC validity interval and renew after expiry. Gaps, overall validity bounds and DST are respected; missing/ambiguous local boundaries deny that window. The station retains a finite expiry during HA/network outages. Later windows require HA and connectivity, and renewal can briefly delay access at adjoining windows.
+- Add native resource allocation and durable dependency-order deployment, followed by exact resource and per-door RightPlan readback. Unknown implicit user references, shared/active resources, incomplete relevant inventory, unknown holiday membership and incompatible station clocks block activation. Native calendar exceptions remain unavailable until their membership semantics are verified; HA windows cover those dates. There is no automatic fallback.
+- A failed timing activation expires an existing owned grant when the station accepts the denial write; it does not silently retain unlimited access or create new credentials. A failed/offline write remains an error/pending state, not an enforcement claim. Synchronization success means configuration readback, not physical acceptance evidence.
+- Persist enforcement across restart, profile/card/PIN changes and CSV round-trips. Storage schema 10 prevents older integrations from silently discarding an active policy. Add per-station last verified window information in the user editor and check station clock drift before timed grants.
+- Add a self-service inside/outside-window test guide. No live user credentials or station schedules were changed as part of this release's automated validation.
+
+## [1.0.0-rc.5] - 2026-09-16
+
+- Add draft time preview directly inside user editing, with selected-day/window checks, exclusive end boundaries and daylight-saving ambiguity rejection. The preview is clearly a local calculation, not device enforcement evidence.
+- Let administrators convert an exact single calendar interval to the existing station validity workflow, then review and save/synchronize it. Adjacent full days retain local midnight/DST semantics; separated dates, daily gaps, weekly rules and ambiguous times are never broadened into continuous access. Existing validity restrictions are intersected; conversion alone sends no writes.
+- **Recurring weekly and disjoint date schedules remain drafts.** This release does not enable native RightPlan deployment. Use the continuous validity workflow only where it exactly represents the requested restriction; confirm actual station enforcement with an inside/outside-window test.
+
+
+- Prepare user-local weekly/date drafts as native schedule candidates and capability-checked per-door RightPlan bindings. Selected dates use a deny-all base week; adjacent dates are coalesced without bridging gaps. Current UTC offset is not accepted as station timezone evidence.
+- Add an explicitly authorized commissioning-only native schedule transport: documented PUT routes, shared station write lock, durable intent, exact payload/context checks, dependency-order readback, and no replay of ambiguous writes after restart. It is not registered in the running integration and does not activate user drafts.
+- Native user binding, managed synchronization lifecycle and physical inside/outside-window commissioning remain open. No station writes or claims of enforced access accompany this preparation.
+
+## [1.0.0-rc.4] - 2026-09-16
+
+- Separate user synchronization status from station connectivity in desktop and mobile user lists. An offline station with the same verified applied/desired revision no longer labels the person offline. Unapplied or unknown revisions remain pending; conflicts and actual synchronization errors retain priority.
+- Preserve offline indicators and detailed diagnostics on station and synchronization screens. This is a presentation fix: no permission changes, additional writes or automatic retries are introduced.
+
+## [1.0.0-rc.3] - 2026-09-16
+
+- Reorganize station management into responsive identity and relay cards, compact status counts, independent per-relay opening feedback, and expandable technical, clock and capability sections. Relay display names can be edited alongside verified mapping.
+- Put access timing selection inside the user editor: permanent access, start/end validity, recurring weekday proposals and selected calendar-date proposals. Add a full-day shortcut to the existing enforced validity path; local midnight boundaries follow the selected zone, including 23/25-hour days.
+- User-local timing drafts support full days or up to eight non-overlapping windows, an explicit IANA zone, persistence, audit field tracking and a visible not-enforced marker in the user list. Draft-only changes do not enqueue access changes or replace existing station validity. Empty/invalid days, dates, time zones, overlaps and activation fields are rejected server-side.
+- **Weekly and selected-date schedule deployment is still not active.** These are clearly labelled proposals; current access continues unchanged. Native resource allocation/ownership, RightPlan deployment and physical enforcement verification remain required. A single continuous start/end interval uses the existing validity mechanism.
+- Storage remains schema 9 with optional timing-draft metadata; preserve the matching HA backup when rolling back. No station configuration changes or physical opening tests were performed for this UI release.
+
+## [1.0.0-rc.2] - 2026-09-15
+
+- Administrator station settings: read device capabilities, audit all sixteen public PIN slots without exposing codes, and edit advertised door name, release duration and relay polarity with confirmation, conflict detection and readback. Unsupported public PIN writing remains unavailable.
+- Support two explicitly mapped relays per station, independent release indicators/entities, per-user door selection and correct event mapping. Existing users retain their original door permissions; group grants do not automatically add relay 2.
+- Access storage schema 9 atomically migrates schemas 1–8. Restore the matching pre-upgrade HA backup and integration version when rolling back; code-only downgrade is unsupported.
+- Add per-door HA hold-open drafts using copied weekly/dated schedules and an explicit IANA time zone. Prepared write-ahead transition logic handles lost responses and restart recovery in offline tests. **Automatic execution is not enabled**: coordinated physical hold/restore commissioning and runtime scheduling integration remain required. HA/network outages can leave a held door unlocked.
+- Remove the obsolete preview label from two-way audio; retain useful microphone controls and diagnostics.
+- User weekly access deployment, fixed PIN writes on unsupported firmware, and physical relay/hold-open commissioning are not claimed as completed or verified by this release.
+
+## [1.0.0-rc.1] - 2026-09-14
+
+- Explicit panel API contract: compatible legacy clients remain supported; incompatible writes fail safely, reads remain available, and open drafts are retained with a refresh explanation.
+- Durable per-user/per-station operation IDs, pending timestamps, readback verification and bounded completed-operation retention. The Sync page shows the latest operations. No physical unlock is inferred from readback.
+- Opt-in diagnostic HA sensor reports oldest pending work age every 30 seconds, including offline stations; migrated unknown ages remain unknown.
+- Access storage schema 8 migrates schemas 1–7 atomically. Restore requires the matching pre-upgrade HA backup and integration version; downgrading code alone is unsupported.
+- Event history expiry avoids full-cache scans on every packet while preserving the 5,000-record / 30-day bounds, deduplication and historical-event classification.
+- Added repeatable combined edit/revoke/lost-ack/restart tests, cross-browser operational workflows and 200% CSS zoom/keyboard checks in both designs. Firefox and WebKit are required by release CI.
+- RC remains a prerelease: limited validity, coordinated HA restore/restart acceptance and sustained field stability are still pending. Previously confirmed PIN, card, audio, video and ringing checks remain accepted. Supports 1–X stations; sample counts are not product gates.
+
+## [0.36.0-beta.1] - 2026-09-14
+
+- Add a fleet-wide microphone control preference: existing hold-to-talk (PTT), or explicit click-to-start/click-to-stop talking. Nothing enables the microphone automatically. Backgrounding, disconnects, closing the camera, changing mode and the existing server session limit still stop capture.
+- Suppress text selection and long-press callouts on the PTT button for mobile use.
+- Show current employee portraits beside access events only for a uniquely observed station owner whose binding predates the device event. Deleted, unverified and older identities receive no guessed portrait. Existing administrator-only photo access and global photo preference apply; image data is not embedded in event history or exports.
+- Keep old media preferences readable with PTT as their default; updates from older clients preserve the saved microphone mode.
+- Record owner confirmation of audible speech at the intercom speaker, recognized employee names and revocation synchronization after reconnect. Validity and ringing acceptance remain pending.
+
+## [0.35.1-beta.1] - 2026-09-14
+
+- Place "Read card from station" directly in the user editor's Cards section beside manual and USB entry, instead of the general user actions section.
+- Explain station selection, presenting the card and approving its assignment. New users show the same option disabled with a save-first explanation; unsaved edits remain protected.
+- Preserve the existing capability check, capture cancellation and explicit approval flow. No storage, ISAPI or device configuration changes.
+
+## [0.35.0-beta.1] - 2026-09-13
+
+- Move WisKey navigation into its header in both designs, with four compact navigation items on a second row on smaller screens. Preserve Home Assistant's separate menu.
+- Enlarge user photos to 60 px and remove internal scrolling caused by inherited panel sizing.
+- Add a dedicated mobile phone field to the user editor, desktop table, mobile cards and search. Preserve leading zeros and international prefixes; validate 7–15 digits without assuming a country.
+- Include phone numbers in CSV import/export. Empty cells retain existing numbers; CLEAR removes a number; exported JSON string cells preserve prefixes and empty values.
+- Keep phone numbers local to WisKey: changing contact details does not change device intent or trigger immediate access synchronization. Audit records contain the changed field name, not the phone number.
+- Migrate access storage from schema 6 to 7 atomically. Existing users start with an empty phone field. Back up Home Assistant before updating; restoring an older version requires its matching data backup.
+- Physical acceptance and speaker audibility are unchanged by this interface/contact-data release.
+
+## [Unreleased]
+
+## [0.34.0-beta.1] - 2026-09-11
+
+### Added
+- Fleet clock comparison with measured request uncertainty, repeated drift qualification, sampled device DST forecasts, stale-data handling, and separate device/display zones. Read-only; HA is the time reference.
+- Save up to twenty named camera-wall layouts per administrator/browser. Restore camera order and the stream budget with playback stopped; report removed cameras and reject stale or corrupted preference writes.
+- Opt-in HA diagnostic sensors for observed managed people, unique pending people, sync state and last successful reconciliation. Missing inventory stays unknown; offline queues stay visible. Pending-work age remains unimplemented.
+
+### Scope and validation
+- N65 and N77 implemented; N73 remains partial because pending-work age needs durable timestamps. No new physical acceptance is claimed. Local checks: 1008 Python tests, 356 browser regressions before clock UI plus 15 focused clock/health cases. Release CI reruns the complete suite before publication.
+- Remains a Beta prerelease; the access schema is unchanged from 0.33.0-beta.1.
+
+### Documentation
+- Add forty further planned tasks (N41ג€“N80), preserving the prior N01ג€“N40 backlog. Record priorities, distinct deliverables, dependencies and specification mapping; no runtime changes or new physical acceptance.
+
+## [0.33.0-beta.1] - 2026-09-11
+
+### Beta scope
+- Move the release from Alpha to Beta with sixteen software deliverables from the approved roadmap. This is a prerelease, not stable v1; physical acceptance remains 31/38. Speaker audibility, ringing, validity and fleet acceptance remain open. All seven release CI jobs passed before publication.
+
+### Added
+- Typed and required profile fields, per-user saved filters/sort/custom-column order, and onboarding templates containing profile/group defaults only.
+- Bulk profile updates, group membership changes and personal-exception resets with before/after review. Metadata-only updates avoid station writes; group grants preserve independent memberships and personal denials.
+- Group-policy impact review with affected users/doors, offline targets, revision binding and durable receipts. A permission directory shows policy access, group sources, exceptions and desired/applied revisions separately.
+- CSV header mapping, typed profile cells, group IDs and personal exceptions. Exports preserve inheritance instead of flattening access. Independent cell errors include row/column codes and a downloadable report without credential values. Whole-batch validation and the 500-row/256-KiB limits remain.
+- Activity filters by current group/profile membership, gated by observed station ownership at event time. Per-admin saved report queries and a sandboxed full-record print/PDF view preserve timestamps and completeness warnings; missing identities are never inferred from names.
+- A bounded four/nine-camera wall using the configured media transport, with explicit start/stop and offscreen cleanup. Enlarging a camera suspends the wall. Physical nine-stream stability is not claimed.
+- Bounded recovery when decoded video stops progressing after playback has begun, with visible HLS fallback or manual retry. No microphone or lock action is triggered.
+- Microphone selection and a local input meter that does not transmit. Device loss, backgrounding and late permission results release tracks; local testing stops after one minute.
+- Deliberate USB keyboard-reader input: Enter reviews an exact identifier; explicit confirmation adds it to the user draft. Oversized input is rejected rather than truncated. No global keyboard capture or automatic save.
+
+### Reliability and upgrade
+- Preserve and immediately queue committed group/bulk changes when a response is cancelled. Validate schema 5/6 exceptions before migration; reject corrupted state instead of reconstructing access.
+- Access storage migrates to schema **6** and profile definitions to schema **2**. Existing text fields stay optional; old clients preserve new attributes and templates. Back up HA before upgrading; rollback to older code requires restoring the pre-upgrade backup.
+- Source, browser and real-HA transport regression coverage added. The published commit passed 994 Python cases on each of 3.12/3.14, 312 HA cases and 352 browser cases, plus static checks, reproducible bundles, HACS and Hassfest. Verified publication evidence is recorded in docs/BETA_DEVELOPMENT.md and docs/evidence/release_0.33.0-beta.1.json.
+
+### Capability evidence
+- Read-only checks on two DS-KV6124-E1 stations found six successful PIN history records; the production normalizer preserved all six employee IDs and names. This is not confirmation of the earlier installed-HA unidentified-user report.
+- Both channels 101/102 are advertised; primary RTSP DESCRIBE succeeds, secondary returns 401 in the bounded probe. No secondary-stream selection is enabled from capability advertising alone.
+- History advertises picture support but the sampled records contained no linked picture. Mobile NFC/Hik-Connect feasibility is documented without enabling cloud or assuming support from another device family.
+
+## [0.32.1-alpha.1] - 2026-09-10
+
+### Fixed
+- Separate the audio diagnostics disclosure from the download button. Show station microphone-byte and HTTP upload counters directly in the camera dialog, with sample time, explicit refresh and refresh-failure feedback; a file download is no longer required to read the server counters.
+- Retain the peak microphone signal after releasing push-to-talk, alongside the instantaneous level that resets on release. Include the peak and backend sample time in the sanitized diagnostic export. Refresh while talking with diagnostics open and discard responses from previous sessions.
+
+### Diagnostics and validation
+- Capture only the numeric station PUT response status, without protocol headers or sound. HTTP 200 and bytes written do not establish physical speaker audibility.
+- Recheck two physical stations: G.711ulaw matches the client, talk volume is 7/10, the channel changes from disabled when closed to enabled while open, and all six bounded silence sessions close with unchanged settings. Content-Length and optional-session-query comparisons provide no evidence for a codec or transport change. See docs/AUDIO_TALKBACK_DIAGNOSTICS_HE.md.
+- Add upload acknowledgment/rejection and visible-counter, stale-response, refresh-failure, peak-retention and Hebrew mobile/desktop download coverage. The owner's speech-to-speaker failure remains under investigation pending installed-HA counters and a coordinated audible test. No storage migration or persistent station setting changes.
+
+## [0.32.0-alpha.1] - 2026-09-10
+
+### Added
+- Display enabled custom fields as named columns in the users table and labelled values on mobile, alongside group memberships, in both designs.
+- Assign station door permissions to groups in Management tools. Users inherit the union of active groups, with explicit personal grants and blocks; a personal block wins over all groups. Show permission sources and reset one or all personal exceptions in the user editor.
+- Apply group permission changes atomically to the policy and every affected user's desired access. Retain durable offline revocation, restart recovery and existing ownership/readback checks. Renaming groups does not request device writes.
+
+### Documentation
+- Document automatic HACS update discovery in Home Assistant, the one-time prerelease switch and the custom-repository polling delay. Publication does not imply immediate notification or automatic installation. See docs/HACS_UPDATES_HE.md.
+
+### Compatibility and validation
+- Migrate access storage from schema 4 to 5 and import prior profile settings once into the central store. Preserve existing door assignments as personal exceptions, credentials, photos, pending revocations and audit history. Back up Home Assistant before upgrading; older integration versions cannot read schema 5.
+- Reject stale user-policy edits and stale bulk/CSV reviews. Preserve personal exceptions on unchanged doors when using legacy assignment edits. Disabled groups retain membership but grant no access.
+- Add group inheritance, exception precedence, atomic failure/cancellation, migration, offline restart/revocation, real HA authorization/storage and responsive Hebrew browser regression checks. See docs/GROUP_PERMISSIONS_032_HE.md.
+
+## [0.31.0-alpha.1] - 2026-09-10
+
+### Added
+- Add global user profile options under Management tools: up to 12 named fields with suggestions, up to 64 organizational groups, and optional browser-camera portraits. Rename or hide definitions while preserving stable IDs and existing user values. Filter users by fields and groups and assign multiple groups in the editor. Groups do not grant door permissions.
+- Add explicit camera capture, preview, discard/retake, accept and photo removal. Save accepted images atomically with user changes; keep previews local until saving. Stop camera tracks on capture, cancellation, backgrounding, HA disconnection or component removal. Load saved portraits only for visible administrator views; never include JPEG data in overview broadcasts, CSV exports, audit history or deletion tombstones.
+- Add installed go2rtc add-on discovery and a saved-provider check showing the selected server and version. Share an explicit trusted go2rtc address between MSE and RTC, with same-origin authenticated RTC signaling and source credentials retained in HA. Preserve native HA RTC when no explicit provider is chosen.
+
+### Fixed
+- Move card enrollment, history and deletion into the user editor; user enable/disable uses the editor's Active control. Keep only Edit and Sync now beside each other in user rows, in both designs and mobile layouts. Guard other editor actions while unsaved changes exist.
+- Local profile-only edits preserve access assignment sync state and advance equivalent applied revisions together and do not request a new device synchronization. Central schema 4 migration preserves credentials, assignments, revocations and pending operations.
+- Expose RTC connection and ICE state in safe playback diagnostics to distinguish signaling success from a decoded video stream.
+
+### Validation and migration
+- Real browser decoding confirmed 2688ֳ—2016 MSE video from two stations through the installed go2rtc server. RTC over UDP connected but lost packets without decoding frames; TCP decoded 2688ֳ—1520 H.264 from both stations with zero packet loss in the measured interval. Prefer TCP for the selected add-on and retry ordinary RTC once when TCP is unavailable. See docs/PROFILES_MEDIA_031_HE.md for evidence and setup.
+- Add persistence, migration, revision-conflict, admin authorization, bounded JPEG, photo privacy/deletion, selected-provider signaling, lifecycle, filtering, capture and Hebrew responsive regression checks. No device credentials, photos, raw signaling or live video recordings are published.
+- User storage payload migrates from schema 3 to 4 atomically. Keep a Home Assistant backup before upgrading; an older integration cannot read schema 4. Photos are JPEG up to 32 KiB and 512ֳ—512; the capture UI produces 256ֳ—256 images. Aggregate photo data is capped below the existing 32 MiB storage limit.
+
+## [0.30.0-alpha.1] - 2026-09-10
+
+### Added
+- Add global camera playback options under WisKey Management tools: HLS or WebRTC/go2rtc, RTC or MSE, and an explicit HLS fallback preference. Persist settings once for all WisKey players and administrators, with atomic storage, revision conflict protection and live refresh across browsers.
+- Implement real MSE fragmented-MP4 playback through an authenticated Home Assistant WebSocket bridge. Use the HA go2rtc integration or an explicitly configured trusted local go2rtc server; keep camera source credentials off the browser. Bound messages, buffering, startup and idle waits, and close streams on visibility, ownership, station, setting or connection changes.
+- Add microphone permission/device/processor errors, live microphone signal and accepted-packet counters, and a privacy-preserving audio diagnostic export. Distinguish accepted microphone packets, microphone bytes written toward the station, and total transport bytes including generated silence. Talk continues over browser ג†’ HA ג†’ ISAPI independently of RTC video.
+
+### Validation
+- Verify live MSE negotiation and binary H.264 data from two stations through the existing go2rtc server. Open concurrent ISAPI audio sessions, receive data, transmit silence, close both sessions and confirm unchanged channel configuration and idle call state. Speaker audibility and the owner's browser microphone path remain unverified.
+- Record the owner's successful card create/write, assignment, update and deletion tests. Multiple simultaneous cards for one person and reader-enrollment cancellation were not explicitly confirmed and remain separate acceptance items.
+- Add settings persistence/conflict/authorization tests, authenticated MSE bridge tests, real browser fMP4 decoding, global mode changes, strict fallback, responsive Hebrew layouts and microphone diagnostic tests. See docs/MEDIA_030_HE.md for setup, limits and evidence.
+
+## [0.29.0-alpha.1] - 2026-09-10
+
+### Added
+- Rename the product to WisKey in the panel, Home Assistant sidebar and integration setup. Retain the integration domain, entity IDs, data, URLs, repository and saved appearance preferences for existing installations.
+- Add a Management tools page for users, stations, synchronization, administrator history, health diagnostics, schedules, integration settings and appearance selection. Advanced pages return to the hub; all existing administrator restrictions remain enforced by Home Assistant and the WebSocket API.
+- Show a live date and time on Overview, ticking every second in the Home Assistant time zone with automatic daylight-saving transitions. Use the current browser clock; refresh immediately after returning to a hidden tab and clean up the timer when leaving the page.
+
+### Improved
+- Move the Appearance picker exclusively to Management tools. Remove its header/sidebar and camera/editor dialog entry points. Keep the existing/new design choice and responsive compact counters.
+- Clock updates do not reload cameras or issue network/device commands. Station event timestamps retain their own existing time-zone rules.
+
+### Validation
+- Exercise management navigation, revoked administrator access, clock midnight/DST/zone changes, timer lifecycle, camera preservation and responsive Hebrew layouts in both designs.
+- Update existing browser journeys for the new management hub; document the delivery in docs/WISKEY_029_HE.md. No physical device operations were performed.
+
+## [0.28.1-alpha.1] - 2026-09-10
+
+### Improved
+- Replace the new design's large Overview metric cards with compact status chips beside the Doors & cameras heading. The camera grid starts higher on the page.
+- Wrap chips with the available panel width; use two compact rows on mobile. Keep full accessible descriptions, explicit number direction, live counts and large-number wrapping.
+- Preserve the existing design's metric row and the shared station, camera and door behavior.
+
+### Validation
+- Add eight browser tests for desktop/tablet/mobile layout, Hebrew/English, dark mode, live counts, large values, narrow embedded panels and switching back to the existing design.
+- Document the approved proposal, actual screenshots and measured layout changes in docs/COMPACT_HEADER_0281_HE.md. No physical device operations were performed.
+
+## [0.28.0-alpha.1] - 2026-09-10
+
+### Added
+- Add an optional blue interface with a charcoal navigation rail, compact station cards, user avatars and action disclosures, a two-column editor, and focused station details. The existing design remains the default.
+- Add an Existing/New appearance picker in the header, desktop navigation and open editor/camera dialogs. Save the preference per Home Assistant user in this browser; blocked storage falls back to the current session with an explanation.
+- Follow Home Assistant's effective light/dark theme across both designs and all management views. Switching appearance preserves mounted camera controls, unsaved form fields, selected users and pending station actions without sending or replaying a device command.
+
+### Improved
+- Adapt layout to the actual Home Assistant panel width using container queries. Support desktop, tablet, mobile and live resizing, including a narrow panel inside a wide browser and mobile landscape dialogs.
+- Keep all eight views reachable through daily navigation and a mobile More menu. Use user cards when the content area is narrow; keep editor save actions visible while fields scroll.
+- Make station activity, clock and capability sections expandable in the new design; retain independent online/sync states, a red ringing indicator and one active lock per station.
+
+### Documentation and validation
+- Record owner design approval, implementation decisions, synthetic browser screenshots and C-ALT delivery stages in docs/design/ALTERNATE_UI_HE.md and docs/ALTERNATE_UI_028_HE.md.
+- No physical device operations were performed. Hardware acceptance, ISAPI contracts and access-storage schema are unchanged.
+
+## [0.27.7-alpha.1] - 2026-09-10
+
+### Fixed
+- Preserve absolute validity and event/history filter instants when station or HA time-zone rules change in the background or the selected station disappears. Retain known DST-fold instants and seconds; visibly clear ambiguous drafts with an explanation.
+- Clear discarded replacement PIN values from the actual editor fields when removing a PIN or choosing to retain the saved PIN.
+- Recover uncertain bulk changes after missing replies, navigation or HA disconnection using the saved operation ID. Bound waits, keep recovery scoped to the authenticated connection, reject late results and require a receipt check before another reviewed action; never automatically replay a change.
+- Bound schedule draft, proposal and operation requests, release controls after missing responses, and reload fresh data after authenticated connection replacement. Unconfirmed saves require a stored-state read before another change.
+- Reject oversized storage writes before replacing the last reloadable file. Apply the same 32 MiB UTF-8 byte limit to writes and reads, including the storage envelope, and retain the existing repair notification until a successful save.
+
+### Validation boundaries
+- No physical device operations were performed. No additional ISAPI behavior or schedule permission writing was enabled. Calls, audible audio, card lifecycle, timed validity, installed WebRTC and nine-station acceptance retain their documented gates.
+- See docs/SOFTWARE_CLOSURE_0277_HE.md for completed software work, regression evidence and the remaining dependencies.
+
+## [0.27.6-alpha.1] - 2026-09-10
+
+### Fixed
+- Bound change-history reads, exports and permission comparisons to 20, 60 and 120 seconds respectively. Missing replies release the controls with an error; late replies cannot overwrite that result or download a stale export.
+- Discard previous audit results and pending requests when the Home Assistant connection or administrator changes. Reattaching the history view loads a fresh list, and changing the selected person replaces an obsolete pending read.
+
+### Validation boundaries
+- No physical device operations were performed. Hardware acceptance and the current completion percentages remain unchanged.
+
+## [0.27.5-alpha.1] - 2026-09-10
+
+### Fixed
+- Retire station event producers as soon as the runtime starts closing. Late call-status edges and live/history replies cannot emit events from an unloaded or replaced station.
+- Preserve the history recovery cursor when shutdown interrupts a page, so the next recovery replays and deduplicates that page without skipping records.
+- Keep a replacement event monitor registered when the old monitor finishes cleanup, and ignore late connection-recovery callbacks instead of queuing new synchronization during shutdown.
+
+### Validation boundaries
+- No physical device operations were performed. These lifecycle fixes do not close field acceptance for calls, audible audio, cards, timed validity or nine-station operation.
+
+## [0.27.4-alpha.1] - 2026-09-10
+
+### Fixed
+- Keep the first mobile activity record visible by collapsing event filters initially; desktop filters remain open. The disclosure counts applied criteria and preserves unapplied drafts through refreshes.
+- Share guarded call controls between health, Overview and camera views. Pending commands remain owned by their station across navigation, missing replies become uncertain, and call state is read only when the health controls are opened.
+- Recover event investigation after missing replies, HA disconnects or connection replacement. Bound trace waits to 20 seconds and history inspection to 60 seconds; require a status read after an uncertain capture change without replaying it.
+- Preserve the selected history instants when the station display timezone changes. Clear ambiguous draft wall times with an explanation instead of silently reinterpreting them.
+
+### Validation boundaries
+- No physical device operations were performed. These interface and diagnostic fixes do not establish audible audio, answered calls, card lifecycle, timed validity or nine-station hardware acceptance.
+
+## [0.27.3-alpha.1] - 2026-09-10
+
+### Fixed
+- Reject a live health inspection if the station begins unloading or its runtime is replaced while media capabilities are being read. Do not return a mixed diagnostic snapshot.
+- Bound field-checklist reads and saves; a missing save response requires reading the stored result before another change. Keep its uncertainty message through unrelated health refreshes and reconnect without replaying a save.
+- Isolate health reads with one three-slot queue: station updates cannot overlap batches, completed peers immediately free capacity, and missing cached/live responses expire after 20/45 seconds. Discard old-connection results, stop queued reads on disconnect, and reconnect using cached diagnostics only.
+
+### Validation boundaries
+- No physical device operations were performed. Diagnostic recovery and recorded operator results do not establish field acceptance. The open physical gates remain unchanged.
+
+## [0.27.2-alpha.1] - 2026-09-10
+
+### Fixed
+- Bound event-list and report waits, preserve cached records with a visible refresh failure, and keep report failures separate from list refreshes. Abort old views and exports on HA disconnect or replacement; reconnect refreshes events without replaying an export.
+- Coalesce station updates while an event list is loading, supersede old reads immediately when applied filters change, and restore event loading after the same view is reattached.
+
+### Validation boundaries
+- No physical device operations were performed. Calls, audible audio, card lifecycle, timed-validity boundaries, the original unidentified PIN event and hardware fleet acceptance remain open. See the second delivery in docs/OVERNIGHT_2026_09_10_HE.md.
+
+## [0.27.1-alpha.1] - 2026-09-10
+
+### Fixed
+- Restore keyboard focus to the opening control when an editor or camera dialog closes, including Escape and successful saves.
+- Close an event HTTP client even when Home Assistant unloads the station while its executor is still constructing that client.
+- Recover user-management controls after a lost response, logout or panel reattachment. Discard late private inventory/review results, bound browser waits, clear sensitive drafts when a write result is uncertain, and preserve the separate uncertain-card-approval flow without automatic replay.
+- Reject new door, call and audio work as soon as a station starts unloading. Late release acknowledgements cannot recreate an optimistic pulse on the old runtime; uncertain commands are never replayed.
+- Keep audio starts bound to the selected station across delayed browser permission/playback setup. Disable opening while HA is offline, restore connection listeners after reattachment, and never restart listening or the microphone on reconnect.
+- Restrict central-name enrichment to events after ownership was observed on that particular station. Preserve the boundary across restarts, establish it conservatively for older storage on the next verified read, and invalidate it on an ownership discrepancy. Source-provided names remain authoritative.
+- Recover the overview after missing responses or reattachment, show when displayed data may be stale, and stop waiting indefinitely for release acknowledgements. Pause door commands during HA disconnection and preserve an uncertain result without replaying or accepting a late acknowledgement.
+- Bound call-state reads and signaling waits in the panel, discard responses from a previous station, and release stuck station controls after an uncertain response without replaying the command. Pause call actions on HA disconnect and obtain fresh state in other views after a command completes.
+
+### Validation boundaries
+- No physical station operations were performed for this patch. Calls, audible audio, the owner's original unidentified PIN event, timed-validity boundaries, card lifecycle, WebRTC NAT and nine-station hardware acceptance remain open. See docs/OVERNIGHT_2026_09_10_HE.md.
+
+## [0.27.0-alpha.1] - 2026-09-09
+
+- Arrange camera video and call/audio controls side by side on desktop, retain a visible dialog header and door footer on small screens, and improve the video error/retry view.
+- Stop microphone capture on keyboard focus loss or browser audio interruption. Bound browser audio requests to five seconds, discard expired receive packets, limit slow uploads and incomplete receive frames, and drop pending upload buffers on close.
+- Reconnect visible video with fresh WebRTC signaling after Home Assistant reconnects; never replay an old offer or automatically reopen microphone audio. Remove connection listeners when the camera closes.
+- Restore interrupted ownership and pending-deletion statuses to pending after restart. Verify a synthetic private database generated by v0.23 through the current repository, actual HA Store/setup/reload and deferred credential removal, preserving receipts, audit and unmanaged residents.
+- Add a loopback-only sustained audio/access test: nine simulated stations, rotating three simultaneous audio sessions, polling, PIN updates and injected failures. A 608.69-second run closed all 165 sessions and recovered 27 injected audio failures; this is not physical fleet acceptance.
+- Honor the documented local-time default when a readback omits timeType. Keep contradictory local labels with explicit offsets blocked for timed validity. Read-only checks found different configured device zones and no currently time-limited users; settings were not changed.
+- Recheck silence-only audio transport and confirmed closure on two physical stations with unchanged configuration. Audible two-way acceptance, timed-validity boundaries, calls, cards, WebRTC NAT and nine-device hardware acceptance remain pending. See docs/RECOVERY_027_HE.md.
+
+## [0.26.0-alpha.1] - 2026-09-09
+
+- Add a two-way audio preview to the camera window: explicit listening, hold-to-talk, microphone permissions and immediate local mute on release.
+- Implement a connection-owned Home Assistant audio bridge and documented G.711ulaw ISAPI session transport, with fresh Digest authentication, bounded queues, fixed-rate raw upload and a three-minute lifetime.
+- Close audio on browser disconnect, backgrounding, station unload, permission loss and call termination. Sessions remain independent between stations, and credentials and audio packets are excluded from diagnostics and WebSocket debug logs.
+- Verify opening, receiving audio, silence-only upload and session closure against DS-KV6124-E1 firmware 3.9.0 without changing channel configuration. Audible two-way acceptance remains pending; microphone access requires HTTPS. This preview does not claim to resolve the owner's WebRTC NAT issue.
+- Keep physical call, card and nine-station acceptance open. See docs/AUDIO_026_HE.md for implementation evidence and remaining 95% gates.
+
+## [0.25.0-alpha.1] - 2026-09-09
+
+### Added
+- Local sync filters by person, station and items needing attention, retaining pending removals
+  below the filtered matrix. Mobile sync displays station-labelled rows within person cards;
+  desktop retains a scrollable matrix with sticky headers and names.
+- Events distinguish edited filters from applied results, reset search/filters in one action,
+  show loaded-record counts and provide explicit refresh. Reset invalidates pending reports.
+- Shared administrator view styles and compact change-history cards with person/action/time,
+  keyboard-accessible before/after details and loaded-versus-total counts.
+
+### Changed
+- User-list hierarchy gives Add user a primary position and groups search/management tools.
+  Row actions wrap; mobile cards, filters and light/dark Hebrew/English layouts use the new style.
+- Permanent user summaries omit an irrelevant timezone prefix. Limited validity still shows
+  its display zone and boundaries. Event/history timestamps keep their direction in RTL text.
+- Event retention/export explanations remain available in an expandable help section.
+
+### Fixed
+- Empty filtered user results no longer claim the central database is empty. Clearing filters
+  restores the list, preserves sorting and clears bulk selection.
+- Scope edge-to-edge card spacing to Overview; station management cards retain their padding.
+
+### Evidence and limits
+- Existing imports, credential actions, bulk review, uncertain-result recovery and applied-filter
+  exports retain their behavior. No access schema, ISAPI route or device settings changed.
+- This advances C3/C5/C6 of the completion/UI plan. Owner usability feedback and physical call,
+  audio, timed-validity, card and nine-station acceptance remain open. MSE/NAT status is unchanged.
+- Mandatory acceptance remains 31/38 (81.6%); combined scope remains 77.7%.
+  See docs/ADMIN_UI_025_HE.md for delivery evidence and screenshots.
+
+## [0.24.0-alpha.1] - 2026-09-09
+
+### Changed
+- Redesigned daily navigation, station cards and the user editor. Desktop uses a sidebar;
+  mobile separates daily actions from management. Camera previews and independent door
+  controls take precedence over history and support information.
+- User editing groups personal details, validity, PIN, cards and station assignments, with
+  a fixed save/cancel footer and responsive layout. Native SVG icons and HA theme colors
+  support Hebrew RTL, English LTR and light/dark themes without external assets.
+- Compact call controls show actions relevant to the observed state and explicitly indicate
+  that two-way audio is unavailable. Full camera controls retain the existing command workflow.
+
+### Fixed
+- Preserve string employee identifiers, including leading zeros, when an event supplies
+  employeeNo instead of employeeNoString. Explicit string identifiers still take precedence.
+- Resolve a missing event name only through an observed ownership binding for that station,
+  an exact identifier match and an event not predating the central user. Unbound users,
+  unverified creation intents and another station's ownership cannot supply the name.
+  Names explicitly reported by the device remain authoritative.
+
+### Build
+- Exclude the ephemeral CI runner's unused Chrome APT source before installing Playwright
+  dependencies, avoiding its observed repository hash mismatch. Chromium still comes from
+  Playwright and the full browser suite remains required for release.
+
+### Evidence and limits
+- Two authorized stations returned 123 history records through 78 read-only requests,
+  including three successful PIN events with names and employee identifiers. No station writes
+  or physical commands were sent. The owner's original unidentified event is not conclusively
+  correlated, so that investigation remains open.
+- The owner reports working MSE playback and a provider NAT issue awaiting repair. HA HTTP
+  reachability was verified; authenticated installed-panel and WebRTC acceptance remain open.
+- Audio channel discovery still reports disabled G.711ulaw; no audio session is enabled.
+  Timed-validity readback remains unresolved. Calls, cards and the nine-station physical soak
+  retain their existing acceptance gates. Screenshots use synthetic data.
+- Mandatory v1 acceptance remains 31/38 (81.6%); combined scope remains 77.7%.
+  See docs/CORE_UI_024_HE.md for progress against the 95% plan and interface previews.
+- Upgrading from 0.23 keeps access payload schema 3 and HA Store envelope version 1.
+  Back up HA before upgrading; returning to 0.22 or earlier requires a compatible backup.
+
+## [0.23.0-alpha.1] - 2026-09-09
+
+### Added
+- Reviewed bulk access operations for up to 200 explicitly selected users: enable, disable,
+  station assignment/removal, deletion, PIN removal, card removal and synchronization requests.
+  Previews show per-user changes and cached capacity estimates before a separate approval.
+- Atomic operation receipts survive restart and uncertain replies. Actor-bound replay never
+  reapplies old changes; it only requeues reconciliation of current desired state.
+- Administrator change history records actor, action, revision and masked before/after summaries
+  together with user, card, import and conflict changes. It retains up to 5,000 rows / 30 days,
+  with stable pagination, filters, per-user navigation and formula-safe CSV/JSON exports.
+- Read-only permission comparison reports matched, drifted, unmanaged and unverified users,
+  with explicit completeness and a link to the existing conflict-review workflow.
+- User filters by station, assignment, activation, validity and credential presence; stable sorting,
+  result counts and responsive explicit selection in Hebrew and English.
+
+### Upgrades
+- Private access payload schema migrates from 2 to 3, preserving users, credentials, ownership
+  and pending removals. Back up HA before updating; downgrading to 0.22 or earlier requires
+  restoring its compatible backup. The HA Store envelope remains version 1.
+- Audit exports contain administrator/user identifiers and names, but no PIN values or complete
+  card numbers. An unchanged operation has a receipt without inventing a change-history row.
+
+### Evidence and limits
+- Permission inspection completed against two authorized DS-KV6124-E1 stations using 32
+  read-only requests and an empty isolated local baseline; this does not compare the owner's HA
+  database. No station credential, relay, call or schedule changes were made in this batch.
+- Capacity is an estimate from the latest available inventory, not a reservation. Saved operations
+  are central commits; station completion still follows the existing queue and readback status.
+- Mandatory v1 acceptance remains 31/38 (81.6%). The overall scope estimate remains about 78%.
+  All 20 software deliverables and remaining hardware gates are listed in docs/BULK_ACCESS_AUDIT_HE.md.
+
+## [0.22.0-alpha.1] - 2026-09-09
+
+### Added
+- Call controls in camera and active-station views, fresh capability/state checks, per-station
+  command ownership and bounded post-command observation. Lost replies remain uncertain and
+  are never retried automatically; observed state changes do not prove answered audio.
+- Explicit 90-second event/call capture, source identity field-presence evidence, and sanitized
+  support exports. Captures are bounded, administrator-only and expire without extra station reads.
+- Read-only history inspection for explicit windows up to 24 hours, with completeness, time-filter
+  verification and anonymous event summaries. It does not advance recovery cursors or fire live events.
+- Playback reports with first-frame state, fallback reasons and allowlisted RTC video statistics;
+  bounded capability/HLS startup, track/disconnection handling and background/network cleanup.
+- Nine-station HA runtime integration tests for event isolation, independent call commands and
+  unloading a pending station. A real HA camera-provider registration test covers WebRTC advertising.
+
+### Fixed
+- Recover offset-free AcsEvent history times using verified device clock rules on DS-KV6124-E1,
+  V3.9.0 build 260115. The prior path rejected those rows. Equivalent UTC/+03:00 search windows
+  were checked against the station; ambiguous DST times and changed clock rules are rejected.
+- A video track with no decoded video dimensions cannot mark WebRTC playback as ready.
+
+### Evidence and limits
+- All 15 inspected real history records now fall within the requested window. The reporting/CSV
+  pipeline preserves their 3 authentication outcomes and 12 other records without double-counting.
+- Original unidentified-PIN correlation, live call acceptance, owner-system WebRTC, two-way audio,
+  card lifecycle and the nine-station physical soak remain open. No station settings were changed.
+- Mandatory v1 acceptance remains 31/38 (81.6%). The overall scope estimate remains about 78%.
+  See docs/CALLS_AND_HISTORY_BATCH_HE.md for exact progress across the selected 20 tasks.
+
+## [0.21.0-alpha.1] - 2026-09-09
+
+### Added
+- Health and field tests panel with per-station sync reasons, event stream/history counters,
+  clock offset warnings, bounded independent refreshes and sanitized compatibility exports.
+- Event evidence explains identity availability, live/history origin, receipt time and delayed
+  records. Single-event support exports omit names, user IDs, cards and station addresses.
+- WebRTC through Home Assistant camera signaling and its configured provider, with HLS fallback,
+  transport/failure state, retry, bounded setup and peer/track/subscription cleanup.
+- Private atomic field-acceptance records, explicit operator results, revision conflict checks,
+  per-station checklists and export. No physical result is marked passed automatically.
+- Read-only fleet soak CLI records bounded timings, failures and recovery across up to nine stations.
+- Advertised call answer/reject/hangUp controls with identity/capability/current-state checks,
+  single-attempt writes and explicit acknowledgement; two-way microphone audio remains unavailable.
+
+### Fixed
+- Station readiness now uses the verified Search routes and reports complete/partial coverage,
+  replacing rejected by-ID GET samples. Holiday inventory remains partial; schedule writes stay disabled.
+- Same-time access records prefer a complete identified record without merging identities between events.
+  The owner's original unidentified-PIN report still requires correlation to an exact event.
+- Restored field-test selections display the saved result correctly when their options first render.
+
+### Evidence and limits
+- Two authorized stations each passed 18/18 read-only status checks during a 90-second observation.
+  A manual UTC clock on one station was about eight hours ahead; it was not changed.
+- Call/audio acceptance, actual WebRTC playback, card lifecycle and the nine-station hardware soak
+  remain open. No live call command, audio session, credential mutation or door release was performed.
+- Mandatory v1 acceptance remains 31/38 (81.6%). See docs/CORE_MEDIA_BATCH_HE.md for all 20 tasks.
+
+## [0.20.0-alpha.1] - 2026-09-09
+
+### Added
+- Administrator schedule operations panel connects saved proposals to durable check jobs:
+  explicit resource responsibility review, background station checks, blockers, recovery steps,
+  cancellation, archive and safe report export, in Hebrew and English with mobile support.
+- Local resource responsibility registry detects overlapping declarations and changed device
+  contents. Declarations never establish that disabled records are unused or bypass dependencies.
+- Per-station preflight queue limits concurrent fleet checks to three. Interrupted checks survive
+  restart and require explicit recheck. Stable job identifiers recover a journal committed before
+  a failed job save, without creating duplicates or replaying device requests.
+- Private Home Assistant stores, isolated Repairs, atomic journal schema migration and bounded
+  archives. Uncertain or partially applied journals cannot be cancelled or expired by retention.
+
+### Validation and limits
+- The owner confirmed user creation, synchronization to two intercoms and PIN replacement:
+  the new PIN worked and the old PIN was rejected. Removal without replacement remains untested.
+- No production schedule write adapter or Apply control is enabled. Jobs use verified read routes;
+  unknown defaults, dependencies, incomplete inventory and unverified writes remain blockers.
+- This batch made no device requests. Automatic tests exercise storage, faults and the HA/browser
+  workflows; they do not establish physical schedule enforcement. Update through HACS and restart HA.
+- See [the operations guide and task ledger](docs/SCHEDULE_OPERATIONS.md) for completed scope and
+  the next tasks. Mandatory acceptance remains 28/38; Phase 6 schedule features remain partial.
+
+## [0.19.0-alpha.1] - 2026-09-09
+
+### Added
+- Durable schedule write journal validates immutable candidates, private before/after fingerprints,
+  ordered state transitions, source/device/ownership context and per-station exclusivity. Intent is
+  committed before a request; ambiguous or partially applied transactions cannot be discarded.
+- Guarded schedule recovery executor checks context and all controlled resources before each step,
+  saves intent, checks again, writes once and verifies readback. Lost acknowledgements and restarts
+  trigger read-only recovery; unchanged original contents remain uncertain instead of being retried.
+  External changes stop progress; partial writes are retained without automatic rollback.
+- Repeatable offline commissioning simulator covers nine deterministic fault scenarios using committed
+  JSON restart snapshots. Reports explicitly distinguish synthetic evidence from physical acceptance.
+- Regression coverage includes cancellation, failed saves, no-change acknowledgements, changing
+  transport gates, shared execution locks, nine concurrent synthetic stations and bounded retention.
+
+### Scope and limits
+- This is backend infrastructure for future schedule application. No production write adapter, HA
+  write service, background worker, private journal store or Apply button is registered.
+- Existing proposals do not establish resource ownership or verified write support. Production
+  ownership/adoption, complete relevant inventory, HA integration, operator recovery and RightPlan
+  assignment remain open. Physical weekly/holiday/DST enforcement has not been verified.
+- No device requests were made for this batch. Mandatory acceptance remains 28/38 (73.7%); weekly
+  schedules and holidays remain partial Phase 6 features. Update through HACS and restart HA.
+
+## [0.18.0-alpha.1] - 2026-09-09
+
+### Added
+- Capability-checked schedule compiler translates local drafts and explicit resource IDs into
+  candidate weekly, holiday, holiday-group and template bodies. It validates ranges, names,
+  weekdays, period limits and time precision, and preserves local wall-clock times.
+- Selected-resource comparison reports changed fields and external references using verified
+  read-only Search routes. Unknown configuration fields, partial coverage, implicit user defaults
+  and missing observations remain explicit; disabled resources are not assumed available.
+- Saved deployment proposals retain draft snapshots, source revisions and installation-private
+  comparison fingerprints. Explicit rechecks detect configuration or capability changes without
+  replacing the original observations. Per-station local reservations prevent overlapping proposals.
+- Administrator panel for preview, local save, recheck, export and removal, in Hebrew and English.
+  Actor-bound single-use previews expire in five minutes; stale drafts/devices reject saves.
+  Independent atomic storage and Repair handling preserve core access when proposal storage fails.
+
+### Evidence and limits
+- Production-client reads, local save/reload and recheck succeeded on the commissioned station.
+  A selected weekly resource has an external template reference; three users have unknown defaults.
+  No station writes occurred. Reports omit raw station configuration, credentials and private hashes.
+- These are local proposals, not device ownership or deployment. Applying schedules, assigning users,
+  write recovery and physical weekly/holiday/DST enforcement are still unavailable or unverified.
+- Mandatory acceptance remains 28/38 (73.7%). Weekly schedules and holidays remain partial Phase 6
+  extensions; these three software tasks do not close the outstanding physical acceptance gates.
+
+## [0.17.0-alpha.1] - 2026-09-09
+
+### Added
+- User schedule dependency audit traces explicit RightPlan references through observed templates,
+  weekly plans and holiday resources. Unknown defaults, malformed assignments, failed user reads
+  and partial inventory coverage stay explicit. Reports exclude user identities and credentials.
+- Multi-station assessment queue checks one immutable draft across stations, with two concurrent
+  reads, independent results, skipped unavailable stations and cancellation of remaining checks.
+  Editing or navigation discards stale work. Combined downloads omit baseline approval tokens.
+- Portable draft import/export with a versioned JSON format and a reviewed, atomic append of new
+  copies. Single-use administrator-bound previews expire after five minutes or a library change;
+  invalid batch members reject the entire file. Unknown save responses require inspection.
+- Clone the current draft, including unsaved edits and holidays, and copy windows between weekdays.
+  Replacing non-empty target days requires confirmation. Copies stay local until explicitly saved.
+
+### Evidence and limits
+- A live read returned three users with no explicit RightPlan references; all three remain classified
+  as unknown defaults. Schedule holiday inventory remains partial. Zero station writes were sent.
+- Dependency observations are non-atomic and do not establish ownership, safe allocation or effective
+  enforcement. Applying schedules and assigning them to users are still unavailable.
+- Mandatory acceptance remains 28/38 (73.7%). These four workflow improvements advance the two partial
+  Phase 6 schedule features; they do not close physical commissioning gates.
+
+## [0.16.0-alpha.1] - 2026-09-09
+
+### Added
+- Persistent schedule references: explicitly save a station's observed configuration fingerprints,
+  compare later assessments, replace the reference or clear it. References survive Home Assistant
+  restarts in an independent private store; failed persistence preserves the previous reference.
+- Detect changed record contents and advertised capabilities even when counts match. Show bounded
+  resource-ID lists for observed changes, and distinguish unseen records from proven presence changes
+  in completed searches. Partial searches never establish deletion or previously absent records.
+- Administrator-only, station/actor/identity-bound observation tokens expire after five minutes and
+  become invalid after another assessment, save or clear. Identity/firmware changes require a new
+  reference; uncertain save responses require inspection without an automatic retry.
+- Per-installation keyed fingerprints exclude raw configuration contents from storage and reports.
+  Downloaded reports omit observation tokens. Independent Repairs report reference-storage failures
+  without disabling inventory assessment, schedule drafts or existing access management.
+
+### Scope and limits
+- References record observations, not resource ownership or editable configuration backups. Searches
+  remain non-atomic and holiday coverage remains partial on the commissioned firmware. Applying
+  schedules, allocating device resources and assigning users are still unavailable.
+- Comparisons run on requested assessments, not as background monitoring. No station schedule,
+  credential, clock or relay writes are introduced. Mandatory acceptance remains 28/38 (73.7%);
+  weekly schedules and holidays remain partially implemented Phase 6 extensions.
+
+## [0.15.0-alpha.1] - 2026-09-09
+
+### Added
+- Draft compatibility assessment in Access schedules: select a station, check the current
+  draft against its advertised period counts, time precision, weekdays and resource ranges,
+  and download the result. Unknown constraints remain explicit. Edits, station changes,
+  reloads and navigation invalidate old or late assessment results.
+- Read-only schedule inventory through firmware-observed Search endpoints. Searches read
+  validated pages for templates, weeks, holiday groups and holidays using advertised bounds.
+  Reports distinguish completed, partial, unsupported and failed queries and show validated
+  counts and references without station configuration names or raw records.
+- A separate I/O lane preserves ordinary call/release access while checking schedules.
+  Identity checks, a 60-second read deadline, bounded pagination, shared per-station/fleet
+  admission and administrator-only access govern every check. No automatic write or retry.
+
+### Fixed
+- Diagnostics can now read schedule records even when direct per-ID GET requests return
+  device status 3. A failed GET remains a failure; it is not reinterpreted as an empty slot.
+- Activity-report documentation now describes the station-local grouping introduced in 0.14.
+
+### Evidence and limits
+- Live production-client reads returned 255 templates, 255 weekly plans and 64 holiday groups,
+  including one enabled holiday group. 300 of 1024 holiday plans were read before reaching the
+  advertised search-position bound; the result is explicitly partial. These are records read,
+  not available allocation slots. The Search query enable=false can return enabled records.
+- Ownership and user references are not scanned. Disabled records and identifier ranges are
+  never treated as free capacity. Holiday group member limits are not inferred from ID ranges.
+- Applying schedules, allocating device resources and assigning them to users remain unavailable.
+  No schedule configuration, access credential, clock or relay writes occurred in this work.
+- This improves the two partial Phase 6 schedule features; mandatory acceptance remains 28/38
+  (73.7%). Physical PIN/validity/card/ring/video/fleet commissioning remains open.
+
+## [0.14.0-alpha.1] - 2026-09-09
+
+### Fixed
+- Station timestamps now follow the station's configured time zone and daylight-saving rules
+  by default, independently of the browser's zone. UTC and offset-aware source timestamps
+  are converted once; stored events and synchronization instants remain UTC.
+- Validity editing and event date filters use an explicitly labelled zone. Nonexistent and
+  ambiguous newly entered DST times are rejected. Unchanged validity retains its exact instant
+  and seconds; changing the display zone preserves the instant.
+- Daily activity summaries use each record's station-local calendar day. Event CSV retains
+  its original timestamp and adds display_timestamp and display_timezone columns.
+
+### Added
+- Per-station Home Assistant Options: follow the device (default) or select a manual IANA
+  display zone such as Asia/Jerusalem. The integration reads /ISAPI/System/time on load and
+  every 15 minutes; the Intercoms screen shows the clock source, sample, offset, read time,
+  approximate skew and an independent Read station clock action.
+- Verified cached rules survive a later read failure with a stale warning. Before any valid
+  device read, display falls back explicitly to UTC; a manual zone works without that read.
+- English/Hebrew documentation: [time zones, DST and input behavior](docs/TIME_ZONES.md).
+
+### Validation and limits
+- Live identity-checked GET using the production clock client confirmed UTC+03:00, NTP mode,
+  base UTC+02:00 plus a one-hour seasonal increment and the configured April/October rules.
+  Measured rounded skew was zero seconds. No device clock, NTP, credential or relay write occurred.
+- Automated coverage includes DST transitions, offsets already present in API responses,
+  manual IANA override, a browser in a different zone, report day boundaries, actual HA options,
+  authorization, refresh/unload lifecycle and Hebrew mobile display.
+- Current device rules describe the present configuration, not its historical changes. Other
+  formats fail explicitly. Physical DST-transition acceptance and timed-credential enforcement
+  remain deferred; validity_timezone_mismatch protection is unchanged.
+
+## [0.13.0-alpha.1] - 2026-09-08
+
+### Added
+- Central schedule planning: named weekly drafts, up to eight windows per day, holiday date
+  exceptions and a local-date/time preview with explicit holiday precedence. Empty holiday
+  windows close the draft day; overlapping periods/dates and ambiguous overnight windows
+  are rejected. End-of-day 24:00 is supported. Drafts are not applied to stations or users.
+- Independent, private, atomic Home Assistant schedule storage with revision checks, bounded
+  library size, cancellation-safe persistence, corruption preservation and Repairs. Existing
+  user storage and synchronization remain independent of draft availability.
+- English/Hebrew mobile schedule editor with add/edit/delete, unsaved-change checks, stale
+  revision handling and explicit reload after an uncertain save. Preview never claims actual
+  credential acceptance, timezone conversion or door access.
+- Read-only station readiness checks for permission templates, weekly plans, holiday groups
+  and holiday plans. Fresh identity and advertised bounds govern the sampled ID. Results
+  contain sanitized counts/errors and can be exported; device configuration names and raw
+  payloads are omitted. At most one check per station and three in the fleet, with deadlines.
+
+### Validation and limitations
+- Live GET-only checks against DS-KV6124-E1 V3.9.0 build260115 confirmed advertised ranges
+  1ג€“255 for templates/weeks, 1ג€“64 for groups and 1ג€“1024 for holidays. Every sample-1 GET
+  returned device status 3. A failed GET is never treated as an empty or available slot.
+- Schedule allocation, device writes, RightPlan assignment and physical enforcement remain
+  unavailable pending protocol/ownership/readback validation. Even successful readiness
+  reads do not enable assignment. No schedule, credential or relay write occurred in this work.
+- Automated tests cover calendar/window boundaries, holiday overrides, concurrency, failed
+  and interrupted saves, actual HA authorization/storage/privacy and browser workflows.
+- Mandatory acceptance remains 28 of 38 applicable items (73.7%), ten open (26.3%).
+  Weekly/holiday Phase 6 work has progressed to planning, not completed device enforcement.
+
+## [0.12.0-alpha.1] - 2026-09-08
+
+### Added
+- Reader-based card enrollment for an existing central user: choose a station/advertised reader,
+  explicitly start collection, inspect a masked result, then confirm before adding a normal card
+  and reconciling existing assignments. Fresh device identity/capability checks gate every start.
+- Manufacturer-documented CaptureCardInfo workflow. The commissioned firmware advertises support
+  and card length 1ג€“32; its detailed capabilities do not advertise reader selection, so the
+  documented default-reader request omits readerID. Collection technology is never confused with
+  the access-control cardType enum. Unsupported or malformed capabilities/results fail closed.
+- Administrator-owned, ephemeral collection sessions: one per station, three across the fleet,
+  30-second collection request and two-minute session lifetime. Full card numbers remain in backend
+  memory until explicit storage; only masked previews reach the browser. Cancel, expiry and unload
+  discard the private result. Existing ownership, uniqueness, capacity and revision guards apply.
+- A separate collection I/O lane avoids holding the normal poll/snapshot/release lock while waiting
+  for a card. Requests are bounded and never automatically retried. Cancelling HA's request does
+  not claim to reset the firmware's reader mode or change its local access rules.
+- English/Hebrew mobile workflow with persistent footer actions, cancellation on close, stale-user
+  approval protection and discarded late responses. An uncertain save response directs the admin
+  to inspect Users/Sync, without claiming that nothing was saved or automatically retrying.
+
+### Validation and commissioning
+- Automated coverage includes actual HA WebSocket authorization/privacy, unsupported capabilities,
+  exact default/selected-reader requests, isolated normal I/O, lifecycle/expiry, duplicate approval,
+  concurrent edits, failed storage and Hebrew mobile behavior.
+- A live read-only check verified identity and both capability endpoints; no CaptureCardInfo
+  collection request, credential mutation or relay command was issued during development.
+  Physical collection and subsequent card acceptance/removal remain to be commissioned.
+- No storage migration or expansion to other device models. PIN modification, timed validity,
+  ringing/video and nine-station acceptance remain open. Optional Phase 6 now includes CSV,
+  basic reporting and a capability-gated enrollment implementation; mandatory acceptance remains
+  28 of 38 applicable items closed (73.7%), ten open (26.3%).
+
+## [0.11.0-alpha.1] - 2026-09-08
+
+### Added
+- CSV bulk import/export in Users: a UTF-8 template, create-only or explicit update mode,
+  secret-free row previews, changed-field and revocation indicators, and administrator confirmation.
+  Up to 500 rows / 256 KiB are validated together, including employee/PIN/card collisions,
+  station eligibility, observed capability limits and pending credential-removal reservations.
+- Atomic central batch storage: no partially imported rows on validation or storage failure.
+  A review token binds the file, mode, central revisions/ownership and captured station rules.
+  Stale reviews require a fresh preview. Saved work uses existing independent station queues,
+  fresh device validation, conflict protection and durable offline revocation; fleet writes are
+  not an atomic transaction. Exports omit PINs and full card numbers.
+- Activity reports and filtered CSV export across all matching retained records, rather than
+  only the visible page. Totals, station/day breakdowns, authentication methods and recovery
+  counts distinguish authentication from unlocking records. Daily groups use UTC; retention,
+  missing-history and storage status remain visible. These are event counts, not unique visits.
+- English/Hebrew responsive controls and spreadsheet formula neutralization. Late report
+  responses cannot download a file after filters, permissions or panel lifecycle change.
+- A deferred validation ledger links manufacturer contracts, observed firmware behavior and
+  exact future commissioning steps without marking physical acceptance as passed.
+
+### Performance and validation
+- Bulk planning/preparation and CSV/report encoding run in workers. Large batches coalesce
+  synchronization requests once per affected station. Cancelling preparation cannot publish
+  partial state or overwrite a later edit; in-progress durable saves retain existing protection.
+- Coverage includes 500 users across nine simulated stations, failed storage, concurrent edits,
+  cancelled preparation, private previews/logs, real HA administrator enforcement, complete
+  filtered reports, download lifecycle and Hebrew mobile layouts.
+- No new ISAPI endpoint, storage migration or live physical/credential operation in development.
+  PIN change/removal, card lifecycle, timed validity, ringing/video and nine-station acceptance
+  remain deferred. CSV and basic reporting advance optional Phase 6; the mandatory tally remains
+  28 of 38 applicable Definition of Done items closed (73.7%), ten open (26.3%).
+
+## [0.10.0-alpha.1] - 2026-09-08
+
+### Added
+- Detailed read-only sync review compares ten fields of effective central and observed station
+  state: presence, name, user type, validity, door rights, PIN, cards, schedules, administrative
+  rights and biometric credentials. PINs remain write-only and card numbers remain masked.
+  Credential differences are computed before masking, including cards with identical suffixes.
+- Preview the logical user/PIN/card changes required by central state, including revocation for
+  disabled/unassigned/deleted users, together with reconciliation targets and offline status.
+  Importing device fields explicitly explains its fleet-wide impact and preserves active state
+  and assignments. The preview does not reserve capacity or prove physical access.
+- Supported-action checks explain why a resolution is unavailable, including unmanaged ownership,
+  unsupported schedules/credentials/door permissions and missing device records. Unknown PIN
+  readback is displayed as unverified. Writes still require fresh validation and readback.
+- English and Hebrew responsive field comparisons, read time, captured revision, applied revision,
+  last reconciliation, changed-field highlights and an explicit Read comparison again action.
+
+### Fixed
+- Resolution uses the central revision captured with the review, rather than a newer background
+  overview revision the administrator has not reviewed. Concurrent central edits disable approval;
+  the backend rejects stale revisions before device reads and atomically before persistence.
+- A stale-device or revision-conflict response invalidates the open review until it is read again.
+  No automatic retry or silent overwrite is performed.
+
+### Validation and scope
+- Regression coverage exercises secret masking, identical card suffixes, disabled-card exclusion,
+  timed-validity display, offline targets, unsupported fields, deletion, missing ownership,
+  concurrent edits, real HA WebSocket privacy/revision handling and Hebrew mobile behavior.
+- No new ISAPI endpoint, storage migration or live device mutation. Physical PIN/card lifecycle,
+  validity enforcement, ringing/camera acceptance and nine-station soak remain open.
+- A requirement-by-requirement completion ledger replaces previous rough estimates: 28 of 38
+  applicable Definition of Done items are closed (73.7%); ten remain open (26.3%). The owner's
+  two excluded Relay 2 selection items and optional Phase 6 do not enter this denominator.
+
+## [0.9.1-alpha.1] - 2026-09-08
+
+### Fixed
+- Opening one door no longer disables the other stations' release buttons. Pending state is
+  tracked per station across Overview, Intercoms and the camera dialog. The same station rejects
+  repeated clicks while its request is in flight; other online configured doors remain usable.
+- A slow overview refresh no longer prolongs a completed release request's busy state. Existing
+  HA `unlocking` state is respected for its own station, including commands from other clients.
+- Release progress, acknowledgement and safe errors appear beside the targeted station with
+  the last request time. Missing acknowledgement is explicitly unconfirmed, never automatically
+  retried or represented as proof of physical door state. Unknown exception details stay private.
+- Panel reattachment reconnects immediately. Late release/overview responses from an earlier
+  panel lifecycle cannot restore stale state or suppress a newer queued overview refresh.
+
+### Validation and compatibility
+- Regression tests hold responses pending, complete two station requests out of order, reject
+  same-door duplicates, isolate failure feedback and verify reconnect and Hebrew mobile behavior.
+- Real HA transport regressions cover concurrent independent station runtimes and known/unknown
+  release errors. The existing per-station backend guards and fleet admission limits remain.
+- No new ISAPI behavior, credential writes, storage migration or physical relay test in this change.
+  Hardware PIN/card, ringing, timed validity and nine-station acceptance gates remain open.
+
+## [0.9.0-alpha.1] - 2026-09-08
+
+### Added
+- Separate **Save** and **Save & sync** in the user editor. Both durably store changes first;
+  Save leaves scheduling to automatic/already-running reconciliation, while Save & sync also
+  requests immediate background work. Save does not pause synchronization or create a private draft.
+- Optional active-lock names during setup/reconfiguration, displayed on the HA lock entity,
+  Overview, camera dialog, Intercom details and user assignments. Retaining a confirmed mapping
+  allows renaming without a release test, and the existing HA entity ID is preserved.
+- Configured validity summaries in desktop/mobile user lists: no expiry, not started, within
+  period, expired or unverified. Dates use the browser's local timezone, and summaries refresh
+  as time passes even if a later overview request fails. Sync status remains separate.
+
+### Compatibility and validation
+- Legacy API clients retain immediate scheduling by default. The new `sync_now` field accepts
+  only a boolean on user create/update commands; administrative authorization and redaction remain.
+- Existing unnamed lock configurations remain valid. Emptying the name during reconfiguration
+  restores the default label. No access storage/config schema migration or new ISAPI endpoint.
+- Regression coverage includes durable deferred scheduling/restart, storage failure, legacy API
+  behavior, lock renaming without release/entity recreation, timezones and Hebrew mobile layouts.
+- Physical PIN/card lifecycle, timed enforcement, ringing and nine-station soak remain open.
+
+## [0.8.0-alpha.1] - 2026-09-08
+
+### Fixed
+- **Rescan access capabilities** and the `rescan_station` action now read access capabilities
+  and inventory without requesting synchronization or changing desired permissions. Previously,
+  rescan shared the sync action and could initiate pending user/credential writes.
+- Concurrent station scans share one bounded read. Cancelling one caller does not interrupt
+  another; unloading the station cancels the shared scan. A final inventory read after writes
+  cannot reuse a scan that started before those writes.
+- Failed inspection preserves the last successful inventory and reconciliation timestamps,
+  exposes a safe error category and keeps private exceptions out of HA background-task logs.
+
+### Added
+- Intercom cards show observed call/snapshot/video, user/card and event-query capabilities,
+  configured physical/API lock mapping, live event connection and history recovery status.
+  Capabilities that were not observed are labelled unverified, not presumed unsupported.
+- Dedicated inspection progress/error feedback, configured-lock release and Home Assistant
+  configuration controls in each Intercom card. Camera-only stations expose no release button.
+- Deliberate **Select all eligible stations** and **Clear selection** in the user editor,
+  with selected-station count and existing sync status. Offline configured stations can be
+  selected; camera-only stations are excluded. Changes take effect only after Save & sync.
+- English/Hebrew labels and desktop/mobile browser coverage for these workflows.
+
+### Compatibility and validation
+- No storage or configuration schema change. Rescan uses already implemented read endpoints;
+  core camera/call observations retain their setup-time meaning. Existing scheduled sync still
+  operates independently; use Sync now to explicitly request pending reconciliation.
+- Regression coverage includes read-only rescans with pending writes, shared-reader cancellation,
+  unload cleanup, post-write freshness, failure privacy, admin entry points and fleet assignments.
+- Physical credential lifecycle, timed validity and nine-station commissioning remain open.
+
+## [0.7.0-alpha.1] - 2026-09-08
+
+### Added
+- Overview station cards show the last retained access event with person, authentication,
+  event time and historical/receipt-time context. Door movement is not interpreted as a
+  successful credential use; unknown unlocking outcomes remain unknown.
+- Offline cards show the last successful status contact and the number of users awaiting
+  reconciliation. Intercom details include the last successful status-request duration,
+  observed managed-user count and last fully successful reconciliation.
+- Previous PIN removals awaiting confirmation are visible in the Sync screen, alongside
+  card removals, assignment revocations and deleted users. No PIN value is exposed.
+- Search central users by the four visible trailing card digits, name or employee ID.
+
+### Fixed
+- Count pending work once per user/station, including removals and saved write intents,
+  instead of counting one person repeatedly or omitting credential removals.
+- Sort event history by actual time across timezone offsets. Replayed older events,
+  unrelated door events and future clock outliers cannot replace a newer access summary.
+
+### Compatibility and validation
+- No storage/config schema change, new device requests or new ISAPI write behavior.
+- Last-contact/request/reconciliation observations are retained through disconnects in the
+  current runtime; they are unknown after a fresh load until actually observed. Event history
+  and pending removals retain their existing persistence and retention behavior.
+- Regression coverage includes offline recovery, restart, overlapping removals, event replay,
+  privacy, admin-only HA responses and English/Hebrew desktop/mobile screens.
+- Physical PIN/card lifecycle, time-limited validity and sustained nine-station acceptance
+  remain open. Historical access summaries do not trigger live automations.
+
+## [0.6.1-alpha.1] - 2026-09-08
+
+### Fixed
+- Fix station-side rejection of new permanent users: this firmware rejects the generic
+  1970/2037 validity endpoints even with validity disabled. Use the interior 2000/2030
+  interval accepted by the station; `enable=false` continues to mean permanent access.
+- Keep the actual user-sync failure visible in station summaries and show translated
+  explanations directly in the Sync matrix, including while the station is offline.
+- Report contradictory timezone readback for time-limited users explicitly, without
+  guessing which timezone the firmware enforces or marking those records synchronized.
+
+### Added
+- Administrator-only **Download sync diagnostics** in the Sync screen. The bounded report
+  includes request stage, pseudonymous station/user references, error category and recognized
+  ISAPI status/field identifiers. It excludes names, employee IDs, addresses, credentials and
+  request/response bodies. The last 200 stages are held in memory until restart.
+- Debug logs for sync stages and throttled warnings for failures; cancelled work and unexpected
+  worker failures are observable without logging exception text or payloads.
+- Regression tests for rejected-date recovery with a saved write intent, firmware readback,
+  cancellation, report privacy/bounds and administrator/browser access.
+
+### Validation and acceptance
+- Production manager created and updated a credential-free test user on the real station.
+  Targeted deletion was verified, and all pre-existing users/cards were unchanged.
+- HACS installation of the previous release was confirmed by the owner. This update still
+  requires installation and a retry of the owner's pending user synchronization.
+- Timed validity semantics, PIN/card physical lifecycle and remaining fleet commissioning
+  are still acceptance gates. No PIN/card was created or lock activated by this fix test.
+- No storage schema change; pending ownership intents and user assignments are preserved.
+
+## [0.6.0-alpha.1] - 2026-09-08
+
+### Combined release ג€” Phases 2ג€“5
+
+This prerelease includes all changes below for versions 0.3ג€“0.5 as well as Phase 5.
+It upgrades the public 0.2 core integration with central user/PIN/card management,
+the Hebrew/English administrator panel, camera/live-video views, synchronization,
+import/conflict review, native events and bounded audit history.
+
+Select `0.6.0-alpha.1` in HACS (enable beta versions if needed) and restart Home Assistant.
+Requires Home Assistant 2026.9.1+. Back up HA before upgrading; configuration and private
+access data migrate while preserving existing credentials and confirmed relay permissions.
+Downgrading requires the matching backup. See [upgrade guidance](https://github.com/jonioliel/home-assistant-hikvision-intercom/blob/main/docs/HARDENING.md).
+
+Validation: 328 protocol tests, 104 real Home Assistant tests and 14 browser tests;
+Ruff, mypy, TypeScript, reproducible frontend bundle, HACS and Hassfest.
+The release workflow reruns required checks on the exact publication commit.
+
+### Phase 5 hardening
+
+- Add private-free diagnostics for request timing, capability limits and synchronization queues.
+- Add translated Repairs for storage failure, changed identity/mapping, capability regression,
+  authentication, capacity and persistent conflicts; transient offline states stay out of Repairs.
+- Validate and migrate config entries to 1.2 and private access data to schema 2 without changing permissions.
+- Reserve replaced PINs until all former stations confirm removal; preserve ownership across restart/deletion.
+- Bound administrator concurrency/rate, stored-file reads and event retention writes.
+- Add repeated nine-station simulated recovery tests and a successful concurrent read-only station check.
+- Physical PIN/card lifecycle, nine-station soak and real HACS install/upgrade remain acceptance gates.
+
+
+## [0.5.0-alpha.1] ג€” Phase 4 (included in 0.6.0-alpha.1)
+
+- Add bounded alert-stream framing for the station's nested JSON MIME messages.
+- Normalize documented access events without inferring physical door movement or call answer.
+- Add native doorbell/access event entities, call-status edge fallback and reconnect cleanup.
+- Persist up to 5,000 masked audit records with 30-day retention, filters and history recovery.
+- Provide the Hebrew/English administrator Events view; no PINs or complete cards in event state.
+- Validate the production client with 241 queried records and a bounded live stream capture.
+
+
+## [0.4.0-alpha.1] ג€” Phase 3 (included in 0.6.0-alpha.1)
+
+### Added ג€” Phase 3
+- Bundled Lit/TypeScript administrator sidebar: overview, users/editor, devices and sync matrix.
+- English/Hebrew RTL, mobile person cards, dark/light HA themes and keyboard-accessible dialogs.
+- HA camera previews and enlarged HA HLS video; no direct device connection from the browser.
+- Administrator-only WebSocket CRUD, import/adoption, conflict review, sync and release controls.
+- Write-only PIN editing, masked existing cards, deletion confirmations and revision-aware saves.
+- Coalesced data-free subscriptions and immediate ring/offline updates from normal HA entities.
+- WebSocket payload filtering and private schema errors, including debug logging regression tests.
+- Reproducible frontend bundle checks and Chromium UI tests in GitHub Actions.
+
+### Validation and scope
+- The panel uses the Phase 2 backend. Events/audit capture follows in Phase 4.
+- Published together with Phases 2, 4 and 5 in the 0.6.0-alpha.1 prerelease.
+- Physical acceptance and installation/upgrade on the owner's HA host remain pending.
+
+## [0.3.0-alpha.1] ג€” Phase 2 (included in 0.6.0-alpha.1)
+
+### Added ג€” Phase 2
+- Capability-driven user/card access client with bounded complete pagination and explicit write transactions.
+- Private central records, masked administrator views, revision/identity guards and durable ownership journals.
+- User-deletion tombstones and retired-card reservations survive offline stations and restarts.
+- Re-check the configured device identity before relay commands and credential transactions.
+- Reconciliation with saved intent before every mutation, exact readback, lost-response recovery,
+  revision protection and deletion/card-removal confirmation per station.
+- Explicit import/adoption, central/device conflict review, ignored unmanaged people and targeted deletion.
+- Private atomic HA Store, independent background station queues, admin sync actions and offline retries.
+- Reject switching a station to camera-only while managed access still needs removal.
+- Modify only changed supported fields; unchanged PINs are never resubmitted for a name edit.
+
+### Validation and scope
+- Backend software includes simulator coverage for nine stations, three concurrent writers,
+  offline recovery, concurrent edits/deletion and persistence failure. Physical nine-station soak is pending.
+- Existing device users are scanned without automatic adoption or modification.
+- The administrator panel and public CRUD WebSocket interface arrive in Phase 3.
+- Configuration readback is not proof of keypad/card acceptance. Physical PIN modification/removal,
+  card CRUD, call transitions and HACS installation acceptance remain open.
+
+## [0.2.0-alpha.1] - 2026-09-08
+
+### Added
+- Phase 1 core integration: setup, reauth/reconfigure, confirmed single-relay mapping,
+  shared polling, camera, online/ringing/call status, momentary lock and an admin release action.
+- English/Hebrew setup and entity translations, connection-safe diagnostics and lifecycle tests.
+- Dedicated Home Assistant 2026.9.1 / Python 3.14 CI tests in addition to protocol tests.
+- Settings validation, explicit physical mapping confirmation, offline backoff, snapshot caching,
+  stable station identity, credential-safe RTSP source and optimistic lock-state display.
+- Admin-only release action, translated errors and English/Hebrew setup/options.
+- HA unload/reload/shutdown cleanup and guards against stale targets or changed station identity.
+
+### Validation and scope
+- Requires Home Assistant 2026.9.1+. All publication checks run against the exact release commit.
+- Production-client read-only check passed on the target firmware without sending a release.
+- One active physical relay per station; camera-only mode is supported.
+- Central user/card/PIN management and the dedicated administrator panel follow in Phases 2ג€“3.
+- Physical PIN change/removal, card CRUD, call sequence and nine-station commissioning remain open.
+
+## [0.1.0-alpha.1] - 2026-09-08
+
+### Added
+- Review of seven supplied manufacturer references with exact API/page and dictionary provenance.
+- Verified call-status, permission-template and event-search capability responses.
+- Sanitized supervised evidence for one active relay, populated user/card reads, card access,
+  initial local PIN acceptance and failed PIN change despite successful API readback.
+- Owner scope: relay 2 excluded throughout the project; answered-call tests deferred.
+- Sanitized real-device fixtures and capability matrix for V3.9.0 build 260115.
+- Extended read-only capability and PIN-mode reconnaissance using observed firmware routes.
+- Separate evidence for decoded RTSP video, snapshot, idle calls and stream recovery.
+- Async read-only ISAPI probe with Digest authentication and typed capability reports.
+- Fixed endpoint allowlist, bounded pagination, alert stream and call timeline capture.
+- XML/JSON parsing and normalized errors, including ResponseStatus errors inside HTTP 200.
+- Sanitized report/fixture archives and synthetic protocol/security tests.
+- HACS layout, Python CI, HACS, Hassfest and gated GitHub Release workflow.
+- Real-device commissioning runbook and phase tracking.
+
+### Fixed
+- Recognize documented card/person capacity errors, person/PIN conflicts and device-busy status.
+- Parse the real CallStatus.status and responseStatusStrg search response fields.
+- Read length-delimited JSON alert-stream events and reject incomplete MIME parts.
+- Obtain a fresh Digest challenge for each read after observed cached-auth rejection.
+- Preserve firmware build, counts, capability bounds and PIN-mode metadata in sanitized exports.
+- Reject malformed/empty capability wrappers as support evidence.
+- Bound nested payload traversal before redaction.
+- Retain device errors inside a successful event-stream HTTP response.
+- Preserve the original Master Spec verbatim by excluding its code fences from formatting.
+
+### Security
+- No relay, configuration, user or card mutations in the probe.
+- TLS verification by default; redirects, environment proxies and transport retries disabled.
+- Size/deadline limits include Digest challenge buffering.
+- Credentials, personal identifiers, raw images and unknown values excluded from exports.
+
+### Release status
+- Prepared development version: 0.1.0-alpha.1.
+- Phase 0 protocol-tooling prerelease; HA setup/entities arrive in Phase 1.
+- Witnessed active-relay/card/initial-PIN evidence is available;
+  PIN change diagnosis, test-user cleanup and remaining acceptance gates are open.
+
+[2.0.0-rc.29]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.29
+
+[2.0.0-rc.30]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.30
+
+[2.0.0-rc.31]: https://github.com/jonioliel/home-assistant-hikvision-intercom/releases/tag/v2.0.0-rc.31

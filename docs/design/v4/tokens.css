@@ -1,0 +1,60 @@
+/* Proposal only. Prefix production tokens --wk4-* and scope to the new appearance. */
+@font-face {
+  font-family: Heebo;
+  src: url("assets/Heebo.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  color-scheme: light;
+  --bg: #f4f6f5;
+  --surface: #fff;
+  --raised: #fff;
+  --wash: #f7f9f8;
+  --ink: #192a2d;
+  --muted: #5f7170;
+  --line: #dfe6e3;
+  --accent: #087e70;
+  --accent-hover: #05695d;
+  --accent-soft: #e8f4ef;
+  --on-accent: #fff;
+  --nav: #fff;
+  --nav-ink: #223638;
+  --green: #247553;
+  --green-soft: #edf6ee;
+  --amber: #985a0c;
+  --amber-soft: #fff4df;
+  --red: #b84045;
+  --red-soft: #fbeef0;
+  --blue: #315eae;
+  --blue-soft: #edf3ff;
+  --shadow: 0 8px 32px #18342b0a;
+  --radius: 12px;
+  --font: Heebo, Arial, sans-serif;
+  --focus: #3878d4;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101c20;
+  --surface: #18282d;
+  --raised: #203338;
+  --wash: #142329;
+  --ink: #edf3f1;
+  --muted: #a0b4b5;
+  --line: #30444a;
+  --accent: #8bddbc;
+  --accent-hover: #a8ebd0;
+  --accent-soft: #213d37;
+  --on-accent: #102c25;
+  --nav: #152329;
+  --nav-ink: #e1eeea;
+  --green: #9cdfb7;
+  --green-soft: #203a31;
+  --amber: #edc689;
+  --amber-soft: #413729;
+  --red: #ffb2b7;
+  --red-soft: #412b34;
+  --blue: #a9c7ff;
+  --blue-soft: #263750;
+  --shadow: none;
+}

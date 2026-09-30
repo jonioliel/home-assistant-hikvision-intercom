@@ -1,0 +1,6487 @@
+import "./unified-search";
+import "./personal-renewal";
+import { fitDialogViewport } from "./dialog-viewport";
+import "./user-details";
+import { accessStyles } from "./access-styles";
+import { accessOverview } from "./access-overview";
+import { wiskeyOverview, type WiskeyDoorFilter } from "./wiskey-v4-overview";
+import { wiskeyV4Styles } from "./wiskey-v4-styles";
+import { accentOverride, saveAccent, applyAccent, isAccent, type Accent } from "./accent";
+import { mobileDisplay } from "./phone";
+import { usersCompactStyles } from "./users-compact-styles";
+import { embedStyles } from "./embed-styles";
+import {
+  embedApiVersion,
+  panelTabIds,
+  managementToolIds,
+  knownScreen,
+  requestedScreen,
+  screenLocation,
+} from "./panel-location";
+import "./clock-settings";
+import "./station-technical";
+import "./door-programs";
+import "./user-timing";
+import { timingValidity } from "./timing-validity";
+import "./saved-user-views";
+import { compatible, contractHass } from "./api-contract";
+import type { UserView } from "./saved-user-views";
+import "./usb-card-input";
+import "./camera-wall";
+import "./permission-directory";
+import "./access-control";
+import "./workflow-center";
+import "./platform-center";
+import "./reauth";
+import { profileApplicability, profileError, validProfileValue } from "./profile-fields";
+import "./profile-settings";
+import "./user-photo";
+import "./media-settings";
+import "./whatsapp-templates";
+import { formatTime, localInput, fromLocalInput, UTC_ZONE, type DisplayZone } from "./time";
+import { LitElement, html, nothing, type PropertyValues } from "lit";
+import { repeat } from "lit/directives/repeat.js";
+import { live } from "lit/directives/live.js";
+import { keyed } from "lit/directives/keyed.js";
+import { styles } from "./styles";
+import { interfaceStyles } from "./interface-styles";
+import { stationSettingsStyles } from "./station-settings-styles";
+import { overviewStyles } from "./overview-styles";
+import { headerStyles } from "./header-styles";
+import { modernStyles } from "./modern-styles";
+import {
+  AppearancePicker,
+  readAppearance,
+  saveAppearance,
+  appearanceOverride,
+  isAccessAppearance,
+  isWiskeyAppearance,
+  type Appearance,
+} from "./appearance";
+import { icon } from "./icons";
+import { boundedRequest } from "./request";
+import { translate } from "./i18n";
+import type {
+  Hass,
+  Overview,
+  Person,
+  Station,
+  Draft,
+  Card,
+  Inventory,
+  Review,
+  ReviewState,
+  CsvPreview,
+  Assignment,
+  AuthorizationSession,
+  WiskeyArea,
+  WiskeyPersonField,
+  UserDirectoryPage,
+} from "./types";
+import "./schedules";
+import "./live-clock";
+import { downloadText } from "./download";
+import { IntercomCamera } from "./camera";
+import "./call-controls";
+import type { IntercomCallControls } from "./call-controls";
+import "./audio-controls";
+import "./events";
+import "./health";
+import "./bulk-users";
+import "./admin-audit";
+import "./operations-center";
+import "./identity-lifecycle";
+import "./data-quality";
+import "./permission-reviews";
+import "./access-comparison";
+import "./group-suggestions";
+import "./guest-templates";
+import "./visit-requests";
+import "./fleet-alerts";
+import "./investigations";
+import { visitTimingSummary, type GuestTemplate } from "./guest-templates";
+import { matchingUsers, defaultFilters, type UserFilters } from "./user-filters";
+
+const settingsPath = "/config/integrations/integration/hikvision_intercom";
+const value = (event: Event) => (event.target as HTMLInputElement).value;
+const checked = (event: Event) => (event.target as HTMLInputElement).checked;
+
+interface ReleaseState {
+  pending: boolean;
+  code: string;
+  requestedAt: string;
+}
+interface ReaderCapture {
+  user: Person;
+  station: string;
+  reader: number;
+  readers?: number[];
+  loading: boolean;
+  state: string;
+  session_id?: string;
+  card?: { masked_number: string; technology: string | null; reader_id: number | null } | null;
+  error?: string | null;
+  label: string;
+}
+// Device inventory can wait behind other station reads and its own 120s scan.
+// These are browser wait limits; they never retry or cancel server-side changes.
+const slowManagementCommands = new Set([
+  "stations/inventory",
+  "stations/rescan",
+  "conflicts/review",
+  "conflicts/resolve",
+  "conflicts/resolve_deletion",
+  "users/adopt",
+  "users/delete_unmanaged",
+]);
+const managementWrites = new Set([
+  "fleet/alerts_action",
+  "visits/create",
+  "visits/request",
+  "visits/decide",
+  "users/create",
+  "users/update",
+  "users/delete",
+  "users/set_active",
+  "users/temporary_cancel",
+  "users/archive",
+  "users/unarchive",
+  "guest_templates/upsert",
+  "guest_templates/delete",
+  "users/csv_apply",
+  "users/adopt",
+  "users/delete_unmanaged",
+  "users/ignore",
+  "conflicts/resolve",
+  "conflicts/resolve_deletion",
+]);
+const releaseErrors = new Set([
+  "release_in_progress",
+  "release_unconfirmed",
+  "connection_closed",
+  "lock_not_managed",
+  "station_offline",
+  "device_unavailable",
+  "rate_limited",
+  "unauthorized",
+  "invalid_fields",
+]);
+
+export class IntercomManagerPanel extends LitElement {
+  static styles = [
+    styles,
+    interfaceStyles,
+    modernStyles,
+    headerStyles,
+    stationSettingsStyles,
+    overviewStyles,
+    usersCompactStyles,
+    accessStyles,
+    wiskeyV4Styles,
+    embedStyles,
+  ];
+  static properties = {
+    hass: { attribute: false },
+    narrow: { type: Boolean },
+    embed: { state: true },
+    _appearance: { attribute: "data-appearance", reflect: true },
+    _accent: { attribute: "data-accent", reflect: true },
+    _accessMode: { type: Boolean, attribute: "data-access", reflect: true },
+    _accessNarrow: { state: true },
+    _accessDoor: { state: true },
+    _v4DoorFilter: { state: true },
+    _dark: { type: Boolean, attribute: "data-dark", reflect: true },
+    _wallDensity: { state: true },
+    _wallPage: { state: true },
+    _wallQuery: { state: true },
+    _wallCapacity: { state: true },
+    _stationTabs: { state: true },
+    _deviceFocus: { state: true },
+    _data: { state: true },
+    _session: { state: true },
+    _locked: { state: true },
+    _searchOpen: { state: true },
+    _reauthOpen: { state: true },
+    _approvalPending: { state: true },
+    _haConnected: { state: true },
+    _refreshFailed: { state: true },
+    _tab: { state: true },
+    _query: { state: true },
+    _syncQuery: { state: true },
+    _syncStation: { state: true },
+    _syncAttention: { state: true },
+    _userFilters: { state: true },
+    _userColumns: { state: true },
+    _selectedUsers: { state: true },
+    _userPage: { state: true },
+    _userPageLoading: { state: true },
+    _userPageOffset: { state: true },
+    _userPageSize: { state: true },
+    _auditUser: { state: true },
+    _dialog: { state: true },
+    _cameraRefreshEnabled: { state: true },
+    _detailsUser: { state: true },
+    _detailsModalUser: { state: true },
+    _detailRecords: { state: true },
+    _callBusy: { state: true },
+    _busy: { state: true },
+    _releases: { state: true },
+    _notice: { state: true },
+    _error: { state: true },
+    _importRows: { state: true },
+    _review: { state: true },
+    _csvPreview: { state: true },
+    _csvName: { state: true },
+    _csvMapping: { state: true },
+    _csvMode: { state: true },
+    _capture: { state: true },
+    _onboarding: { state: true },
+    _pinStatus: { state: true },
+    _pinChecking: { state: true },
+    _guestStep: { state: true },
+    _guestPinVisible: { state: true },
+    _guestApprovalRequired: { state: true },
+    _guestApprover: { state: true },
+  };
+  hass?: Hass;
+  private contractSource?: Hass;
+  private contractProxy?: Hass;
+  private get protectedHass(): Hass | undefined {
+    if (this.contractSource !== this.hass) {
+      this.contractSource = this.hass;
+      this.contractProxy = contractHass(
+        this.hass,
+        () => this._data?.api,
+        (message, error) => {
+          const code = (error as { code?: string }).code;
+          if (code === "screen_locked") this.lockScreen();
+          if (code === "reauth_required") this._reauthOpen = true;
+          if (
+            code === "approval_required" &&
+            this._session?.is_admin &&
+            !String(message.type).startsWith("hikvision_intercom/workflows/")
+          )
+            this._approvalPending = message;
+        },
+      );
+    }
+    return this.contractProxy;
+  }
+  private _locked = false;
+  private _searchOpen = false;
+  private _reauthOpen = false;
+  private _approvalPending?: Record<string, unknown>;
+  private approvalLabel = "";
+  private idleTimer?: ReturnType<typeof setInterval>;
+  private lastHuman = Date.now();
+  private lastTouch = 0;
+  private messageDrafts = new Map<string, string>();
+  private draftMessage = "";
+  private activity = () => {
+    if (this._locked) return;
+    this.lastHuman = Date.now();
+    if (this._session?.security?.idle_minutes && this.lastHuman - this.lastTouch > 10000) {
+      this.lastTouch = this.lastHuman;
+      void this.hass
+        ?.callWS<{ locked: boolean }>({ type: "hikvision_intercom/security/touch" })
+        .then((result) => {
+          if (result.locked) this.lockScreen();
+        })
+        .catch(() => {});
+    }
+  };
+  private lockScreen() {
+    if (this._locked) return;
+    this._locked = true;
+    this._reauthOpen = false;
+    this._approvalPending = undefined;
+    this._epoch++;
+    this.cancelRequests();
+    this.clearPrivateState();
+    this.messageDrafts.clear();
+    this.draftMessage = "";
+    this._userPage = undefined;
+    this._selectedUsers.clear();
+    this._userSnapshot = "";
+    this._query = "";
+    this._data = undefined;
+    this._unsubscribe?.();
+    this._unsubscribe = undefined;
+    this._connecting = false;
+    if (this.commandAvailable("security/lock"))
+      void this.hass?.callWS({ type: "hikvision_intercom/security/lock" }).catch(() => {});
+  }
+  private securityOverlay() {
+    if (this._locked || this._reauthOpen)
+      return html`<wiskey-reauth
+        .hass=${this.hass}
+        .locked=${this._locked}
+        @reauth-cancel=${() => (this._reauthOpen = false)}
+        @reauthenticated=${() => {
+          this._locked = false;
+          this._reauthOpen = false;
+          this.lastHuman = Date.now();
+          this.lastTouch = this.lastHuman;
+          void this.bootstrap();
+        }}
+      ></wiskey-reauth>`;
+    const pending = this._approvalPending;
+    if (!pending) return nothing;
+    return html`<div
+      style="position:fixed;inset:0;z-index:10010;background:#10182099;display:grid;place-items:center;padding:16px"
+    >
+      <section
+        style="background:var(--surface);color:var(--ink);padding:24px;border-radius:14px;width:min(460px,100%);box-sizing:border-box"
+        role="dialog"
+        aria-modal="true"
+      >
+        <h2>${this.t("approval_required")}</h2>
+        <p>${this.t("approval_request_hint")}</p>
+        <label
+          >${this.t("approval_label")}<input
+            .value=${this.approvalLabel}
+            @input=${(e: Event) => (this.approvalLabel = (e.target as HTMLInputElement).value)}
+        /></label>
+        <p>${this.t("approval_no_credentials")}</p>
+        <button
+          @click=${() =>
+            void this.run(async () => {
+              const values = { ...pending };
+              delete values.type;
+              delete values.api_contract;
+              await this.api("workflows/submit", {
+                command: String(pending.type).replace("hikvision_intercom/", ""),
+                values,
+                label: this.approvalLabel || this.t("approval_access_change"),
+              });
+              this._approvalPending = undefined;
+              this.approvalLabel = "";
+            }, "approval_submitted")}
+        >
+          ${this.t("approval_submit")}</button
+        ><button @click=${() => (this._approvalPending = undefined)}>${this.t("cancel")}</button>
+      </section>
+    </div>`;
+  }
+  private applyStaffTemplate(template: { data: Record<string, unknown>; message: string }) {
+    if (!this._session?.is_admin || !this.canManage("users")) return;
+    if (!this._draft) this.edit();
+    if (!this._draft) return;
+    const draft = this._draft;
+    Object.assign(draft, structuredClone(template.data));
+    draft.assignments = Object.fromEntries(
+      Object.entries((template.data.assignments ?? {}) as Record<string, Assignment>).map(
+        ([id, item]) => [id, { ...item, enabled: true }],
+      ),
+    );
+    const grants = new Set(
+      (this._data?.profile_settings?.groups ?? [])
+        .filter((g) => g.enabled && draft.group_ids?.includes(g.id))
+        .flatMap((g) => g.station_ids ?? []),
+    );
+    draft.permission_overrides = Object.fromEntries(
+      (this._data?.stations ?? [])
+        .filter((station) => draft.assignments[station.id] || !grants.has(station.id))
+        .map((station) => [
+          station.id,
+          draft.assignments[station.id] ? ("allow" as const) : ("deny" as const),
+        ]),
+    );
+    this.refreshDraftPermissions();
+    draft.access_timing_draft = draft.access_timing_policy?.schedule;
+    this._timingEnforcement = draft.access_timing_policy?.mode ?? "draft";
+    draft.timed = !!draft.valid_from;
+    this._validityFrom = localInput(draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(draft.valid_until, this.validityZone());
+    this.draftMessage = template.message;
+    this._notice = this.t("staff_template_applied");
+    this.requestUpdate();
+  }
+  private _detailsUser = "";
+  private _detailsModalUser = "";
+  private _detailRecords: Record<string, Person> = {};
+  private detailCache = new Map<string, { person: Person; expires: number }>();
+  private _session?: AuthorizationSession | null;
+  private sessionUser?: string;
+  private get authorized() {
+    return !!this._session?.allowed;
+  }
+  private level(area: WiskeyArea) {
+    return this._session?.areas[area] ?? "none";
+  }
+  private canView(area: WiskeyArea) {
+    return this.level(area) !== "none";
+  }
+  private canManage(area: WiskeyArea) {
+    return this.level(area) === "manage";
+  }
+  private personField(field: WiskeyPersonField, manage = false) {
+    const level = this._session?.fields?.[field] ?? "manage";
+    return manage ? level === "manage" : level !== "none";
+  }
+  private profileField(identity: string, manage = false) {
+    if (
+      manage &&
+      this._data?.profile_settings?.fields.find((f) => f.id === identity)?.applicability_unknown
+    )
+      return false;
+    const level = this._session?.profile_fields?.[identity] ?? "manage";
+    return this.personField("profile", manage) && (manage ? level === "manage" : level !== "none");
+  }
+  private personEditable(user: Person) {
+    return this.canManage("users") && user.operator_editable !== false;
+  }
+  private permissionStamp(access = this._session) {
+    return JSON.stringify([
+      access?.areas,
+      access?.station_ids ?? null,
+      access?.fields ?? null,
+      access?.profile_fields ?? null,
+      access?.is_admin,
+    ]);
+  }
+  private permittedUserFilters(filters: UserFilters): UserFilters {
+    const result = { ...filters, profile: { ...(filters.profile ?? {}) } };
+    if (!this.personField("credentials")) result.credential = "";
+    if (!this.personField("profile")) result.profile = {};
+    if (!this.personField("access")) {
+      result.rights = "";
+      result.group = "";
+      if (["expired", "upcoming"].includes(result.state)) result.state = "";
+    }
+    if (result.station && !this._data?.stations.some((station) => station.id === result.station))
+      result.station = "";
+    return result;
+  }
+  narrow = false;
+  private _appearance: Appearance = "current";
+  private _accent: Accent = "green";
+  private _accentOverride: Accent | null = null;
+  private _appearanceUser?: string;
+  private _dark = false;
+  private _accessMode = false;
+  private _accessNarrow = false;
+  private _v4DoorFilter: WiskeyDoorFilter = "all";
+  private _accessDoor = "";
+  private _appearanceOverride: Appearance | null = null;
+  private _appearanceFollow = true;
+  private _wallDensity = 0;
+  private _cameraWallLimit = 0;
+  private _wallPage = 0;
+  private _wallQuery = "";
+  private _wallCapacity = 12;
+  private wallResize?: ResizeObserver;
+  private fitWall = () => {
+    // Match container-query CSS pixels, including browser/CSS zoom.
+    const narrow = this.clientWidth < 1100;
+    if (this._accessNarrow !== narrow) this._accessNarrow = narrow;
+    if (isWiskeyAppearance(this._appearance)) {
+      const grid = this.renderRoot.querySelector<HTMLElement>(".wk4-door-grid");
+      if (!grid) return;
+      const rect = grid.getBoundingClientRect();
+      const availableHeight = Math.max(200, document.documentElement.clientHeight - rect.top - 24);
+      const columns = Math.max(1, Math.floor((rect.width + 14) / 224));
+      const rows = Math.max(1, Math.floor((availableHeight + 14) / 250));
+      const capacity = Math.min(12, columns * rows);
+      if (this._wallCapacity !== capacity) this._wallCapacity = capacity;
+      return;
+    }
+    if (this._accessMode) return;
+    const grid = this.renderRoot.querySelector<HTMLElement>(".overview-wall");
+    if (!grid) return;
+    const rect = grid.getBoundingClientRect();
+    const height = Math.max(
+      220,
+      (window.visualViewport?.height ?? window.innerHeight) - Math.max(0, rect.top) - 58,
+    );
+    const columns = Math.max(1, Math.min(4, Math.floor((rect.width + 12) / 252)));
+    const rows = rect.width < 520 ? 1 : Math.max(1, Math.min(3, Math.floor((height + 12) / 202)));
+    this._wallCapacity = columns * rows;
+    const count = Math.min(
+      this._wallDensity || this._wallCapacity,
+      Math.max(1, this.wallStations().length),
+    );
+    const layoutRows = this._wallDensity ? Math.ceil(count / columns) : rows;
+    const layoutHeight = this._wallDensity ? Math.max(height, layoutRows * 202) : height;
+    // Pick the arrangement with the largest undistorted camera viewport.
+    // Cap card width by available image height rather than stretching shallow rows.
+    let best = { columns: 1, rows: count, width: 0, area: -1 };
+    for (let candidate = 1; candidate <= Math.min(columns, count); candidate++) {
+      const candidateRows = Math.ceil(count / candidate);
+      if (candidateRows > layoutRows) continue;
+      const rowHeight = (layoutHeight - 12 * (candidateRows - 1)) / candidateRows;
+      const width = Math.min(
+        (rect.width - 12 * (candidate - 1)) / candidate,
+        ((rowHeight - 104) * 16) / 9 + 16,
+      );
+      const area = (Math.max(0, width - 16) ** 2 * 9) / 16;
+      if (area > best.area) best = { columns: candidate, rows: candidateRows, width, area };
+    }
+    grid.style.setProperty("--wall-columns", String(best.columns));
+    grid.style.setProperty("--wall-rows", String(best.rows));
+    grid.style.setProperty("--wall-card-width", `${Math.max(100, best.width)}px`);
+    grid.style.setProperty("--wall-height", `${layoutHeight}px`);
+  };
+  private wallStations() {
+    const query = this._wallQuery.trim().toLocaleLowerCase();
+    return (this._data?.stations ?? []).filter(
+      (s) => !query || s.name.toLocaleLowerCase().includes(query),
+    );
+  }
+  private async wallFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await this.requestFullscreen();
+    } catch {
+      this._error = this.t("wall_fullscreen_unavailable");
+    }
+    this.fitWall();
+  }
+  private _stationTabs: Record<string, string> = {};
+  private _deviceFocus = "";
+  private syncAppearance() {
+    const user = this.hass?.user?.id;
+    if (user !== this._appearanceUser) {
+      this._appearanceUser = user;
+      this._appearanceOverride = appearanceOverride(user);
+      this._accentOverride = accentOverride(user);
+      this._appearanceFollow = this._appearanceOverride === null;
+    }
+    this._appearance = this._appearanceFollow
+      ? (this._data?.appearance_settings?.default ?? "current")
+      : (this._appearanceOverride ?? "current");
+    const shared = this._data?.appearance_settings?.accent;
+    this._accent = this._accentOverride ?? (isAccent(shared) ? shared : "green");
+  }
+  protected willUpdate(changed: PropertyValues) {
+    if (changed.has("_tab")) this._detailsModalUser = "";
+    if (changed.has("hass") || changed.has("_session") || changed.has("_data"))
+      this.syncAppearance();
+    this._accessMode = isAccessAppearance(this._appearance);
+    applyAccent(this, this._accent, this._appearance);
+    this._dark = this._accessMode
+      ? this._appearance === "access-dark" || this._appearance === "wiskey-dark"
+      : (this.hass?.themes?.darkMode ?? false);
+  }
+  private appearanceButton() {
+    return html`<button
+      class="appearance-button"
+      title=${this.t("appearance")}
+      @click=${(event: Event) => {
+        const picker = this.renderRoot.querySelector<AppearancePicker>(
+          "hikvision-appearance-picker",
+        );
+        void picker?.show(
+          this._appearance,
+          event.currentTarget as HTMLElement,
+          this._appearanceFollow,
+          this._accent,
+        );
+      }}
+    >
+      ${icon("appearance")}<span>${this.t("appearance")}</span>
+    </button>`;
+  }
+  private navigate(tab: string) {
+    if (!this.tabAvailable(tab)) return;
+    const schedules = this.renderRoot.querySelector("hikvision-intercom-schedules") as
+      (HTMLElement & { canLeave(): boolean }) | null;
+    if (tab !== this._tab && schedules && !schedules.canLeave()) {
+      this.publishLocation(true);
+      return;
+    }
+    this.commitTab(tab);
+    void this.updateComplete.then(() =>
+      this.renderRoot.querySelector<HTMLElement>("main")?.focus({ preventScroll: true }),
+    );
+  }
+
+  private commitTab(tab: string) {
+    this._tab = tab;
+    this.publishLocation(true);
+    if (tab === "users") this.scheduleUserQuery(false);
+    if (this._summarySupported && this._data) void this.refresh();
+  }
+
+  private embed = false;
+  private chromeNone = false;
+  private embedDocumentStyles?: [string, string, string, string, string, string];
+  private locationPath = "";
+  private pendingLocation: string | null = null;
+  private lastLocation = "";
+  private readySent = false;
+  private lastTitle = "";
+  private kioskActive = false;
+  private previousKiosk = false;
+  private titleObserver?: MutationObserver;
+  private headingObserver?: MutationObserver;
+  private toolHeadingObserver?: MutationObserver;
+  private toolTitleRoot?: ShadowRoot;
+
+  private postParent(message: Record<string, unknown>) {
+    if (window.parent !== window && location.origin !== "null")
+      window.parent.postMessage(message, location.origin);
+  }
+
+  private setEmbed(enabled: boolean) {
+    this.embed = enabled;
+    this.toggleAttribute("data-embed", enabled);
+    if (enabled && !this.embedDocumentStyles) {
+      const root = document.documentElement.style;
+      const body = document.body.style;
+      this.embedDocumentStyles = [
+        root.margin,
+        root.backgroundColor,
+        root.colorScheme,
+        body.margin,
+        body.backgroundColor,
+        body.colorScheme,
+      ];
+      root.margin = body.margin = "0";
+      root.backgroundColor = body.backgroundColor = "transparent";
+    } else if (!enabled && this.embedDocumentStyles) {
+      const [rootMargin, rootBackground, rootScheme, bodyMargin, bodyBackground, bodyScheme] =
+        this.embedDocumentStyles;
+      Object.assign(document.documentElement.style, {
+        margin: rootMargin,
+        backgroundColor: rootBackground,
+        colorScheme: rootScheme,
+      });
+      Object.assign(document.body.style, {
+        margin: bodyMargin,
+        backgroundColor: bodyBackground,
+        colorScheme: bodyScheme,
+      });
+      this.embedDocumentStyles = undefined;
+    }
+    if (enabled && !this.kioskActive) {
+      this.previousKiosk = Boolean(
+        (this.hass as (Hass & { kioskMode?: boolean }) | undefined)?.kioskMode,
+      );
+      this.kioskActive = true;
+      // Official frontend sidebar-mixin (20260107.0+): memory only, no dock storage.
+      window.dispatchEvent(new CustomEvent("hass-kiosk-mode", { detail: { enable: true } }));
+    } else if (!enabled && this.kioskActive) {
+      this.kioskActive = false;
+      window.dispatchEvent(
+        new CustomEvent("hass-kiosk-mode", { detail: { enable: this.previousKiosk } }),
+      );
+    }
+  }
+
+  private readLocation = () => {
+    if (location.pathname !== this.locationPath) return;
+    const params = new URLSearchParams(location.search);
+    this.setEmbed(params.get("embed") === "1");
+    this.chromeNone = this.embed && params.get("chrome") === "none";
+    this.toggleAttribute("data-chrome-none", this.chromeNone);
+    const density = Number(params.get("density"));
+    if ([4, 6, 8, 9, 12].includes(density)) this._wallDensity = density;
+    const wall = Number(params.get("wall") ?? params.get("density"));
+    if ([4, 9, 12].includes(wall)) this._cameraWallLimit = wall;
+    this.pendingLocation =
+      requestedScreen(params.get("tab") ?? "overview", params.get("tool")) ?? "overview";
+    this.applyPendingLocation();
+  };
+
+  private applyPendingLocation() {
+    if (!this._data || !this.authorized || this._locked || this.pendingLocation === null) return;
+    const requested = this.pendingLocation;
+    this.pendingLocation = null;
+    const target = this.tabAvailable(requested) ? requested : this.defaultTab();
+    this.navigate(target);
+    // A schedule's existing unsaved-change guard may refuse navigation.
+    this.publishLocation();
+  }
+
+  private parentMessage = (event: MessageEvent) => {
+    if (
+      location.origin === "null" ||
+      event.origin !== location.origin ||
+      event.source !== window.parent ||
+      window.parent === window
+    )
+      return;
+    const data = event.data;
+    if (!data || typeof data !== "object" || data.type !== "wiskey:navigate") return;
+    const target = requestedScreen(data.tab, data.tool);
+    if (
+      !target ||
+      !this._data ||
+      !this.authorized ||
+      this._locked ||
+      location.pathname !== this.locationPath
+    )
+      return;
+    this.navigate(target);
+  };
+
+  private publishLocation(force = false) {
+    if (!this._data || !this.authorized || this._locked || location.pathname !== this.locationPath)
+      return;
+    const current = screenLocation(this._tab);
+    const url = new URL(location.href);
+    url.searchParams.set("tab", current.tab);
+    if (current.tool) url.searchParams.set("tool", current.tool);
+    else url.searchParams.delete("tool");
+    // Keep the router's state, unrelated query parameters and hash intact.
+    if (url.href !== location.href) history.replaceState(history.state, "", url.href);
+    const key = JSON.stringify(current);
+    if (this.readySent && (force || key !== this.lastLocation)) {
+      this.lastLocation = key;
+      this.postParent({ type: "wiskey:location", ...current });
+    }
+  }
+
+  private routeLabel(id: string) {
+    return isWiskeyAppearance(this._appearance) &&
+      ["overview", "users", "devices", "events", "tools"].includes(id)
+      ? this.t("wk4_nav_" + id)
+      : this.t(id);
+  }
+
+  private publishTitle(text: string) {
+    text = text.trim();
+    if (!text || text === this.lastTitle) return;
+    this.lastTitle = text;
+    this.postParent({ type: "wiskey:title", text });
+  }
+
+  private publishHeading = () => {
+    if (!this.readySent || !this._data || !this.authorized || this._locked) return;
+    const main = this.renderRoot.querySelector("main");
+    const toolRoot = [...(main?.children ?? [])].find((element) => element.shadowRoot)?.shadowRoot;
+    if (toolRoot !== this.toolTitleRoot) {
+      this.toolHeadingObserver?.disconnect();
+      this.toolTitleRoot = toolRoot ?? undefined;
+      if (toolRoot) {
+        this.toolHeadingObserver = new MutationObserver(this.publishHeading);
+        this.toolHeadingObserver.observe(toolRoot, {
+          subtree: true,
+          childList: true,
+          characterData: true,
+        });
+      }
+    }
+    const heading = main?.querySelector(".page-heading h2, h2") ?? toolRoot?.querySelector("h2");
+    this.publishTitle(heading?.textContent ?? this.routeLabel(this._tab));
+  };
+
+  private publishEmbedState() {
+    this.applyPendingLocation();
+    if (!this._data || !this.authorized || this._locked) return;
+    if (!this.readySent) {
+      this.readySent = true;
+      this.postParent({
+        type: "wiskey:ready",
+        version: embedApiVersion,
+        tabs: panelTabIds
+          .filter((id) => this.tabAvailable(id))
+          .map((id) => ({ id, label: this.routeLabel(id) })),
+        tools: this.availableTools().map((id) => ({ id, label: this.t(id) })),
+      });
+      this.lastLocation = "";
+    }
+    this.publishLocation();
+    this.publishHeading();
+  }
+
+  private _data?: Overview;
+  private _haConnected = true;
+  private _refreshFailed = false;
+  private connection?: Hass["connection"];
+  private pendingRequests = new Set<AbortController>();
+  private haDisconnected = () => {
+    this._haConnected = false;
+    this.cancelRequests();
+  };
+  private haReady = () => {
+    this._haConnected = true;
+    void this.refresh();
+    void this.connect();
+  };
+  private cancelRequests() {
+    for (const controller of this.pendingRequests) controller.abort();
+    this.pendingRequests.clear();
+  }
+  private clearPrivateState() {
+    this._searchOpen = false;
+    this._profileFacets = {};
+    this._guestApprovalRequired = false;
+    this._guestApprover = "";
+    this._approvalPending = undefined;
+    this.messageDrafts.clear();
+    this.draftMessage = "";
+    this._detailsUser = "";
+    this._detailsModalUser = "";
+    this._detailRecords = {};
+    this.detailCache.clear();
+    this._accessDoor = "";
+    this._busy = false;
+    this._draft = undefined;
+    this._review = undefined;
+    this._importRows = [];
+    this.clearCsv();
+    this.clearCapture();
+    this.resetPinValidation();
+    this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
+    this._dialog = "";
+  }
+  private bindConnection(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
+    this.connection?.removeEventListener?.("ready", this.haReady);
+    this.connection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.haDisconnected);
+    connection?.addEventListener?.("ready", this.haReady);
+  }
+  private _tab = "overview";
+  private _validityStation = "";
+  private _validityFrom = "";
+  private _validityUntil = "";
+  private _clockReads = new Set<string>();
+  private _query = "";
+  private _syncQuery = "";
+  private _syncStation = "";
+  private _syncAttention = false;
+  private _userFilters: UserFilters = defaultFilters();
+  private _selectedUsers = new Set<string>();
+  private _userPage?: UserDirectoryPage;
+  private _userPageKey = "";
+  private _userPageLoading = false;
+  private _userPageOffset = 0;
+  private _userPageSize = 50;
+  private _userSnapshot = "";
+  private _summarySupported?: boolean;
+  private _profileFacets: Record<string, string[]> = {};
+  private _userQuerySequence = 0;
+  private _userQueryTimer?: ReturnType<typeof setTimeout>;
+  private _userColumns: string[] | null = null;
+  private _viewsActor?: string;
+  private _auditUser = "";
+  private _dialog = "";
+  private _busy = false;
+  private _releases = new Map<string, ReleaseState>();
+  private _notice = "";
+  private _error = "";
+  private _draft?: Draft;
+  private _editorBaseline = "";
+  private _pinStatus: "idle" | "checking" | "available" | "in_use" | "error" = "idle";
+  private _pinChecking = false;
+  private _pinCheckTimer?: ReturnType<typeof setTimeout>;
+  private _pinCheckSequence = 0;
+  private _guestStep = 1;
+  private _guestPinVisible = false;
+  private _guestApprovalRequired = false;
+  private _guestApprover = "";
+  private _validityInputZone: DisplayZone = UTC_ZONE;
+  private _importRows: Inventory[] = [];
+  private _importStation = "";
+  private _review?: Review;
+  private _csvPreview?: CsvPreview;
+  private _csvContent = "";
+  private _csvName = "";
+  private _csvMapping: Record<string, string> = {};
+  private _csvMode = "create";
+  private _capture?: ReaderCapture;
+  private _captureEpoch = 0;
+  private _captureTimer?: ReturnType<typeof setTimeout>;
+  private _reviewUser = "";
+  private _reviewStation = "";
+  private _cameraStation?: Station;
+  private _cameraRefreshEnabled = false;
+  private setCameraRefreshEnabled = (enabled: boolean) => {
+    this._cameraRefreshEnabled = enabled;
+  };
+  private _callBusy = new Set<string>();
+  private _unsubscribe?: () => void;
+  private _connecting = false;
+  private _epoch = 0;
+  private _refreshing = false;
+  private _refreshAgain = false;
+  private _timer?: ReturnType<typeof setInterval>;
+  private dialogResize?: ResizeObserver;
+  private fitDialog = () => {
+    fitDialogViewport(this.renderRoot.querySelector<HTMLDialogElement>("dialog[open]"));
+  };
+  private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  connectedCallback() {
+    super.connectedCallback();
+    this.setAttribute("data-embed-api", String(embedApiVersion));
+    this.locationPath = location.pathname;
+    this.readySent = false;
+    this.lastLocation = "";
+    this.lastTitle = "";
+    window.addEventListener("location-changed", this.readLocation);
+    window.addEventListener("popstate", this.readLocation);
+    window.addEventListener("message", this.parentMessage);
+    this.readLocation();
+    this.headingObserver = new MutationObserver(this.publishHeading);
+    this.headingObserver.observe(this.renderRoot, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+    const title = document.querySelector("title");
+    if (title) {
+      this.titleObserver = new MutationObserver(() => {
+        if (this.readySent) this.publishTitle(document.title);
+      });
+      this.titleObserver.observe(title, { subtree: true, childList: true, characterData: true });
+    }
+    this.addEventListener("pointerdown", this.activity);
+    this.addEventListener("keydown", this.activity);
+    this.idleTimer = setInterval(() => {
+      const minutes = this._session?.security?.idle_minutes;
+      if (minutes && !this._locked && Date.now() - this.lastHuman >= minutes * 60000)
+        this.lockScreen();
+    }, 1000);
+    window.addEventListener("resize", this.fitDialog);
+    window.addEventListener("resize", this.fitWall);
+    document.addEventListener("fullscreenchange", this.fitWall);
+    this.wallResize = new ResizeObserver(this.fitWall);
+    this.wallResize.observe(this);
+    window.visualViewport?.addEventListener("resize", this.fitDialog);
+    this.dialogResize = new ResizeObserver(this.fitDialog);
+    this.dialogResize.observe(this);
+    this._timer = setInterval(() => {
+      if (!document.hidden && this.authorized && !this._locked) {
+        this.requestUpdate();
+        void this.refresh();
+      }
+    }, 30000);
+    if (this.hass?.user) {
+      this.sessionUser = this.hass.user.id;
+      this.bindConnection(this.hass.connection);
+      void this.bootstrap();
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("location-changed", this.readLocation);
+    window.removeEventListener("popstate", this.readLocation);
+    window.removeEventListener("message", this.parentMessage);
+    this.titleObserver?.disconnect();
+    this.titleObserver = undefined;
+    this.headingObserver?.disconnect();
+    this.headingObserver = undefined;
+    this.toolHeadingObserver?.disconnect();
+    this.toolHeadingObserver = undefined;
+    this.toolTitleRoot = undefined;
+    this.pendingLocation = null;
+    this.setEmbed(false);
+    this.removeEventListener("pointerdown", this.activity);
+    this.removeEventListener("keydown", this.activity);
+    clearInterval(this.idleTimer);
+    window.removeEventListener("resize", this.fitDialog);
+    window.removeEventListener("resize", this.fitWall);
+    document.removeEventListener("fullscreenchange", this.fitWall);
+    this.wallResize?.disconnect();
+    window.visualViewport?.removeEventListener("resize", this.fitDialog);
+    this.dialogResize?.disconnect();
+    this.dialogResize = undefined;
+    this._epoch++;
+    this._busy = false;
+    this._notice = "";
+    this._error = "";
+    this._importRows = [];
+    this._review = undefined;
+    this.cancelRequests();
+    this.bindConnection(undefined);
+    this._refreshFailed = false;
+    clearInterval(this._timer);
+    clearTimeout(this._userQueryTimer);
+    this._userQuerySequence++;
+    this._userPage = undefined;
+    this._userPageKey = "";
+    this._userSnapshot = "";
+    this._summarySupported = undefined;
+    this._profileFacets = {};
+    this._unsubscribe?.();
+    this._unsubscribe = undefined;
+    this._connecting = false;
+    this.renderRoot
+      .querySelectorAll<HTMLInputElement>('input[type="password"]')
+      .forEach((input) => {
+        input.value = "";
+      });
+    this._draft = undefined;
+    this.resetPinValidation();
+    this.clearCsv();
+    this.clearCapture();
+    this._dialog = "";
+    this._data = undefined;
+    this._releases = new Map();
+  }
+  protected updated(changed: PropertyValues) {
+    this.fitWall();
+    if (this.embed) {
+      const scheme = getComputedStyle(this).colorScheme.includes("dark") ? "dark" : "light";
+      document.documentElement.style.colorScheme = scheme;
+      document.body.style.colorScheme = scheme;
+    }
+    if (this._viewsActor !== this.hass?.user?.id) {
+      this._viewsActor = this.hass?.user?.id;
+      this._userColumns = null;
+      this._userFilters = defaultFilters();
+      this._query = "";
+    }
+    if (!this.isConnected) return;
+    if (changed.has("hass")) {
+      const identityChanged = this.sessionUser !== this.hass?.user?.id;
+      const connectionChanged = this.connection !== this.hass?.connection;
+      if (identityChanged || connectionChanged) this._summarySupported = undefined;
+      const administratorRoleDropped =
+        Boolean(this._session?.is_admin) && !Boolean(this.hass?.user?.is_admin);
+      if (identityChanged || administratorRoleDropped) {
+        this._epoch++;
+        this.cancelRequests();
+        this.clearPrivateState();
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+        this._connecting = false;
+        this._session = undefined;
+        this._data = undefined;
+        this.sessionUser = this.hass?.user?.id;
+        this.bindConnection(this.hass?.connection);
+        void this.bootstrap();
+      } else if (connectionChanged) {
+        this._epoch++;
+        this.cancelRequests();
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+        this._connecting = false;
+        this.bindConnection(this.hass?.connection);
+        if (this.authorized) void this.connect();
+      } else if (this.authorized) {
+        if (this._data) {
+          let changedState = false;
+          const stations = this._data.stations.map((station) => {
+            const onlineEntity = this.hass?.states[station.entities.online];
+            const callEntity = this.hass?.states[station.entities.call_status];
+            const online = onlineEntity ? onlineEntity.state === "on" : station.online;
+            const call_state = online ? (callEntity?.state ?? station.call_state) : "unavailable";
+            if (online !== station.online || call_state !== station.call_state) {
+              changedState = true;
+              return { ...station, online, call_state };
+            }
+            return station;
+          });
+          if (changedState) this._data = { ...this._data, stations };
+        }
+        void this.connect();
+      }
+    }
+    if (changed.has("_data") && this._data?.users_complete !== false) {
+      const ids = new Set(this._data?.users.map((u) => u.id) ?? []);
+      if ([...this._selectedUsers].some((id) => !ids.has(id)))
+        this._selectedUsers = new Set([...this._selectedUsers].filter((id) => ids.has(id)));
+    }
+    const dialog = this.renderRoot.querySelector("dialog");
+    if (dialog && !dialog.open) dialog.showModal();
+    this.fitDialog();
+    this.publishEmbedState();
+  }
+  private async bootstrap() {
+    const hass = this.hass;
+    const userId = hass?.user?.id;
+    if (!hass?.user || !userId) {
+      this._session = null;
+      return;
+    }
+    const connection = hass.connection;
+    try {
+      const session = await hass.callWS<AuthorizationSession>({
+        type: "hikvision_intercom/authorization/session",
+      });
+      if (
+        !this.isConnected ||
+        this.hass?.connection !== connection ||
+        this.hass?.user?.id !== userId
+      )
+        return;
+      this._session = session;
+      if (session.security?.locked) {
+        this.lockScreen();
+        return;
+      }
+      this._locked = false;
+      this.syncAppearance();
+      if (session.allowed) await this.connect();
+      else {
+        this._data = undefined;
+        this._unsubscribe?.();
+        this._unsubscribe = undefined;
+      }
+    } catch {
+      if (
+        this.isConnected &&
+        this.hass?.connection === connection &&
+        this.hass?.user?.id === userId
+      ) {
+        this._session = null;
+        this._refreshFailed = true;
+      }
+    }
+  }
+  private async connect() {
+    if (
+      this._unsubscribe ||
+      this._connecting ||
+      !this.isConnected ||
+      !this._haConnected ||
+      !this.authorized
+    )
+      return;
+    this._connecting = true;
+    const epoch = this._epoch;
+    try {
+      const unsub = await this.hass!.connection.subscribeMessage(
+        (message: { kind?: string }) => {
+          if (message.kind === "access_revoked") {
+            this._session = null;
+            this._data = undefined;
+            this.cancelRequests();
+            this.clearPrivateState();
+            this._unsubscribe = undefined;
+            this._dialog = "";
+            return;
+          }
+          void this.refresh();
+        },
+        { type: "hikvision_intercom/subscribe" },
+        {
+          preCheck: () => epoch === this._epoch && this.isConnected && !!this.authorized,
+        },
+      );
+      if (epoch !== this._epoch || !this.isConnected) {
+        unsub();
+        return;
+      }
+      this._unsubscribe = unsub;
+      await this.refresh();
+    } catch {
+      if (epoch === this._epoch && this.isConnected && this.authorized)
+        this._error = this.t("failed");
+    } finally {
+      if (epoch === this._epoch) this._connecting = false;
+    }
+  }
+  private currentContext(epoch: number, connection: Hass["connection"]) {
+    return (
+      epoch === this._epoch &&
+      this.isConnected &&
+      !!this.authorized &&
+      this.hass?.connection === connection
+    );
+  }
+  private async api<T>(command: string, data: Record<string, unknown> = {}): Promise<T> {
+    if (!this.authorized || (!this.isConnected && command !== "cards/capture_cancel"))
+      throw { code: "unauthorized" };
+    if (!this._haConnected || this.hass?.connection.connected === false)
+      throw { code: "panel_read_interrupted" };
+    const hass = this.hass!,
+      epoch = this._epoch;
+    const send = () =>
+      this.protectedHass!.callWS<T>({ type: `hikvision_intercom/${command}`, ...data });
+    const timeout = command.startsWith("overview")
+      ? 20000
+      : command === "stations/test_unlock"
+        ? 30000
+        : slowManagementCommands.has(command)
+          ? 600000
+          : 60000;
+    const controller = new AbortController();
+    this.pendingRequests.add(controller);
+    try {
+      const result = await boundedRequest(send, timeout, controller.signal);
+      if (!this.currentContext(epoch, hass.connection)) throw { code: "panel_read_interrupted" };
+      return result;
+    } catch (error) {
+      if ((error as { code?: string })?.code === "connection_lost")
+        throw {
+          code: managementWrites.has(command)
+            ? "panel_operation_unconfirmed"
+            : "panel_read_interrupted",
+        };
+      throw error;
+    } finally {
+      this.pendingRequests.delete(controller);
+    }
+  }
+  private async refresh() {
+    if (!this.isConnected || !this.authorized || !this._haConnected || this._locked) return;
+    if (this._refreshing) {
+      this._refreshAgain = true;
+      return;
+    }
+    this._refreshing = true;
+    try {
+      do {
+        this._refreshAgain = false;
+        const epoch = this._epoch;
+        try {
+          const data = await this.loadOverview();
+          await this.hydratePeople(data);
+          if (epoch === this._epoch && this.isConnected && this.authorized) {
+            if (this._data && this.permissionStamp() !== this.permissionStamp(data.access)) {
+              this._draft = undefined;
+              this._dialog = "";
+              this._cameraStation = undefined;
+              this._detailsUser = "";
+              this._detailsModalUser = "";
+              this.detailCache.clear();
+              this._detailRecords = {};
+              this._selectedUsers = new Set();
+              this._query = "";
+              this._userFilters = defaultFilters();
+              clearTimeout(this._userQueryTimer);
+              this._userQuerySequence++;
+              this._userPage = undefined;
+              this._userPageKey = "";
+              this._userPageLoading = false;
+              this._profileFacets = {};
+              this.clearCapture();
+              this.resetPinValidation();
+            }
+            this._data = data;
+            this._session = data.access;
+            this.syncAppearance();
+            this.applyPendingLocation();
+            this.ensureAllowedTab();
+            this.refreshValidityZone();
+            this._refreshFailed = false;
+            if (this._tab === "users") this.scheduleUserQuery(false);
+            const configured = new Set(data.stations.map((station) => station.id));
+            this._releases = new Map(
+              [...this._releases].filter(([id]) => configured.has(id.split("/")[0])),
+            );
+          }
+        } catch {
+          if (epoch === this._epoch && this.isConnected && this.authorized)
+            this._refreshFailed = true;
+        }
+      } while (this._refreshAgain && this.isConnected && this.authorized && this._haConnected);
+    } finally {
+      this._refreshing = false;
+    }
+  }
+  private async loadOverview(): Promise<Overview> {
+    if (this._summarySupported !== false) {
+      try {
+        const summary = await this.api<Overview>("overview/summary");
+        if (!summary || !Array.isArray(summary.stations) || summary.users_complete !== false)
+          throw { code: "unknown_command" };
+        this._summarySupported = true;
+        return summary;
+      } catch (error) {
+        if (
+          !["unknown_command", "unknown_error", "invalid_format"].includes(
+            (error as { code?: string })?.code ?? "",
+          )
+        )
+          throw error;
+        this._summarySupported = false;
+      }
+    }
+    return this.api<Overview>("overview");
+  }
+  private async hydratePeople(data: Overview) {
+    if (data.users_complete !== false) return;
+    const leanScreens = [
+      "overview",
+      "users",
+      "events",
+      "audit",
+      "camera_wall",
+      "clock_options",
+      "media_options",
+      "whatsapp_templates",
+      "access_control",
+      "platform_center",
+      "health",
+      "fleet_alerts",
+      "schedules",
+    ];
+    if (
+      !leanScreens.includes(this._tab) ||
+      this._dialog === "import" ||
+      (this._tab === "users" && !data.api?.commands.includes("users/query"))
+    ) {
+      if (data.api?.commands.includes("sync/status")) {
+        const status = await this.api<Overview>("sync/status");
+        for (const key of [
+          "users",
+          "sync_operations",
+          "tombstones",
+          "revocations",
+          "card_removals",
+          "pin_removals",
+        ] as const)
+          Object.assign(data, { [key]: status[key] });
+        data.users_complete = true;
+      } else if (data.api?.commands.includes("users/list")) {
+        data.users = await this.api<Person[]>("users/list");
+        data.users_complete = true;
+      }
+      return;
+    }
+    const ids = new Set(
+      [
+        this._draft?.id,
+        this._capture?.user.id,
+        this._review?.user_id,
+        this._detailsModalUser,
+        this._detailsUser,
+      ].filter((id): id is string => !!id),
+    );
+    if (data.api?.commands.includes("users/get")) {
+      for (const id of ids) {
+        try {
+          data.users.push(await this.api<Person>("users/get", { user_id: id }));
+        } catch (error) {
+          if (
+            !["user_not_found", "unauthorized"].includes((error as { code?: string })?.code ?? "")
+          )
+            throw error;
+        }
+      }
+    }
+  }
+  private errorText(error: unknown) {
+    const key = (error as { code?: string })?.code;
+    return key ? this.t(key) : this.t("failed");
+  }
+  private async run(action: () => Promise<unknown>, message = "queued") {
+    if (this._busy || !this.isConnected || !this.authorized || !this.canManage(this.tabArea()))
+      return false;
+    if (!this._haConnected || this.hass?.connection.connected === false) {
+      this._error = this.t("panel_read_interrupted");
+      return false;
+    }
+    const epoch = this._epoch,
+      connection = this.hass!.connection;
+    this._busy = true;
+    this._error = "";
+    this._notice = "";
+    try {
+      await action();
+      if (!this.currentContext(epoch, connection)) return false;
+      if (message) this._notice = this.t(message);
+      await this.refresh();
+      return this.currentContext(epoch, connection);
+    } catch (error) {
+      if (this.currentContext(epoch, connection)) {
+        if ((error as { code?: string })?.code === "panel_operation_unconfirmed") {
+          // A lost create acknowledgement must not leave a reusable PIN-bearing
+          // draft that can accidentally create a second person on another click.
+          this._draft = undefined;
+          this.clearCsv();
+          this.clearCapture();
+          this._review = undefined;
+          this._importRows = [];
+          this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
+          this._dialog = "";
+        }
+        this._error = this.errorText(error);
+      }
+      return false;
+    } finally {
+      if (epoch === this._epoch) this._busy = false;
+    }
+  }
+  private close() {
+    if (this._busy) return;
+    // Native close restores the opening control's keyboard focus before Lit
+    // removes the dialog. Removing the element alone drops focus to the page.
+    this.renderRoot.querySelector<HTMLDialogElement>("dialog")?.close();
+    this._draft = undefined;
+    this.resetPinValidation();
+    this.clearCsv();
+    this.clearCapture();
+    this._review = undefined;
+    this._importRows = [];
+    this._cameraStation = undefined;
+    this._dialog = "";
+    this._error = "";
+  }
+  private stationName(id: string) {
+    return this._data?.stations.find((station) => station.id === id)?.name ?? id;
+  }
+  private get supportsUserDirectory() {
+    const api = this._data?.api;
+    return !!(
+      api?.capabilities.includes("user_directory_query") && api.commands.includes("users/query")
+    );
+  }
+  private userQueryKey(offset = this._userPageOffset) {
+    return JSON.stringify([this._query, this._userFilters, offset, this._userPageSize]);
+  }
+  private scheduleUserQuery(reset: boolean, delay = 0) {
+    if (reset) this._userPageOffset = 0;
+    clearTimeout(this._userQueryTimer);
+    this._userPage = undefined;
+    this._userPageKey = "";
+    if (!this.supportsUserDirectory || this._tab !== "users") return;
+    const sequence = ++this._userQuerySequence;
+    this._userQueryTimer = setTimeout(() => void this.loadUserPage(sequence), delay);
+  }
+  private async loadUserPage(sequence: number) {
+    const key = this.userQueryKey();
+    this._userPageLoading = true;
+    try {
+      const page = await this.api<UserDirectoryPage>("users/query", {
+        query: this._query,
+        filters: this._userFilters,
+        offset: this._userPageOffset,
+        limit: this._userPageSize,
+        snapshot: this._userSnapshot,
+      });
+      if (
+        sequence !== this._userQuerySequence ||
+        key !== this.userQueryKey() ||
+        !Array.isArray(page.records) ||
+        !Number.isInteger(page.total) ||
+        !Number.isInteger(page.offset)
+      )
+        return;
+      this._userPage = page;
+      this._userPageOffset = page.offset;
+      this._userPageKey = this.userQueryKey(page.offset);
+      this._userSnapshot = page.snapshot;
+      this._profileFacets = page.profile_facets ?? {};
+      if (this._summarySupported && this._data) {
+        const records = new Map(this._data.users.map((person) => [person.id, person]));
+        for (const person of page.records) records.set(person.id, person);
+        // Retain only this page and explicitly pinned editor/dialog records.
+        const pinned = new Set([
+          this._draft?.id,
+          this._capture?.user.id,
+          this._review?.user_id,
+          this._detailsModalUser,
+          this._detailsUser,
+        ]);
+        this._data = {
+          ...this._data,
+          users_complete: false,
+          user_count: page.total_all,
+          users: [...records.values()].filter(
+            (person) => pinned.has(person.id) || page.records.some((row) => row.id === person.id),
+          ),
+        };
+      }
+      if (this._detailsUser && !page.records.some((item) => item.id === this._detailsUser))
+        this._detailsUser = "";
+    } catch {
+      if (sequence === this._userQuerySequence) {
+        this._userPage = undefined;
+        this._userPageKey = "";
+        if (this._summarySupported && this._data?.api?.commands.includes("users/list")) {
+          try {
+            const users = await this.api<Person[]>("users/list");
+            if (sequence === this._userQuerySequence && this._data)
+              this._data = { ...this._data, users, users_complete: true };
+          } catch {
+            if (sequence === this._userQuerySequence) this._refreshFailed = true;
+          }
+        }
+      }
+    } finally {
+      if (sequence === this._userQuerySequence) this._userPageLoading = false;
+    }
+  }
+  private changeUserPage(offset: number) {
+    this._userPageOffset = Math.max(0, offset);
+    this._detailsUser = "";
+    this.scheduleUserQuery(false);
+  }
+  private badge(status: string) {
+    return html`<span class="status ${status}">${this.t(status)}</span>`;
+  }
+  private personStatus(user: Person) {
+    const values = Object.values(user.assignments).map((item) => {
+      if (item.sync_state !== "offline") return item.sync_state ?? "pending";
+      // Connectivity belongs to the station. Keep verified revisions synced, but
+      // never hide changes that still need to reach an unavailable station.
+      return Number.isInteger(item.desired_revision) &&
+        item.desired_revision! > 0 &&
+        item.applied_revision === item.desired_revision
+        ? "synced"
+        : "pending";
+    });
+    return (
+      ["conflict", "error", "syncing", "pending"].find((item) => values.includes(item)) ??
+      (values.length ? "synced" : "inactive")
+    );
+  }
+  private lockName(station: Station, physical = 1) {
+    return station.integrated_locks.find((lock) => lock.physical_index === physical)?.name;
+  }
+  private unlockLabel(station: Station, physical = 1) {
+    const name =
+      this.lockName(station, physical) ??
+      (station.integrated_locks.length > 1 ? `${this.t("physical_lock")} ${physical}` : undefined);
+    return name ? this.t("open_named_lock").replace("{name}", name) : this.t("open_door");
+  }
+  private validitySummary(user: Person) {
+    const start = user.valid_from ? Date.parse(user.valid_from) : null;
+    const end = user.valid_until ? Date.parse(user.valid_until) : null;
+    const now = Date.now();
+    const state =
+      start === null && end === null
+        ? "permanent"
+        : start === null ||
+            end === null ||
+            !Number.isFinite(start) ||
+            !Number.isFinite(end) ||
+            start >= end
+          ? "validity_unknown"
+          : now < start
+            ? "validity_future"
+            : now >= end
+              ? "validity_expired"
+              : "validity_current";
+    return html`<div class="validity-summary" title=${this.t("validity_summary_hint")}>
+      ${state !== "permanent" ? html`<span class="sub">${this.t("clock_ha_zone")}: ${this._data?.default_zone?.name ?? "UTC"}</span>` : nothing}
+      <span
+        >${this.t(user.access_timing_policy && state === "permanent" ? "user_timing_scheduled" : state)}</span
+      >
+      ${user.access_timing_policy ? html`<span class="sub">${this.t("user_timing_" + user.access_timing_policy.mode)}</span>` : user.access_timing_draft ? html`<span class="sub">${this.t("user_timing_pending")}</span>` : nothing}
+      ${start !== null && Number.isFinite(start) ? html`<div class="sub">${this.t("valid_from")}: <bdi>${this.dateText(user.valid_from)}</bdi></div>` : nothing}
+      ${end !== null && Number.isFinite(end) ? html`<div class="sub">${this.t("valid_until")}: <bdi>${this.dateText(user.valid_until)}</bdi></div>` : nothing}
+    </div>`;
+  }
+  private pendingCount() {
+    return this._data?.stations.reduce((sum, station) => sum + station.pending_user_count, 0) ?? 0;
+  }
+  private totalUserCount() {
+    return this._data?.users_complete === false
+      ? (this._data.user_count ?? 0)
+      : (this._data?.users.length ?? 0);
+  }
+  private zone(station?: Station) {
+    return station?.clock?.zone ?? (station ? UTC_ZONE : (this._data?.default_zone ?? UTC_ZONE));
+  }
+  private dateText(value: string | null, station?: Station) {
+    return value
+      ? formatTime(value, this.hass?.language, this.zone(station))
+      : this.t("not_observed");
+  }
+  private validityZone() {
+    if (this._validityStation === "__utc__") return UTC_ZONE;
+    return this.zone(this._data?.stations.find((s) => s.id === this._validityStation));
+  }
+  private _timingConverted = false;
+  private _timingEnforcement: "draft" | "ha" | "native" = "draft";
+  private convertTiming() {
+    const draft = this._draft;
+    if (!draft?.access_timing_draft || this._busy) return;
+    try {
+      const interval = timingValidity(draft.access_timing_draft);
+      if (draft.timed) {
+        this.readValidity();
+        if (draft.valid_from && Date.parse(draft.valid_from) > Date.parse(interval.start))
+          interval.start = draft.valid_from;
+        if (draft.valid_until && Date.parse(draft.valid_until) < Date.parse(interval.end))
+          interval.end = draft.valid_until;
+      }
+      if (Date.parse(interval.start) >= Date.parse(interval.end))
+        throw new Error("invalid_validity");
+      draft.valid_from = interval.start;
+      draft.valid_until = interval.end;
+      draft.timed = true;
+      draft.access_timing_draft = null;
+      this._validityStation = "__utc__";
+      this._validityInputZone = structuredClone(UTC_ZONE);
+      this._validityFrom = localInput(interval.start, UTC_ZONE);
+      this._validityUntil = localInput(interval.end, UTC_ZONE);
+      this._error = "";
+      this._timingConverted = true;
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+    }
+    this.requestUpdate();
+  }
+  private readValidity() {
+    const zone = this._validityInputZone;
+    // Preserve an existing instant (including seconds and a DST fold) when its
+    // visible field has not changed. Newly entered wall times must be unique.
+    const resolve = (raw: string, previous: string | null) =>
+      previous && localInput(previous, zone) === raw ? previous : fromLocalInput(raw, zone);
+    const first = resolve(this._validityFrom, this._draft?.valid_from ?? null);
+    const last = resolve(this._validityUntil, this._draft?.valid_until ?? null);
+    if (this._draft) {
+      this._draft.valid_from = first;
+      this._draft.valid_until = last;
+    }
+  }
+  private refreshValidityZone() {
+    if (!["editor", "guest"].includes(this._dialog) || !this._draft) return;
+    if (
+      this._validityStation &&
+      this._validityStation !== "__utc__" &&
+      !this._data?.stations.some((s) => s.id === this._validityStation)
+    )
+      this._validityStation = "";
+    const next = this.validityZone();
+    if (JSON.stringify(next) === JSON.stringify(this._validityInputZone)) return;
+    try {
+      // Resolve the draft under the rules displayed when it was entered, before
+      // formatting those same instants using freshly read station/HA rules.
+      this.readValidity();
+      this._validityFrom = localInput(this._draft.valid_from, next);
+      this._validityUntil = localInput(this._draft.valid_until, next);
+    } catch {
+      this._validityFrom = this._validityUntil = "";
+      this._draft.valid_from = this._draft.valid_until = null;
+      this._error = this.t("validity_zone_changed_invalid");
+    }
+    this._validityInputZone = structuredClone(next);
+  }
+  private changeValidityZone(id: string) {
+    try {
+      this.readValidity();
+      this._validityStation = id;
+      this._validityInputZone = structuredClone(this.validityZone());
+      this._validityFrom = localInput(this._draft?.valid_from ?? null, this.validityZone());
+      this._validityUntil = localInput(this._draft?.valid_until ?? null, this.validityZone());
+      this._error = "";
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+    }
+    this.requestUpdate();
+  }
+  private async refreshClock(station: Station) {
+    if (this._clockReads.has(station.id)) return;
+    this._clockReads.add(station.id);
+    this.requestUpdate();
+    const epoch = this._epoch;
+    try {
+      await this.api("stations/clock_refresh", { station_id: station.id });
+      if (epoch === this._epoch) await this.refresh();
+    } catch (e) {
+      if (epoch === this._epoch) this._error = this.errorText(e);
+    } finally {
+      this._clockReads.delete(station.id);
+      this.requestUpdate();
+    }
+  }
+  private clockView(station: Station) {
+    const clock = station.clock;
+    return html`<section class="clock-details">
+      <h4>${this.t("clock_title")}</h4>
+      <p>
+        ${this.t("clock_source_" + (clock?.source ?? "fallback"))} ·
+        <bdi>${clock?.zone.name ?? "UTC"}</bdi>
+      </p>
+      <p>
+        ${this.t("clock_device_time")}:
+        <bdi
+          >${clock?.device_time ? formatTime(clock.device_time, this.hass?.language, clock.device_zone ?? UTC_ZONE) : this.t("not_observed")}</bdi
+        >
+      </p>
+      <p>
+        ${this.t("clock_checked")}: <bdi>${this.dateText(clock?.checked_at ?? null, station)}</bdi>
+      </p>
+      ${clock?.skew_seconds !== null && clock?.skew_seconds !== undefined ? html`<p>${this.t("clock_skew")}: <bdi>${clock.skew_seconds} s</bdi> · ${clock.time_mode}</p>` : nothing}
+      ${clock?.error || !clock ? html`<p class="danger">${this.t(clock?.status === "stale" ? "clock_stale" : "clock_read_failed")}</p>` : nothing}
+      <hikvision-clock-settings
+        .hass=${this.protectedHass}
+        .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+        .stations=${[station]}
+        .compact=${true}
+      ></hikvision-clock-settings>
+      <button
+        ?disabled=${this._clockReads.has(station.id) || !station.loaded}
+        @click=${() => this.refreshClock(station)}
+      >
+        ${this.t(this._clockReads.has(station.id) ? "loading" : "clock_refresh")}
+      </button>
+    </section>`;
+  }
+  private lastAccess(station: Station) {
+    const event = station.last_access;
+    return html`<div class="last-access">
+      <span class="sub">${this.t("last_access")}</span>
+      ${
+        event
+          ? html` <div>${event.person_name ?? event.employee_no ?? this.t("unknown_person")}</div>
+              <div class="sub">${this.t(event.event_type)} · ${this.t(event.authentication)}</div>
+              <div class="sub">
+                <bdi>${this.dateText(event.timestamp, station)}</bdi>
+                ${!event.person_name && !event.employee_no ? html`<span>${this.t("identity_unavailable")}</span>` : nothing}
+                ${event.time_source === "received" ? html` · ${this.t("receipt_time")}` : nothing}
+                ${event.recovered ? html` · ${this.t("historical_record")}` : nothing}
+              </div>`
+          : html`<div class="sub">${this.t("no_access_recorded")}</div>`
+      }
+    </div>`;
+  }
+  private _onboarding = "";
+  private _editorPolicyRevision?: number;
+  private edit(user?: Person) {
+    this.draftMessage = user?.id ? (this.messageDrafts.get(user.id) ?? "") : "";
+    if (user && !this.personEditable(user)) return;
+    if (!user && !this.commandAvailable("users/create")) return;
+    this.resetPinValidation();
+    this._timingConverted = false;
+    this._timingEnforcement = user?.access_timing_policy?.mode ?? "draft";
+    this._onboarding = "";
+    const number = new Uint32Array(1);
+    crypto.getRandomValues(number);
+    this._draft = user
+      ? { ...structuredClone(user), confirm_pin: "", timed: !!user.valid_from }
+      : {
+          employee_no: String(100000000 + (number[0] % 900000000)),
+          display_name: "",
+          access_category: "staff",
+          responsible_person: "",
+          access_purpose: "",
+          active: true,
+          pin_configured: false,
+          confirm_pin: "",
+          cards: [],
+          assignments: {},
+          identity_locked: false,
+          valid_from: null,
+          valid_until: null,
+          timed: false,
+        };
+    if (this._draft.access_timing_policy)
+      this._draft.access_timing_draft = structuredClone(this._draft.access_timing_policy.schedule);
+    this._draft.permission_overrides ??= Object.fromEntries(
+      Object.entries(this._draft.assignments).map(([id, a]) => [
+        id,
+        a.enabled ? ("allow" as const) : ("deny" as const),
+      ]),
+    );
+    this._editorPolicyRevision = this._data?.profile_settings?.revision;
+    this.refreshDraftPermissions();
+    this._validityStation =
+      Object.keys(this._draft.assignments).find((id) =>
+        this._data?.stations.some((s) => s.id === id),
+      ) ??
+      this._data?.stations.find((s) => s.lock_enabled)?.id ??
+      "";
+    this._validityInputZone = structuredClone(this.validityZone());
+    this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
+    this._editorBaseline = JSON.stringify(this._draft);
+    this._error = "";
+    this._dialog = "editor";
+  }
+  private createGuest() {
+    this.edit();
+    if (!this._draft) return;
+    this._draft.timed = true;
+    this._draft.access_category = "visitor";
+    this._validityStation = "";
+    this._validityInputZone = structuredClone(this.validityZone());
+    const start = new Date();
+    start.setMinutes(start.getMinutes() + 5);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    this._draft.valid_from = start.toISOString();
+    this._draft.valid_until = end.toISOString();
+    this._validityFrom = localInput(this._draft.valid_from, this.validityZone());
+    this._validityUntil = localInput(this._draft.valid_until, this.validityZone());
+    this._guestStep = 1;
+    this._guestPinVisible = false;
+    this._guestApprovalRequired = false;
+    this._guestApprover = "";
+    this._dialog = "guest";
+  }
+  private guestHasCredential() {
+    return !!this._draft?.pin || !!this._draft?.cards.some((card) => card.enabled && card.card_no);
+  }
+  private applyGuestTemplate(template: GuestTemplate) {
+    const draft = this._draft;
+    if (!draft || this._dialog !== "guest" || !this.canManage("users") || this._busy) return;
+    const stations = this._data?.stations ?? [];
+    if (
+      Object.entries(template.doors).some(
+        ([id, locks]) =>
+          !stations.some(
+            (station) =>
+              station.id === id &&
+              station.lock_enabled &&
+              locks.every((lock) =>
+                station.integrated_locks.some((configured) => configured.physical_index === lock),
+              ),
+          ),
+      )
+    ) {
+      this._error = this.t("guest_template_stale");
+      return;
+    }
+    if (
+      template.weekly_timing &&
+      !this._data?.api?.capabilities.includes("user_timing_enforcement")
+    ) {
+      this._error = this.t("operation_unsupported");
+      return;
+    }
+    try {
+      const zone = this.validityZone();
+      const start = fromLocalInput(this._validityFrom, zone);
+      if (!start) throw new Error("invalid_validity");
+      const end = new Date(Date.parse(start) + template.duration_minutes * 60000).toISOString();
+      if (end > "2037-12-31T23:59:59.000Z") throw new Error("invalid_validity");
+      draft.access_category = template.access_category;
+      draft.responsible_person = template.responsible_person;
+      draft.access_purpose = template.access_purpose;
+      draft.timed = true;
+      draft.valid_from = start;
+      draft.valid_until = end;
+      this._validityUntil = localInput(end, zone);
+      draft.assignments = Object.fromEntries(
+        Object.entries(template.doors).map(([id, locks]) => [
+          id,
+          { enabled: true, allowed_locks: [...locks], sync_state: "pending" },
+        ]),
+      );
+      draft.permission_overrides = Object.fromEntries(
+        stations.map((station) => [station.id, template.doors[station.id] ? "allow" : "deny"]),
+      );
+      draft.access_timing_draft = template.weekly_timing
+        ? structuredClone(template.weekly_timing)
+        : undefined;
+      draft.access_timing_policy = null;
+      this._timingEnforcement = template.weekly_timing ? "ha" : "draft";
+      this._error = "";
+      this._notice = this.t("guest_template_applied");
+      this.requestUpdate();
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+    }
+  }
+  private guestToggleLock(stationId: string, physicalIndex: number, enabled: boolean) {
+    const assignment = this._draft?.assignments[stationId];
+    if (!assignment) return;
+    const selected = enabled
+      ? [...assignment.allowed_locks, physicalIndex]
+      : assignment.allowed_locks.filter((item) => item !== physicalIndex);
+    if (selected.length) {
+      assignment.allowed_locks = selected;
+      this.requestUpdate();
+    } else this.setPersonalPermission(stationId, "deny");
+  }
+  private guestNext() {
+    const draft = this._draft;
+    if (!draft) return;
+    try {
+      this.readValidity();
+    } catch (error) {
+      this._error = this.t((error as Error).message);
+      return;
+    }
+    if (!draft.display_name.trim() || draft.display_name.length > 32) {
+      this._error = this.t("guest_name_required");
+    } else if (!draft.responsible_person?.trim()) {
+      this._error = this.t("guest_responsible_required");
+    } else if (
+      !draft.valid_from ||
+      !draft.valid_until ||
+      Date.parse(draft.valid_until) <= Date.now() ||
+      Date.parse(draft.valid_from) >= Date.parse(draft.valid_until)
+    ) {
+      this._error = this.t("invalid_validity");
+    } else if (this._guestApprovalRequired && !this._guestApprover) {
+      this._error = this.t("visit_choose_approver");
+    } else if (!this.guestHasCredential()) {
+      this._error = this.t("guest_credential_required");
+    } else if (draft.pin && (draft.pin !== draft.confirm_pin || this._pinStatus === "in_use")) {
+      this._error = this.t(draft.pin !== draft.confirm_pin ? "pin_mismatch" : "pin_conflict");
+    } else {
+      this._error = "";
+      this._guestStep = 2;
+    }
+  }
+  private patchDraft(key: string, newValue: unknown) {
+    if (this._draft) (this._draft as unknown as Record<string, unknown>)[key] = newValue;
+    if (key === "group_ids") this.refreshDraftPermissions();
+    this.requestUpdate();
+  }
+  private selectStations(all: boolean) {
+    if (!this._draft || this._busy) return;
+    for (const station of this._data?.stations ?? []) {
+      if (station.lock_enabled)
+        this._draft.permission_overrides![station.id] = all ? "allow" : "deny";
+    }
+    this.refreshDraftPermissions();
+    this.requestUpdate();
+  }
+  private inheritedGroups(stationId: string) {
+    return (this._data?.profile_settings?.groups ?? []).filter(
+      (g) =>
+        g.enabled && this._draft?.group_ids?.includes(g.id) && g.station_ids?.includes(stationId),
+    );
+  }
+  private refreshDraftPermissions() {
+    const draft = this._draft;
+    if (!draft) return;
+    const ids = new Set([
+      ...Object.keys(draft.assignments),
+      ...Object.keys(draft.permission_overrides ?? {}),
+      ...(this._data?.stations ?? []).map((s) => s.id),
+    ]);
+    for (const id of ids) {
+      const mode = draft.permission_overrides?.[id];
+      const enabled = mode === "allow" || (mode !== "deny" && this.inheritedGroups(id).length > 0);
+      if (enabled)
+        draft.assignments[id] = {
+          ...draft.assignments[id],
+          enabled: true,
+          allowed_locks: draft.assignments[id]?.allowed_locks?.length
+            ? draft.assignments[id].allowed_locks
+            : [1],
+        };
+      else delete draft.assignments[id];
+    }
+  }
+  private setPersonalPermission(stationId: string, mode: "allow" | "deny" | "inherit") {
+    if (!this._draft) return;
+    if (this._draft.access_timing_policy)
+      this._draft.access_timing_draft = structuredClone(this._draft.access_timing_policy.schedule);
+    this._draft.permission_overrides ??= {};
+    if (mode === "inherit") delete this._draft.permission_overrides[stationId];
+    else this._draft.permission_overrides[stationId] = mode;
+    this.refreshDraftPermissions();
+    this.requestUpdate();
+  }
+  private pinBlocked() {
+    return Object.entries(this._draft?.assignments ?? {}).some(
+      ([key, item]) =>
+        item.enabled &&
+        this._data?.stations.find((station) => station.id === key)?.capabilities?.pin_writable ===
+          false,
+    );
+  }
+  private resetPinValidation() {
+    clearTimeout(this._pinCheckTimer);
+    this._pinCheckSequence++;
+    this._pinChecking = false;
+    this._pinStatus = "idle";
+  }
+  private changePin(pin: string) {
+    if (!this._draft) return;
+    this._draft.pin = pin || undefined;
+    clearTimeout(this._pinCheckTimer);
+    const sequence = ++this._pinCheckSequence;
+    if (!pin || !/^\d{1,128}$/.test(pin)) {
+      this._pinChecking = false;
+      this._pinStatus = "idle";
+      this.requestUpdate();
+      return;
+    }
+    this._pinChecking = true;
+    this._pinStatus = "checking";
+    this._pinCheckTimer = setTimeout(() => void this.checkPin(pin, sequence), 350);
+    this.requestUpdate();
+  }
+  private async checkPin(pin: string, sequence: number) {
+    try {
+      const result = await this.api<{ available: boolean }>("users/pin_check", {
+        user_id: this._draft?.id ?? "",
+        pin,
+      });
+      if (sequence !== this._pinCheckSequence || this._draft?.pin !== pin) return;
+      if (typeof result.available !== "boolean") throw new Error("invalid_pin_check_response");
+      this._pinStatus = result.available ? "available" : "in_use";
+    } catch {
+      if (sequence !== this._pinCheckSequence || this._draft?.pin !== pin) return;
+      this._pinStatus = "error";
+    } finally {
+      if (sequence === this._pinCheckSequence) {
+        this._pinChecking = false;
+        this.requestUpdate();
+      }
+    }
+  }
+  private async generatePin() {
+    if (!this._draft || this._pinChecking || this._busy) return;
+    clearTimeout(this._pinCheckTimer);
+    const sequence = ++this._pinCheckSequence;
+    this._pinChecking = true;
+    this._pinStatus = "checking";
+    this._error = "";
+    try {
+      const result = await this.api<{ pin: string }>("users/pin_generate", {
+        user_id: this._draft.id ?? "",
+      });
+      if (sequence !== this._pinCheckSequence || !this._draft) return;
+      this._draft.pin = result.pin;
+      this._draft.confirm_pin = result.pin;
+      this._pinStatus = "available";
+    } catch (error) {
+      if (sequence !== this._pinCheckSequence) return;
+      this._pinStatus = "error";
+      this._error = this.errorText(error);
+    } finally {
+      if (sequence === this._pinCheckSequence) {
+        this._pinChecking = false;
+        this.requestUpdate();
+      }
+    }
+  }
+  private async approveDuplicateCandidate(draft: Draft) {
+    const api = this._data?.api;
+    if (
+      !api?.capabilities.includes("identity_lifecycle") ||
+      !api.commands.includes("users/duplicate_check")
+    )
+      return true;
+    const card_suffixes = [
+      ...new Set(
+        draft.cards
+          .filter((card) => card.enabled)
+          .map((card) => (card.card_no ?? card.masked_number ?? "").match(/([0-9]{4})$/)?.[1])
+          .filter((suffix): suffix is string => !!suffix),
+      ),
+    ];
+    this._busy = true;
+    this._error = "";
+    try {
+      const preview = await this.api<{
+        total: number;
+        blocking: boolean;
+        matches: { reasons: string[] }[];
+      }>("users/duplicate_check", {
+        user_id: draft.id ?? "",
+        data: {
+          employee_no: draft.employee_no,
+          display_name: draft.display_name,
+          phone: draft.phone ?? "",
+          card_suffixes,
+        },
+      });
+      if (preview.blocking) {
+        this._error = this.t("lifecycle_employee_conflict");
+        return false;
+      }
+      return (
+        preview.total === 0 ||
+        confirm(this.t("lifecycle_duplicate_confirm").replace("{count}", String(preview.total)))
+      );
+    } catch (error) {
+      this._error = this.errorText(error);
+      return false;
+    } finally {
+      this._busy = false;
+    }
+  }
+  private async save(event: SubmitEvent) {
+    event.preventDefault();
+    const sync_now = (event.submitter as HTMLButtonElement | null)?.value === "sync";
+    const draft = this._draft;
+    if (!draft || this._busy) return;
+    const approval = this._dialog === "guest" && !draft.id && this._guestApprovalRequired;
+    if (
+      approval &&
+      (!this._guestApprover || !this._data?.api?.commands.includes("visits/create"))
+    ) {
+      this._error = this.t("visit_choose_approver");
+      return;
+    }
+    if (this._dialog === "guest") {
+      if (
+        this._guestStep !== 2 ||
+        !this.guestHasCredential() ||
+        !Object.values(draft.assignments).some((assignment) => assignment.enabled)
+      ) {
+        this._error = this.t("guest_door_required");
+        return;
+      }
+    }
+    try {
+      if (draft.timed) this.readValidity();
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+      return;
+    }
+    if (draft.pin && draft.pin !== draft.confirm_pin) {
+      this._error = this.t("pin_mismatch");
+      return;
+    }
+    if (draft.pin && this._pinStatus === "in_use") {
+      this._error = this.t("pin_conflict");
+      return;
+    }
+    if (
+      draft.timed &&
+      (!draft.valid_from ||
+        !draft.valid_until ||
+        new Date(draft.valid_from) >= new Date(draft.valid_until))
+    ) {
+      this._error = this.t("invalid_validity");
+      return;
+    }
+    const invalidProfile = profileError(
+      this._data?.profile_settings,
+      draft.profile ?? {},
+      draft.id ? (this._data?.users.find((u) => u.id === draft.id)?.profile ?? {}) : undefined,
+    );
+    if (invalidProfile) {
+      this._error = this.t(invalidProfile);
+      return;
+    }
+    if (!(await this.approveDuplicateCandidate(draft))) return;
+    const data: Record<string, unknown> = {
+      employee_no: draft.employee_no,
+      phone: draft.phone ?? "",
+      access_category: draft.access_category ?? "staff",
+      responsible_person: draft.responsible_person ?? "",
+      access_purpose: draft.access_purpose ?? "",
+      ...(this._data?.api?.capabilities.includes("user_timing_draft")
+        ? { access_timing_draft: draft.access_timing_draft ?? null }
+        : {}),
+      ...(this._data?.api?.capabilities.includes("user_timing_enforcement")
+        ? {
+            access_timing_policy:
+              draft.access_timing_draft && this._timingEnforcement !== "draft"
+                ? {
+                    mode: this._timingEnforcement,
+                    schedule: draft.access_timing_draft,
+                    bindings:
+                      draft.access_timing_policy?.mode === this._timingEnforcement
+                        ? draft.access_timing_policy.bindings
+                        : {},
+                  }
+                : null,
+          }
+        : {}),
+      display_name: draft.display_name,
+      active: draft.active,
+      valid_from: draft.timed ? draft.valid_from : null,
+      valid_until: draft.timed ? draft.valid_until : null,
+      ...(this._data?.profile_settings
+        ? {
+            permission_overrides: draft.permission_overrides ?? {},
+            door_permissions: Object.fromEntries(
+              Object.entries(draft.assignments)
+                .filter(([, a]) => a.enabled)
+                .map(([id, a]) => [id, a.allowed_locks]),
+            ),
+            access_policy_revision: this._editorPolicyRevision,
+          }
+        : { assignments: draft.assignments }),
+      cards: draft.cards.map((card) => ({
+        ...(card.id ? { id: card.id } : { card_no: card.card_no }),
+        label: card.label,
+        card_type: card.card_type,
+        enabled: card.enabled,
+      })),
+    };
+    if (draft.pin !== undefined) data.pin = draft.pin;
+    if (this._data?.profile_settings) {
+      if (draft.profile !== undefined)
+        data.profile = Object.fromEntries(
+          Object.entries(draft.profile).filter(([key]) => this.profileField(key, true)),
+        );
+      if (draft.group_ids !== undefined) data.group_ids = draft.group_ids;
+      if (draft.photo !== undefined) data.photo = draft.photo;
+    }
+    const fields: Record<string, WiskeyPersonField> = {
+      phone: "phone",
+      photo: "photo",
+      pin: "credentials",
+      cards: "credentials",
+      profile: "profile",
+      group_ids: "access",
+      assignments: "access",
+      permission_overrides: "access",
+      door_permissions: "access",
+      active: "access",
+      valid_from: "access",
+      valid_until: "access",
+      access_timing_draft: "access",
+      access_timing_policy: "access",
+      access_category: "access",
+      responsible_person: "access",
+      access_purpose: "access",
+    };
+    for (const [key, field] of Object.entries(fields))
+      if (!this.personField(field, true)) delete data[key];
+    const success = await this.run(
+      () =>
+        (draft.id
+          ? this.api<Person>("users/update", {
+              user_id: draft.id,
+              revision: draft.revision,
+              data,
+              sync_now,
+            })
+          : approval
+            ? this.api("visits/create", {
+                data: { ...data, active: false },
+                approver_id: this._guestApprover,
+              })
+            : this.api<Person>("users/create", { data, sync_now })
+        ).then((saved) => {
+          const person = saved as Person;
+          if (person.id && this.draftMessage) this.messageDrafts.set(person.id, this.draftMessage);
+          return saved;
+        }),
+      approval ? "visit_request_saved" : sync_now ? "saved_sync" : "saved",
+    );
+    if (success) this.close();
+  }
+  private async changeArchive(user: Person) {
+    const archived = !!user.archived_at;
+    const command = archived ? "users/unarchive" : "users/archive";
+    if (
+      !this._data?.api?.commands.includes(command) ||
+      !confirm(this.t(archived ? "confirm_unarchive_person" : "confirm_archive_person"))
+    )
+      return;
+    this.approvalLabel = this.t(archived ? "unarchive_person" : "archive_person");
+    const done = await this.run(() =>
+      this.api(command, {
+        user_id: user.id,
+        revision: user.revision,
+        confirmed: true,
+      }),
+    );
+    if (!this._approvalPending) this.approvalLabel = "";
+    if (done) {
+      this._detailsUser = this._detailsModalUser = "";
+      this._selectedUsers = new Set();
+      this.scheduleUserQuery(true);
+    }
+  }
+  private async removeUser(user: Person) {
+    const targets = new Set([
+      ...Object.keys(user.assignments),
+      ...(this._data?.revocations
+        .filter((item) => item.user_id === user.id)
+        .map((item) => item.station_id) ?? []),
+    ]);
+    if (!confirm(this.t("confirm_delete").replace("{count}", String(targets.size)))) return;
+    const removed = await this.run(
+      () => this.api("users/delete", { user_id: user.id, revision: user.revision }),
+      "deleted",
+    );
+    if (removed && this._dialog === "editor") this.close();
+  }
+  private clearCapture() {
+    this._captureEpoch++;
+    clearTimeout(this._captureTimer);
+    const id = this._capture?.session_id;
+    this._capture = undefined;
+    if (id) void this.api("cards/capture_cancel", { session_id: id }).catch(() => {});
+  }
+  private openCapture(user: Person) {
+    this.clearCapture();
+    this._error = "";
+    this._dialog = "capture";
+    const station = this._data?.stations.find((s) => s.lock_enabled && s.online)?.id ?? "";
+    this._capture = { user, station, reader: 0, loading: false, state: "choose", label: "" };
+    if (station) void this.readCaptureCapabilities(station);
+  }
+  private async readCaptureCapabilities(station: string) {
+    const old = this._capture;
+    if (!old) return;
+    this.clearCapture();
+    this._capture = {
+      user: old.user,
+      station,
+      reader: 0,
+      loading: true,
+      state: "choose",
+      label: old.label,
+    };
+    const epoch = this._captureEpoch;
+    try {
+      const caps = await this.api<{ readers: number[] }>("cards/reader_capabilities", {
+        station_id: station,
+      });
+      if (epoch !== this._captureEpoch || !this._capture) return;
+      this._capture = { ...this._capture, readers: caps.readers, reader: caps.readers[0] ?? 0 };
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    } finally {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = { ...this._capture, loading: false };
+    }
+  }
+  private captureStale() {
+    return (
+      !this._capture ||
+      this._data?.users.find((user) => user.id === this._capture?.user.id)?.revision !==
+        this._capture.user.revision
+    );
+  }
+  private async startCapture() {
+    const capture = this._capture;
+    if (!capture || this.captureStale() || capture.loading || !capture.readers?.length) return;
+    const epoch = this._captureEpoch;
+    const hass = this.hass;
+    this._capture = { ...capture, loading: true, state: "preparing", error: null };
+    try {
+      const result = await this.api<{ session_id: string }>("cards/capture_start", {
+        station_id: capture.station,
+        user_id: capture.user.id,
+        revision: capture.user.revision,
+        reader_id: capture.reader,
+      });
+      if (epoch !== this._captureEpoch || !this._capture) {
+        void hass
+          ?.callWS({
+            type: "hikvision_intercom/cards/capture_cancel",
+            session_id: result.session_id,
+          })
+          .catch(() => {});
+        return;
+      }
+      this._capture = { ...this._capture, session_id: result.session_id, loading: false };
+      void this.pollCapture(epoch);
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          loading: false,
+          state: "error",
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    }
+  }
+  private async pollCapture(epoch: number) {
+    const id = this._capture?.session_id;
+    if (!id || epoch !== this._captureEpoch) return;
+    try {
+      const result = await this.api<{
+        state: string;
+        card: ReaderCapture["card"];
+        error: string | null;
+      }>("cards/capture_status", { session_id: id });
+      if (epoch !== this._captureEpoch || !this._capture) return;
+      this._capture = {
+        ...this._capture,
+        state: result.state,
+        card: result.card,
+        error: result.error,
+      };
+      if (["preparing", "waiting"].includes(result.state))
+        this._captureTimer = setTimeout(() => void this.pollCapture(epoch), 1000);
+    } catch (error) {
+      if (epoch === this._captureEpoch && this._capture)
+        this._capture = {
+          ...this._capture,
+          state: "error",
+          error: (error as { code?: string })?.code ?? "capture_failed",
+        };
+    }
+  }
+  private async confirmCapture() {
+    const capture = this._capture;
+    if (!capture?.session_id || capture.state !== "captured" || this.captureStale()) return;
+    if (!confirm(this.t("capture_confirm_prompt").replace("{name}", capture.user.display_name)))
+      return;
+    const epoch = this._captureEpoch;
+    const success = await this.run(
+      () =>
+        this.api("cards/capture_confirm", { session_id: capture.session_id, label: capture.label }),
+      "saved",
+    );
+    if (epoch !== this._captureEpoch) return;
+    if (success) this.close();
+    else if (this._capture) this._capture = { ...this._capture, state: "unconfirmed", card: null };
+  }
+  private captureBody() {
+    const capture = this._capture;
+    if (!capture) return nothing;
+    const locked = capture.loading || capture.state !== "choose";
+    return html`<p>
+        <strong>${capture.user.display_name}</strong> · <bdi>${capture.user.employee_no}</bdi>
+      </p>
+      <p class="field-note">${this.t("capture_hint")}</p>
+      <div class="form-grid">
+        <label
+          >${this.t("station")}<select
+            ?disabled=${locked}
+            .value=${capture.station}
+            @change=${(event: Event) => this.readCaptureCapabilities(value(event))}
+          >
+            <option value="" disabled>${this.t("select_station")}</option>
+            ${(this._data?.stations ?? []).filter((s) => s.lock_enabled && s.online).map((s) => html`<option value=${s.id}>${s.name}</option>`)}
+          </select></label
+        >
+        <label
+          >${this.t("capture_reader")}<select
+            aria-label=${this.t("capture_reader")}
+            ?disabled=${locked || !capture.readers?.length}
+            .value=${String(capture.reader)}
+            @change=${(event: Event) => {
+              if (this._capture) this._capture = { ...this._capture, reader: Number(value(event)) };
+            }}
+          >
+            ${(capture.readers ?? []).map((id) => html`<option value=${id}>${id === 0 ? this.t("capture_default_reader") : id}</option>`)}
+          </select></label
+        >
+      </div>
+      ${capture.error ? html`<p class="notice error" role="alert">${this.t(capture.error)}</p>` : nothing}
+      ${this.captureStale() ? html`<p class="notice error" role="alert">${this.t("capture_revision_changed")}</p>` : nothing}
+      <p role="status">
+        ${capture.loading && capture.state === "choose" ? this.t("loading") : this.t("capture_state_" + capture.state)}
+      </p>
+      ${
+        capture.card
+          ? html`<div class="notice">
+                <bdi>${capture.card.masked_number}</bdi
+                >${capture.card.technology ? html`<span> · <bdi>${capture.card.technology}</bdi></span>` : nothing}
+              </div>
+              <label
+                >${this.t("card_label")}<input
+                  maxlength="64"
+                  .value=${capture.label}
+                  @input=${(event: Event) => {
+                    if (this._capture) this._capture.label = value(event);
+                  }}
+              /></label>
+              <p class="field-note">
+                ${this.t("capture_targets")}:
+                ${
+                  Object.keys(capture.user.assignments)
+                    .map((id) => this.stationName(id))
+                    .join(", ") || this.t("csv_no_stations")
+                }
+              </p>`
+          : nothing
+      }
+      <p class="field-note">${this.t("capture_limits")}</p>`;
+  }
+  private captureFooter() {
+    const capture = this._capture;
+    if (!capture) return nothing;
+    return html` ${capture.state === "choose" ? html`<button class="primary" ?disabled=${capture.loading || !capture.readers?.length || this.captureStale()} @click=${() => this.startCapture()}>${this.t("capture_start")}</button>` : nothing}
+      ${capture.state === "captured" ? html`<button class="primary" ?disabled=${this._busy || this.captureStale()} @click=${() => this.confirmCapture()}>${this.t("capture_save")}</button>` : nothing}
+      ${["error", "captured"].includes(capture.state) ? html`<button ?disabled=${this._busy} @click=${() => this.readCaptureCapabilities(capture.station)}>${this.t("capture_again")}</button>` : nothing}
+      <button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`;
+  }
+  private clearCsv() {
+    this._csvContent = "";
+    this._csvPreview = undefined;
+    this._csvName = "";
+    this._csvMapping = {};
+    this._csvMode = "create";
+  }
+  private openCsv() {
+    this.clearCsv();
+    this.clearCapture();
+    this._error = "";
+    this._dialog = "csv";
+  }
+  private async readCsv(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    this._csvContent = "";
+    this._csvPreview = undefined;
+    this._csvName = "";
+    this._csvMapping = {};
+    this._error = "";
+    if (!file) return;
+    const epoch = this._epoch;
+    await this.run(async () => {
+      if (file.size > 262144) throw { code: "csv_too_large" };
+      let content: string;
+      try {
+        content = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+      } catch {
+        throw { code: "csv_invalid_encoding" };
+      }
+      const inspected = await this.api<{ headers: string[]; mapping: Record<string, string> }>(
+        "users/csv_inspect",
+        { csv: content },
+      );
+      if (epoch === this._epoch && this.isConnected && this.authorized && this._dialog === "csv") {
+        this._csvMapping = inspected.mapping;
+        this._csvContent = content;
+        this._csvName = file.name;
+      }
+    }, "");
+  }
+  private async previewCsv() {
+    const epoch = this._epoch;
+    this._csvPreview = undefined;
+    await this.run(async () => {
+      const result = await this.api<CsvPreview>("users/csv_preview", {
+        csv: this._csvContent,
+        column_map: this._csvMapping,
+        mode: this._csvMode,
+      });
+      if (epoch === this._epoch && this.isConnected && this.authorized && this._dialog === "csv")
+        this._csvPreview = result;
+    }, "");
+  }
+  private async applyCsv(background = false) {
+    const preview = this._csvPreview;
+    if (
+      !preview?.review_token ||
+      preview.errors.length ||
+      !confirm(
+        this.t("csv_confirm").replace(
+          "{count}",
+          String(preview.counts.create + preview.counts.update),
+        ),
+      )
+    )
+      return;
+    const success = await this.run(async () => {
+      try {
+        await this.api(background ? "jobs/csv_create" : "users/csv_apply", {
+          ...(background
+            ? { content: this._csvContent, confirmed: true }
+            : { csv: this._csvContent }),
+          column_map: this._csvMapping,
+          mode: this._csvMode,
+          review_token: preview.review_token,
+        });
+      } catch (error) {
+        this._csvPreview = undefined;
+        throw error;
+      }
+    }, "csv_saved");
+    if (success) this.close();
+  }
+  private async exportCsv() {
+    const epoch = this._epoch;
+    await this.run(async () => {
+      const result = await this.api<{ csv: string }>("users/csv_export");
+      if (epoch === this._epoch && this.isConnected && this.authorized)
+        downloadText(result.csv, "hikvision-users.csv");
+    }, "");
+  }
+  private csvTargets(): string[] {
+    return [
+      "employee_no",
+      "display_name",
+      "phone",
+      "active",
+      "valid_from",
+      "valid_until",
+      "stations",
+      "pin",
+      "cards",
+      "group_ids",
+      "permission_overrides",
+      "access_timing_policy",
+      ...(this._data?.profile_settings?.fields ?? []).map((field) => `profile:${field.id}`),
+    ];
+  }
+  private csvColumnLabel(key: string): string {
+    if (key.startsWith("profile:"))
+      return (
+        this._data?.profile_settings?.fields.find((field) => field.id === key.slice(8))?.label ??
+        key
+      );
+    return this.t(`csv_field_${key}`);
+  }
+  private csvBody() {
+    const preview = this._csvPreview;
+    return html`<p>${this.t("csv_hint")}</p>
+      <div class="form-grid">
+        <label
+          >${this.t("csv_file")}<input
+            type="file"
+            accept=".csv,text/csv"
+            ?disabled=${this._busy}
+            @change=${this.readCsv}
+        /></label>
+        <label
+          >${this.t("csv_mode")}<select
+            .value=${this._csvMode}
+            ?disabled=${this._busy}
+            @change=${(event: Event) => {
+              this._csvMode = value(event);
+              this._csvPreview = undefined;
+            }}
+          >
+            <option value="create">${this.t("csv_create_only")}</option>
+            <option value="upsert">${this.t("csv_update_existing")}</option>
+          </select></label
+        >
+      </div>
+      ${
+        this._csvName
+          ? html`<p class="sub">${this._csvName}</p>
+              <details open class="csv-mapping">
+                <summary>${this.t("csv_mapping")}</summary>
+                <p>${this.t("csv_mapping_hint")}</p>
+                <div class="form-grid">
+                  ${Object.entries(this._csvMapping).map(
+                    ([header, target]) =>
+                      html`<label
+                        >${header}<select
+                          aria-label=${header}
+                          .value=${target}
+                          ?disabled=${this._busy}
+                          @change=${(event: Event) => {
+                            this._csvMapping = { ...this._csvMapping, [header]: value(event) };
+                            this._csvPreview = undefined;
+                          }}
+                        >
+                          <option value="">${this.t("csv_ignore_column")}</option>
+                          ${this.csvTargets().map((key) => html`<option value=${key}>${this.csvColumnLabel(key)} (${key})</option>`)}
+                        </select></label
+                      >`,
+                  )}
+                </div>
+              </details>`
+          : nothing
+      }
+      <button
+        ?disabled=${this._busy}
+        @click=${() => downloadText("\ufeff" + this.csvTargets().join(",") + "\r\n", "wiskey-users-template.csv")}
+      >
+        ${this.t("csv_template")}
+      </button>
+      <details>
+        <summary>${this.t("csv_format")}</summary>
+        <p>${this.t("csv_columns_hint")}</p>
+        <p>${this.t("csv_clear_hint")}</p>
+        <p>${this.t("csv_station_hint")}</p>
+        <p>${this.t("csv_profile_hint")}</p>
+        <p>${this.t("csv_group_hint")}</p>
+        <ul>
+          ${(this._data?.profile_settings?.groups ?? []).map((group) => html`<li>${group.label}: <code>${group.id}</code></li>`)}
+        </ul>
+        <ul>
+          ${(this._data?.stations ?? []).map((station) => html`<li>${station.name}: <code>${station.id}</code></li>`)}
+        </ul>
+        <p>${this.t("csv_example")}</p>
+        <code>{"STATION_ID":true}</code>
+        <p>${this.t("csv_card_example")}</p>
+        <code>["000099990001"]</code>
+      </details>
+      ${
+        preview
+          ? html`<p class="notice">
+                ${this.t("plan_create")}: ${preview.counts.create} · ${this.t("plan_update")}:
+                ${preview.counts.update} · ${this.t("bulk_unchanged")}: ${preview.counts.unchanged}
+              </p>
+              ${
+                preview.capacity?.length
+                  ? html`<details open>
+                      <summary>${this.t("bulk_capacity")}</summary>
+                      <p class="sub">${this.t("bulk_capacity_hint")}</p>
+                      ${preview.capacity.map(
+                        (item) =>
+                          html`<p class=${item.capacity_warning ? "notice error" : "sub"}>
+                            <strong>${this.stationName(item.station_id)}</strong> ·
+                            ${this.t("users")}: ${item.users_now ?? "?"} →
+                            ${item.users_projected ?? "?"} / ${item.max_users ?? "?"} ·
+                            ${this.t("cards")}: ${item.cards_now ?? "?"} →
+                            ${item.cards_projected ?? "?"} / ${item.max_cards ?? "?"} ·
+                            ${this.t("pin")}: ${item.pins_now ?? "?"} →
+                            ${item.pins_projected ?? "?"}
+                          </p>`,
+                      )}
+                    </details>`
+                  : nothing
+              }
+              ${preview.errors.map((error) => html`<p class="notice error" role="alert">${error.line ? `${this.t("csv_line")} ${error.line}: ` : ""}${error.column ? `${this.csvColumnLabel(error.column)}: ` : ""}${this.t(error.code)}</p>`)}
+              ${preview.errors.length ? html`<button @click=${() => downloadText(JSON.stringify({ errors: preview.errors.map(({ line, column, code }) => ({ line, column, code })) }, null, 2), "wiskey-import-errors.json", "application/json")}>${this.t("csv_download_errors")}</button>` : nothing}
+              ${preview.rows.map(
+                (row) =>
+                  html`<article class="import-row">
+                    <div class="row between">
+                      <strong>${row.display_name}</strong
+                      ><span class="status">${this.t(`bulk_${row.operation}`)}</span>
+                    </div>
+                    <p class="sub">
+                      ${this.t("csv_line")} ${row.line} · ${this.t("employee_id")}:
+                      <bdi>${row.employee_no}</bdi>
+                    </p>
+                    <p>
+                      ${row.changed_fields.map((field) => this.t(`csv_field_${field}`)).join(", ") || this.t("bulk_unchanged")}
+                    </p>
+                    <p class="sub">
+                      ${this.t("pin")}:
+                      ${this.t(row.pin_configured ? "configured" : "not_configured")} ·
+                      ${this.t("cards")}: ${row.card_count}
+                    </p>
+                    <p>
+                      ${row.stations.map((id) => this.stationName(id)).join(", ") || this.t("csv_no_stations")}
+                    </p>
+                    ${row.group_ids ? html`<p>${this.t("profile_groups")}: ${row.group_ids.map((id) => this._data?.profile_settings?.groups.find((group) => group.id === id)?.label ?? id).join(", ") || "—"}</p>` : nothing}
+                    ${
+                      row.profile
+                        ? html`<p>
+                            ${Object.entries(row.profile)
+                              .map(([id, val]) => `${this.csvColumnLabel(`profile:${id}`)}: ${val}`)
+                              .join(" · ")}
+                          </p>`
+                        : nothing
+                    }
+                    ${
+                      row.permission_overrides
+                        ? html`<p>
+                            ${this.t("csv_field_permission_overrides")}:
+                            ${
+                              Object.entries(row.permission_overrides)
+                                .map(
+                                  ([id, mode]) =>
+                                    `${this.stationName(id)}: ${this.t(mode === "allow" ? "permission_personal" : "permission_denied")}`,
+                                )
+                                .join(" · ") || "—"
+                            }
+                          </p>`
+                        : nothing
+                    }
+                    ${row.access_timing_policy ? html`<p>${this.t("user_timing_enforcement")}: ${this.t("user_timing_" + row.access_timing_policy.mode)} · <bdi>${row.access_timing_policy.schedule.timezone}</bdi></p>` : nothing}
+                    ${row.access_removed ? html`<p class="danger">${this.t("csv_revocation")}</p>` : nothing}
+                  </article>`,
+              )} `
+          : nothing
+      }`;
+  }
+  private async openImport() {
+    this._error = "";
+    this._importRows = [];
+    this._importStation =
+      this._data?.stations.find((station) => station.online && station.lock_enabled)?.id ?? "";
+    this._dialog = "import";
+    if (this._importStation) await this.loadInventory();
+  }
+  private async loadInventory() {
+    this._importRows = [];
+    await this.run(async () => {
+      if (this._data?.users_complete === false) {
+        const users = await this.api<Person[]>("users/list");
+        this._data = { ...this._data, users, users_complete: true };
+      }
+      this._importRows = await this.api<Inventory[]>("stations/inventory", {
+        station_id: this._importStation,
+      });
+    }, "");
+  }
+  private async adopt(row: Inventory, remove = false) {
+    const central = this._data?.users.find((user) => user.employee_no === row.employee_no);
+    if (
+      !confirm(
+        this.t(remove ? "confirm_unmanaged_delete" : central ? "confirm_map" : "confirm_adopt"),
+      )
+    )
+      return;
+    const success = await this.run(
+      () =>
+        this.api(remove ? "users/delete_unmanaged" : "users/adopt", {
+          station_id: this._importStation,
+          employee_no: row.employee_no,
+          review_token: row.review_token,
+          ...(!remove && central ? { user_id: central.id, revision: central.revision } : {}),
+        }),
+      remove ? "deleted" : "import_done",
+    );
+    if (success) await this.loadInventory();
+  }
+  private async inspect(userId: string, stationId: string) {
+    this._reviewUser = userId;
+    this._reviewStation = stationId;
+    this._review = undefined;
+    this._dialog = "review";
+    await this.run(async () => {
+      this._review = await this.api<Review>("conflicts/review", {
+        user_id: userId,
+        station_id: stationId,
+      });
+    }, "");
+  }
+  private async resolve(direction: string) {
+    const review = this._review;
+    if (
+      !review ||
+      this.reviewStale() ||
+      !review.actions[review.deletion_pending ? "delete" : direction]?.allowed
+    )
+      return;
+    if (
+      !confirm(
+        this.t(
+          review.deletion_pending
+            ? "confirm_remove_reviewed"
+            : direction === "device"
+              ? "confirm_device"
+              : "confirm_central",
+        ),
+      )
+    )
+      return;
+    const success = await this.run(async () => {
+      try {
+        await this.api(
+          review.deletion_pending ? "conflicts/resolve_deletion" : "conflicts/resolve",
+          {
+            station_id: review.station_id,
+            user_id: review.user_id,
+            review_token: review.review_token,
+            ...(!review.deletion_pending ? { revision: review.revision, direction } : {}),
+          },
+        );
+      } catch (error) {
+        if (
+          ["review_stale", "revision_conflict"].includes(
+            (error as { code?: string })?.code ?? "",
+          ) &&
+          this._review === review
+        )
+          this._review = { ...review, invalidated: true };
+        throw error;
+      }
+    });
+    if (success) this.close();
+  }
+  private releasing(station: Station, physical = 1) {
+    return (
+      !!this._releases.get(`${station.id}/${physical}`)?.pending ||
+      this.hass?.states[
+        station.entities[`lock_${physical}`] ?? (physical === 1 ? station.entities.lock : "")
+      ]?.state === "unlocking"
+    );
+  }
+  private releaseButton(station: Station, primary = false, compact = false) {
+    if (!this.canManage("overview") && !this.canManage("stations")) return nothing;
+    return station.integrated_locks.map((lock) =>
+      this.relayButton(station, lock.physical_index, primary, compact),
+    );
+  }
+  private relayButton(station: Station, physical: number, primary: boolean, compact = false) {
+    return html`<button
+      class=${primary ? "primary" : ""}
+      aria-label=${this.unlockLabel(station, physical)}
+      aria-busy=${this.releasing(station, physical) ? "true" : "false"}
+      ?disabled=${!this._haConnected || !station.online || !station.lock_enabled || this.releasing(station, physical)}
+      @click=${() => this.unlock(station, physical)}
+    >
+      ${icon("lock")}${this.releasing(station, physical) ? this.t("releasing") : compact && station.integrated_locks.length === 1 ? this.t("wall_open") : this.unlockLabel(station, physical)}
+    </button>`;
+  }
+  private releaseFeedback(station: Station, physical?: number) {
+    const state = [...this._releases.entries()]
+      .filter(([key]) =>
+        physical === undefined
+          ? key.startsWith(station.id + "/")
+          : key === `${station.id}/${physical}`,
+      )
+      .map(([, value]) => value)
+      .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))[0];
+    if (!state || !station.lock_enabled) return nothing;
+    return html`<div
+      class="release-feedback ${!state.pending && state.code !== "release_sent" ? "danger" : ""}"
+      role="status"
+    >
+      <span class="sub"
+        >${this.t("last_release_request")} ·
+        <bdi>${this.dateText(state.requestedAt, station)}</bdi></span
+      >
+      <p>${this.t(state.code)}</p>
+    </div>`;
+  }
+  private async unlock(station: Station, physical = 1) {
+    const current = this._data?.stations.find((item) => item.id === station.id);
+    if (
+      !this.authorized ||
+      (!this.canManage("overview") && !this.canManage("stations")) ||
+      !this.isConnected ||
+      !this._haConnected ||
+      this.hass?.connection.connected === false ||
+      !current?.online ||
+      !current.lock_enabled ||
+      !current.integrated_locks.some((lock) => lock.physical_index === physical) ||
+      this.releasing(current, physical)
+    )
+      return;
+    const epoch = this._epoch;
+    const state: ReleaseState = {
+      pending: true,
+      code: "releasing",
+      requestedAt: new Date().toISOString(),
+    };
+    // Record synchronously, before awaiting I/O, to reject double clicks across views.
+    this._releases = new Map(this._releases).set(`${current.id}/${physical}`, state);
+    let code = "release_sent";
+    try {
+      await this.api("stations/test_unlock", { station_id: current.id, lock: physical });
+    } catch (error) {
+      const candidate = (error as { code?: string })?.code;
+      code = candidate && releaseErrors.has(candidate) ? candidate : "release_unconfirmed";
+    }
+    if (
+      epoch === this._epoch &&
+      this.isConnected &&
+      this.authorized &&
+      this._releases.get(`${current.id}/${physical}`) === state
+    ) {
+      this._releases = new Map(this._releases).set(`${current.id}/${physical}`, {
+        ...state,
+        pending: false,
+        code,
+      });
+      // A slow overview refresh must not extend the release button's pending state.
+      void this.refresh();
+    }
+  }
+  private setCallBusy = (stationId: string, busy: boolean) => {
+    const next = new Set(this._callBusy);
+    busy ? next.add(stationId) : next.delete(stationId);
+    this._callBusy = next;
+  };
+  private callControls(station: Station, compact = false, dock = false) {
+    if (!this.canManage("overview") && !this.canManage("stations")) return nothing;
+    return html`<hikvision-intercom-call-controls
+      .hass=${this.protectedHass}
+      .station=${station}
+      .compact=${compact}
+      .dock=${dock}
+      .blocked=${this._callBusy.has(station.id)}
+      .onBusy=${this.setCallBusy}
+      .onRefreshState=${dock ? this.setCameraRefreshEnabled : undefined}
+    ></hikvision-intercom-call-controls>`;
+  }
+  private camera(station: Station, live = false, preview = false) {
+    return html`<hikvision-intercom-camera
+      .stationId=${station.id}
+      .media=${this._data?.media_settings}
+      .hass=${this.protectedHass}
+      .entity=${station.entities.camera ?? ""}
+      .version=${this._data?.version ?? ""}
+      .live=${live}
+      .preview=${preview}
+      .label=${station.entities.camera ? `${this.t("camera")} · ${station.name}` : this.t("no_camera")}
+    ></hikvision-intercom-camera>`;
+  }
+  private userActions(user: Person) {
+    return html`<div class="user-action-group">
+      <button
+        class="user-edit"
+        @click=${() => this.edit(user)}
+        ?disabled=${this._busy || !this.personEditable(user)}
+      >
+        ${this.t("edit")}
+      </button>
+      <button
+        @click=${() => this.run(() => this.api("sync/user", { user_id: user.id }))}
+        ?disabled=${this._busy || !this.personEditable(user)}
+      >
+        ${this.t("sync_now")}
+      </button>
+    </div>`;
+  }
+  private editorAction(action: (user: Person) => void) {
+    if (this._busy || !this._draft?.id) return;
+    if (
+      JSON.stringify(this._draft) !== this._editorBaseline ||
+      this._validityFrom !== localInput(this._draft.valid_from, this.validityZone()) ||
+      this._validityUntil !== localInput(this._draft.valid_until, this.validityZone())
+    ) {
+      this._error = this.t("profile_save_first");
+      return;
+    }
+    const user = this._data?.users.find((u) => u.id === this._draft?.id);
+    if (user) action(user);
+  }
+  private visibleProfileFields() {
+    const fields = this._data?.profile_settings?.fields.filter((f) => f.enabled) ?? [];
+    return this._userColumns === null
+      ? fields
+      : this._userColumns.flatMap((id) => fields.filter((f) => f.id === id));
+  }
+  private userGroupNames(user: Person) {
+    return (
+      this._data?.profile_settings?.groups
+        .filter((g) => g.enabled && user.group_ids?.includes(g.id))
+        .map((g) => g.label)
+        .join(", ") ?? ""
+    );
+  }
+  private profileEditor() {
+    const draft = this._draft!;
+    const policy = this._data?.profile_settings;
+    if (
+      !policy ||
+      (!policy.photo_enabled &&
+        !policy.fields.some((f) => f.enabled) &&
+        !policy.groups.some((g) => g.enabled))
+    )
+      return nothing;
+    return html`<fieldset class="editor-profile">
+      <legend>${this.t("profile_details")}</legend>
+      ${
+        !draft.id && policy.templates?.some((t) => t.enabled)
+          ? html`<div class="row">
+              <label
+                >${this.t("onboarding_template")}<select
+                  .value=${this._onboarding}
+                  @change=${(e: Event) => (this._onboarding = value(e))}
+                >
+                  <option value="">—</option>
+                  ${policy.templates.filter((t) => t.enabled).map((t) => html`<option value=${t.id}>${t.label}</option>`)}
+                </select></label
+              ><button
+                type="button"
+                ?disabled=${!this._onboarding}
+                @click=${() => {
+                  const t = policy.templates?.find((t) => t.id === this._onboarding);
+                  if (t) {
+                    this.patchDraft("profile", structuredClone(t.profile));
+                    this.patchDraft("group_ids", [...t.group_ids]);
+                    this._draft!.permission_overrides = {};
+                    this.refreshDraftPermissions();
+                  }
+                }}
+              >
+                ${this.t("onboarding_apply")}
+              </button>
+              <p class="sub">${this.t("onboarding_apply_hint")}</p>
+            </div>`
+          : nothing
+      }
+
+      <div class="fields">
+        ${policy.fields
+          .filter((f) => profileApplicability(policy, draft.profile ?? {})[f.id] !== false)
+          .map(
+            (f) =>
+              html`<label
+                >${f.label}
+                ${
+                  f.type === "select"
+                    ? html`<select
+                        ?disabled=${!this.profileField(f.id, true)}
+                        .value=${draft.profile?.[f.id] ?? ""}
+                        ?required=${!draft.id && f.required}
+                        @change=${(e: Event) => this.patchDraft("profile", { ...draft.profile, [f.id]: value(e) })}
+                      >
+                        <option value="">—</option>
+                        ${draft.profile?.[f.id] && !f.options.includes(draft.profile[f.id]) ? html`<option value=${draft.profile[f.id]}>${draft.profile[f.id]} (${this.t("profile_legacy_value")})</option>` : nothing}
+                        ${f.options.map((o) => html`<option value=${o}>${o}</option>`)}
+                      </select>`
+                    : html`<input
+                          ?disabled=${!this.profileField(f.id, true)}
+                          maxlength="100"
+                          type=${f.type === "number" ? "text" : f.type === "date" && (!draft.profile?.[f.id] || validProfileValue(f, draft.profile[f.id])) ? "date" : "text"}
+                          inputmode=${f.type === "number" ? "decimal" : "text"}
+                          ?required=${!draft.id && f.required}
+                          list=${"profile-options-" + f.id}
+                          .value=${draft.profile?.[f.id] ?? ""}
+                          @input=${(e: Event) => this.patchDraft("profile", { ...draft.profile, [f.id]: value(e) })}
+                        />
+                        <datalist id=${"profile-options-" + f.id}>
+                          ${f.options.map((o) => html`<option value=${o}></option>`)}
+                        </datalist>`
+                }
+                ${f.applicability_unknown ? html`<small>${this.t("profile_condition_unknown")}</small>` : f.required ? html`<small>${this.t("profile_field_required")}</small>` : nothing}
+              </label>`,
+          )}
+      </div>
+      ${
+        policy.groups.some((g) => g.enabled)
+          ? html`<p>${this.t("profile_groups")}</p>
+              <div class="fields">
+                ${policy.groups
+                  .filter((g) => g.enabled)
+                  .map(
+                    (g) =>
+                      html`<label class="check"
+                        ><input
+                          type="checkbox"
+                          .checked=${draft.group_ids?.includes(g.id) ?? false}
+                          ?disabled=${!this.personField("access", true)}
+                          @change=${(e: Event) => this.patchDraft("group_ids", checked(e) ? [...(draft.group_ids ?? []), g.id] : (draft.group_ids ?? []).filter((id) => id !== g.id))}
+                        />${g.label}</label
+                      >`,
+                  )}
+              </div>`
+          : nothing
+      }
+      ${
+        draft.id &&
+        this.personField("access") &&
+        this.personField("profile") &&
+        this.commandAvailable("users/group_suggestions")
+          ? html`<wiskey-group-suggestions
+              .hass=${this.protectedHass}
+              .context=${JSON.stringify(this._session)}
+              .userId=${draft.id}
+              .personRevision=${draft.revision}
+              .policyRevision=${policy.revision}
+              .canView=${this.canView("users") && this.personField("access") && this.personField("profile")}
+              .canManage=${this.personEditable(draft as Person) && this.personField("access", true)}
+              .draftUnchanged=${JSON.stringify(draft) === this._editorBaseline && this._validityFrom === localInput(draft.valid_from, this.validityZone()) && this._validityUntil === localInput(draft.valid_until, this.validityZone())}
+              @groups-suggested=${(
+                event: CustomEvent<{
+                  group_ids: string[];
+                  person_revision: number;
+                  policy_revision: number;
+                }>,
+              ) => {
+                const result = event.detail;
+                if (
+                  !this.personEditable(draft as Person) ||
+                  !this.personField("access", true) ||
+                  JSON.stringify(draft) !== this._editorBaseline ||
+                  draft.revision !== result.person_revision ||
+                  policy.revision !== result.policy_revision ||
+                  result.group_ids.some(
+                    (id) => !policy.groups.some((g) => g.enabled && g.id === id),
+                  )
+                )
+                  return;
+                this.patchDraft("group_ids", [
+                  ...new Set([...(draft.group_ids ?? []), ...result.group_ids]),
+                ]);
+              }}
+            ></wiskey-group-suggestions>`
+          : nothing
+      }
+      ${
+        policy.photo_enabled
+          ? html`<hikvision-user-photo
+              .hass=${this.protectedHass}
+              .compact=${!this.personField("photo", true)}
+              .userId=${draft.id ?? ""}
+              .configured=${draft.photo_configured ?? false}
+              .revision=${draft.revision ?? 0}
+              .image=${draft.photo}
+              @photo-changed=${(e: CustomEvent) => this.patchDraft("photo", e.detail)}
+            ></hikvision-user-photo>`
+          : nothing
+      }
+      ${policy.fields.some((f) => f.depends_on) ? html`<p class="sub">${this.t("profile_condition_preserved")}</p>` : nothing}
+      <p class="sub">${this.t("profile_local_hint")}</p>
+    </fieldset>`;
+  }
+  private editorActions() {
+    if (!this._draft?.id) return nothing;
+    return html`<fieldset class="editor-user-actions">
+      <legend>${this.t("user_more_actions")}</legend>
+      <div class="row" style="flex-wrap:wrap">
+        <button
+          type="button"
+          ?disabled=${this._busy}
+          @click=${() =>
+            this.editorAction((u) => {
+              this._auditUser = u.id;
+              this.close();
+              this.navigate("audit");
+            })}
+        >
+          ${this.t("audit_show_user")}
+        </button>
+        <button
+          type="button"
+          class="danger"
+          ?disabled=${this._busy}
+          @click=${() =>
+            this.editorAction((u) => {
+              void this.removeUser(u);
+            })}
+        >
+          ${this.t("delete")}
+        </button>
+      </div>
+      <p class="sub">${this.t("profile_actions_hint")}</p>
+    </fieldset>`;
+  }
+  private wallView() {
+    const stations = this.wallStations();
+    const size = this._wallDensity || this._wallCapacity;
+    const pages = Math.max(1, Math.ceil(stations.length / size));
+    const page = Math.min(this._wallPage, pages - 1);
+    const all = this._data?.stations ?? [];
+    return html`<section class="wall-toolbar">
+        <div class="overview-header">
+          <div class="page-heading"><h2>${this.t("overview_heading")}</h2></div>
+          <section class="metrics" aria-label=${this.t("overview")}>
+            ${[
+              [`${all.filter((s) => s.online).length} / ${all.length}`, "online_stations"],
+              [all.filter((s) => s.call_state === "ringing").length, "ringing_now"],
+              [this.totalUserCount(), "total_users"],
+              [this.pendingCount(), "pending_sync"],
+            ].map(
+              ([n, k]) =>
+                html`<div class="metric" role="group" aria-label=${`${this.t(String(k))}: ${n}`}>
+                  <bdi>${n}</bdi> ${this.t(String(k))}
+                </div>`,
+            )}
+          </section>
+        </div>
+        <div class="wall-controls">
+          <input
+            type="search"
+            aria-label=${this.t("wall_search")}
+            placeholder=${this.t("wall_search")}
+            .value=${this._wallQuery}
+            @input=${(e: Event) => {
+              this._wallQuery = value(e);
+              this._wallPage = 0;
+            }}
+          />
+          <label
+            >${this.t("wall_density")}
+            <select
+              aria-label=${this.t("wall_density")}
+              @change=${(e: Event) => {
+                this._wallDensity = Number(value(e));
+                this._wallPage = 0;
+              }}
+            >
+              ${[0, 4, 6, 8, 9, 12].map((n) => html`<option value=${n} ?selected=${n === this._wallDensity}>${n || this.t("wall_auto")}</option>`)}
+            </select></label
+          >
+          <button @click=${() => this.wallFullscreen()}>${this.t("wall_fullscreen")}</button>
+          <hikvision-live-clock
+            .language=${this.hass?.language ?? "en"}
+            .zone=${this._data?.default_zone ?? UTC_ZONE}
+          ></hikvision-live-clock>
+        </div>
+      </section>
+      <div class="overview-wall grid">
+        ${repeat(
+          stations.slice(page * size, (page + 1) * size),
+          (s) => s.id,
+          (s) =>
+            html`<article
+              class="station overview-station ${s.call_state === "ringing" ? "ringing" : ""}"
+            >
+              <div class="station-head row between">
+                <h3 title=${s.name}>${s.name}</h3>
+                ${this.badge(s.call_state === "ringing" ? "ringing" : s.online ? "online" : "offline")}
+              </div>
+              <div class="camera-wrap">
+                ${s.online ? this.camera(s) : html`<div class="wall-offline">${icon("camera")}${this.t("offline")}</div>`}<button
+                  aria-label=${`${this.t("enlarge")} · ${s.name}`}
+                  title=${this.t("enlarge")}
+                  @click=${() => {
+                    this._cameraStation = s;
+                    this._dialog = "camera";
+                  }}
+                  ?disabled=${!s.entities.camera}
+                >
+                  ${icon("camera")}
+                </button>
+              </div>
+              <div class="wall-actions">
+                <div class="door-action">
+                  ${s.lock_enabled ? this.releaseButton(s, true, true) : html`<span>${this.t("camera_only")}</span>`}
+                </div>
+                <button
+                  class="wall-details"
+                  aria-label=${`${this.t("station_activity")} · ${s.name}`}
+                  @click=${() => {
+                    this._cameraStation = s;
+                    this._dialog = "station_activity";
+                  }}
+                >
+                  ⋯
+                </button>
+              </div>
+              ${this.releaseFeedback(s)}
+            </article>`,
+        )}
+      </div>
+      ${!stations.length ? html`<p class="empty">${this.t("no_stations")}</p>` : nothing}
+      <div class="wall-pagination">
+        <span>${this.t("wall_preview_hint")}</span>
+        <div>
+          <button
+            ?disabled=${page === 0}
+            @click=${() => {
+              this._wallPage = page - 1;
+            }}
+          >
+            ${this.t("wall_previous")}</button
+          ><span role="status">${page + 1} / ${pages}</span
+          ><button
+            ?disabled=${page + 1 >= pages}
+            @click=${() => {
+              this._wallPage = page + 1;
+            }}
+          >
+            ${this.t("wall_next")}
+          </button>
+        </div>
+      </div>`;
+  }
+  private overviewView() {
+    if (isWiskeyAppearance(this._appearance) && this._data)
+      return wiskeyOverview({
+        data: this._data,
+        query: this._wallQuery,
+        filter: this._v4DoorFilter,
+        page: this._wallPage,
+        capacity: this._wallDensity || this._wallCapacity,
+        density: this._wallDensity,
+        pending: this.pendingCount(),
+        canUsers: this.canManage("users"),
+        canCameraWall: this.canView("overview"),
+        canSync: this.canView("stations"),
+        canEvents: this.canView("events"),
+        canStations: this.canView("stations"),
+        language: this.hass?.language ?? "en",
+        t: (key) => this.t(key),
+        date: (value) => this.dateText(value),
+        camera: (station) =>
+          this.camera(
+            station,
+            !this._dialog && this._data?.media_settings?.overview_preview_mode !== "snapshot",
+            true,
+          ),
+        release: (station) => this.releaseButton(station, true, true),
+        feedback: (station) => this.releaseFeedback(station),
+        search: (value) => {
+          this._wallQuery = value;
+          this._wallPage = 0;
+        },
+        setFilter: (value) => {
+          this._v4DoorFilter = value;
+          this._wallPage = 0;
+        },
+        paginate: (page) => (this._wallPage = page),
+        setDensity: (density) => {
+          this._wallDensity = density;
+          this._wallPage = 0;
+        },
+        fullscreen: () => void this.wallFullscreen(),
+        open: (station) => {
+          this._cameraStation = station;
+          this._dialog = "camera";
+        },
+        manage: (station) => {
+          this._deviceFocus = station.id;
+          this.navigate("devices");
+        },
+        events: () => this.navigate("events"),
+        addUser: () => this.edit(),
+        sync: () => this.navigate("sync"),
+        cameraWall: () => this.navigate("camera_wall"),
+        snapshotPreview: this._data.media_settings?.overview_preview_mode === "snapshot",
+      });
+    if (this._accessMode && this._data)
+      return accessOverview({
+        data: this._data,
+        query: this._wallQuery,
+        page: this._wallPage,
+        capacity: 12,
+        selected: this._accessDoor,
+        language: this.hass?.language ?? "en",
+        canEvents: this.canView("events"),
+        canStations: this.canView("stations"),
+        t: (key) => this.t(key),
+        date: (value) => this.dateText(value),
+        camera: (station) => this.camera(station),
+        release: (station) => this.releaseButton(station, true, true),
+        feedback: (station) => this.releaseFeedback(station),
+        search: (value) => {
+          this._wallQuery = value;
+          this._wallPage = 0;
+        },
+        paginate: (page) => (this._wallPage = page),
+        select: (station) => (this._accessDoor = station.id),
+        open: (station) => {
+          this._cameraStation = station;
+          this._dialog = "camera";
+        },
+        manage: (station) => {
+          this._deviceFocus = station.id;
+          this.navigate("devices");
+        },
+        events: () => this.navigate("events"),
+      });
+    if (this._appearance === "modern") return this.wallView();
+    const stations = [...(this._data?.stations ?? [])].sort(
+      (a, b) => Number(b.call_state === "ringing") - Number(a.call_state === "ringing"),
+    );
+    return html`<div class="overview-header">
+        <div class="page-heading">
+          <div>
+            <h2>${this.t("overview_heading")}</h2>
+            <p class="sub">${this.t("overview_intro")}</p>
+            <hikvision-live-clock
+              .language=${this.hass?.language ?? "en"}
+              .zone=${this._data?.default_zone ?? UTC_ZONE}
+            ></hikvision-live-clock>
+          </div>
+        </div>
+        <section class="metrics" aria-label=${this.t("overview")}>
+          ${[
+            [
+              `${stations.filter((s) => s.online).length} / ${stations.length}`,
+              "online_stations",
+              "devices",
+              "metric_online",
+            ],
+            [
+              stations.filter((s) => s.call_state === "ringing").length,
+              "ringing_now",
+              "health",
+              "metric_ringing",
+            ],
+            [this.totalUserCount(), "total_users", "users", "metric_users"],
+            [this.pendingCount(), "pending_sync", "sync", "metric_pending"],
+          ].map(
+            ([count, label, glyph, shortLabel]) =>
+              html`<div
+                class="metric"
+                role="group"
+                aria-label=${`${this.t(String(label))}: ${count}`}
+              >
+                <span class="metric-icon" aria-hidden="true">${icon(String(glyph))}</span>
+                <div class="metric-copy">
+                  <strong><bdi dir="ltr">${count}</bdi></strong
+                  ><span class="metric-label-full">${this.t(String(label))}</span
+                  ><span class="metric-label-short">${this.t(String(shortLabel))}</span>
+                </div>
+              </div>`,
+          )}
+        </section>
+      </div>
+      ${
+        !stations.length
+          ? html`<div class="empty">
+              <h2>${this.t("no_stations")}</h2>
+              <a href=${settingsPath}>${this.t("settings")}</a>
+            </div>`
+          : html`<div class="grid">
+              ${repeat(
+                stations,
+                (s) => s.id,
+                (station) =>
+                  html`<article
+                    class="station overview-station ${station.call_state === "ringing" ? "ringing" : ""}"
+                  >
+                    <div class="row between station-head">
+                      <h3>${station.name}</h3>
+                      ${this.badge(station.online ? "online" : "offline")}
+                    </div>
+                    ${station.call_state === "ringing" ? html`<div class="ring-banner" role="status">${icon("health")} ${this.t("ringing")}</div>` : nothing}
+                    <div class="camera-wrap">
+                      ${this.camera(station)}<button
+                        @click=${() => {
+                          this._cameraStation = station;
+                          this._dialog = "camera";
+                        }}
+                        ?disabled=${!station.entities.camera}
+                      >
+                        ${icon("camera")}${this.t("enlarge")}
+                      </button>
+                    </div>
+                    <div class="station-content">
+                      ${
+                        station.lock_enabled
+                          ? html`<div class="door-action">${this.releaseButton(station, true)}</div>
+                              ${this.releaseFeedback(station)}`
+                          : html`<p class="sub">${this.t("camera_only")}</p>`
+                      }
+                      <div class="row between station-state">
+                        <span class="sub">${this.t(station.call_state)}</span
+                        ><span title=${this.t("sync_status_hint")}
+                          >${this.badge(station.sync_state)}</span
+                        >
+                      </div>
+                      ${this.callControls(station, true)}
+                      <details class="station-more" ?open=${this._appearance === "current"}>
+                        <summary>${this.t("station_activity")}</summary>
+                        ${this.lastAccess(station)}
+                        <p class="sub pending-users">
+                          ${this.t("pending_users")}: ${station.pending_user_count}
+                        </p>
+                        ${!station.online ? html`<p class="sub last-seen">${this.t("last_seen")}: <bdi>${this.dateText(station.last_seen, station)}</bdi></p>` : nothing}
+                        ${
+                          this.canView("stations")
+                            ? html`<button
+                                class="station-settings"
+                                @click=${() => {
+                                  this._deviceFocus = station.id;
+                                  this.navigate("devices");
+                                }}
+                              >
+                                ${this.t("station_details")}${icon("arrow")}
+                              </button>`
+                            : nothing
+                        }
+                      </details>
+                    </div>
+                  </article>`,
+              )}
+            </div>`
+      }`;
+  }
+  private tabArea(tab = this._tab): WiskeyArea {
+    if (
+      [
+        "users",
+        "data_quality",
+        "access_reviews",
+        "access_comparison",
+        "identity_lifecycle",
+        "guest_templates",
+        "visit_requests",
+      ].includes(tab)
+    )
+      return "users";
+    if (tab === "fleet_alerts") return "stations";
+    if (["events", "audit"].includes(tab)) return "events";
+    if (["devices", "sync", "health"].includes(tab)) return "stations";
+    if (
+      [
+        "tools",
+        "clock_options",
+        "media_options",
+        "whatsapp_templates",
+        "permission_directory",
+        "workflow_center",
+        "platform_center",
+        "operations_center",
+        "investigations",
+        "schedules",
+        "access_control",
+      ].includes(tab)
+    )
+      return "management";
+    return "overview";
+  }
+  private ensureAllowedTab() {
+    if (this.tabAvailable(this._tab)) return;
+    this.commitTab(this.defaultTab());
+  }
+  private defaultTab() {
+    return (
+      ["overview", "users", "events", "tools"].find((tab) => this.tabAvailable(tab)) ?? "overview"
+    );
+  }
+  private commandAvailable(command: string) {
+    return (
+      !this.operatorRestricted || !this._data?.api || this._data.api.commands.includes(command)
+    );
+  }
+  private get operatorRestricted() {
+    return (
+      this._session?.station_ids != null ||
+      Object.values(this._session?.fields ?? {}).some((level) => level !== "manage") ||
+      Object.values(this._session?.profile_fields ?? {}).some((level) => level !== "manage")
+    );
+  }
+  private tabAvailable(tab: string) {
+    if (!knownScreen(tab)) return false;
+    if (
+      ["workflow_center", "platform_center", "investigations", "access_control"].includes(tab) &&
+      !this._session?.is_admin
+    )
+      return false;
+    const required: Record<string, string> = {
+      data_quality: "users/data_quality",
+      access_reviews: "users/access_reviews",
+      access_comparison: "users/access_compare",
+      guest_templates: "guest_templates/get",
+      visit_requests: "visits/list",
+      fleet_alerts: "fleet/alerts",
+      investigations: "investigations/query",
+    };
+    if (required[tab] && !this._data?.api?.commands.includes(required[tab])) return false;
+    if (tab === "workflow_center" && !this._data?.api?.commands.includes("workflows/get"))
+      return false;
+    if (
+      tab === "platform_center" &&
+      (!this._session?.is_admin || !this._data?.api?.commands.includes("platform/get"))
+    )
+      return false;
+    if (tab === "tools") return this.canView("stations") || this.canView("management");
+    if (!this.canView(this.tabArea(tab))) return false;
+    const command: Record<string, string> = {
+      clock_options: this.operatorRestricted ? "clock/settings_update" : "clock/settings_get",
+      media_options: "media/settings_get",
+      whatsapp_templates: "whatsapp/templates_get",
+      profile_options: "profiles/settings_get",
+      permission_directory: "permissions/directory",
+      workflow_center: "workflows/get",
+      platform_center: "platform/get",
+      operations_center: "operations/query",
+      investigations: "investigations/query",
+      camera_wall: "media/settings_get",
+      data_quality: "users/data_quality",
+      access_reviews: "users/access_reviews",
+      access_comparison: "users/access_compare",
+      identity_lifecycle: "users/lifecycle",
+      guest_templates: "guest_templates/get",
+      visit_requests: "visits/list",
+      fleet_alerts: "fleet/alerts",
+      audit: "audit/list",
+      schedules: "schedules/list",
+      access_control: "authorization/settings_get",
+    };
+    return !command[tab] || this.commandAvailable(command[tab]);
+  }
+  private navigation() {
+    const v4 = isWiskeyAppearance(this._appearance);
+    const management = !["overview", "users", "events", ...(v4 ? ["devices"] : [])].includes(
+      this._tab,
+    );
+    const tabs = v4
+      ? ["overview", "users", "devices", "events", "tools"]
+      : ["overview", "users", "events", "tools"];
+    return html`<nav class="nav" aria-label=${this.t("title")}>
+      <div class="nav-group nav-primary">
+        ${tabs
+          .filter((tab) =>
+            tab === "tools"
+              ? this.canView("stations") || this.canView("management")
+              : this.canView(this.tabArea(tab)),
+          )
+          .map(
+            (tab) =>
+              html`<button
+                aria-current=${this._tab === tab || (tab === "tools" && management) ? "page" : nothing}
+                @click=${() => this.navigate(tab)}
+              >
+                ${icon(tab)}<span>${v4 ? this.t("wk4_nav_" + tab) : this.t(tab)}</span>
+              </button>`,
+          )}
+      </div>
+    </nav>`;
+  }
+  private availableTools() {
+    return managementToolIds.filter((id) => this.tabAvailable(id));
+  }
+  private toolsView() {
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("tools")}</h2>
+          <p class="sub">${this.t("tools_intro")}</p>
+        </div>
+      </div>
+      <section class="tools-grid" aria-label=${this.t("tools")}>
+        ${this.availableTools().map(
+          (tab) =>
+            html`<article class="tool-card">
+              <button aria-describedby=${"tool-" + tab} @click=${() => this.navigate(tab)}>
+                ${icon(tab)}${this.t(tab)}${icon("arrow")}
+              </button>
+              <p class="sub" id=${"tool-" + tab}>${this.t("tools_" + tab)}</p>
+            </article>`,
+        )}
+        ${
+          this.canView("management")
+            ? html`<article class="tool-card">
+                ${this.appearanceButton()}
+                <p class="sub">${this.t("tools_appearance")}</p>
+              </article>`
+            : nothing
+        }
+        ${
+          this._session?.is_admin
+            ? html`<article class="tool-card">
+                <a href=${settingsPath}
+                  >${icon("tools")}${this.t("tools_settings")}${icon("arrow")}</a
+                >
+                <p class="sub">${this.t("tools_settings_hint")}</p>
+              </article>`
+            : nothing
+        }
+      </section>`;
+  }
+
+  private userSelection(user: Person) {
+    return html`<input
+      type="checkbox"
+      class="user-selection"
+      aria-label=${this.t("select_user") + " " + user.display_name}
+      .checked=${this._selectedUsers.has(user.id)}
+      ?disabled=${!this._selectedUsers.has(user.id) && this._selectedUsers.size >= 200}
+      @change=${(e: Event) => {
+        const next = new Set(this._selectedUsers);
+        (e.target as HTMLInputElement).checked ? next.add(user.id) : next.delete(user.id);
+        this._selectedUsers = next;
+      }}
+    />`;
+  }
+  private usersView() {
+    const localMatches = matchingUsers(this._data?.users ?? [], this._query, this._userFilters);
+    const serverPage =
+      this.supportsUserDirectory && this._userPageKey === this.userQueryKey()
+        ? this._userPage
+        : undefined;
+    const totalMatches = serverPage?.total ?? localMatches.length;
+    const totalUsers = serverPage?.total_all ?? this.totalUserCount();
+    const pageOffset = this.supportsUserDirectory
+      ? Math.min(
+          serverPage?.offset ?? this._userPageOffset,
+          totalMatches
+            ? Math.floor((totalMatches - 1) / this._userPageSize) * this._userPageSize
+            : 0,
+        )
+      : 0;
+    const users = this.supportsUserDirectory
+      ? (serverPage?.records ?? localMatches.slice(pageOffset, pageOffset + this._userPageSize))
+      : localMatches;
+    const filtered =
+      !!this._query.trim() ||
+      Object.entries(this._userFilters).some(
+        ([key, value]) =>
+          key !== "sort" &&
+          (typeof value === "object" ? Object.values(value).some(Boolean) : !!value),
+      );
+    return html`<section class="users-page">
+      ${this._data?.api?.commands.includes("users/data_quality") ? html`<button @click=${() => this.navigate("data_quality")}>${this.t("data_quality")}</button>` : nothing}
+      <div class="access-users-header">
+        <div class="page-heading users-heading">
+          <div>
+            <h2>${this.t("users")}</h2>
+            <p class="sub">${this.t("users_intro")}</p>
+          </div>
+          <button
+            class="primary"
+            @click=${() => this.edit()}
+            ?disabled=${this._busy || !this.canManage("users") || !this.commandAvailable("users/create")}
+          >
+            + ${this.t("add_user")}
+          </button>
+          <button
+            @click=${() => this.createGuest()}
+            ?disabled=${this._busy || !this.canManage("users") || !this.commandAvailable("users/create")}
+          >
+            + ${this.t("guest_create")}
+          </button>
+        </div>
+        <div class="toolbar users-tools">
+          <input
+            type="search"
+            .value=${this._query}
+            placeholder=${this.t("search")}
+            aria-label=${this.t("search")}
+            @input=${(event: Event) => {
+              this._query = value(event);
+              this._selectedUsers = new Set();
+              this.scheduleUserQuery(true, 250);
+            }}
+          />
+          ${
+            isWiskeyAppearance(this._appearance)
+              ? html`<button
+                    class="wk4-filter-button"
+                    @click=${() => {
+                      const options =
+                        this.renderRoot.querySelector<HTMLDetailsElement>(".access-user-options");
+                      if (options) options.open = true;
+                      const filters = options?.querySelector<HTMLDetailsElement>(".user-filters");
+                      if (filters) filters.open = !filters.open;
+                    }}
+                  >
+                    ${this.t("user_filter_controls")}
+                  </button>
+                  <button
+                    class="wk4-view-button"
+                    @click=${() => {
+                      const options =
+                        this.renderRoot.querySelector<HTMLDetailsElement>(".access-user-options");
+                      if (options) options.open = !options.open;
+                    }}
+                  >
+                    ${this.t("views_title")}
+                  </button>`
+              : nothing
+          }
+          <details class="access-transfer-tools" ?open=${!this._accessMode}>
+            <summary>${this.t("other")}</summary>
+            <div class="access-transfer-list">
+              <button
+                @click=${() => this.openCsv()}
+                ?disabled=${this._busy || !this.commandAvailable("users/csv_preview")}
+              >
+                ${this.t("csv_import")}</button
+              ><button
+                @click=${() => this.exportCsv()}
+                ?disabled=${this._busy || !this.commandAvailable("users/csv_export")}
+              >
+                ${this.t("csv_export")}</button
+              ><button
+                @click=${() => this.openImport()}
+                ?disabled=${this._busy || !this.commandAvailable("users/adopt")}
+              >
+                ${this.t("import_existing")}</button
+              ><button
+                @click=${() => this.run(() => this.api("sync/all"))}
+                ?disabled=${this._busy || !this.commandAvailable("sync/all")}
+              >
+                ${this.t("sync_all")}
+              </button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <details class="access-user-options" ?open=${!this._accessMode}>
+        <summary>${this.t("access_list_options")}</summary>
+        <div class="users-filter-strip">
+          <wiskey-saved-user-views
+            .hass=${this.protectedHass}
+            .fields=${this._data?.profile_settings?.fields ?? []}
+            .value=${{ query: this._query, filters: this._userFilters, columns: this._userColumns }}
+            @columns-change=${(e: CustomEvent<string[]>) => (this._userColumns = e.detail)}
+            @view-load=${(e: CustomEvent<UserView>) => {
+              this._query = e.detail.query;
+              this._userFilters = this.permittedUserFilters(e.detail.filters);
+              this._userColumns = e.detail.columns;
+              this._selectedUsers = new Set();
+              this.scheduleUserQuery(true);
+            }}
+          ></wiskey-saved-user-views>
+          <details class="user-filters">
+            <summary>${this.t("user_filter_controls")}</summary>
+            <div class="toolbar">
+              ${(
+                [
+                  [
+                    "station",
+                    "user_filter_station",
+                    this._data?.stations.map((st) => [st.id, st.name]) ?? [],
+                  ],
+                  [
+                    "rights",
+                    "user_filter_rights",
+                    ["assigned", "unassigned", "disabled"].map((v) => [v, this.t("filter_" + v)]),
+                  ],
+                  [
+                    "state",
+                    "user_filter_state",
+                    [
+                      ...(this.personField("access")
+                        ? ["active", "inactive", "expired", "upcoming"]
+                        : ["active", "inactive"]),
+                      ...(this._data?.api?.capabilities.includes("people_archive")
+                        ? ["archived"]
+                        : []),
+                    ].map((v) => [v, this.t("filter_" + v)]),
+                  ],
+                  [
+                    "credential",
+                    "user_filter_credential",
+                    ["pin", "no_pin", "card", "no_card"].map((v) => [v, this.t("filter_" + v)]),
+                  ],
+                  [
+                    "sort",
+                    "user_sort",
+                    ["name", "name_desc", "employee"].map((v) => [v, this.t("sort_" + v)]),
+                  ],
+                ] as [keyof UserFilters, string, string[][]][]
+              )
+                .filter(([key]) => key !== "credential" || this.personField("credentials"))
+                .filter(([key]) => key !== "rights" || this.personField("access"))
+                .map(
+                  ([key, label, options]) =>
+                    html`<label
+                      >${this.t(label)}<select
+                        aria-label=${this.t(label)}
+                        .value=${this._userFilters[key]}
+                        @change=${(e: Event) => {
+                          this._userFilters = {
+                            ...this._userFilters,
+                            [key]: (e.target as HTMLSelectElement).value,
+                          };
+                          this._selectedUsers = new Set();
+                          this.scheduleUserQuery(true);
+                        }}
+                      >
+                        ${key !== "sort" ? html`<option value="">${this.t("filter_any")}</option>` : nothing}${options.map(([id, name]) => html`<option value=${id} ?selected=${this._userFilters[key] === id}>${name}</option>`)}
+                      </select></label
+                    >`,
+                )}
+            </div>
+            <div class="toolbar profile-filters">
+              ${this._data?.profile_settings?.fields
+                .filter((f) => f.enabled)
+                .map(
+                  (f) =>
+                    html`<label
+                      >${f.label}<select
+                        aria-label=${f.label}
+                        .value=${this._userFilters.profile?.[f.id] ?? ""}
+                        @change=${(e: Event) => {
+                          this._userFilters = {
+                            ...this._userFilters,
+                            profile: { ...this._userFilters.profile, [f.id]: value(e) },
+                          };
+                          this._selectedUsers = new Set();
+                          this.scheduleUserQuery(true);
+                        }}
+                      >
+                        <option value="">${this.t("filter_any")}</option>
+                        ${[...new Set([...(this._profileFacets[f.id] ?? []), ...(this._data?.users ?? []).map((u) => u.profile?.[f.id]).filter((v): v is string => !!v), ...(this._userFilters.profile?.[f.id] ? [this._userFilters.profile[f.id]] : [])])].sort().map((v) => html`<option value=${v}>${v}</option>`)}
+                      </select></label
+                    >`,
+                )}
+              <label ?hidden=${!this.personField("access")}
+                >${this.t("profile_groups")}<select
+                  aria-label=${this.t("profile_groups")}
+                  .value=${this._userFilters.group ?? ""}
+                  @change=${(e: Event) => {
+                    this._userFilters = { ...this._userFilters, group: value(e) };
+                    this._selectedUsers = new Set();
+                    this.scheduleUserQuery(true);
+                  }}
+                >
+                  <option value="">${this.t("filter_any")}</option>
+                  ${this._data?.profile_settings?.groups.filter((g) => g.enabled).map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+                </select></label
+              >
+            </div>
+          </details>
+        </div>
+      </details>
+      <div class="user-result-bar">
+        <p role="status">
+          ${this.t("user_results")}:
+          <bdi dir="ltr"
+            >${this.supportsUserDirectory ? `${pageOffset + (users.length ? 1 : 0)}–${pageOffset + users.length} / ${totalMatches}` : `${users.length} / ${totalUsers}`}</bdi
+          >
+        </p>
+        ${
+          filtered
+            ? html`<button
+                @click=${() => {
+                  this._query = "";
+                  this._userFilters = {
+                    ...this._userFilters,
+                    station: "",
+                    rights: "",
+                    state: "",
+                    credential: "",
+                    profile: {},
+                    group: "",
+                  };
+                  this._selectedUsers = new Set();
+                  this.scheduleUserQuery(true);
+                }}
+              >
+                ${this.t("clear_user_filters")}
+              </button>`
+            : nothing
+        }
+      </div>
+      ${
+        this.supportsUserDirectory
+          ? html`<nav class="user-directory-pagination" aria-label=${this.t("user_pagination")}>
+              <label
+                >${this.t("users_per_page")}
+                <select
+                  .value=${String(this._userPageSize)}
+                  @change=${(event: Event) => {
+                    this._userPageSize = Number((event.target as HTMLSelectElement).value);
+                    this.scheduleUserQuery(true);
+                  }}
+                >
+                  ${[25, 50, 100, 200].map((size) => html`<option value=${size}>${size}</option>`)}
+                </select></label
+              >
+              <button
+                ?disabled=${this._userPageLoading || pageOffset === 0}
+                @click=${() => this.changeUserPage(Math.max(0, pageOffset - this._userPageSize))}
+              >
+                ${this.t("wall_previous")}
+              </button>
+              <span
+                ><bdi dir="ltr"
+                  >${totalMatches ? Math.floor(pageOffset / this._userPageSize) + 1 : 0} /
+                  ${Math.ceil(totalMatches / this._userPageSize)}</bdi
+                ></span
+              >
+              <button
+                ?disabled=${this._userPageLoading || pageOffset + this._userPageSize >= totalMatches}
+                @click=${() => this.changeUserPage(pageOffset + this._userPageSize)}
+              >
+                ${this.t("wall_next")}
+              </button>
+              ${this._userPageLoading ? html`<span role="status">${this.t("user_page_loading")}</span>` : nothing}
+            </nav>`
+          : nothing
+      }
+      <details
+        class="access-selection-options"
+        ?open=${!this._accessMode || this._selectedUsers.size > 0}
+      >
+        <summary>${this.t("select_user")} · ${this._selectedUsers.size}</summary>
+        <div class="toolbar user-selection-tools">
+          <button
+            ?disabled=${!users.length}
+            @click=${() => {
+              this._selectedUsers = new Set(users.slice(0, 200).map((u) => u.id));
+            }}
+          >
+            ${this.t(this.supportsUserDirectory ? "select_visible_page" : "select_visible")}</button
+          ><button
+            ?disabled=${!this._selectedUsers.size}
+            @click=${() => {
+              this._selectedUsers = new Set();
+            }}
+          >
+            ${this.t("clear_selection")}
+          </button>
+        </div>
+        <hikvision-bulk-users
+          .canRenew=${this._data?.api?.commands.includes("users/bulk_renewal_preview") ?? false}
+          .zone=${this._data?.default_zone ?? UTC_ZONE}
+          .canCheckpoint=${this._data?.api?.commands.includes("jobs/bulk_create") ?? false}
+          .hass=${this.protectedHass}
+          .policy=${this._data?.profile_settings}
+          .users=${this._data?.users ?? []}
+          .selected=${[...this._selectedUsers]}
+          .stations=${this._data?.stations ?? []}
+          @access-changed=${() => this.refresh()}
+        ></hikvision-bulk-users>
+      </details>
+      <div class="access-people-workspace">
+        <div class="access-people-list">
+          ${
+            !users.length
+              ? html`<div class="empty">
+                  <h2>${this.t(filtered ? "no_results" : "no_users")}</h2>
+                  ${!filtered ? html`<p>${this.t("no_users_detail")}</p>` : nothing}
+                </div>`
+              : this._accessMode
+                ? this.accessPeopleTable(users)
+                : this.legacyPeopleList(users)
+          }
+        </div>
+        ${
+          this._accessMode &&
+          !isWiskeyAppearance(this._appearance) &&
+          !this._accessNarrow &&
+          users.length
+            ? html`<aside class="access-person-inspector">
+                ${this.accessPersonDetails(this.detailPerson(users.find((u) => u.id === this._detailsUser) ?? users[0]))}
+              </aside>`
+            : nothing
+        }
+      </div>
+    </section>`;
+  }
+  private legacyPeopleList(users: Person[]) {
+    return html`<div class="table-wrap desktop-users">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("select_user")}</th>
+              ${["name", "employee_id", "phone"].map((key) => html`<th>${this.t(key)}</th>`)}
+              ${this.visibleProfileFields().map((f) => html`<th class="custom-user-field">${f.label}</th>`)}
+              ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<th>${this.t("profile_groups")}</th>` : nothing}
+              ${["pin", "cards", "assignments", "validity", "status", "other"].map((key) => html`<th>${this.t(key)}</th>`)}
+            </tr>
+          </thead>
+          <tbody>
+            ${repeat(
+              users,
+              (user) => user.id,
+              (user) =>
+                html`<tr>
+                  <td>${this.userSelection(user)}</td>
+                  <td>
+                    <div class="person-name">
+                      ${this.personAvatar(user)}
+                      <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
+                        ${user.display_name}
+                      </button>
+                      ${user.access_category && user.access_category !== "staff" ? html`<small class="sub">${this.t(`access_category_${user.access_category}`)}</small>` : nothing}
+                    </div>
+                  </td>
+                  <td><bdi>${user.employee_no}</bdi></td>
+                  <td class="phone-cell">
+                    <bdi dir="ltr"
+                      >${this.personField("phone") ? mobileDisplay(user.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                    >
+                  </td>
+                  ${this.visibleProfileFields().map((f) => html`<td class="custom-user-field">${user.profile?.[f.id] || "—"}</td>`)}
+                  ${this._data?.profile_settings?.groups.some((g) => g.enabled) ? html`<td class="custom-user-field">${this.userGroupNames(user) || "—"}</td>` : nothing}
+                  <td>
+                    ${this.personField("credentials") ? this.t(user.pin_configured ? "configured" : "not_configured") : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("credentials") ? user.cards.length : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("access") ? Object.values(user.assignments).filter((item) => item.enabled).length : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    ${this.personField("access") ? this.validitySummary(user) : this.t("operator_field_hidden")}
+                  </td>
+                  <td>
+                    <span title=${this.t("user_sync_hint")}
+                      >${this.badge(this.personStatus(user))}</span
+                    >
+                    <div class="sub">
+                      ${this.t(user.archived_at ? "filter_archived" : user.active ? "active" : "inactive")}
+                    </div>
+                  </td>
+                  <td><div class="row">${this.userActions(user)}</div></td>
+                </tr>`,
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-users">
+        ${repeat(
+          users,
+          (user) => user.id,
+          (user) =>
+            html`<article class="person">
+              <div class="row between">
+                ${this.userSelection(user)}
+                ${this._data?.profile_settings?.photo_enabled && user.photo_configured ? html`<hikvision-user-photo compact .hass=${this.protectedHass} .userId=${user.id} .configured=${true} .revision=${user.revision}></hikvision-user-photo>` : nothing}
+                <h3>
+                  <button class="user-detail-link" @click=${() => this.openPersonDetails(user)}>
+                    ${user.display_name}
+                  </button>
+                  ${user.access_category && user.access_category !== "staff" ? html`<small class="sub"> · ${this.t(`access_category_${user.access_category}`)}</small>` : nothing}
+                </h3>
+                <span title=${this.t("user_sync_hint")}
+                  >${this.badge(this.personStatus(user))}</span
+                >
+              </div>
+              <p class="sub">
+                ${this.t("phone")}:
+                <bdi dir="ltr"
+                  >${this.personField("phone") ? mobileDisplay(user.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                >
+                · ${this.t("employee_id")}: <bdi>${user.employee_no}</bdi> ·
+                ${this.t(user.archived_at ? "filter_archived" : user.active ? "active" : "inactive")}
+              </p>
+              <p class="sub">
+                ${this.t("pin")}:
+                ${this.personField("credentials") ? this.t(user.pin_configured ? "configured" : "not_configured") : this.t("operator_field_hidden")}
+                · ${this.t("cards")}:
+                ${this.personField("credentials") ? user.cards.length : this.t("operator_field_hidden")}
+              </p>
+              ${this.personCustomDetails(user)} ${this.validitySummary(user)}
+              <div class="row actions">${this.userActions(user)}</div>
+            </article>`,
+        )}
+      </div>`;
+  }
+  private personAvatar(person: Person) {
+    if (this._data?.profile_settings?.photo_enabled && person.photo_configured) {
+      return html`<hikvision-user-photo
+        compact
+        .hass=${this.protectedHass}
+        .userId=${person.id}
+        .configured=${true}
+        .revision=${person.revision}
+      ></hikvision-user-photo>`;
+    }
+    const initials = person.display_name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => Array.from(part)[0])
+      .join("");
+    return html`<span class="person-avatar" aria-hidden="true">${initials}</span>`;
+  }
+  private personCustomDetails(person: Person) {
+    const groups = this.userGroupNames(person);
+    return html`<dl class="user-custom-details">
+      ${this.visibleProfileFields().map(
+        (f) =>
+          html`<div>
+            <dt>${f.label}</dt>
+            <dd>${person.profile?.[f.id] || "—"}</dd>
+          </div>`,
+      )}
+      ${
+        groups
+          ? html`<div>
+              <dt>${this.t("profile_groups")}</dt>
+              <dd>${groups}</dd>
+            </div>`
+          : nothing
+      }
+    </dl>`;
+  }
+  private openPersonDetails(person: Person) {
+    this._detailsUser = person.id;
+    if (
+      isWiskeyAppearance(this._appearance) ||
+      !(this._accessMode && this._tab === "users" && !this._accessNarrow)
+    )
+      this._detailsModalUser = person.id;
+    void this.loadPersonDetails(person);
+  }
+  private detailPerson(person: Person) {
+    return this._detailRecords[person.id] ?? person;
+  }
+  private modalPerson() {
+    return (
+      this._detailRecords[this._detailsModalUser] ??
+      this._data?.users.find((u) => u.id === this._detailsModalUser)
+    );
+  }
+  private async openQualityPerson(userId: string) {
+    if (!this.canView("users") || !this._data?.api?.commands.includes("users/get")) return;
+    const access = JSON.stringify(this._session),
+      tab = this._tab;
+    try {
+      const person = await this.api<Person>("users/get", { user_id: userId });
+      if (
+        !this.authorized ||
+        tab !== this._tab ||
+        access !== JSON.stringify(this._session) ||
+        person.id !== userId
+      )
+        return;
+      this._detailRecords = { ...this._detailRecords, [person.id]: person };
+      this._detailsModalUser = person.id;
+    } catch {
+      this._error = this.t("action_failed");
+    }
+  }
+  private async openEventPerson(userId: string) {
+    if (!this._session?.is_admin || !this._data?.api?.commands.includes("users/get")) return;
+    const access = JSON.stringify(this._session);
+    try {
+      const person = await this.api<Person>("users/get", { user_id: userId });
+      if (!this.authorized || access !== JSON.stringify(this._session) || person.id !== userId)
+        return;
+      this._detailRecords = { ...this._detailRecords, [person.id]: person };
+      this._detailsModalUser = person.id;
+    } catch {
+      this._error = this.t("action_failed");
+    }
+  }
+  private async loadPersonDetails(person: Person) {
+    if (!this._data?.api?.commands.includes("users/get")) return;
+    const cached = this.detailCache.get(person.id);
+    if (cached && cached.expires > Date.now() && cached.person.revision === person.revision) {
+      this._detailRecords = { ...this._detailRecords, [person.id]: cached.person };
+      return;
+    }
+    const access = JSON.stringify(this._session);
+    try {
+      const detail = await this.api<Person>("users/get", { user_id: person.id });
+      if (!this.authorized || detail.id !== person.id || access !== JSON.stringify(this._session))
+        return;
+      this.detailCache.delete(person.id);
+      this.detailCache.set(person.id, { person: detail, expires: Date.now() + 60_000 });
+      while (this.detailCache.size > 100)
+        this.detailCache.delete(this.detailCache.keys().next().value!);
+      this._detailRecords = { ...this._detailRecords, [person.id]: detail };
+    } catch {
+      // The page record remains a safe fallback for older servers and transient failures.
+    }
+  }
+  private accessPersonDetails(person: Person) {
+    return html`<wiskey-user-details
+      embedded
+      .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+      .canScenario=${this._data?.api?.commands.includes("users/access_scenario") ?? false}
+      .canRenew=${this._data?.api?.commands.includes("workflows/renew_request") ?? false}
+      .canEdit=${this.personEditable(person)}
+      .canArchive=${this._data?.api?.commands.includes(person.archived_at ? "users/unarchive" : "users/archive") ?? false}
+      @details-archive=${() => this.changeArchive(person)}
+      .hass=${this.protectedHass}
+      .person=${person}
+      .stations=${this._data?.stations ?? []}
+      .policy=${this._data?.profile_settings}
+      @details-close=${() => (this._detailsUser = "")}
+      @details-edit=${() => this.edit(person)}
+    ></wiskey-user-details>`;
+  }
+  private accessPeopleTable(users: Person[]) {
+    const selected =
+      this._detailsUser ||
+      (!isWiskeyAppearance(this._appearance) && !this._accessNarrow ? users[0]?.id : "");
+    const fields = this.visibleProfileFields();
+    return html`<div class="access-people-table table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><span class="sr-only">${this.t("select_user")}</span></th>
+            <th>${this.t("name")}</th>
+            <th>${this.t("phone")}</th>
+            ${fields.map((f) => html`<th class="access-profile-col">${f.label}</th>`)}
+            <th class="access-groups-col">${this.t("profile_groups")}</th>
+            <th>${this.t("assignments")}</th>
+            <th>${this.t("status")}</th>
+            <th>${this.t("other")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${repeat(
+            users,
+            (u) => u.id,
+            (u) =>
+              html`<tr data-user=${u.id} aria-selected=${selected === u.id}>
+                <td class="access-select-cell">${this.userSelection(u)}</td>
+                <td>
+                  <div class="access-person-identity">
+                    ${this.personAvatar(u)}
+                    <div>
+                      <button class="user-detail-link" @click=${() => this.openPersonDetails(u)}>
+                        ${u.display_name}</button
+                      ><small class="access-person-id"
+                        ><bdi>${u.employee_no}</bdi
+                        >${u.access_category && u.access_category !== "staff" ? html` · ${this.t(`access_category_${u.access_category}`)}` : nothing}</small
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td class="phone-cell">
+                  <bdi dir="ltr"
+                    >${this.personField("phone") ? mobileDisplay(u.phone || "") || "—" : this.t("operator_field_hidden")}</bdi
+                  >
+                </td>
+                ${fields.map((f) => html`<td class="access-profile-col">${u.profile?.[f.id] || "—"}</td>`)}
+                <td class="access-groups-col">${this.userGroupNames(u) || "—"}</td>
+                <td class="access-rights-cell">
+                  ${this.personField("access") ? html`${Object.values(u.assignments).filter((a) => a.enabled).length}<span class="sub">${this.t("devices")}</span>` : this.t("operator_field_hidden")}
+                </td>
+                <td class="access-person-state">
+                  ${this.badge(this.personStatus(u))}<span class="sub"
+                    >${this.t(u.archived_at ? "filter_archived" : u.active ? "active" : "inactive")}</span
+                  >
+                </td>
+                <td class="access-person-actions">${this.userActions(u)}</td>
+              </tr>`,
+          )}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  private capabilityDetails(station: Station) {
+    return html`<section class="capability-details">
+      <h4>${this.t("capabilities_title")}</h4>
+      <p class="field-note">${this.t("capability_hint")}</p>
+      <ul class="capability-list">
+        ${["call_status", "snapshot", "video_channel", "user_info", "card_info", "event_query"].map(
+          (key) =>
+            html`<li>
+              <span>${this.t(`cap_${key}`)}</span>
+              <span class="sub"
+                >${station.observations[key] ? "✓" : "?"}
+                ${this.t(station.observations[key] ? "observed" : "not_verified")}</span
+              >
+            </li>`,
+        )}
+      </ul>
+      <h4>${this.t("integrated_locks")}</h4>
+      ${
+        station.integrated_locks.length
+          ? station.integrated_locks.map(
+              (lock) => html`
+                <p class="sub lock-mapping">
+                  ${lock.name ? html`<strong>${lock.name}</strong> · ` : nothing}${this.t("physical_lock")}
+                  ${lock.physical_index} → <bdi>API ${lock.api_id}</bdi>
+                </p>
+              `,
+            )
+          : html`<p class="sub">${this.t("camera_only")}</p>`
+      }
+      <dl class="event-health">
+        <dt>${this.t("live_events")}</dt>
+        <dd>${this.t(`event_${station.event_status?.stream ?? "unknown"}`)}</dd>
+        <dt>${this.t("history_recovery")}</dt>
+        <dd>${this.t(`event_${station.event_status?.history ?? "unknown"}`)}</dd>
+        <dt>${this.t("history_until")}</dt>
+        <dd><bdi>${this.dateText(station.event_status?.recovered_until ?? null, station)}</bdi></dd>
+      </dl>
+    </section>`;
+  }
+  private devicesView() {
+    return html`<div class="toolbar">
+        <h2>${this.t("devices")}</h2>
+        <a href=${settingsPath}>${this.t("settings")}</a>
+      </div>
+      <label class="device-selector"
+        >${this.t("device_selection")}<select
+          .value=${this._deviceFocus || (this._accessMode ? (this._data?.stations[0]?.id ?? "") : "")}
+          @change=${(event: Event) => {
+            this._deviceFocus = value(event);
+          }}
+        >
+          ${!this._accessMode ? html`<option value="">${this.t("all")}</option>` : nothing}
+          ${this._data?.stations.map((station) => html`<option value=${station.id}>${station.name}</option>`)}
+        </select></label
+      >
+      <div class="station-settings-list">
+        ${(this._data?.stations ?? []).filter((station) => (this._accessMode ? station.id === (this._deviceFocus || this._data?.stations[0]?.id) : !this._deviceFocus || station.id === this._deviceFocus)).map((station) => this.stationSettings(station))}
+      </div>`;
+  }
+  private stationSettings(station: Station) {
+    const modern = this._appearance === "modern" || this._accessMode;
+    const tab = this._stationTabs[station.id] ?? "overview";
+    return html`<article class="station station-config device-station" aria-label=${station.name}>
+      <header class="station-settings-heading">
+        <div>
+          <h3>${station.name}</h3>
+          <bdi class="sub">${station.model ?? this.t("not_observed")}</bdi>
+        </div>
+        <div class="settings-actions">
+          <button
+            @click=${() => this.run(() => this.api("stations/rescan", { station_id: station.id }), "scan_complete")}
+            ?disabled=${this._busy || station.scanning || !station.loaded}
+          >
+            ${this.t("rescan")}
+          </button>
+          <button
+            class="primary"
+            @click=${() => this.run(() => this.api("sync/station", { station_id: station.id }))}
+            ?disabled=${this._busy}
+          >
+            ${this.t("sync_now")}
+          </button>
+        </div>
+      </header>
+      ${
+        modern
+          ? html`<nav class="station-tabs" aria-label=${station.name}>
+              ${["overview", "programs", "public_codes", "settings"].map(
+                (t) =>
+                  html`<button
+                    aria-current=${tab === t ? "page" : nothing}
+                    @click=${() => {
+                      this._stationTabs = { ...this._stationTabs, [station.id]: t };
+                    }}
+                  >
+                    ${this.t("station_tab_" + t)}
+                  </button>`,
+              )}
+            </nav>`
+          : nothing
+      }
+      <div ?hidden=${modern && tab !== "overview"}>
+        <div class="station-settings-columns">
+          <section class="station-settings-card">
+            <div class="station-settings-symbol">
+              ${icon("devices")}
+              <div>
+                <h4>${this.t("station_details")}</h4>
+                ${this.badge(station.online ? "online" : "offline")}
+              </div>
+            </div>
+            <dl>
+              ${[
+                ["model", station.model ?? "—"],
+                ["firmware", station.firmware ?? "—"],
+                ["address", station.host ?? "—"],
+                ["last_seen", this.dateText(station.last_seen, station)],
+                [
+                  "last_poll",
+                  station.last_poll_ms === null
+                    ? this.t("not_observed")
+                    : `${station.last_poll_ms} ms`,
+                ],
+              ].map(
+                ([label, text]) =>
+                  html`<dt>${this.t(label)}</dt>
+                    <dd><bdi>${text}</bdi></dd>`,
+              )}
+            </dl>
+            <p class="sub">${this.t(station.lock_enabled ? "station_access" : "camera_only")}</p>
+            <a href=${settingsPath}>${this.t("configure")}</a>
+          </section>
+          <section class="station-settings-card">
+            <h4>${this.t("technical_relays")}</h4>
+            <p class="sub">${this.t("technical_relays_hint")}</p>
+            ${[1, 2].map((physical) => {
+              const lock = station.integrated_locks.find((l) => l.physical_index === physical);
+              return html`<div class="station-relay">
+                <div class="row between">
+                  <strong>${this.t("physical_lock")} ${physical}</strong
+                  >${this.badge(lock ? "configured" : "not_configured")}
+                </div>
+                ${
+                  lock
+                    ? html`<p>
+                          <bdi>${lock.name || this.t("physical_lock") + " " + physical}</bdi> · API
+                          ${lock.api_id}
+                        </p>
+                        <div class="row">${this.relayButton(station, physical, false)}</div>
+                        ${this.releaseFeedback(station, physical)}`
+                    : nothing
+                }
+              </div>`;
+            })}
+          </section>
+        </div>
+        <div class="device-metrics">
+          <div><strong>${station.managed_user_count ?? "—"}</strong>${this.t("managed_users")}</div>
+          <div><strong>${station.pending_user_count}</strong>${this.t("pending_users")}</div>
+          <div>
+            <strong>${station.integrated_locks.length}</strong>${this.t("integrated_locks")}
+          </div>
+        </div>
+        ${
+          isWiskeyAppearance(this._appearance)
+            ? html`<div class="wk4-station-shortcuts">
+                <button
+                  @click=${() => (this._stationTabs = { ...this._stationTabs, [station.id]: "programs" })}
+                >
+                  <strong>${this.t("station_tab_programs")}</strong>
+                  <span>${this.t("wk4_station_programs_hint")}</span>
+                  ${icon("arrow")}
+                </button>
+                <button
+                  @click=${() => (this._stationTabs = { ...this._stationTabs, [station.id]: "public_codes" })}
+                >
+                  <strong>${this.t("station_tab_public_codes")}</strong>
+                  <span>${this.t("wk4_station_codes_hint")}</span>
+                  ${icon("arrow")}
+                </button>
+              </div>`
+            : nothing
+        }
+        ${station.scanning ? html`<p role="status">${this.t("scanning")}</p>` : nothing}${station.scan_error ? html`<p class="danger scan-error">${this.t("scan_failed")}: ${this.t(station.scan_error)}</p>` : nothing}${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
+      </div>
+      ${modern && tab === "programs" ? html`<wiskey-door-programs .hass=${this.protectedHass} .station=${station}></wiskey-door-programs>` : nothing}
+      <div ?hidden=${modern && !["settings", "public_codes"].includes(tab)}>
+        <hikvision-station-technical
+          .mode=${modern ? tab : "all"}
+          .hass=${this.protectedHass}
+          .station=${station}
+        ></hikvision-station-technical>
+      </div>
+      <div ?hidden=${modern && tab !== "settings"}>
+        <details class="device-extra" ?open=${this._appearance === "current"}>
+          <summary>${this.t("clock_title")}</summary>
+          ${this.clockView(station)}
+        </details>
+        <details class="device-extra" ?open=${this._appearance === "current"}>
+          <summary>${this.t("capabilities_title")}</summary>
+          ${this.capabilityDetails(station)}
+          <dl>
+            ${[
+              ["last_reconciliation", this.dateText(station.reconciled_at, station)],
+              ["last_scan", this.dateText(station.scanned_at, station)],
+              ["users", `${station.user_count ?? "—"} / ${station.capabilities?.max_users ?? "—"}`],
+              ["cards", `${station.card_count ?? "—"} / ${station.capabilities?.max_cards ?? "—"}`],
+              ["unmanaged", String(station.unmanaged_count ?? "—")],
+            ].map(
+              ([label, text]) =>
+                html`<dt>${this.t(label)}</dt>
+                  <dd><bdi>${text}</bdi></dd>`,
+            )}
+          </dl>
+          <p class="field-note">${this.t("inspection_hint")}</p>
+        </details>
+      </div>
+    </article>`;
+  }
+  private async downloadSyncDiagnostics() {
+    await this.run(async () => {
+      const report = await this.api<Record<string, unknown>>("sync/diagnostics");
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "hikvision-sync-diagnostics.json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "diagnostics_downloaded");
+  }
+  private syncView() {
+    const data = this._data!;
+    const stations = data.stations.filter(
+      (st) => !this._syncStation || st.id === this._syncStation,
+    );
+    const query = this._syncQuery.trim().toLocaleLowerCase();
+    const users = data.users.filter(
+      (user) =>
+        (!query ||
+          `${user.display_name} ${user.employee_no}`.toLocaleLowerCase().includes(query)) &&
+        (!this._syncAttention ||
+          stations.some((st) => {
+            const assignment = user.assignments[st.id];
+            return (
+              assignment &&
+              ((assignment.sync_state ?? "pending") !== "synced" || !!assignment.last_error)
+            );
+          })),
+    );
+    return html`<div class="page-heading">
+        <div>
+          <h2>${this.t("sync")}</h2>
+          <p class="sub">${this.t("sync_intro")}</p>
+        </div>
+        <div class="row">
+          <button @click=${() => this.downloadSyncDiagnostics()} ?disabled=${this._busy}>
+            ${this.t("download_sync_diagnostics")}
+          </button>
+          <button
+            class="primary"
+            @click=${() => this.run(() => this.api("sync/all"))}
+            ?disabled=${this._busy}
+          >
+            ${this.t("sync_all")}
+          </button>
+        </div>
+      </div>
+      <details class="sync-operations">
+        <summary>${this.t("sync_operations_title")}</summary>
+        <p class="sub">${this.t("sync_operations_hint")}</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                ${["name", "devices", "status", "sync_queued", "sync_verified", "sync_operation_id"].map((key) => html`<th scope="col">${this.t(key)}</th>`)}
+              </tr>
+            </thead>
+            <tbody>
+              ${(data.sync_operations ?? [])
+                .filter(
+                  (op) =>
+                    (!this._syncStation || op.station_id === this._syncStation) &&
+                    (!this._syncAttention || ["pending", "failed"].includes(op.state)),
+                )
+                .slice(0, 200)
+                .map(
+                  (op) =>
+                    html`<tr>
+                      <td>
+                        ${data.users.find((user) => user.id === op.user_id)?.display_name ?? this.t("operation_removed_user")}
+                      </td>
+                      <td>
+                        ${data.stations.find((station) => station.id === op.station_id)?.name ?? this.t("unknown")}
+                      </td>
+                      <td>${this.t("operation_" + op.state)}</td>
+                      <td>
+                        <bdi>${op.queued_at ? this.dateText(op.queued_at) : this.t("unknown")}</bdi>
+                      </td>
+                      <td><bdi>${op.verified_at ? this.dateText(op.verified_at) : "—"}</bdi></td>
+                      <td><bdi>${op.id}</bdi></td>
+                    </tr>`,
+                )}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <div class="toolbar sync-filters">
+        <label
+          >${this.t("sync_search")}<input
+            type="search"
+            .value=${this._syncQuery}
+            @input=${(e: Event) => {
+              this._syncQuery = value(e);
+            }}
+        /></label>
+        <label
+          >${this.t("sync_filter_station")}<select
+            .value=${this._syncStation}
+            @change=${(e: Event) => {
+              this._syncStation = value(e);
+            }}
+          >
+            <option value="">${this.t("all")}</option>
+            ${data.stations.map((st) => html`<option value=${st.id}>${st.name}</option>`)}
+          </select></label
+        >
+        <label class="check"
+          ><input
+            type="checkbox"
+            .checked=${this._syncAttention}
+            @change=${(e: Event) => {
+              this._syncAttention = checked(e);
+            }}
+          />${this.t("sync_attention_only")}</label
+        >
+      </div>
+      <p class="sub" role="status">
+        ${this.t("user_results")}: <bdi dir="ltr">${users.length} / ${data.users.length}</bdi> ·
+        ${this.t("devices")}: ${stations.length}
+      </p>
+      ${
+        users.length && stations.length
+          ? html`<div class="table-wrap matrix">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">${this.t("name")}</th>
+                    ${stations.map(
+                      (station) =>
+                        html`<th scope="col">
+                          ${station.name}
+                          ${
+                            station.sync_reference
+                              ? html`<details class="sync-reference">
+                                  <summary
+                                    aria-label=${this.t("sync_diagnostic_reference")}
+                                    title=${this.t("sync_diagnostic_reference")}
+                                  >
+                                    ⓘ
+                                  </summary>
+                                  <bdi>${station.sync_reference}</bdi>
+                                </details>`
+                              : nothing
+                          }
+                          ${station.last_error ? html`<p class="danger">${this.t(station.last_error)}</p>` : nothing}
+                        </th>`,
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${users.map(
+                    (user) =>
+                      html`<tr>
+                        <td class="sync-person">
+                          <button
+                            class="user-detail-link"
+                            @click=${() => this.openPersonDetails(user)}
+                          >
+                            ${user.display_name}</button
+                          >${
+                            user.sync_reference
+                              ? html`<details class="sync-reference">
+                                  <summary
+                                    aria-label=${this.t("sync_diagnostic_reference")}
+                                    title=${this.t("sync_diagnostic_reference")}
+                                  >
+                                    ⓘ
+                                  </summary>
+                                  <bdi>${user.sync_reference}</bdi>
+                                </details>`
+                              : nothing
+                          }
+                        </td>
+                        ${stations.map((station) => {
+                          const assignment = user.assignments[station.id];
+                          return html`<td class=${assignment ? "sync-assigned" : "sync-unassigned"}>
+                            <span class="sync-cell-station">${station.name}</span>
+                            ${
+                              assignment
+                                ? html`<button
+                                      @click=${() => this.inspect(user.id, station.id)}
+                                      ?disabled=${this._busy || !station.online}
+                                    >
+                                      ${this.badge(assignment.sync_state ?? "pending")}</button
+                                    >${
+                                      assignment.last_error
+                                        ? html`<details class="sync-error">
+                                            <summary>${this.t("sync_error_details")}</summary>
+                                            <p class="danger">${this.t(assignment.last_error)}</p>
+                                          </details>`
+                                        : nothing
+                                    }`
+                                : html`<span class="sub">—</span>`
+                            }
+                          </td>`;
+                        })}
+                      </tr>`,
+                  )}
+                </tbody>
+              </table>
+            </div>`
+          : html`<div class="empty">
+              <p>
+                ${this.t(data.users.length && data.stations.length ? "sync_no_matches" : "no_sync")}
+              </p>
+            </div>`
+      }
+      <h2 class="section-title">${this.t("pending_removals")}</h2>
+      <div class="box">
+        ${!data.tombstones.length && !data.revocations.length && !data.card_removals.length && !data.pin_removals.length ? html`<p class="sub">${this.t("no_pending_removals")}</p>` : nothing}${data.tombstones.map(
+          (item) =>
+            html`<div class="removal">
+              <strong>${this.t("employee_id")}: <bdi>${item.employee_no}</bdi></strong
+              >${item.targets.filter((id) => !item.confirmed.includes(id)).map((id) => html`<div class="row actions"><span>${this.stationName(id)}</span>${this.badge(item.stations?.[id]?.sync_state ?? "delete_pending")}<button @click=${() => this.inspect(item.user_id, id)} ?disabled=${this._busy}>${this.t("inspect")}</button><button @click=${() => this.run(() => this.api("sync/station", { station_id: id }))} ?disabled=${this._busy}>${this.t("sync_now")}</button></div>`)}
+            </div>`,
+        )}${data.revocations.map((item) => html`<div class="removal row"><span>${data.users.find((user) => user.id === item.user_id)?.display_name} · ${this.stationName(item.station_id)}</span>${this.badge(item.sync_state)}<button @click=${() => this.inspect(item.user_id, item.station_id)} ?disabled=${this._busy}>${this.t("inspect")}</button></div>`)}${[
+          ...data.card_removals.map((item) => ({ ...item, kind: "cards" })),
+          ...data.pin_removals.map((item) => ({ ...item, kind: "retired_pin" })),
+        ].map(
+          (item) =>
+            html`<p class="sub">
+              ${this.t(item.kind)} ·
+              ${data.users.find((user) => user.id === item.user_id)?.display_name ?? "—"} ·
+              ${item.targets
+                .filter((id) => !item.confirmed.includes(id))
+                .map((id) => this.stationName(id))
+                .join(", ")}
+            </p>`,
+        )}
+      </div>`;
+  }
+  private editorBody() {
+    const draft = this._draft!;
+    const blocked = this.pinBlocked();
+    return html`<style>
+        fieldset[hidden],
+        label[hidden],
+        p[hidden] {
+          display: none !important;
+        }
+      </style>
+      <div class="editor-summary">
+        <span class="avatar">${icon("users")}</span>
+        <div>
+          <strong>${draft.display_name || this.t("new_person_heading")}</strong>
+          <p class="sub">${this.t("editor_intro")}</p>
+        </div>
+      </div>
+      <form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
+        <p class="field-note">${this.t("save_hint")}</p>
+        ${
+          this._session?.is_admin && this._data?.api?.commands.includes("workflows/get")
+            ? html`<details>
+                <summary>${this.t("staff_template_picker")}</summary>
+                <wiskey-workflow-center
+                  picker
+                  .hass=${this.protectedHass}
+                  .people=${this._data?.users}
+                  .stations=${this._data?.stations}
+                  @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
+                ></wiskey-workflow-center>
+              </details>`
+            : nothing
+        }
+        ${this.draftMessage ? html`<label>${this.t("staff_message_draft")}<textarea .value=${this.draftMessage} @input=${(e: Event) => (this.draftMessage = (e.target as HTMLTextAreaElement).value)}></textarea></label>` : nothing}
+        <div class="editor-person-column">
+          <fieldset class="editor-person">
+            <legend>${icon("users")}${this.t("person_details")}</legend>
+            <div class="fields">
+              <label
+                >${this.t("name")}<input
+                  autofocus
+                  required
+                  maxlength="32"
+                  .value=${draft.display_name}
+                  @input=${(event: Event) => this.patchDraft("display_name", value(event))} /></label
+              ><label
+                >${this.t("employee_id")}<input
+                  required
+                  pattern="[A-Za-z0-9_-]{1,32}"
+                  maxlength="32"
+                  dir="ltr"
+                  .value=${draft.employee_no}
+                  ?disabled=${draft.identity_locked}
+                  @input=${(event: Event) => this.patchDraft("employee_no", value(event))}
+              /></label>
+            </div>
+            <label ?hidden=${!this.personField("phone")}
+              >${this.t("phone")}<input
+                ?disabled=${!this.personField("phone", true)}
+                type="tel"
+                autocomplete="tel"
+                dir="ltr"
+                maxlength="32"
+                .value=${draft.phone ?? ""}
+                placeholder="05X-xxx-xxxx"
+                @input=${(event: Event) => this.patchDraft("phone", mobileDisplay(value(event)))}
+            /></label>
+            ${draft.identity_locked ? html`<p class="field-note">${this.t("employee_locked")}</p>` : nothing}
+            <p>
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  .checked=${draft.active}
+                  ?disabled=${!!draft.archived_at || !this.personField("access", true)}
+                  @change=${(event: Event) => this.patchDraft("active", checked(event))}
+                />${this.t("active")}</label
+              >
+            </p>
+          </fieldset>
+          <fieldset
+            class="editor-person"
+            ?hidden=${!this.personField("access")}
+            ?disabled=${!this.personField("access", true)}
+          >
+            <legend>${this.t("access_category")}</legend>
+            <div class="fields">
+              <label
+                >${this.t("access_category")}<select
+                  .value=${draft.access_category ?? "staff"}
+                  @change=${(event: Event) => {
+                    const category = value(event) as Draft["access_category"];
+                    this.patchDraft("access_category", category);
+                    if (category === "staff") {
+                      this.patchDraft("responsible_person", "");
+                      this.patchDraft("access_purpose", "");
+                    } else this.patchDraft("timed", true);
+                  }}
+                >
+                  <option value="staff">${this.t("access_category_staff")}</option>
+                  <option value="visitor">${this.t("access_category_visitor")}</option>
+                  <option value="contractor">${this.t("access_category_contractor")}</option>
+                </select></label
+              >
+              ${
+                draft.access_category && draft.access_category !== "staff"
+                  ? html`<label
+                      >${this.t("responsible_person")}<input
+                        required
+                        maxlength="64"
+                        .value=${draft.responsible_person ?? ""}
+                        @input=${(event: Event) => this.patchDraft("responsible_person", value(event))}
+                    /></label>`
+                  : nothing
+              }
+            </div>
+            ${
+              draft.access_category && draft.access_category !== "staff"
+                ? html`<label
+                      >${this.t("access_purpose")}<input
+                        maxlength="128"
+                        .value=${draft.access_purpose ?? ""}
+                        @input=${(event: Event) => this.patchDraft("access_purpose", value(event))}
+                    /></label>
+                    <p class="field-note">${this.t("temporary_access_note")}</p>`
+                : nothing
+            }
+          </fieldset>
+          ${this.profileEditor()} ${this.editorActions()}
+          <fieldset
+            class="editor-validity"
+            ?hidden=${!this.personField("access")}
+            ?disabled=${!this.personField("access", true)}
+          >
+            <legend>${icon("schedules")}${this.t("validity")}</legend>
+            ${this._timingConverted ? html`<p class="field-note" role="status">${this.t("user_timing_converted")}</p>` : nothing}
+            <label
+              >${this.t("user_timing_mode")}<select
+                aria-label=${this.t("user_timing_mode")}
+                .value=${draft.access_timing_draft?.mode ?? (draft.timed ? "period" : "always")}
+                @change=${(event: Event) => {
+                  const mode = value(event);
+                  if (mode === "always" || mode === "period") {
+                    draft.access_timing_draft = null;
+                    draft.timed = mode === "period";
+                  } else {
+                    this._timingEnforcement = this._data?.api?.capabilities.includes(
+                      "user_timing_enforcement",
+                    )
+                      ? "ha"
+                      : "draft";
+                    draft.access_timing_draft = {
+                      mode: mode as "weekly" | "dates",
+                      timezone: this._data?.default_zone?.name ?? "UTC",
+                      days: mode === "weekly" ? ["Monday"] : [],
+                      dates: [],
+                      periods: [{ start: "00:00", end: "24:00" }],
+                    };
+                  }
+                  this.requestUpdate();
+                }}
+              >
+                <option value="always">${this.t("permanent")}</option>
+                <option value="period">${this.t("period")}</option>
+                <option
+                  value="weekly"
+                  ?disabled=${!this._data?.api?.capabilities.includes("user_timing_draft")}
+                >
+                  ${this.t("user_timing_weekly")}
+                </option>
+                <option
+                  value="dates"
+                  ?disabled=${!this._data?.api?.capabilities.includes("user_timing_draft")}
+                >
+                  ${this.t("user_timing_dates")}
+                </option>
+              </select></label
+            >
+            ${
+              draft.access_timing_draft
+                ? html`${
+                      this._data?.api?.capabilities.includes("user_timing_enforcement")
+                        ? html`<label
+                            >${this.t("user_timing_enforcement")}<select
+                              aria-label=${this.t("user_timing_enforcement")}
+                              .value=${this._timingEnforcement}
+                              @change=${(e: Event) => {
+                                this._timingEnforcement = value(e) as "draft" | "ha" | "native";
+                                this.requestUpdate();
+                              }}
+                            >
+                              ${this._timingEnforcement === "draft" ? html`<option value="draft" disabled .selected=${true}>${this.t("user_timing_choose_enforcement")}</option>` : nothing}
+                              <option value="ha">${this.t("user_timing_ha")}</option>
+                              <option value="native">${this.t("user_timing_native")}</option>
+                            </select></label
+                          >`
+                        : nothing
+                    }<hikvision-user-timing
+                      ?inert=${!this.personField("access", true)}
+                      .enforcement=${this._timingEnforcement}
+                      .canEnforce=${this._data?.api?.capabilities.includes("user_timing_enforcement")}
+                      .language=${this.hass?.language ?? "en"}
+                      .value=${draft.access_timing_draft}
+                      @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
+                      @timing-convert=${() => this.convertTiming()}
+                    ></hikvision-user-timing>
+                    ${
+                      this._data?.users.find((u) => u.id === draft.id)?.timing_readbacks
+                        ? html`<details open>
+                            <summary>${this.t("user_timing_readback")}</summary>
+                            ${Object.entries(this._data.users.find((u) => u.id === draft.id)!.timing_readbacks!).map(([sid, r]) => html`<p class="field-note"><b>${this._data?.stations.find((s) => s.id === sid)?.name ?? sid}</b> · ${this.t("user_timing_" + r.mode)} · ${this.t(r.revision === draft.revision && draft.assignments[sid]?.sync_state === "synced" ? "synced" : "pending")}<br />${this.t("user_timing_readback_at")}: ${this.dateText(r.checked_at)}${r.valid_from ? html`<br /><bdi>${this.dateText(r.valid_from)} — ${this.dateText(r.valid_until)}</bdi>` : nothing}</p>`)}
+                          </details>`
+                        : nothing
+                    }
+                    <p class="field-note">
+                      ${this.t(this._timingEnforcement === "draft" ? "user_timing_current" : "user_timing_outer_validity")}:
+                      ${this.t(draft.timed ? "period" : "permanent")}
+                    </p>`
+                : nothing
+            }
+            ${
+              draft.timed
+                ? html`<label
+                      >${this.t("clock_validity_basis")}<select
+                        aria-label=${this.t("clock_validity_basis")}
+                        @change=${(e: Event) => {
+                          this.changeValidityZone(value(e));
+                          (e.target as HTMLSelectElement).value = this._validityStation;
+                        }}
+                      >
+                        <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
+                          UTC
+                        </option>
+                        <option value="" ?selected=${this._validityStation === ""}>
+                          ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
+                        </option>
+                        ${this._data?.stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
+                      </select></label
+                    >
+                    <label
+                      >${this.t("user_timing_single_day")}<input
+                        type="date"
+                        min="2000-01-01"
+                        max="2037-12-30"
+                        @change=${(event: Event) => {
+                          const day = value(event);
+                          if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+                          const next = new Date(`${day}T00:00:00Z`);
+                          next.setUTCDate(next.getUTCDate() + 1);
+                          this._validityFrom = `${day}T00:00`;
+                          this._validityUntil = `${next.toISOString().slice(0, 10)}T00:00`;
+                          this.requestUpdate();
+                        }}
+                    /></label>
+                    <div class="fields" style="margin-top:14px">
+                      <label
+                        >${this.t("valid_from")}<input
+                          required
+                          type="datetime-local"
+                          .value=${live(this._validityFrom)}
+                          @input=${(event: Event) => {
+                            this._validityFrom = value(event);
+                          }} /></label
+                      ><label
+                        >${this.t("valid_until")}<input
+                          required
+                          type="datetime-local"
+                          .value=${live(this._validityUntil)}
+                          @input=${(event: Event) => {
+                            this._validityUntil = value(event);
+                          }}
+                      /></label>
+                    </div>
+                    <p class="field-note">${this.t("validity_hint")}</p>`
+                : html`<p class="sub">${this.t("permanent")}</p>`
+            }
+          </fieldset>
+          <fieldset
+            class="editor-pin"
+            ?hidden=${!this.personField("credentials")}
+            ?disabled=${!this.personField("credentials", true)}
+          >
+            <legend>
+              ${this.t("pin")} · ${this.t(draft.pin_configured ? "configured" : "not_configured")}
+            </legend>
+            <p class="field-note">${this.t("pin_private")}</p>
+            ${blocked ? html`<p class="danger">${this.t("pin_mode_blocked")}</p>` : nothing}
+            <div class="fields">
+              <label
+                >${this.t("new_pin")}<input
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="new-password"
+                  pattern="[0-9]*"
+                  maxlength="128"
+                  .value=${live(draft.pin ?? "")}
+                  ?disabled=${blocked || draft.pin === null}
+                  aria-describedby="pin-availability"
+                  @input=${(event: Event) => this.changePin(value(event))} /></label
+              ><label
+                >${this.t("confirm_pin")}<input
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="new-password"
+                  pattern="[0-9]*"
+                  maxlength="128"
+                  .value=${live(draft.confirm_pin)}
+                  ?disabled=${blocked || draft.pin === null}
+                  @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
+              /></label>
+            </div>
+            <div id="pin-availability" aria-live="polite">
+              ${
+                this._pinStatus === "checking"
+                  ? html`<p class="field-note">${this.t("pin_checking")}</p>`
+                  : this._pinStatus === "available"
+                    ? html`<p class="notice">${this.t("pin_available")}</p>`
+                    : this._pinStatus === "in_use"
+                      ? html`<p class="notice error">${this.t("pin_conflict")}</p>`
+                      : this._pinStatus === "error"
+                        ? html`<p class="field-note">${this.t("pin_check_failed")}</p>`
+                        : nothing
+              }
+            </div>
+            <div class="row actions">
+              <button
+                type="button"
+                ?disabled=${blocked || draft.pin === null || this._pinChecking || this._busy}
+                @click=${() => this.generatePin()}
+              >
+                ${this.t("generate_unique_pin")}
+              </button>
+              ${
+                draft.pin === null
+                  ? html`<span class="status delete_pending">${this.t("remove_pin")}</span
+                      ><button
+                        type="button"
+                        @click=${() => {
+                          draft.pin = undefined;
+                          draft.confirm_pin = "";
+                          this.resetPinValidation();
+                          this.requestUpdate();
+                        }}
+                      >
+                        ${this.t("keep_pin")}
+                      </button>`
+                  : html`<button
+                      type="button"
+                      class="danger"
+                      ?disabled=${blocked || !draft.pin_configured}
+                      @click=${() => {
+                        draft.pin = null;
+                        draft.confirm_pin = "";
+                        this.resetPinValidation();
+                        this.requestUpdate();
+                      }}
+                    >
+                      ${this.t("remove_pin")}
+                    </button>`
+              }
+            </div>
+            <p class="field-note">${this.t("pin_physical")}</p>
+          </fieldset>
+          <fieldset
+            class="editor-cards"
+            ?hidden=${!this.personField("credentials")}
+            ?disabled=${!this.personField("credentials", true)}
+          >
+            <legend>${this.t("cards")}</legend>
+            ${repeat(
+              draft.cards,
+              (card) => card.id ?? card,
+              (card) =>
+                html`<div class="card-edit">
+                  <div class="fields">
+                    <label
+                      >${this.t("card_label")}<input
+                        maxlength="64"
+                        .value=${card.label}
+                        @input=${(event: Event) => {
+                          card.label = value(event);
+                        }} /></label
+                    >${
+                      card.id
+                        ? html`<label
+                            >${this.t("card_number")}<input
+                              readonly
+                              .value=${card.masked_number ?? this.t("masked")}
+                              aria-label=${this.t("masked")}
+                          /></label>`
+                        : html`<label
+                            >${this.t("card_number")}<input
+                              required
+                              pattern="[A-Za-z0-9_-]+"
+                              maxlength="32"
+                              dir="ltr"
+                              autocomplete="off"
+                              .value=${card.card_no ?? ""}
+                              @input=${(event: Event) => {
+                                card.card_no = value(event);
+                              }}
+                          /></label>`
+                    }
+                  </div>
+                  <div class="row between">
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        .checked=${card.enabled}
+                        @change=${(event: Event) => {
+                          card.enabled = checked(event);
+                        }}
+                      />${this.t("active")} · ${this.t("normal_card")}</label
+                    ><button
+                      type="button"
+                      class="danger"
+                      @click=${() => {
+                        draft.cards = draft.cards.filter((item) => item !== card);
+                        this.requestUpdate();
+                      }}
+                    >
+                      ${this.t("remove")}
+                    </button>
+                  </div>
+                </div>`,
+            )}<button
+              type="button"
+              @click=${() => {
+                draft.cards = [
+                  ...draft.cards,
+                  { label: "", card_no: "", card_type: "normalCard", enabled: true },
+                ];
+                this.requestUpdate();
+              }}
+            >
+              + ${this.t("add_card")}
+            </button>
+            <div class="station-card-capture">
+              <button
+                type="button"
+                ?disabled=${this._busy || !draft.id}
+                @click=${() => this.editorAction((u) => this.openCapture(u))}
+              >
+                ${this.t("capture_card")}
+              </button>
+              <p class="field-note">
+                ${this.t(draft.id ? "capture_from_editor_hint" : "capture_save_user_first")}
+              </p>
+            </div>
+            <wiskey-usb-card-input
+              ?inert=${!this.personField("credentials", true)}
+              .hass=${this.protectedHass}
+              .locked=${this._busy}
+              @card-reviewed=${(e: CustomEvent<{ card_no: string }>) => {
+                if (!draft.cards.some((c) => c.card_no === e.detail.card_no)) {
+                  draft.cards = [
+                    ...draft.cards,
+                    {
+                      card_no: e.detail.card_no,
+                      label: "",
+                      card_type: "normalCard",
+                      enabled: true,
+                    },
+                  ];
+                  this.requestUpdate();
+                }
+              }}
+            ></wiskey-usb-card-input>
+          </fieldset>
+        </div>
+        <fieldset
+          class="editor-assignments"
+          ?hidden=${!this.personField("access")}
+          ?disabled=${!this.personField("access", true)}
+        >
+          <legend>${icon("devices")}${this.t("assignments")}</legend>
+          <div class="row assignment-tools">
+            <button type="button" @click=${() => this.selectStations(true)} ?disabled=${this._busy}>
+              ${this.t("select_all_stations")}
+            </button>
+            <button
+              type="button"
+              @click=${() => this.selectStations(false)}
+              ?disabled=${this._busy}
+            >
+              ${this.t("clear_stations")}
+            </button>
+            <button
+              type="button"
+              ?disabled=${this._busy}
+              @click=${() => {
+                draft.permission_overrides = {};
+                this.refreshDraftPermissions();
+                this.requestUpdate();
+              }}
+            >
+              ${this.t("permission_reset_all")}
+            </button>
+            <span class="sub"
+              >${this.t("selected_stations")}:
+              ${Object.values(draft.assignments).filter((item) => item.enabled).length}</span
+            >
+          </div>
+          <p class="field-note">${this.t("group_permission_hint")}</p>
+          <div class="assignment-list">
+            ${(this._data?.stations ?? []).map(
+              (station) =>
+                html`<div class="assignment">
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      .checked=${!!draft.assignments[station.id]?.enabled}
+                      ?disabled=${!station.lock_enabled}
+                      @change=${(event: Event) => {
+                        this.setPersonalPermission(station.id, checked(event) ? "allow" : "deny");
+                      }}
+                    /><strong>${station.name}</strong
+                    >${this.badge(station.online ? "online" : "offline")}</label
+                  ><small
+                    >${this.t(station.lock_enabled ? "station_access" : "camera_only")}${station.lock_enabled && this.lockName(station) ? html` · ${this.lockName(station)}` : nothing}</small
+                  >
+                  <small class="permission-source"
+                    >${this.t(draft.permission_overrides?.[station.id] === "deny" ? "permission_denied" : draft.permission_overrides?.[station.id] === "allow" ? "permission_personal" : this.inheritedGroups(station.id).length ? "permission_inherited" : "permission_none")}${
+                      this.inheritedGroups(station.id).length
+                        ? html` ·
+                          ${this.inheritedGroups(station.id)
+                            .map((g) => g.label)
+                            .join(", ")}`
+                        : nothing
+                    }</small
+                  >
+                  ${draft.permission_overrides?.[station.id] ? html`<button type="button" class="permission-reset" @click=${() => this.setPersonalPermission(station.id, "inherit")}>${this.t("permission_reset")}</button>` : nothing}
+                  ${
+                    draft.assignments[station.id]?.enabled && station.integrated_locks.length > 1
+                      ? html`<div class="row">
+                          ${station.integrated_locks.map(
+                            (lock) =>
+                              html`<label class="check"
+                                ><input
+                                  type="checkbox"
+                                  .checked=${draft.assignments[station.id].allowed_locks.includes(lock.physical_index)}
+                                  @change=${(e: Event) => {
+                                    const assignment = draft.assignments[station.id];
+                                    const selected = checked(e)
+                                      ? [...assignment.allowed_locks, lock.physical_index]
+                                      : assignment.allowed_locks.filter(
+                                          (i) => i !== lock.physical_index,
+                                        );
+                                    if (!selected.length)
+                                      this.setPersonalPermission(station.id, "deny");
+                                    else {
+                                      assignment.allowed_locks = selected;
+                                      this.requestUpdate();
+                                    }
+                                  }}
+                                />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label
+                              >`,
+                          )}
+                        </div>`
+                      : nothing
+                  }
+                  ${draft.assignments[station.id]?.enabled ? this.badge(draft.assignments[station.id]?.sync_state ?? "pending") : nothing}
+                </div>`,
+            )}
+          </div>
+        </fieldset>
+      </form>`;
+  }
+  private guestBody() {
+    const draft = this._draft!;
+    const stations = (this._data?.stations ?? []).filter((station) => station.lock_enabled);
+    return html`<form id="user-form" @submit=${(event: SubmitEvent) => this.save(event)}>
+      <p class="field-note">${this.t("guest_intro")}</p>
+      <p class="field-note">${this.t("guest_step").replace("{step}", String(this._guestStep))}</p>
+      ${
+        this._guestStep === 1
+          ? html` ${this._data?.api?.commands.includes("guest_templates/get") ? html`<wiskey-guest-templates picker .hass=${this.protectedHass} .stations=${this._data.stations} .canManage=${this.canManage("users")} .timezone=${this._data.default_zone?.name ?? "UTC"} @guest-template-apply=${(event: CustomEvent<GuestTemplate>) => this.applyGuestTemplate(event.detail)}></wiskey-guest-templates>` : nothing}
+              <div class="fields">
+                <label
+                  >${this.t("name")}<input
+                    required
+                    maxlength="32"
+                    .value=${draft.display_name}
+                    @input=${(event: Event) => this.patchDraft("display_name", value(event))}
+                /></label>
+                <label
+                  >${this.t("phone")}<input
+                    type="tel"
+                    autocomplete="tel"
+                    dir="ltr"
+                    maxlength="32"
+                    placeholder="05X-xxx-xxxx"
+                    .value=${draft.phone ?? ""}
+                    @input=${(event: Event) => this.patchDraft("phone", mobileDisplay(value(event)))}
+                /></label>
+                <label
+                  >${this.t("access_category")}<select
+                    .value=${draft.access_category ?? "visitor"}
+                    @change=${(event: Event) => this.patchDraft("access_category", value(event))}
+                  >
+                    <option value="visitor">${this.t("access_category_visitor")}</option>
+                    <option value="contractor">${this.t("access_category_contractor")}</option>
+                  </select></label
+                >
+                <label
+                  >${this.t("responsible_person")}<input
+                    required
+                    maxlength="64"
+                    .value=${draft.responsible_person ?? ""}
+                    @input=${(event: Event) => this.patchDraft("responsible_person", value(event))}
+                /></label>
+                <label
+                  >${this.t("access_purpose")}<input
+                    maxlength="128"
+                    .value=${draft.access_purpose ?? ""}
+                    @input=${(event: Event) => this.patchDraft("access_purpose", value(event))}
+                /></label>
+              </div>
+              <fieldset>
+                <legend>${this.t("guest_window")}</legend>
+                <p class="field-note">${this.t("guest_window_hint")}</p>
+                <label
+                  >${this.t("clock_validity_basis")}<select
+                    @change=${(event: Event) => this.changeValidityZone(value(event))}
+                  >
+                    <option value="" ?selected=${this._validityStation === ""}>
+                      ${this.t("clock_ha_zone")} · ${this._data?.default_zone?.name ?? "UTC"}
+                    </option>
+                    <option value="__utc__" ?selected=${this._validityStation === "__utc__"}>
+                      UTC
+                    </option>
+                    ${stations.map((station) => html`<option value=${station.id} ?selected=${this._validityStation === station.id}>${station.name} · ${this.zone(station).name}</option>`)}
+                  </select></label
+                >
+                <div class="fields">
+                  <label
+                    >${this.t("valid_from")}<input
+                      type="datetime-local"
+                      required
+                      .value=${live(this._validityFrom)}
+                      @input=${(event: Event) => {
+                        this._validityFrom = value(event);
+                      }}
+                  /></label>
+                  <label
+                    >${this.t("valid_until")}<input
+                      type="datetime-local"
+                      required
+                      .value=${live(this._validityUntil)}
+                      @input=${(event: Event) => {
+                        this._validityUntil = value(event);
+                      }}
+                  /></label>
+                </div>
+              </fieldset>
+              ${
+                this._data?.api?.commands.includes("visits/create")
+                  ? html`<wiskey-visit-approver
+                      .hass=${this.protectedHass}
+                      .canManage=${this.canManage("users")}
+                      .required=${this._guestApprovalRequired}
+                      .selected=${this._guestApprover}
+                      @approval-change=${(
+                        event: CustomEvent<{ required: boolean; approverId: string }>,
+                      ) => {
+                        this._guestApprovalRequired = event.detail.required;
+                        this._guestApprover = event.detail.approverId;
+                      }}
+                    ></wiskey-visit-approver>`
+                  : nothing
+              }
+              <fieldset>
+                <legend>${this.t("guest_credential")}</legend>
+                ${
+                  draft.access_timing_draft
+                    ? html`<section>
+                        <h4>${this.t("guest_template_weekly")}</h4>
+                        <hikvision-user-timing
+                          .value=${draft.access_timing_draft}
+                          .language=${this.hass?.language ?? "en"}
+                          .enforcement=${this._timingEnforcement}
+                          .canEnforce=${true}
+                          @timing-change=${(event: CustomEvent) => this.patchDraft("access_timing_draft", event.detail)}
+                        ></hikvision-user-timing>
+                      </section>`
+                    : nothing
+                }
+                <p class="field-note">${this.t("guest_credential_hint")}</p>
+                <div class="fields">
+                  <label
+                    >${this.t("pin")}<input
+                      type=${this._guestPinVisible ? "text" : "password"}
+                      inputmode="numeric"
+                      autocomplete="new-password"
+                      pattern="[0-9]*"
+                      maxlength="128"
+                      .value=${live(draft.pin ?? "")}
+                      @input=${(event: Event) => this.changePin(value(event))}
+                  /></label>
+                  <label
+                    >${this.t("confirm_pin")}<input
+                      type=${this._guestPinVisible ? "text" : "password"}
+                      inputmode="numeric"
+                      autocomplete="new-password"
+                      pattern="[0-9]*"
+                      maxlength="128"
+                      .value=${live(draft.confirm_pin)}
+                      @input=${(event: Event) => this.patchDraft("confirm_pin", value(event))}
+                  /></label>
+                </div>
+                <div class="row actions">
+                  <button
+                    type="button"
+                    @click=${() => this.generatePin()}
+                    ?disabled=${this._busy || this._pinChecking}
+                  >
+                    ${this.t("generate_unique_pin")}
+                  </button>
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      .checked=${this._guestPinVisible}
+                      @change=${(event: Event) => {
+                        this._guestPinVisible = checked(event);
+                      }}
+                    />${this.t("guest_show_pin")}</label
+                  >
+                </div>
+                ${this._pinStatus === "in_use" ? html`<p class="notice error" role="alert">${this.t("pin_conflict")}</p>` : nothing}
+                <label
+                  >${this.t("card_number")}<input
+                    dir="ltr"
+                    maxlength="32"
+                    pattern="[A-Za-z0-9_-]*"
+                    autocomplete="off"
+                    .value=${draft.cards[0]?.card_no ?? ""}
+                    @input=${(event: Event) => {
+                      const card = value(event);
+                      draft.cards = card
+                        ? [{ label: "", card_no: card, card_type: "normalCard", enabled: true }]
+                        : [];
+                      this.requestUpdate();
+                    }}
+                /></label>
+              </fieldset>`
+          : html` <fieldset>
+                <legend>${this.t("guest_doors")}</legend>
+                <p class="field-note">${this.t("guest_doors_hint")}</p>
+                <div class="assignment-list">
+                  ${stations.map(
+                    (station) =>
+                      html`<div class="assignment">
+                        <label class="check"
+                          ><input
+                            type="checkbox"
+                            .checked=${!!draft.assignments[station.id]?.enabled}
+                            @change=${(event: Event) => this.setPersonalPermission(station.id, checked(event) ? "allow" : "deny")}
+                          /><strong>${station.name}</strong></label
+                        >
+                        ${
+                          draft.assignments[station.id]?.enabled &&
+                          station.integrated_locks.length > 1
+                            ? html`<div class="row">
+                                ${station.integrated_locks.map(
+                                  (lock) =>
+                                    html`<label class="check"
+                                      ><input
+                                        type="checkbox"
+                                        .checked=${draft.assignments[station.id].allowed_locks.includes(lock.physical_index)}
+                                        @change=${(event: Event) =>
+                                          this.guestToggleLock(
+                                            station.id,
+                                            lock.physical_index,
+                                            checked(event),
+                                          )}
+                                      />${lock.name || `${this.t("physical_lock")} ${lock.physical_index}`}</label
+                                    >`,
+                                )}
+                              </div>`
+                            : nothing
+                        }
+                      </div>`,
+                  )}
+                </div>
+              </fieldset>
+              <div class="box">
+                <strong>${this.t("guest_review")}</strong>
+                <p>
+                  ${draft.display_name} · ${this.dateText(draft.valid_from)} —
+                  ${this.dateText(draft.valid_until)}
+                </p>
+                <p>
+                  ${this.t(`access_category_${draft.access_category ?? "visitor"}`)} ·
+                  ${this.t("responsible_person")}: ${draft.responsible_person}
+                </p>
+                ${draft.access_purpose ? html`<p>${this.t("access_purpose")}: ${draft.access_purpose}</p>` : nothing}
+                <p>${this.t("guest_credential")}: ${draft.pin ? this.t("pin") : this.t("cards")}</p>
+                ${draft.access_timing_draft ? html`<p>${visitTimingSummary(draft.access_timing_draft, this.hass?.language ?? "en")}</p>` : nothing}
+                <p>
+                  ${this.t("selected_stations")}:
+                  ${
+                    stations
+                      .filter((station) => draft.assignments[station.id]?.enabled)
+                      .map((station) => station.name)
+                      .join(", ") || "—"
+                  }
+                </p>
+                <p class="field-note">${this.t("guest_sync_hint")}</p>
+                ${this._guestApprovalRequired ? html`<p class="notice">${this.t("visit_approval_hint")}</p>` : nothing}
+              </div>`
+      }
+    </form>`;
+  }
+  private importBody() {
+    return html`<p class="field-note">${this.t("import_hint")}</p>
+      <div class="toolbar">
+        <label style="flex:1"
+          >${this.t("select_station")}<select
+            .value=${this._importStation}
+            @change=${(event: Event) => {
+              this._importStation = value(event);
+              void this.loadInventory();
+            }}
+            ?disabled=${this._busy}
+          >
+            <option value="">—</option>
+            ${(this._data?.stations ?? []).filter((station) => station.lock_enabled).map((station) => html`<option value=${station.id}>${station.name}</option>`)}
+          </select></label
+        ><button
+          @click=${() => this.loadInventory()}
+          ?disabled=${this._busy || !this._importStation}
+        >
+          ${this.t("refresh")}
+        </button>
+      </div>
+      ${this._busy ? html`<p class="sub">${this.t("loading")}</p>` : !this._importRows.length ? html`<p class="sub">${this.t("no_records")}</p>` : nothing}${this._importRows.map(
+        (row) =>
+          html`<article class="import-row">
+            <div class="row between">
+              <h3>${row.display_name}</h3>
+              ${row.user_id ? html`<span class="status synced">${this.t("already_managed")}</span>` : row.ignored ? html`<span class="status">${this.t("ignored")}</span>` : nothing}
+            </div>
+            <p class="sub">
+              ${this.t("employee_id")}: <bdi>${row.employee_no}</bdi> · ${this.t("pin")}:
+              ${this.t(row.pin_configured ? "configured" : "not_configured")}
+            </p>
+            <p class="sub">
+              ${this.t("cards")}: ${row.cards.map((card) => card.masked_number).join(", ") || "—"}
+            </p>
+            ${row.import_error ? html`<p class="danger">${this.t(row.import_error)}</p>` : nothing}${
+              !row.user_id
+                ? html`<div class="row">
+                    <button
+                      class="primary"
+                      ?disabled=${this._busy || !!row.import_error || !row.review_token}
+                      @click=${() => this.adopt(row)}
+                    >
+                      ${this.t(this._data?.users.some((user) => user.employee_no === row.employee_no) ? "map_existing" : "adopt")}</button
+                    ><button
+                      ?disabled=${this._busy}
+                      @click=${async () => {
+                        if (
+                          await this.run(
+                            () =>
+                              this.api("users/ignore", {
+                                station_id: this._importStation,
+                                employee_no: row.employee_no,
+                                ignored: !row.ignored,
+                              }),
+                            "",
+                          )
+                        )
+                          await this.loadInventory();
+                      }}
+                    >
+                      ${this.t(row.ignored ? "unignore" : "ignore")}</button
+                    ><button
+                      class="danger"
+                      ?disabled=${this._busy || !!row.import_error || !row.review_token}
+                      @click=${() => this.adopt(row, true)}
+                    >
+                      ${this.t("delete")}
+                    </button>
+                  </div>`
+                : nothing
+            }
+          </article>`,
+      )}`;
+  }
+  private reviewStale() {
+    const review = this._review;
+    if (!review) return false;
+    if (review.invalidated) return true;
+    if (review.deletion_pending)
+      return !this._data?.tombstones.some(
+        (item) =>
+          item.user_id === review.user_id &&
+          item.targets.includes(review.station_id) &&
+          !item.confirmed.includes(review.station_id),
+      );
+    return (
+      this._data?.users.find((item) => item.id === review.user_id)?.revision !== review.revision
+    );
+  }
+  private reviewValue(state: ReviewState | null, field: string) {
+    if (!state) return this.t("not_verified");
+    if (field === "presence") return this.t(state.present ? "review_present" : "absent");
+    if (!state.present && field !== "cards") return "—";
+    if (field === "display_name") return state.display_name ?? "—";
+    if (field === "user_type") return state.user_type ?? this.t("not_verified");
+    if (field === "pin")
+      return this.t(
+        state.pin_configured === null
+          ? "not_verified"
+          : state.pin_configured
+            ? "configured"
+            : "not_configured",
+      );
+    if (field === "validity") {
+      const valid = state.validity;
+      if (!valid.timed) return this.t("permanent");
+      return html`<span
+          >${
+            valid.time_type === "UTC"
+              ? this.dateText(
+                  valid.from,
+                  this._data?.stations.find((s) => s.id === this._reviewStation),
+                )
+              : valid.from
+          }
+          →
+          ${
+            valid.time_type === "UTC"
+              ? this.dateText(
+                  valid.until,
+                  this._data?.stations.find((s) => s.id === this._reviewStation),
+                )
+              : valid.until
+          }</span
+        ><span class="sub">
+          · ${valid.time_type === "UTC" ? this.t("review_utc") : this.t("review_local")}</span
+        >`;
+    }
+    if (field === "door_rights")
+      return (
+        state.door_rights
+          .map((id) => {
+            const station = this._data?.stations.find((item) => item.id === this._reviewStation);
+            const lock = station?.integrated_locks.find((item) => item.api_id === id);
+            return lock?.name || `${this.t("physical_lock")} ${lock?.physical_index ?? id}`;
+          })
+          .join(", ") || "—"
+      );
+    if (field === "cards")
+      return (
+        state.cards.map((card) => `${card.masked_number} (${card.card_type})`).join(", ") || "—"
+      );
+    return this.t(
+      (
+        field === "schedule"
+          ? state.schedule_configured
+          : field === "privileged"
+            ? state.privileged
+            : state.other_credentials
+      )
+        ? "configured"
+        : "not_configured",
+    );
+  }
+  private reviewBody() {
+    const review = this._review;
+    const user = this._data?.users.find((item) => item.id === this._reviewUser);
+    const assignment = user?.assignments[this._reviewStation];
+    if (!review) return this._busy ? html`<p>${this.t("loading")}</p>` : nothing;
+    const fields = [
+      "presence",
+      "display_name",
+      "user_type",
+      "validity",
+      "door_rights",
+      "pin",
+      "cards",
+      "schedule",
+      "privileged",
+      "other_credentials",
+    ];
+    return html`<div class="row between">
+        <strong>${this.stationName(review.station_id)}</strong
+        ><button
+          ?disabled=${this._busy}
+          @click=${() => this.inspect(review.user_id, review.station_id)}
+        >
+          ${this.t("review_refresh")}
+        </button>
+      </div>
+      <p class="field-note">${this.t("review_hint")}</p>
+      <p class="sub">
+        ${this.t("review_timestamp")}:
+        ${this.dateText(
+          review.reviewed_at,
+          this._data?.stations.find((s) => s.id === this._reviewStation),
+        )}
+        · ${this.t("desired")}: ${review.revision ?? "—"} · ${this.t("applied")}:
+        ${assignment?.applied_revision ?? "—"}
+      </p>
+      ${
+        assignment?.last_sync_at
+          ? html`<p class="sub">
+              ${this.t("last_reconciliation")}:
+              ${this.dateText(
+                assignment.last_sync_at,
+                this._data?.stations.find((s) => s.id === this._reviewStation),
+              )}
+            </p>`
+          : nothing
+      }
+      ${assignment ? html`<p>${this.badge(assignment.sync_state ?? "pending")}${assignment.last_error ? html` <span class="danger">${this.t(assignment.last_error)}</span>` : nothing}</p>` : nothing}
+      ${this.reviewStale() && !this._error ? html`<p class="notice error" role="alert">${this.t("review_revision_changed")}</p>` : nothing}
+      ${!review.active ? html`<p class="notice">${this.t("review_inactive")}</p>` : nothing}
+      <div class="review-fields">
+        ${fields.map(
+          (field) =>
+            html`<section
+              class="review-field ${review.differences.includes(field) ? "changed" : ""}"
+              data-field=${field}
+            >
+              <div class="row between">
+                <h3>${this.t(`review_${field}`)}</h3>
+                <span class="sub"
+                  >${this.t(!review.central || review.unverified_fields.includes(field) ? "not_verified" : review.differences.includes(field) ? "review_different" : "review_same")}</span
+                >
+              </div>
+              <div class="review-values">
+                <div>
+                  <span class="sub">${this.t("central_state")}</span>
+                  <div>${this.reviewValue(review.central, field)}</div>
+                </div>
+                <div>
+                  <span class="sub">${this.t("device_state")}</span>
+                  <div>${this.reviewValue(review.device, field)}</div>
+                </div>
+              </div>
+            </section>`,
+        )}
+      </div>
+      ${
+        review.plan
+          ? html`<section class="review-plan">
+              <h3>${this.t("review_plan")}</h3>
+              <p>
+                ${this.t("review_person_operation")}:
+                <strong>${this.t(`plan_${review.plan.person}`)}</strong> · ${this.t("pin")}:
+                <strong
+                  >${review.unverified_fields.includes("pin") ? this.t("not_verified") : this.t(`plan_${review.plan.pin}`)}</strong
+                >
+              </p>
+              <p>
+                ${this.t("cards")}: ${this.t("plan_create")} ${review.plan.cards_add} ·
+                ${this.t("plan_delete")} ${review.plan.cards_remove} · ${this.t("plan_update")}
+                ${review.plan.cards_update}
+              </p>
+            </section>`
+          : nothing
+      }
+      <h3>${this.t("review_impact")}</h3>
+      <p>${this.t("review_impact_hint")}</p>
+      <ul>
+        ${review.affected_stations.map((id) => html`<li>${this.stationName(id)} · ${this.badge(this._data?.stations.find((item) => item.id === id)?.online ? "online" : "offline")}</li>`)}
+      </ul>
+      ${[review.deletion_pending ? "delete" : "central", ...(!review.deletion_pending ? ["device"] : [])].map((action) => (review.actions[action]?.reason ? html`<p class="notice error">${this.t(action === "delete" ? "resolve_delete" : action)}: ${this.t(review.actions[action].reason!)}</p>` : nothing))} `;
+  }
+  private async cameraFullscreen() {
+    const target = this.renderRoot.querySelector<HTMLElement>(".camera-layout");
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await target?.requestFullscreen();
+    } catch {
+      this._error = this.t("camera_fullscreen_failed");
+    }
+  }
+  private cameraPlaybackAudio(event: CustomEvent<{ enabled: boolean; available?: boolean }>) {
+    const layout = event.currentTarget as HTMLElement | null;
+    event.detail.available =
+      layout
+        ?.querySelector<IntercomCamera>("hikvision-intercom-camera")
+        ?.setPlaybackAudio(event.detail.enabled) === true;
+  }
+  private cameraBody(station: Station) {
+    const v4 = isWiskeyAppearance(this._appearance);
+    const video = html`<div class="camera-video">${this.camera(station, true)}</div>`;
+    const controls = html`<hikvision-intercom-audio-controls
+      .dock=${true}
+      .hideTts=${v4}
+      .v4=${v4}
+      .talkMode=${this._data?.media_settings?.talk_mode ?? "ptt"}
+      .ttsSettings=${this._data?.media_settings}
+      .hass=${this.protectedHass}
+      .station=${station}
+    >
+      ${this.callControls(station, false, true)}
+      <div class="camera-door-actions">
+        ${station.lock_enabled ? this.releaseButton(station, true, true) : nothing}
+      </div>
+      ${
+        this.canManage("overview") || this.canManage("stations")
+          ? html`<button
+              class="camera-refresh"
+              aria-label=${this.t("call_refresh")}
+              title=${this.t("call_refresh")}
+              ?disabled=${!this._cameraRefreshEnabled || !station.online || !this._haConnected}
+              @click=${() => this.renderRoot.querySelector<IntercomCallControls>(".camera-layout hikvision-intercom-call-controls")?.refreshState()}
+            >
+              ${icon("sync")}
+            </button>`
+          : nothing
+      }
+      <button class="camera-fullscreen" @click=${() => this.cameraFullscreen()}>
+        ${icon("fullscreen")}<span>${this.t("wall_fullscreen")}</span>
+      </button>
+    </hikvision-intercom-audio-controls>`;
+    return v4
+      ? html`<div
+          class="camera-layout wk4-camera-layout"
+          @hikvision-playback-audio=${this.cameraPlaybackAudio}
+        >
+          <div class="wk4-camera-main">${video}${controls}</div>
+          <aside class="wk4-camera-tts">
+            <wiskey-intercom-tts
+              compact
+              v4
+              .hass=${this.protectedHass}
+              .station=${station}
+              .settings=${this._data?.media_settings}
+            ></wiskey-intercom-tts>
+          </aside>
+          ${this.releaseFeedback(station)}
+        </div>`
+      : html`<div class="camera-layout" @hikvision-playback-audio=${this.cameraPlaybackAudio}>
+          ${video}${controls}${this.releaseFeedback(station)}
+        </div>`;
+  }
+  private dialogView() {
+    if (!this._dialog) return nothing;
+    const cameraStation = this._data?.stations.find(
+      (station) => station.id === this._cameraStation?.id,
+    );
+    const title =
+      this._dialog === "capture"
+        ? this.t("capture_card")
+        : this._dialog === "editor"
+          ? this.t(this._draft?.id ? "edit_user" : "add_user")
+          : this._dialog === "guest"
+            ? this.t("guest_create")
+            : this._dialog === "csv"
+              ? this.t("csv_import")
+              : this._dialog === "import"
+                ? this.t("import_title")
+                : ["camera", "station_activity"].includes(this._dialog)
+                  ? cameraStation?.name
+                  : this.t("review");
+    return html`<dialog
+      class=${this._dialog === "camera" ? "camera-dialog" : this._dialog === "capture" ? "capture-dialog" : ["editor", "guest"].includes(this._dialog) ? "editor-dialog" : ""}
+      aria-label=${title ?? ""}
+      @cancel=${(event: Event) => {
+        event.preventDefault();
+        this.close();
+      }}
+    >
+      <div class="dialog-head">
+        <div>
+          <h2>${title}</h2>
+          ${this._dialog === "camera" && cameraStation ? html`<span class="camera-connection">${this.badge(cameraStation.online ? "online" : "offline")} · ${this.t(cameraStation.call_state)}</span>` : nothing}
+        </div>
+        <button
+          class="quiet"
+          @click=${() => this.close()}
+          ?disabled=${this._busy}
+          aria-label=${this.t("close")}
+        >
+          ✕
+        </button>
+      </div>
+      <div class="dialog-body">
+        ${this._error ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${
+          this._dialog === "capture"
+            ? this.captureBody()
+            : this._dialog === "csv"
+              ? this.csvBody()
+              : this._dialog === "editor"
+                ? this.editorBody()
+                : this._dialog === "guest"
+                  ? this.guestBody()
+                  : this._dialog === "import"
+                    ? this.importBody()
+                    : this._dialog === "review"
+                      ? this.reviewBody()
+                      : this._dialog === "station_activity" && cameraStation
+                        ? html`${this.lastAccess(cameraStation)}
+                            <p>${this.t("pending_users")}: ${cameraStation.pending_user_count}</p>
+                            ${this.badge(cameraStation.sync_state)}${this.callControls(cameraStation, true)}<button
+                              @click=${() => {
+                                this._deviceFocus = cameraStation.id;
+                                this.close();
+                                this.navigate("devices");
+                              }}
+                            >
+                              ${this.t("station_details")}
+                            </button>`
+                        : cameraStation
+                          ? this.cameraBody(cameraStation)
+                          : nothing
+        }
+      </div>
+      ${
+        this._dialog === "guest"
+          ? html`<div class="dialog-foot">
+              <button type="button" @click=${() => this.close()} ?disabled=${this._busy}>
+                ${this.t("cancel")}
+              </button>
+              ${
+                this._guestStep === 1
+                  ? html`<button
+                      type="button"
+                      class="primary"
+                      @click=${() => this.guestNext()}
+                      ?disabled=${this._busy || this._pinChecking}
+                    >
+                      ${this.t("guest_next")}
+                    </button>`
+                  : html` <button
+                        type="button"
+                        @click=${() => {
+                          this._error = "";
+                          this._guestStep = 1;
+                        }}
+                        ?disabled=${this._busy}
+                      >
+                        ${this.t("guest_back")}
+                      </button>
+                      <button
+                        class="primary"
+                        type="submit"
+                        form="user-form"
+                        value="sync"
+                        ?disabled=${this._busy || this._pinStatus === "in_use"}
+                      >
+                        ${this.t(this._busy ? "wait" : this._guestApprovalRequired ? "visit_send_request" : "guest_save_sync")}
+                      </button>`
+              }
+            </div>`
+          : nothing
+      }
+      <div class="dialog-foot" ?hidden=${this._dialog === "camera" || this._dialog === "guest"}>
+        ${this._dialog === "capture" ? this.captureFooter() : this._dialog === "csv" ? html`<button ?disabled=${this._busy || !this._csvContent} @click=${() => this.previewCsv()}>${this.t("csv_preview")}</button><button class="primary" ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length || !(this._csvPreview.counts.create + this._csvPreview.counts.update)} @click=${() => this.applyCsv()}>${this.t("csv_apply")}</button>${this.commandAvailable("jobs/csv_create") ? html`<button ?disabled=${this._busy || !this._csvPreview?.review_token || !!this._csvPreview?.errors.length} @click=${() => this.applyCsv(true)}>${this.t("checkpoint_csv")}</button>` : nothing}` : this._dialog === "editor" ? html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("cancel")}</button><button type="submit" form="user-form" value="save" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t("save")}</button><button class="primary" type="submit" form="user-form" value="sync" ?disabled=${this._busy || this._pinStatus === "in_use"}>${this.t(this._busy ? "wait" : "save_sync")}</button>` : this._dialog === "review" && this._review ? html`${this._review.deletion_pending ? html`<button class="danger" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("resolve_delete")}</button>` : html`<button ?disabled=${this._busy || this.reviewStale() || !this._review.actions.device?.allowed} @click=${() => this.resolve("device")}>${this.t("device")}</button><button class="primary" ?disabled=${this._busy || this.reviewStale() || !this._review.actions[this._review.deletion_pending ? "delete" : "central"]?.allowed} @click=${() => this.resolve("central")}>${this.t("central")}</button>`}` : this._dialog === "camera" && cameraStation?.lock_enabled ? this.releaseButton(cameraStation, true) : html`<button @click=${() => this.close()} ?disabled=${this._busy}>${this.t("close")}</button>`}
+      </div>
+    </dialog>`;
+  }
+  render() {
+    const he = this.hass?.language?.startsWith("he");
+    if (this._session === undefined)
+      return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
+        <p class="loader">${this.t("loading")}</p>
+      </div>`;
+    if (this._locked) return this.securityOverlay();
+    if (!this.authorized && this._session?.personal_renewal)
+      return html`<wiskey-personal-renewal .hass=${this.hass}></wiskey-personal-renewal>`;
+    if (!this.authorized)
+      return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
+        <h2>${this.t("access_not_granted")}</h2>
+        <p>${this.t("access_not_granted_hint")}</p>
+      </div>`;
+    // The shared appearance arrives with the first overview. Do not mount the
+    // full shell in the old design while that response is still pending.
+    if (!this._data)
+      return html`<div class="empty" dir=${he ? "rtl" : "ltr"}>
+        <p class="loader">${this.t(this._refreshFailed ? "panel_load_failed" : "loading")}</p>
+        ${
+          this._refreshFailed || !this._haConnected
+            ? html`<p>${this.t("panel_retry_hint")}</p>
+                <button @click=${() => void this.refresh()}>${this.t("refresh")}</button>`
+            : nothing
+        }
+      </div>`;
+    return html`<div
+      class="app-shell"
+      data-view=${this._tab}
+      data-embed-api=${embedApiVersion}
+      ?data-embed=${this.embed}
+      dir=${he ? "rtl" : "ltr"}
+    >
+      ${
+        this.embed
+          ? nothing
+          : html`<header>
+              <div class="head">
+                <button
+                  class="quiet"
+                  aria-label="Menu"
+                  @click=${() => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }))}
+                >
+                  ${icon("menu")}
+                </button>
+                <div class="brand" aria-hidden="true">${icon("devices")}</div>
+                <div>
+                  <h1>${this.t("title")}</h1>
+                  <div class="version">
+                    ${this.t("version")} <bdi>${this._data?.version ?? ""}</bdi>
+                  </div>
+                </div>
+                ${this.navigation()}
+                <div class="spacer"></div>
+                ${
+                  this._data?.api?.commands.includes("search/query") === true
+                    ? html`<button
+                        aria-label=${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+                        @click=${() => {
+                          this._detailsModalUser = "";
+                          this._searchOpen = true;
+                        }}
+                      >
+                        ${icon("search")}
+                      </button>`
+                    : nothing
+                }
+                <button
+                  @click=${() => {
+                    this._error = "";
+                    void this.refresh();
+                  }}
+                  ?disabled=${this._busy}
+                >
+                  ${icon("sync")} <span class="refresh-label">${this.t("refresh")}</span>
+                </button>
+              </div>
+            </header>`
+      }
+      <main tabindex="-1">
+        ${
+          this.embed && this._data?.api?.commands.includes("search/query") === true
+            ? html`<button
+                class="tools-back"
+                aria-label=${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+                @click=${() => {
+                  this._detailsModalUser = "";
+                  this._searchOpen = true;
+                }}
+              >
+                ${icon("search")}${this.hass?.language?.startsWith("he") ? "חיפוש במערכת" : "Search system"}
+              </button>`
+            : nothing
+        }
+        ${!this.canManage(this.tabArea()) ? html`<p class="notice readonly-notice" role="status">${this.t("view_only_mode")}</p>` : nothing}
+        ${!compatible(this._data?.api) ? html`<p class="notice error api-compatibility" role="alert">${this.t("api_incompatible")}</p>` : nothing}
+        ${!["overview", "users", "events", "tools", ...(isWiskeyAppearance(this._appearance) ? ["devices"] : [])].includes(this._tab) ? html`<button class="tools-back" @click=${() => this.navigate("tools")}>${this.t("tools_back")}</button>` : nothing}
+        ${!this._haConnected ? html`<p class="notice error" role="status">${this.t("panel_connection_lost")}</p>` : this._refreshFailed ? html`<p class="notice error" role="status">${this.t(this._data ? "panel_data_stale" : "panel_load_failed")}</p>` : nothing}
+        ${
+          this._notice
+            ? html`<div class="notice" role="status">
+                <span>${this._notice}</span
+                ><button
+                  aria-label=${this.t("close")}
+                  @click=${() => {
+                    this._notice = "";
+                  }}
+                >
+                  ✕
+                </button>
+              </div>`
+            : nothing
+        }${this._error && !this._dialog ? html`<p class="notice error" role="alert">${this._error}</p>` : nothing}${
+          !this._data
+            ? html`<p class="loader">
+                ${this.t(this._refreshFailed || !this._haConnected ? "panel_retry_hint" : "loading")}
+              </p>`
+            : this._tab === "platform_center" && this._session?.is_admin
+              ? html`<wiskey-platform-center
+                  .hass=${this.protectedHass}
+                  .stations=${this._data.stations}
+                ></wiskey-platform-center>`
+              : this._tab === "workflow_center" && this._session?.is_admin
+                ? html`<wiskey-workflow-center
+                    .hass=${this.protectedHass}
+                    .people=${this._data.users}
+                    .stations=${this._data.stations}
+                    .groups=${this._data.profile_settings?.groups ?? []}
+                    .fields=${this._data.profile_settings?.fields ?? []}
+                    @staff-template-apply=${(e: CustomEvent) => this.applyStaffTemplate(e.detail)}
+                    @reminder-message=${(e: CustomEvent) => {
+                      this.messageDrafts.set(
+                        e.detail.user_id,
+                        this.t("reminder_message_" + e.detail.kind).replace("{date}", e.detail.at),
+                      );
+                      this._detailsModalUser = e.detail.user_id;
+                    }}
+                  ></wiskey-workflow-center>`
+                : this._tab === "access_control" && this._session?.is_admin
+                  ? html`<wiskey-access-control
+                      .canRenewalBindings=${this.commandAvailable("renewal/bindings")}
+                      .hass=${this.protectedHass}
+                    ></wiskey-access-control>`
+                  : this._tab === "camera_wall"
+                    ? html`<wiskey-camera-wall
+                        .hass=${this.protectedHass}
+                        .stations=${this._data.stations}
+                        .media=${this._data.media_settings}
+                        .version=${this._data.version}
+                        .suspended=${!!this._dialog}
+                        .requestedLimit=${this._cameraWallLimit}
+                        .compact=${this.embed}
+                        @open-station=${(e: CustomEvent<string>) => {
+                          this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
+                          this._dialog = "camera";
+                        }}
+                      ></wiskey-camera-wall>`
+                    : this._tab === "permission_directory"
+                      ? html`<hikvision-permission-directory
+                          .hass=${this.protectedHass}
+                          .stations=${this._data.stations}
+                          .stamp=${JSON.stringify([this._data.profile_settings?.revision, this._data.users.map((u) => [u.id, u.revision])])}
+                          @edit-person=${(e: CustomEvent<string>) => {
+                            const user = this._data?.users.find((u) => u.id === e.detail);
+                            if (user) this.edit(user);
+                          }}
+                        ></hikvision-permission-directory>`
+                      : this._tab === "profile_options"
+                        ? html`<hikvision-profile-settings
+                            .canHistory=${!!this._session?.is_admin && this._data?.api?.commands.includes("profiles/versions") === true}
+                            .hass=${this.protectedHass}
+                            .settings=${this._data.profile_settings}
+                            .stations=${this._data.stations}
+                            @profile-saved=${(e: CustomEvent) => {
+                              if (this._data)
+                                this._data = { ...this._data, profile_settings: e.detail };
+                            }}
+                          ></hikvision-profile-settings>`
+                        : this._tab === "whatsapp_templates"
+                          ? html`<wiskey-whatsapp-templates
+                              .hass=${this.protectedHass}
+                            ></wiskey-whatsapp-templates>`
+                          : this._tab === "media_options"
+                            ? html`<hikvision-media-settings
+                                .hass=${this.protectedHass}
+                                .settings=${this._data.media_settings}
+                                @media-saved=${(e: CustomEvent) => {
+                                  if (this._data)
+                                    this._data = { ...this._data, media_settings: e.detail };
+                                }}
+                              ></hikvision-media-settings>`
+                            : this._tab === "clock_options"
+                              ? html`<hikvision-clock-settings
+                                  .hass=${this.protectedHass}
+                                  .stations=${this._data.stations}
+                                ></hikvision-clock-settings>`
+                              : this._tab === "investigations"
+                                ? html`<wiskey-investigations
+                                    .hass=${this.protectedHass}
+                                    .authorized=${!!this._session?.is_admin}
+                                    .users=${this._data.users}
+                                    .stations=${this._data.stations}
+                                    .zone=${this._data.default_zone ?? UTC_ZONE}
+                                    @open-user=${(event: CustomEvent<string>) => {
+                                      const user = this._data?.users.find(
+                                        (item) => item.id === event.detail,
+                                      );
+                                      if (user) this.openPersonDetails(user);
+                                    }}
+                                  ></wiskey-investigations>`
+                                : this._tab === "guest_templates"
+                                  ? html`<wiskey-guest-templates
+                                      .hass=${this.protectedHass}
+                                      .stations=${this._data.stations}
+                                      .canManage=${this.canManage("users")}
+                                      .timezone=${this._data.default_zone?.name ?? "UTC"}
+                                    ></wiskey-guest-templates>`
+                                  : this._tab === "fleet_alerts"
+                                    ? html`<wiskey-fleet-alerts
+                                        .hass=${this.protectedHass}
+                                        .stations=${this._data.stations}
+                                        .canManage=${this.canManage("stations")}
+                                        @open-station=${(event: CustomEvent<string>) => {
+                                          this._deviceFocus = event.detail;
+                                          this.navigate("devices");
+                                        }}
+                                      ></wiskey-fleet-alerts>`
+                                    : this._tab === "visit_requests"
+                                      ? html`<wiskey-visit-requests
+                                          .hass=${this.protectedHass}
+                                          .stations=${this._data.stations}
+                                          .canManage=${this.canManage("users")}
+                                          @visit-changed=${() => void this.refresh()}
+                                        ></wiskey-visit-requests>`
+                                      : this._tab === "access_comparison"
+                                        ? html`<wiskey-access-comparison
+                                            .hass=${this.protectedHass}
+                                            .context=${JSON.stringify(this._session)}
+                                            .canView=${this.canView("users") && this.personField("access") && !!this._data.api?.commands.includes("users/access_compare")}
+                                          ></wiskey-access-comparison>`
+                                        : this._tab === "access_reviews"
+                                          ? html`<wiskey-permission-reviews
+                                              .hass=${this.protectedHass}
+                                              .stations=${this._data.stations}
+                                              .context=${JSON.stringify(this._session)}
+                                              .canView=${this.canView("users") && this.personField("access") && !!this._data.api?.commands.includes("users/access_reviews")}
+                                              .canManage=${this.canManage("users") && this.personField("access", true) && !!this._data.api?.commands.includes("users/access_review_decide")}
+                                              @open-user=${(event: CustomEvent<string>) => void this.openQualityPerson(event.detail)}
+                                            ></wiskey-permission-reviews>`
+                                          : this._tab === "data_quality"
+                                            ? html`<wiskey-data-quality
+                                                .hass=${this.protectedHass}
+                                                .context=${JSON.stringify(this._session)}
+                                                .canView=${this.canView("users") && !!this._data.api?.commands.includes("users/data_quality")}
+                                                @open-user=${(event: CustomEvent<string>) => void this.openQualityPerson(event.detail)}
+                                              ></wiskey-data-quality>`
+                                            : this._tab === "identity_lifecycle"
+                                              ? html`<wiskey-identity-lifecycle
+                                                  .hass=${this.protectedHass}
+                                                  .zone=${this._data.default_zone ?? UTC_ZONE}
+                                                  .canManage=${this.canManage("users")}
+                                                  .canCancel=${this.canManage("users") && !!this._data.api?.commands.includes("users/temporary_cancel")}
+                                                  .stations=${this._data.stations}
+                                                  @access-renewed=${() => void this.refresh()}
+                                                  @access-cancelled=${() => void this.refresh()}
+                                                  @open-user=${(event: CustomEvent<string>) => {
+                                                    const user = this._data?.users.find(
+                                                      (item) => item.id === event.detail,
+                                                    );
+                                                    if (user) this.openPersonDetails(user);
+                                                  }}
+                                                ></wiskey-identity-lifecycle>`
+                                              : this._tab === "operations_center"
+                                                ? html`<wiskey-operations-center
+                                                    .canCheckpoint=${this._data.api?.commands.includes("jobs/list") ?? false}
+                                                    .hass=${this.protectedHass}
+                                                    .users=${this._data.users}
+                                                    .stations=${this._data.stations}
+                                                    .canRetryUser=${this.canManage("users")}
+                                                    .canRetryStation=${this.canManage("stations")}
+                                                  ></wiskey-operations-center>`
+                                                : this._tab === "tools"
+                                                  ? this.toolsView()
+                                                  : this._tab === "overview"
+                                                    ? this.overviewView()
+                                                    : this._tab === "users"
+                                                      ? this.usersView()
+                                                      : this._tab === "devices"
+                                                        ? this.devicesView()
+                                                        : this._tab === "sync"
+                                                          ? this.syncView()
+                                                          : this._tab === "audit"
+                                                            ? html`<hikvision-admin-audit
+                                                                .hass=${this.protectedHass}
+                                                                .users=${this._data.users}
+                                                                .stations=${this._data.stations}
+                                                                .focusUser=${this._auditUser}
+                                                                .zone=${this._data.default_zone ?? UTC_ZONE}
+                                                                @review-user=${(e: CustomEvent) => this.inspect(e.detail.user_id, e.detail.station_id)}
+                                                              ></hikvision-admin-audit>`
+                                                            : this._tab === "health"
+                                                              ? html`<hikvision-intercom-health
+                                                                  .callBusy=${this._callBusy}
+                                                                  .onCallBusy=${this.setCallBusy}
+                                                                  .hass=${this.protectedHass}
+                                                                  .stations=${this._data.stations}
+                                                                  .supportBundle=${this._data.api?.commands.includes("support/bundle") ?? false}
+                                                                  .fleetInventory=${this._data.api?.commands.includes("fleet/inventory_export") ?? false}
+                                                                  .upgradeReadiness=${this._data.api?.commands.includes("upgrade/readiness") ?? false}
+                                                                ></hikvision-intercom-health>`
+                                                              : this._tab === "schedules"
+                                                                ? html`<hikvision-intercom-schedules
+                                                                    .hass=${this.protectedHass}
+                                                                    .stations=${this._data.stations}
+                                                                  ></hikvision-intercom-schedules>`
+                                                                : keyed(
+                                                                    this.permissionStamp(),
+                                                                    html`<hikvision-intercom-events
+                                                                      .policy=${this._data.profile_settings}
+                                                                      .hass=${this.protectedHass}
+                                                                      .stations=${this._data.stations}
+                                                                      .defaultZone=${this._data.default_zone ?? UTC_ZONE}
+                                                                      .v4=${isWiskeyAppearance(this._appearance)}
+                                                                      @event-person=${(event: CustomEvent<{ user_id: string }>) => void this.openEventPerson(event.detail.user_id)}
+                                                                    ></hikvision-intercom-events>`,
+                                                                  )
+        }
+      </main>
+      ${
+        this._searchOpen && this._data?.api?.commands.includes("search/query") === true
+          ? html`<wiskey-unified-search
+              .hass=${this.protectedHass}
+              .context=${JSON.stringify(this._session)}
+              .canView=${true}
+              .canOpenPerson=${this.canView("users") && this.commandAvailable("users/get")}
+              .canOpenEvents=${this.canView("events") && this.commandAvailable("events/list")}
+              .canOpenActions=${this.canView("management") && this.commandAvailable("audit/list")}
+              .stations=${this._data.stations}
+              .zone=${this._data.default_zone ?? UTC_ZONE}
+              @search-close=${() => {
+                this._searchOpen = false;
+                void this.updateComplete.then(() =>
+                  this.renderRoot
+                    .querySelector<HTMLButtonElement>(
+                      'button[aria-label="Search system"],button[aria-label="חיפוש במערכת"]',
+                    )
+                    ?.focus(),
+                );
+              }}
+              @open-user=${(event: CustomEvent<string>) => {
+                this._searchOpen = false;
+                void this.openQualityPerson(event.detail);
+              }}
+              @open-journal=${(event: CustomEvent<string>) => {
+                this._searchOpen = false;
+                this.navigate(event.detail === "events" ? "events" : "audit");
+              }}
+            ></wiskey-unified-search>`
+          : nothing
+      }
+      ${
+        this._detailsModalUser && this.modalPerson() && this._data
+          ? html`<wiskey-user-details
+              .allowedCommands=${this.operatorRestricted ? this._data?.api?.commands : undefined}
+              .v4=${isWiskeyAppearance(this._appearance)}
+              .canScenario=${this._data?.api?.commands.includes("users/access_scenario") ?? false}
+              .canRenew=${this._data.api?.commands.includes("workflows/renew_request") ?? false}
+              .canEdit=${this.personEditable(this.modalPerson()!)}
+              .canArchive=${this._data.api?.commands.includes(this.modalPerson()?.archived_at ? "users/unarchive" : "users/archive") ?? false}
+              @details-archive=${() => {
+                const person = this.modalPerson();
+                if (person) void this.changeArchive(person);
+              }}
+              .hass=${this.protectedHass}
+              .messageDraft=${this.messageDrafts.get(this._detailsModalUser) ?? ""}
+              .person=${this.detailPerson(this.modalPerson()!)}
+              .stations=${this._data.stations}
+              .policy=${this._data.profile_settings}
+              @details-close=${() => (this._detailsModalUser = "")}
+              @details-edit=${() => {
+                const user = this.modalPerson();
+                if (user) this.edit(this.detailPerson(user));
+              }}
+            ></wiskey-user-details>`
+          : nothing
+      }
+      ${this.dialogView()} ${this.securityOverlay()}
+      <hikvision-appearance-picker
+        .language=${this.hass?.language ?? "en"}
+        .settings=${this._data?.appearance_settings}
+        .canSetDefault=${!!this._session?.is_admin}
+        .saveDefault=${async (revision: number, choice: Appearance, accent: Accent) => {
+          const result = await this.api<NonNullable<Overview["appearance_settings"]>>(
+            "appearance/settings_update",
+            { revision, default: choice, accent },
+          );
+          if (this._data) this._data = { ...this._data, appearance_settings: result };
+        }}
+        @appearance-change=${(event: CustomEvent<Appearance | "default">) => {
+          this._appearanceFollow = event.detail === "default";
+          this._appearanceOverride = event.detail === "default" ? null : event.detail;
+          this._appearance =
+            event.detail === "default"
+              ? (this._data?.appearance_settings?.default ?? "current")
+              : event.detail;
+          if (!saveAppearance(this._appearanceUser, event.detail))
+            this._notice = this.t("appearance_session");
+        }}
+        @accent-change=${(event: CustomEvent<Accent | "default">) => {
+          this._accentOverride = event.detail === "default" ? null : event.detail;
+          const shared = this._data?.appearance_settings?.accent;
+          this._accent = this._accentOverride ?? (isAccent(shared) ? shared : "green");
+          if (!saveAccent(this._appearanceUser, event.detail))
+            this._notice = this.t("appearance_session");
+        }}
+      ></hikvision-appearance-picker>
+    </div>`;
+  }
+}
+customElements.define("hikvision-intercom-panel", IntercomManagerPanel);
+if (typeof FontFace !== "undefined") {
+  const font = new FontFace("WisKey Heebo", "url(/hikvision_intercom_static/Heebo.ttf)", {
+    weight: "100 900",
+    display: "swap",
+  });
+  font
+    .load()
+    .then((loaded) => document.fonts.add(loaded))
+    .catch(() => {});
+}

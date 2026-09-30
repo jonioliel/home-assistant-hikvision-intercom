@@ -1,0 +1,26 @@
+{
+  "domain": "hikvision_intercom",
+  "name": "smplwise access control",
+  "after_dependencies": [
+    "tts"
+  ],
+  "codeowners": [
+    "@jonioliel"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http",
+    "stream"
+  ],
+  "documentation": "https://github.com/jonioliel/home-assistant-hikvision-intercom",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jonioliel/home-assistant-hikvision-intercom/issues",
+  "requirements": [
+    "defusedxml==0.7.1",
+    "httpx==0.28.1",
+    "cryptography==48.0.1"
+  ],
+  "version": "2.0.0-rc.37"
+}

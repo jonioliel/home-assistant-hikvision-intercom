@@ -1,0 +1,72 @@
+"""Validate saved relay permissions before constructing a write-capable client."""
+
+import math
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
+
+from .exceptions import HikvisionValidationError
+
+
+@dataclass(frozen=True, slots=True)
+class ManagedLock:
+    """An explicitly selected and physically confirmed relay mapping."""
+
+    physical_index: int
+    api_id: int
+    name: str | None = None
+
+
+def managed_locks(data: Mapping[str, Any]) -> tuple[ManagedLock, ...]:
+    records = data.get("locks", [])
+    if not isinstance(records, list) or len(records) > 2:
+        raise HikvisionValidationError("Invalid managed relay selection")
+    result = []
+    physical_ids: set[int] = set()
+    api_ids: set[int] = set()
+    for item in records:
+        if (
+            not isinstance(item, dict)
+            or type(item.get("physical_index")) is not int
+            or item["physical_index"] not in {1, 2}
+            or type(item.get("api_id")) is not int
+            or item["api_id"] not in {1, 2}
+            or item.get("confirmed") is not True
+            or item["physical_index"] in physical_ids
+            or item["api_id"] in api_ids
+        ):
+            raise HikvisionValidationError("Relay mapping requires unique physical confirmation")
+        name = item.get("name")
+        if name is not None and (not isinstance(name, str) or not 1 <= len(name.strip()) <= 64):
+            raise HikvisionValidationError("Invalid lock name")
+        physical_ids.add(item["physical_index"])
+        api_ids.add(item["api_id"])
+        result.append(
+            ManagedLock(item["physical_index"], item["api_id"], name.strip() if name else None)
+        )
+    return tuple(sorted(result, key=lambda lock: lock.physical_index))
+
+
+@dataclass(frozen=True, slots=True)
+class PollOptions:
+    idle: float = 2.0
+    active: float = 0.75
+    pulse: float = 5.0
+
+    @classmethod
+    def from_mapping(cls, options: Mapping[str, Any]) -> "PollOptions":
+        values: list[float] = []
+        for key, default, lower, upper in (
+            ("idle_interval", 2.0, 1.5, 30),
+            ("active_interval", 0.75, 0.5, 1),
+            ("pulse_seconds", 5.0, 1, 30),
+        ):
+            value = options.get(key, default)
+            if (
+                type(value) not in (int, float)
+                or not math.isfinite(value)
+                or not lower <= value <= upper
+            ):
+                raise HikvisionValidationError("Invalid polling or display duration")
+            values.append(float(value))
+        return cls(*values)

@@ -1,0 +1,322 @@
+import { test, expect, type Page } from "@playwright/test";
+
+const key = "hikvision-intercom:appearance:v1:demo-admin";
+
+async function start(page: Page, theme: "wiskey-light" | "wiskey-dark", width: number) {
+  await page.setViewportSize({ width, height: 900 });
+  await page.addInitScript(({ key, theme }) => localStorage.setItem(key, theme), { key, theme });
+  await page.goto("/?lang=he");
+  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute("data-appearance", theme);
+}
+
+async function noOverflow(page: Page) {
+  await expect
+    .poll(() => page.locator(".app-shell").evaluate((el) => el.scrollWidth - el.clientWidth))
+    .toBeLessThanOrEqual(1);
+}
+
+for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
+  for (const width of [1440, 390]) {
+    test(`${theme} keeps the approved entry, people and call paths at ${width}px`, async ({
+      page,
+    }) => {
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await start(page, theme, width);
+      await expect(page.locator(".wk4-door")).toHaveCount(width === 390 ? 1 : 8);
+      await expect(page.locator(".nav .nav-primary button")).toHaveCount(5);
+      await noOverflow(page);
+      await page.screenshot({
+        path: `test-results/wiskey-${theme}-${width}-overview.png`,
+        fullPage: true,
+      });
+
+      await page.locator(".wk4-door .wk4-open-camera").first().click();
+      const call = page.locator(".camera-dialog");
+      await expect(call).toBeVisible();
+      await expect(call.locator(".wk4-camera-layout")).toBeVisible();
+      await expect(call.locator("hikvision-intercom-audio-controls")).toHaveCount(1);
+      await expect(call.locator("wiskey-intercom-tts")).toHaveCount(1);
+      await expect(call.locator(".camera-door-actions button").first()).toBeVisible();
+      await page.screenshot({
+        path: `test-results/wiskey-${theme}-${width}-call.png`,
+        fullPage: true,
+      });
+      const camera = call.locator("hikvision-intercom-camera");
+      expect(
+        await camera.evaluate((el) =>
+          getComputedStyle(el).getPropertyValue("--camera-object-fit").trim(),
+        ),
+      ).toBe("contain");
+      await page.keyboard.press("Escape");
+
+      await page.locator(".nav").getByRole("button", { name: "אנשים", exact: true }).click();
+      await expect(page.locator(".access-person-inspector")).toHaveCount(0);
+      await page.screenshot({
+        path: `test-results/wiskey-${theme}-${width}-people.png`,
+        fullPage: true,
+      });
+      await page.locator(".users-tools .wk4-filter-button").click();
+      await expect(page.locator(".access-user-options")).toHaveAttribute("open", "");
+      await expect(page.locator(".user-filters")).toHaveAttribute("open", "");
+      await page.locator(".access-people-table .user-detail-link").first().click();
+      const person = page.locator("wiskey-user-details");
+      await expect(person).toHaveAttribute("v4", "");
+      await expect(person.locator(".person-grants")).toBeVisible();
+      await page.screenshot({
+        path: `test-results/wiskey-${theme}-${width}-person.png`,
+        fullPage: true,
+      });
+      expect(
+        await person.locator("dialog").evaluate((el) => el.scrollWidth - el.clientWidth),
+      ).toBeLessThanOrEqual(1);
+      await page.keyboard.press("Escape");
+      await page.locator(".nav").getByRole("button", { name: "פעילות", exact: true }).click();
+      await expect(page.locator(".editor-dialog")).toHaveCount(0);
+      await noOverflow(page);
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+test("entry-center cards play muted live video and the image opens the camera", async ({
+  page,
+}) => {
+  await start(page, "wiskey-light", 1440);
+  await page.evaluate(() => {
+    const original = window.demoHass.callWS.bind(window.demoHass);
+    window.demoHass.callWS = (message) =>
+      message.type === "camera/stream" ? new Promise(() => {}) : original(message);
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      transport: "hls",
+      revision: window.demoData.media_settings.revision + 1,
+    };
+    window.demoNotify();
+  });
+  const card = page.locator(".wk4-door").first();
+  const preview = card.locator("hikvision-intercom-camera");
+  await expect(preview).toHaveJSProperty("preview", true);
+  await expect(preview).toHaveJSProperty("live", true);
+  await expect(preview.locator("video")).toHaveJSProperty("muted", true);
+  await expect(preview.locator(".player-status, .playback-export")).toHaveCount(0);
+
+  await card.locator(".wk4-door-image").click({ position: { x: 100, y: 40 } });
+  await expect(page.locator(".camera-dialog")).toBeVisible();
+  await expect(preview).toHaveJSProperty("live", false);
+  await expect(page.locator(".camera-dialog hikvision-intercom-camera video")).toHaveJSProperty(
+    "muted",
+    true,
+  );
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".camera-dialog")).toHaveCount(0);
+  await expect(preview).toHaveJSProperty("live", true);
+});
+
+test("global still-image mode avoids preview streams but opens live video on image click", async ({
+  page,
+}) => {
+  await start(page, "wiskey-light", 1440);
+  await page.evaluate(() => {
+    window.demoData.media_settings = {
+      ...window.demoData.media_settings,
+      overview_preview_mode: "snapshot",
+      transport: "hls",
+      revision: window.demoData.media_settings.revision + 1,
+    };
+    window.calls.length = 0;
+    window.demoNotify();
+  });
+  const card = page.locator(".wk4-door").first();
+  const preview = card.locator("hikvision-intercom-camera");
+  await expect(preview).toHaveJSProperty("preview", true);
+  await expect(preview).toHaveJSProperty("live", false);
+  await expect(preview.locator("video")).toHaveCount(0);
+  await expect(preview.locator("img")).toBeVisible();
+  expect(
+    await page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+  ).toBe(0);
+  await card.locator(".wk4-door-image").click({ position: { x: 100, y: 40 } });
+  await expect(page.locator(".camera-dialog hikvision-intercom-camera")).toHaveJSProperty(
+    "live",
+    true,
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.calls.filter((call) => call.type === "camera/stream").length),
+    )
+    .toBeGreaterThan(0);
+});
+
+test("V4 is opt-in alongside all four earlier choices", async ({ page }) => {
+  await start(page, "wiskey-light", 1440);
+  await page.locator(".nav").getByRole("button", { name: "ניהול", exact: true }).click();
+  await page.locator(".tools-grid .appearance-button").click();
+  const picker = page.locator("hikvision-appearance-picker");
+  await expect(picker.locator("input[name=appearance]")).toHaveCount(6);
+  for (const value of [
+    "current",
+    "modern",
+    "access-light",
+    "access-dark",
+    "wiskey-light",
+    "wiskey-dark",
+  ]) {
+    await expect(picker.locator(`input[value="${value}"]`)).toHaveCount(1);
+  }
+  await picker.getByRole("radio", { name: "WisKey 04 · כהה" }).check();
+  await picker.getByRole("button", { name: "החלת העיצוב" }).click();
+  await expect(page.locator("hikvision-intercom-panel")).toHaveAttribute(
+    "data-appearance",
+    "wiskey-dark",
+  );
+});
+
+for (const width of [1440, 390]) {
+  test(`V4 station management and secondary screens remain reachable at ${width}px`, async ({
+    page,
+  }) => {
+    await start(page, "wiskey-light", width);
+    await page.locator(".nav").getByRole("button", { name: "דלתות", exact: true }).click();
+    await expect(page.locator(".device-station:visible")).toHaveCount(1);
+    await page.screenshot({ path: `test-results/wiskey-v4-${width}-stations.png`, fullPage: true });
+    const station = page.locator(".device-station:visible");
+    await expect(station.locator(".wk4-station-shortcuts button")).toHaveCount(2);
+    const tabs = station.locator(".station-tabs button");
+    await expect(tabs).toHaveCount(4);
+    await tabs.nth(1).click();
+    await expect(station.locator("wiskey-door-programs")).toBeVisible();
+    await tabs.nth(2).click();
+    await expect(station.locator("hikvision-station-technical")).toBeVisible();
+    await tabs.nth(3).click();
+    await expect(station.locator("hikvision-station-technical")).toBeVisible();
+    await noOverflow(page);
+    await page.locator(".nav").getByRole("button", { name: "פעילות", exact: true }).click();
+    await expect(page.locator("hikvision-intercom-events")).toBeVisible();
+    const events = page.locator("hikvision-intercom-events");
+    await expect(events).toHaveAttribute("v4", "");
+    await expect(events.locator(".wk4-activity-table .audit-row")).toHaveCount(2);
+    await expect(events.locator(".event-filters")).not.toHaveAttribute("open", "");
+    await events.locator(".wk4-activity-table td button").last().click();
+    await expect(events.locator(".wk4-activity-table .audit-row").last()).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(events.locator(".wk4-event-inspector")).toBeVisible();
+    await page.screenshot({ path: `test-results/wiskey-v4-${width}-events.png`, fullPage: true });
+    await noOverflow(page);
+    await page.locator(".nav").getByRole("button", { name: "ניהול", exact: true }).click();
+    await expect(page.locator(".tools-grid")).toBeVisible();
+    await page.screenshot({ path: `test-results/wiskey-v4-${width}-tools.png`, fullPage: true });
+    await noOverflow(page);
+  });
+}
+
+for (const count of [4, 6, 8, 9, 12]) {
+  test(`V4 shows an explicit ${count} stations on desktop`, async ({ page }) => {
+    await start(page, "wiskey-light", 1440);
+    await page.getByRole("combobox", { name: "תחנות בתצוגה" }).selectOption(String(count));
+    await page.evaluate((n) => {
+      const panel = document.querySelector("hikvision-intercom-panel") as any;
+      const source = panel._data.stations;
+      panel._data = {
+        ...panel._data,
+        stations: Array.from({ length: n }, (_, i) => ({
+          ...source[i % source.length],
+          id: `v4-${i}`,
+          name: `תחנה ${i + 1}`,
+        })),
+      };
+    }, count);
+    await expect(page.locator(".wk4-door")).toHaveCount(count);
+    if (count <= 8)
+      await expect
+        .poll(() =>
+          page.locator(".wk4-grid-foot").evaluate((el) => el.getBoundingClientRect().bottom),
+        )
+        .toBeLessThanOrEqual(900);
+    await noOverflow(page);
+    await page.screenshot({ path: `test-results/wiskey-v4-${count}-stations.png` });
+  });
+}
+
+for (const theme of ["wiskey-light", "wiskey-dark"] as const) {
+  test(`${theme} covers the full tall viewport on overview and people`, async ({ page }) => {
+    await start(page, theme, 1920);
+    await page.setViewportSize({ width: 1920, height: 1200 });
+    // Home Assistant can place the panel inside an auto-height content container.
+    await page.locator("body").evaluate((body) => {
+      body.style.height = "auto";
+    });
+
+    async function expectBackgroundCoverage() {
+      const coverage = await page.locator("hikvision-intercom-panel").evaluate((host) => {
+        const shell = host.shadowRoot?.querySelector(".app-shell");
+        if (!shell) throw new Error("WisKey shell missing");
+        return {
+          hostBottom: host.getBoundingClientRect().bottom,
+          shellBottom: shell.getBoundingClientRect().bottom,
+          hostColor: getComputedStyle(host).backgroundColor,
+          shellColor: getComputedStyle(shell).backgroundColor,
+        };
+      });
+      expect(coverage.hostBottom).toBeGreaterThanOrEqual(1200);
+      expect(coverage.shellBottom).toBeGreaterThanOrEqual(1200);
+      expect(coverage.hostColor).toBe(coverage.shellColor);
+      expect(coverage.hostColor).not.toBe("rgba(0, 0, 0, 0)");
+    }
+
+    await expectBackgroundCoverage();
+    await page.locator(".nav").getByRole("button", { name: "אנשים", exact: true }).click();
+    await expect(page.locator(".access-people-table")).toBeVisible();
+    await expectBackgroundCoverage();
+  });
+}
+
+test("V4 preserves count selection, paging and wall full-screen access", async ({ page }) => {
+  await start(page, "wiskey-light", 1440);
+  await expect(page.getByRole("button", { name: "מסך מלא" })).toBeVisible();
+  await page.getByRole("combobox", { name: "תחנות בתצוגה" }).selectOption("4");
+  await expect(page.locator(".wk4-door")).toHaveCount(4);
+  await expect(page.locator(".wk4-pager")).toContainText("1 / 3");
+  await page.locator(".wk4-pager").getByRole("button", { name: "הבא" }).click();
+  await expect(page.locator(".wk4-pager")).toContainText("2 / 3");
+  await page.getByRole("combobox", { name: "תחנות בתצוגה" }).selectOption("12");
+  await expect(page.locator(".wk4-door")).toHaveCount(9);
+  await expect(page.locator(".wk4-pager")).toHaveCount(0);
+});
+
+test("V4 recalculates automatic page size on short desktop and mobile viewports", async ({
+  page,
+}) => {
+  await start(page, "wiskey-light", 1440);
+  await page.setViewportSize({ width: 1440, height: 720 });
+  await expect(page.locator(".wk4-door")).toHaveCount(4);
+  await expect(page.locator(".wk4-pager")).toContainText("1 / 3");
+  await expect
+    .poll(() => page.locator(".wk4-grid-foot").evaluate((el) => el.getBoundingClientRect().bottom))
+    .toBeLessThanOrEqual(720);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".wk4-door")).toHaveCount(1);
+  await expect(page.locator(".wk4-pager")).toContainText("1 / 9");
+  await noOverflow(page);
+});
+
+test("V4 delegated viewer retains permitted video and no mutation controls", async ({ page }) => {
+  await page.addInitScript((storageKey) => localStorage.setItem(storageKey, "wiskey-light"), key);
+  await page.goto("/?reader=1&grant=overview:view,users:view");
+  await expect(page.locator(".wk4-door")).toHaveCount(4);
+  await expect(
+    page.locator(".wk4-head-actions").getByRole("button", { name: "Camera wall" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".wk4-head-actions").getByRole("button", { name: /Add user/ }),
+  ).toHaveCount(0);
+  await expect(page.locator(".wk4-door-actions").getByRole("button", { name: /Open/ })).toHaveCount(
+    0,
+  );
+  await expect(page.locator(".nav").getByRole("button", { name: "Management" })).toHaveCount(0);
+  await page.locator(".wk4-head-actions").getByRole("button", { name: "Camera wall" }).click();
+  await expect(page.locator("wiskey-camera-wall")).toBeVisible();
+});

@@ -1,0 +1,1503 @@
+"""Durable desired state, ownership bindings and deletion tombstones.
+
+Every mutation is saved before being published to in-memory readers. Network work
+never runs under the repository lock. Secrets only leave through private copies.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import hmac
+import json
+import secrets
+from collections.abc import Awaitable, Callable, Mapping
+from copy import deepcopy
+from datetime import datetime
+from typing import Any, TypeVar
+from uuid import uuid4
+
+from . import sync_tracking, visit_requests, workflows
+from .admin_audit import append_changes, current_actor, current_reason_code, validate_storage
+from .models import AccessError, ManagedUser, build_user, utc_now
+
+T = TypeVar("T")
+Save = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+class AccessRepository:
+    def __init__(self, save: Save) -> None:
+        self._save = save
+        self._lock = asyncio.Lock()
+        self._state: dict[str, Any] = {
+            "schema": 16,
+            "station_lifecycles": {},
+            "workflows": workflows.defaults(),
+            "checkpoint_jobs": {},
+            "visit_requests": {"revision": 0, "items": {}},
+            "sync_operations": {},
+            "profile_settings": None,
+            "fingerprint_key": secrets.token_hex(32),
+            "users": {},
+            "bindings": {},
+            "tombstones": {},
+            "ignored": {},
+            "retired_cards": {},
+            "retired_pins": {},
+            "admin_audit": {"next": 1, "records": []},
+            "operation_receipts": {},
+        }
+
+    async def async_load(self, data: dict[str, Any] | None) -> None:
+        async with self._lock:
+            if data is None:
+                await self._save(deepcopy(self._state))
+                return
+            migrated = False
+            require_overrides = data.get("schema") in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+            previous_state = set(self._state) - {
+                "visit_requests",
+                "checkpoint_jobs",
+                "workflows",
+                "station_lifecycles",
+            }
+            legacy_state = previous_state - {"sync_operations"}
+            legacy_keys = legacy_state - {
+                "admin_audit",
+                "operation_receipts",
+                "profile_settings",
+            }
+            if data.get("schema") == 1 and set(data) == legacy_keys - {"retired_pins"}:
+                data = {**deepcopy(data), "schema": 2, "retired_pins": {}}
+                migrated = True
+            if data.get("schema") == 2 and set(data) == legacy_keys:
+                data = {
+                    **deepcopy(data),
+                    "schema": 3,
+                    "admin_audit": {"next": 1, "records": []},
+                    "operation_receipts": {},
+                }
+                migrated = True
+            if data.get("schema") == 3 and set(data) == legacy_state - {"profile_settings"}:
+                data = {**deepcopy(data), "schema": 4}
+                migrated = True
+            if data.get("schema") == 4 and set(data) == legacy_state - {"profile_settings"}:
+                data = {**deepcopy(data), "schema": 5, "profile_settings": None}
+                migrated = True
+            if data.get("schema") == 5 and set(data) == legacy_state:
+                data = {**deepcopy(data), "schema": 6}
+                migrated = True
+            if data.get("schema") == 6:
+                data = {**deepcopy(data), "schema": 7}
+                migrated = True
+            if data.get("schema") == 7 and set(data) == legacy_state:
+                data = {**deepcopy(data), "schema": 8, "sync_operations": {}}
+                migrated = True
+            if data.get("schema") == 8 and set(data) == previous_state:
+                data = {**deepcopy(data), "schema": 9}
+                migrated = True
+            if data.get("schema") == 9 and set(data) == previous_state:
+                data = {**deepcopy(data), "schema": 10}
+                migrated = True
+            if data.get("schema") == 10 and set(data) == previous_state:
+                data = {
+                    **deepcopy(data),
+                    "schema": 11,
+                    "visit_requests": {"revision": 0, "items": {}},
+                }
+                migrated = True
+            try:
+                if data.get("schema") == 11 and set(data) == set(self._state) - {
+                    "checkpoint_jobs",
+                    "workflows",
+                    "station_lifecycles",
+                }:
+                    data = {**deepcopy(data), "schema": 12, "checkpoint_jobs": {}}
+                    migrated = True
+                if data.get("schema") == 12 and set(data) == set(self._state) - {
+                    "workflows",
+                    "station_lifecycles",
+                }:
+                    data = {**deepcopy(data), "schema": 13, "workflows": workflows.defaults()}
+                    migrated = True
+                if data.get("schema") == 13 and set(data) == set(self._state) - {
+                    "station_lifecycles"
+                }:
+                    data = {**deepcopy(data), "schema": 14, "station_lifecycles": {}}
+                    migrated = True
+                if data.get("schema") == 14 and set(data) == set(self._state):
+                    data = {**deepcopy(data), "schema": 15}
+                    migrated = True
+                if data.get("schema") == 15 and set(data) == set(self._state):
+                    from .renewal_identity import defaults as identity_defaults
+
+                    journal = deepcopy(data["workflows"])
+                    if set(journal) == set(workflows.defaults()) - {"renewal_identity"}:
+                        journal["renewal_identity"] = identity_defaults()
+                    data = {**deepcopy(data), "schema": 16, "workflows": journal}
+                    migrated = True
+                if data.get("schema") != 16 or set(data) != set(self._state):
+                    raise AccessError("invalid_storage")
+                if len(bytes.fromhex(data["fingerprint_key"])) != 32:
+                    raise AccessError("invalid_storage")
+                for key in (
+                    "users",
+                    "bindings",
+                    "tombstones",
+                    "ignored",
+                    "retired_cards",
+                    "retired_pins",
+                ):
+                    if not isinstance(data[key], dict):
+                        raise AccessError("invalid_storage")
+                normalized = deepcopy(data)
+                if data["profile_settings"] is not None:
+                    from ..profile_settings import ProfileSettings
+
+                    profiles = ProfileSettings(self._save, lambda: None)
+                    profiles.load(data["profile_settings"])
+                    normalized["profile_settings"] = deepcopy(profiles.data)
+                    if data["profile_settings"]["schema"] != 5:
+                        migrated = True
+                for key, raw in data["users"].items():
+                    if require_overrides and "permission_overrides" not in raw:
+                        raise AccessError("invalid_storage")
+                    user = ManagedUser.from_private(raw)
+                    if user.id != key:
+                        raise AccessError("invalid_storage")
+                    for assignment in user.assignments.values():
+                        if assignment.sync_state == "syncing":
+                            assignment.sync_state = "pending"
+                    if data["profile_settings"] is not None:
+                        from .group_permissions import prepare
+
+                        effective = prepare(
+                            normalized["profile_settings"],
+                            {"permission_overrides": user.permission_overrides},
+                            user,
+                        )
+                        if {s for s, a in user.assignments.items() if a.enabled} != {
+                            s for s, a in effective["assignments"].items() if a["enabled"]
+                        }:
+                            raise AccessError("invalid_storage")
+                    normalized["users"][key] = user.private()
+                # Ownership and tombstones are authoritative; never default corrupt data away.
+                for station, bindings in data["bindings"].items():
+                    if not isinstance(station, str) or not isinstance(bindings, dict):
+                        raise AccessError("invalid_storage")
+                    for user_id, binding in bindings.items():
+                        if (
+                            not isinstance(binding, dict)
+                            or not isinstance(binding.get("employee_no"), str)
+                            or user_id not in data["users"]
+                            and user_id not in data["tombstones"]
+                        ):
+                            raise AccessError("invalid_storage")
+                for user_id, tombstone in data["tombstones"].items():
+                    if (
+                        user_id in data["users"]
+                        or not isinstance(tombstone, dict)
+                        or not isinstance(tombstone.get("targets"), list)
+                        or not isinstance(tombstone.get("confirmed"), list)
+                        or not isinstance(tombstone.get("employee_no"), str)
+                    ):
+                        raise AccessError("invalid_storage")
+                from .station_lifecycle_jobs import validate as validate_lifecycles
+
+                validate_lifecycles(normalized["station_lifecycles"])
+                from .station_lifecycle_jobs import guard as lifecycle_guard
+
+                lifecycle_guard(normalized)
+                validate_storage(normalized["admin_audit"], normalized["operation_receipts"])
+                visit_requests.validate(normalized["visit_requests"], normalized["users"])
+                from .checkpoint_jobs import validate as validate_jobs
+
+                validate_jobs(normalized["checkpoint_jobs"])
+                workflows.validate(normalized["workflows"])
+                sync_tracking.validate(normalized["sync_operations"])
+                if migrated:
+                    sync_tracking.update(normalized, migrated=True)
+                self._validate_journal(normalized)
+                self._validate_collisions(normalized)
+                # No worker survives a process restart. Keep ownership/removal intent,
+                # but reset all transient views, including deleted users' station rows.
+                for bindings in normalized["bindings"].values():
+                    for binding in bindings.values():
+                        if binding.get("sync_state") == "syncing":
+                            binding["sync_state"] = "pending"
+                for tombstone in normalized["tombstones"].values():
+                    for station in tombstone.get("stations", {}).values():
+                        if station.get("sync_state") == "syncing":
+                            station["sync_state"] = "pending"
+            except (KeyError, TypeError, ValueError, AttributeError):
+                raise AccessError("invalid_storage") from None
+            if migrated:
+                await self._save(deepcopy(normalized))
+            self._state = normalized
+
+    @staticmethod
+    def _validate_journal(state: dict[str, Any]) -> None:
+        from .models import SYNC_STATES, text_field, uuid_text
+
+        def stations(value: Any) -> set[str]:
+            if not isinstance(value, list) or len(value) != len(set(value)):
+                raise AccessError("invalid_storage")
+            return {text_field(item, 128) for item in value}
+
+        records = {key: ManagedUser.from_private(raw) for key, raw in state["users"].items()}
+        for key, item in state["tombstones"].items():
+            user = ManagedUser.from_private(item["record"])
+            if (
+                key != user.id
+                or item.get("user_id") != key
+                or item["employee_no"] != user.employee_no
+            ):
+                raise AccessError("invalid_storage")
+            if not stations(item["confirmed"]) <= stations(item["targets"]):
+                raise AccessError("invalid_storage")
+            records[key] = user
+        for station, bindings in state["bindings"].items():
+            text_field(station, 128)
+            for user_id, binding in bindings.items():
+                user = records[user_id]
+                if (
+                    binding["employee_no"] != user.employee_no
+                    or type(binding.get("adopted")) is not bool
+                ):
+                    raise AccessError("invalid_storage")
+                if binding.get("fingerprint") is not None:
+                    text_field(binding["fingerprint"], 128)
+                timing = binding.get("timing_readback")
+                if timing is not None:
+                    from .models import valid_period
+
+                    if (
+                        not isinstance(timing, dict)
+                        or set(timing)
+                        != {"mode", "valid_from", "valid_until", "revision", "checked_at"}
+                        or timing["mode"] not in ("ha", "native")
+                        or type(timing["revision"]) is not int
+                        or not 1 <= timing["revision"] <= user.revision
+                    ):
+                        raise AccessError("invalid_storage")
+                    valid_period(timing["valid_from"], timing["valid_until"])
+                    if datetime.fromisoformat(text_field(timing["checked_at"], 40)).tzinfo is None:
+                        raise AccessError("invalid_storage")
+                observed_at = binding.get("identity_observed_at")
+                if observed_at is not None:
+                    if datetime.fromisoformat(text_field(observed_at, 40)).tzinfo is None:
+                        raise AccessError("invalid_storage")
+                if binding.get("sync_state", "pending") not in SYNC_STATES:
+                    raise AccessError("invalid_storage")
+                intent = binding.get("intent")
+                if intent is not None:
+                    if (
+                        not isinstance(intent, dict)
+                        or intent.get("operation") not in {"create", "update", "delete"}
+                        or type(intent.get("revision")) is not int
+                        or not 1 <= intent["revision"] <= user.revision
+                    ):
+                        raise AccessError("invalid_storage")
+                    text_field(intent["desired_fingerprint"], 128)
+                    if intent.get("before_fingerprint") is not None:
+                        text_field(intent["before_fingerprint"], 128)
+        for kind in ("retired_cards", "retired_pins"):
+            for key, item in state[kind].items():
+                uuid_text(key)
+                if item["user_id"] not in records or not stations(item["confirmed"]) <= stations(
+                    item["targets"]
+                ):
+                    raise AccessError("invalid_storage")
+                secret = item["pin" if kind == "retired_pins" else "card_no"]
+                text_field(secret, 32)
+        for station, employees in state["ignored"].items():
+            text_field(station, 128)
+            stations(employees)
+
+    def preview_copy(self) -> AccessRepository:
+        """Detached state for CPU-only planning; no persistence method is used on this copy."""
+        copied = AccessRepository(self._save)
+        copied._state = self.snapshot()
+        return copied
+
+    async def _commit(self, change: Callable[[dict[str, Any]], T], *, offload: bool = False) -> T:
+        actor, action = current_actor()
+        reason_code = current_reason_code()
+        async with self._lock:
+
+            def prepare() -> tuple[dict[str, Any], T]:
+                candidate = deepcopy(self._state)
+                result = change(candidate)
+                from .station_lifecycle_jobs import guard as lifecycle_guard
+
+                lifecycle_guard(candidate)
+                if (
+                    candidate["profile_settings"] != self._state["profile_settings"]
+                    and candidate["profile_settings"] is not None
+                ):
+                    from .policy_versions import updated
+
+                    candidate["profile_settings"] = updated(
+                        self._state["profile_settings"],
+                        candidate["profile_settings"],
+                        actor,
+                        action,
+                    )
+                self._validate_collisions(candidate)
+                visit_requests.guard_activation(self._state, candidate)
+                sync_tracking.update(candidate)
+                append_changes(self._state, candidate, actor, action, reason_code=reason_code)
+                return candidate, result
+
+            offload = (
+                offload
+                or len(self._state["users"]) > 100
+                or len(self._state["admin_audit"]["records"]) > 100
+            )
+            candidate, result = await asyncio.to_thread(prepare) if offload else prepare()
+            if candidate != self._state:
+                saving = asyncio.ensure_future(self._save(deepcopy(candidate)))
+                cancelled = False
+                while not saving.done():
+                    try:
+                        await asyncio.shield(saving)
+                    except asyncio.CancelledError:
+                        # Repeated shutdown cancellation must not release this lock while
+                        # an executor is still persisting the previous revision.
+                        cancelled = True
+                saving.result()
+                self._state = candidate
+                if cancelled:
+                    raise asyncio.CancelledError
+            return deepcopy(result)
+
+    @staticmethod
+    def _validate_collisions(state: dict[str, Any]) -> None:
+        if sum(len(u.get("photo") or "") for u in state["users"].values()) > 24 * 1024 * 1024:
+            raise AccessError("photo_storage_full")
+        blocked_cards = {
+            item["card_no"]
+            for item in state.get("workflows", {}).get("inventory", {}).values()
+            if item["status"] in {"lost", "blocked"}
+        }
+        if any(
+            card["card_no"] in blocked_cards
+            for user in state["users"].values()
+            for card in user["cards"]
+        ):
+            raise AccessError("card_unavailable")
+        employees: set[str] = set()
+        cards: dict[str, str] = {}
+        pins: dict[str, str] = {}
+        records = list(state["users"].values()) + [
+            item["record"] for item in state["tombstones"].values()
+        ]
+        for record in records:
+            employee = record["employee_no"]
+            if employee in employees:
+                raise AccessError("employee_conflict")
+            employees.add(employee)
+            pin = record.get("pin")
+            if pin is not None:
+                if pin in pins:
+                    raise AccessError("pin_conflict")
+                pins[pin] = record["id"]
+            for card in record["cards"]:
+                number = card["card_no"]
+                if number in cards:
+                    raise AccessError("card_conflict")
+                cards[number] = record["id"]
+        from .profile_uniqueness import validate as validate_unique
+
+        validate_unique(state["profile_settings"], list(state["users"].values()))
+        for retired in state["retired_pins"].values():
+            pin, owner = retired["pin"], retired["user_id"]
+            if pin in pins and pins[pin] != owner:
+                raise AccessError("pin_removal_pending")
+            pins[pin] = owner
+        for retired in state["retired_cards"].values():
+            number, owner = retired["card_no"], retired["user_id"]
+            if number in cards and cards[number] != owner:
+                raise AccessError("card_removal_pending")
+            cards[number] = owner
+
+    def snapshot(self) -> dict[str, Any]:
+        """Private engine view. The caller receives a detached copy."""
+        return deepcopy(self._state)
+
+    def users(self) -> list[ManagedUser]:
+        return [ManagedUser.from_private(item) for item in self._state["users"].values()]
+
+    def get(self, user_id: str) -> ManagedUser:
+        raw = self._state["users"].get(user_id)
+        if raw is None:
+            raise AccessError("user_not_found")
+        return ManagedUser.from_private(raw)
+
+    def pin_available(self, pin: str, *, exclude_user_id: str | None = None) -> bool:
+        """Return whether a validated PIN is free across active and retiring records."""
+
+        if not isinstance(pin, str) or not pin.isdigit() or not 1 <= len(pin) <= 128:
+            raise AccessError("invalid_pin")
+        if exclude_user_id is not None and exclude_user_id not in self._state["users"]:
+            raise AccessError("user_not_found")
+        records = list(self._state["users"].values()) + [
+            item["record"] for item in self._state["tombstones"].values()
+        ]
+        if any(record.get("pin") == pin and record["id"] != exclude_user_id for record in records):
+            return False
+        return not any(
+            item["pin"] == pin and item["user_id"] != exclude_user_id
+            for item in self._state["retired_pins"].values()
+        )
+
+    def generate_unique_pin(self, *, exclude_user_id: str | None = None) -> str:
+        """Create a six-digit PIN that is currently unowned; final writes recheck atomically."""
+
+        if exclude_user_id is not None and exclude_user_id not in self._state["users"]:
+            raise AccessError("user_not_found")
+        for _attempt in range(1024):
+            pin = str(100_000 + secrets.randbelow(900_000))
+            if self.pin_available(pin, exclude_user_id=exclude_user_id):
+                return pin
+        raise AccessError("pin_generation_failed")
+
+    def public(self, *, include_users: bool = True) -> dict[str, Any]:
+        if not include_users:
+            return {
+                key: []
+                for key in (
+                    "users",
+                    "sync_operations",
+                    "revocations",
+                    "card_removals",
+                    "pin_removals",
+                    "tombstones",
+                )
+            }
+        return deepcopy(
+            {
+                "users": [
+                    {
+                        **user.public(),
+                        "timing_readbacks": {
+                            sid: deepcopy(binding["timing_readback"])
+                            for sid, bindings in self._state["bindings"].items()
+                            if (binding := bindings.get(user.id)) and binding.get("timing_readback")
+                        },
+                    }
+                    for user in self.users()
+                ],
+                "sync_operations": sync_tracking.public(self._state),
+                "revocations": [
+                    {
+                        "station_id": station,
+                        "user_id": user_id,
+                        "sync_state": binding.get("sync_state", "pending"),
+                        "last_error": binding.get("last_error"),
+                    }
+                    for station, bindings in self._state["bindings"].items()
+                    for user_id, binding in bindings.items()
+                    if user_id in self._state["users"]
+                    and station not in self._state["users"][user_id]["assignments"]
+                ],
+                "card_removals": [
+                    {
+                        "id": key,
+                        "user_id": item["user_id"],
+                        "targets": item["targets"],
+                        "confirmed": item["confirmed"],
+                    }
+                    for key, item in self._state["retired_cards"].items()
+                ],
+                "pin_removals": [
+                    {
+                        "id": key,
+                        "user_id": item["user_id"],
+                        "targets": item["targets"],
+                        "confirmed": item["confirmed"],
+                    }
+                    for key, item in self._state["retired_pins"].items()
+                ],
+                "tombstones": [
+                    {key: value for key, value in item.items() if key != "record"}
+                    for item in self._state["tombstones"].values()
+                ],
+            }
+        )
+
+    def fingerprint(self, payload: Mapping[str, Any]) -> str:
+        encoded = json.dumps(
+            payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        ).encode()
+        return hmac.new(
+            bytes.fromhex(self._state["fingerprint_key"]), encoded, hashlib.sha256
+        ).hexdigest()
+
+    def profile_settings(self) -> dict[str, Any] | None:
+        result: dict[str, Any] | None = deepcopy(self._state["profile_settings"])
+        return result
+
+    def permission_data(
+        self,
+        data: dict[str, Any],
+        previous: ManagedUser | None = None,
+        *,
+        state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        from .group_permissions import prepare
+
+        current = self._state if state is None else state
+        policy = current["profile_settings"]
+        if "access_policy_revision" in data and (
+            type(data["access_policy_revision"]) is not int
+            or policy is None
+            or data["access_policy_revision"] != policy["revision"]
+        ):
+            raise AccessError("group_policy_changed")
+        if policy is not None and (previous is None or "profile" in data):
+            from ..profile_settings import validate_profile
+
+            validate_profile(policy, data, previous.profile if previous else None)
+        return prepare(policy, data, previous)
+
+    async def async_profile_settings(
+        self,
+        data: dict[str, Any],
+        validate: Callable[[ManagedUser], None] | None = None,
+        *,
+        stamp: str | None = None,
+        receipt: dict[str, Any] | None = None,
+    ) -> list[str]:
+        from ..profile_settings import ProfileSettings
+
+        checked = ProfileSettings(self._save, lambda: None)
+        if data.get("schema") == 5:
+            from .policy_versions import updated
+
+            actor, action = current_actor()
+            data = updated(self._state["profile_settings"], data, actor, action)
+        checked.load(data)
+        desired = deepcopy(checked.data)
+
+        def update(state: dict[str, Any]) -> list[str]:
+            if receipt and (existing := state["operation_receipts"].get(receipt["operation_id"])):
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return list(existing["user_ids"])
+            if stamp is not None and stamp != self.bulk_stamp(state):
+                raise AccessError("bulk_review_stale")
+            prior = state["profile_settings"]
+            if prior is not None and desired["revision"] != prior["revision"] + 1:
+                raise AccessError("revision_conflict")
+            state["profile_settings"] = desired
+            changed = []
+            from .csv_transfer import desired_fields
+
+            for uid, raw in list(state["users"].items()):
+                old = ManagedUser.from_private(raw)
+                user = build_user(
+                    self.permission_data({}, old, state=state),
+                    employee_no=old.employee_no,
+                    now=utc_now(),
+                    previous=old,
+                )
+                if desired_fields(user) == desired_fields(old):
+                    continue
+                if validate:
+                    validate(user)
+                self._update_user(state, uid, {}, old.revision)
+                changed.append(uid)
+            if receipt:
+                state["operation_receipts"][receipt["operation_id"]] = {
+                    **deepcopy(receipt),
+                    "user_ids": changed,
+                    "changed": len(changed),
+                }
+                while len(state["operation_receipts"]) > 1000:
+                    oldest = min(
+                        state["operation_receipts"],
+                        key=lambda k: state["operation_receipts"][k]["saved_at"],
+                    )
+                    del state["operation_receipts"][oldest]
+            return changed
+
+        return await self._commit(update, offload=True)
+
+    async def async_lifecycle_prepare(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import prepare
+
+        return await self._commit(lambda state: prepare(self, state, **kwargs), offload=True)
+
+    async def async_lifecycle_decide(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import decide
+
+        return await self._commit(lambda state: decide(self, state, **kwargs))
+
+    async def async_lifecycle_apply(self, **kwargs: Any) -> dict[str, Any]:
+        from .station_lifecycle_jobs import apply
+
+        return await self._commit(lambda state: apply(self, state, **kwargs), offload=True)
+
+    async def async_lifecycle_mark(
+        self, job_id: str, change: Callable[[dict[str, Any], dict[str, Any]], None]
+    ) -> dict[str, Any]:
+        from .station_lifecycle_jobs import current, validate
+
+        def update(state: dict[str, Any]) -> dict[str, Any]:
+            row = current(state, job_id)
+            change(state, row)
+            validate(state["station_lifecycles"])
+            return row
+
+        return await self._commit(update, offload=True)
+
+    async def async_create(
+        self, data: dict[str, Any], *, approval: tuple[str, str] | None = None
+    ) -> ManagedUser:
+        def create(state: dict[str, Any]) -> ManagedUser:
+            employees = {item["employee_no"] for item in state["users"].values()} | {
+                item["employee_no"] for item in state["tombstones"].values()
+            }
+            while (employee := str(100_000_000 + secrets.randbelow(900_000_000))) in employees:
+                pass
+            user = build_user(
+                self.permission_data(data, state=state), employee_no=employee, now=utc_now()
+            )
+            state["users"][user.id] = user.private()
+            if approval:
+                visit_requests.create(state, user, approval[0], approval[1])
+            return user
+
+        return await self._commit(create)
+
+    def visit_requests(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 100,
+        filters: dict[str, Any] | None = None,
+        actor: str = "",
+    ) -> dict[str, Any]:
+        return visit_requests.public(
+            self._state, offset=offset, limit=limit, filters=filters, actor=actor
+        )
+
+    async def async_request_visit(
+        self, user_id: str, *, expected_revision: int, actor: str, approver: str
+    ) -> dict[str, Any]:
+        def request(state: dict[str, Any]) -> dict[str, Any]:
+            raw = state["users"].get(user_id)
+            if raw is None:
+                raise AccessError("user_not_found")
+            user = ManagedUser.from_private(raw)
+            if type(expected_revision) is not int or user.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            return visit_requests.create(state, user, actor, approver)
+
+        return await self._commit(request)
+
+    async def async_decide_visit(
+        self,
+        request_id: str,
+        *,
+        expected_revision: int,
+        actor: str,
+        decision: str,
+        validate: Callable[[ManagedUser], None] | None = None,
+    ) -> dict[str, Any]:
+        def decide(state: dict[str, Any]) -> dict[str, Any]:
+            row, user = visit_requests.prepare_decision(
+                state, request_id, expected_revision, actor, decision
+            )
+            if decision == "approve":
+                if user is None:
+                    raise AccessError("user_not_found")
+                activated = self._update_user(state, user.id, {"active": True}, user.revision)
+                if validate:
+                    validate(activated)
+                row["activated_revision"] = activated.revision
+            return deepcopy(row)
+
+        return await self._commit(decide)
+
+    async def async_update(
+        self, user_id: str, data: dict[str, Any], *, expected_revision: int
+    ) -> ManagedUser:
+        return await self._commit(
+            lambda state: self._update_user(state, user_id, data, expected_revision)
+        )
+
+    async def async_archive(
+        self, user_id: str, *, expected_revision: int, archived: bool
+    ) -> ManagedUser:
+        """Keep the identity, history and pending cleanup; restoration stays inactive."""
+        return await self._commit(
+            lambda state: self._archive_user(state, user_id, expected_revision, archived)
+        )
+
+    def _archive_user(
+        self, state: dict[str, Any], user_id: str, revision: int, archived: bool
+    ) -> ManagedUser:
+        if type(archived) is not bool:
+            raise AccessError("invalid_fields")
+        raw = state["users"].get(user_id)
+        if raw is None:
+            raise AccessError("user_not_found")
+        if (raw.get("archived_at") is not None) == archived:
+            raise AccessError("archive_state_changed")
+        user = self._update_user(state, user_id, {"active": False}, revision)
+        user.archived_at = utc_now() if archived else None
+        state["users"][user_id] = user.private()
+        return user
+
+    async def async_cancel_temporary(self, user_id: str, *, expected_revision: int) -> ManagedUser:
+        """Persist only disable intent, preserving credentials and all door/time rules."""
+
+        def cancel(state: dict[str, Any]) -> ManagedUser:
+            if user_id not in state["users"]:
+                raise AccessError("user_not_found")
+            previous = ManagedUser.from_private(state["users"][user_id])
+            if type(expected_revision) is not int or previous.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            if previous.access_category not in {"visitor", "contractor"}:
+                raise AccessError("temporary_user_required")
+            if not previous.active:
+                raise AccessError("temporary_already_inactive")
+            return self._update_user(state, user_id, {"active": False}, expected_revision)
+
+        return await self._commit(cancel)
+
+    def _update_user(
+        self, state: dict[str, Any], user_id: str, data: dict[str, Any], expected_revision: int
+    ) -> ManagedUser:
+        if user_id not in state["users"]:
+            raise AccessError("user_not_found")
+        old = ManagedUser.from_private(state["users"][user_id])
+        if type(expected_revision) is not int or old.revision != expected_revision:
+            raise AccessError("revision_conflict")
+        user = build_user(
+            self.permission_data(data, old, state=state),
+            employee_no=old.employee_no,
+            now=utc_now(),
+            previous=old,
+        )
+        from .csv_transfer import desired_fields
+
+        if desired_fields(user) == desired_fields(old):
+            # Access intent is unchanged. Advance already-applied revisions together so
+            # periodic reconciliation cannot leave desired/applied versions mismatched.
+            user.assignments = deepcopy(old.assignments)
+            for assignment in user.assignments.values():
+                if assignment.applied_revision == assignment.desired_revision:
+                    assignment.applied_revision = user.revision
+                assignment.desired_revision = user.revision
+        if user.employee_no != old.employee_no and old.identity_locked:
+            raise AccessError("identity_migration_required")
+        desired_numbers = {card.card_no.value for card in user.cards}
+        removed = [card for card in old.cards if card.card_no.value not in desired_numbers]
+        targets = set(old.assignments) | {
+            station for station, bindings in state["bindings"].items() if user_id in bindings
+        }
+        self._retire_pin(state, old, user, targets)
+        for card in removed:
+            if targets:
+                state["retired_cards"][str(uuid4())] = {
+                    "user_id": user_id,
+                    "card_no": card.card_no.value,
+                    "targets": sorted(targets),
+                    "confirmed": [],
+                }
+        # Re-adding to the same person cancels retirement and preserves ownership.
+        for key, retired in list(state["retired_cards"].items()):
+            if retired["user_id"] == user_id and retired["card_no"] in desired_numbers:
+                del state["retired_cards"][key]
+        state["users"][user.id] = user.private()
+        return user
+
+    def bulk_stamp(self, state: dict[str, Any] | None = None) -> str:
+        """Ignore sync progress, but bind desired revisions and ownership/cleanup targets."""
+        state = self._state if state is None else state
+        return self.fingerprint(
+            {
+                "users": {
+                    key: [u["employee_no"], u["revision"], u["identity_locked"]]
+                    for key, u in state["users"].items()
+                },
+                "tombstones": sorted(state["tombstones"]),
+                "bindings": {key: sorted(records) for key, records in state["bindings"].items()},
+                "retired_cards": state["retired_cards"],
+                "retired_pins": state["retired_pins"],
+                "profile_revision": (state["profile_settings"] or {}).get("revision"),
+                "visit_request_revision": state["visit_requests"]["revision"],
+            }
+        )
+
+    def _bulk_users(
+        self, state: dict[str, Any], changes: list[dict[str, Any]]
+    ) -> list[ManagedUser]:
+        users = []
+        for change in changes:
+            if change["user_id"] is None:
+                user = build_user(
+                    self.permission_data(change["data"], state=state),
+                    employee_no=change["data"]["employee_no"],
+                    now=utc_now(),
+                )
+                state["users"][user.id] = user.private()
+            else:
+                user = self._update_user(
+                    state, change["user_id"], change["data"], change["revision"]
+                )
+            users.append(user)
+        self._validate_collisions(state)
+        visit_requests.guard_activation(self._state, state)
+        return users
+
+    def preview_bulk(self, changes: list[dict[str, Any]]) -> list[ManagedUser]:
+        return self._bulk_users(self.snapshot(), changes)
+
+    async def async_bulk_apply(
+        self,
+        changes: list[dict[str, Any]],
+        *,
+        stamp: str,
+        validate: Callable[[ManagedUser], None],
+        receipt: dict[str, Any] | None = None,
+    ) -> list[ManagedUser]:
+        def apply(state: dict[str, Any]) -> list[ManagedUser]:
+            if receipt and (existing := state["operation_receipts"].get(receipt["operation_id"])):
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return [
+                    ManagedUser.from_private(state["users"][uid])
+                    for uid in existing["user_ids"]
+                    if uid in state["users"]
+                ]
+            if stamp != self.bulk_stamp(state):
+                raise AccessError("csv_review_stale")
+            users = self._bulk_users(state, changes)
+            for user in users:
+                validate(user)
+            if receipt is not None:
+                saved = {
+                    **deepcopy(receipt),
+                    "user_ids": [user.id for user in users],
+                    "changed": len(users),
+                }
+                state["operation_receipts"][saved["operation_id"]] = saved
+                while len(state["operation_receipts"]) > 1000:
+                    oldest = min(
+                        state["operation_receipts"],
+                        key=lambda key: state["operation_receipts"][key]["saved_at"],
+                    )
+                    del state["operation_receipts"][oldest]
+            return users
+
+        return await self._commit(apply, offload=True)
+
+    async def async_delete(self, user_id: str, *, expected_revision: int) -> None:
+        await self._commit(lambda state: self._delete_user(state, user_id, expected_revision))
+
+    def _delete_user(self, state: dict[str, Any], user_id: str, expected_revision: int) -> None:
+        if user_id not in state["users"]:
+            raise AccessError("user_not_found")
+        record = state["users"][user_id]
+        if type(expected_revision) is not int or record["revision"] != expected_revision:
+            raise AccessError("revision_conflict")
+        targets = set(record["assignments"]) | {
+            station for station, bindings in state["bindings"].items() if user_id in bindings
+        }
+        targets |= {
+            station
+            for card in state["retired_cards"].values()
+            if card["user_id"] == user_id
+            for station in card["targets"]
+        }
+        targets |= {
+            station
+            for item in state["retired_pins"].values()
+            if item["user_id"] == user_id
+            for station in item["targets"]
+        }
+        # Revocation needs credentials, never local portraits or organizational metadata.
+        record = {**record, "photo": None, "profile": {}, "group_ids": [], "phone": ""}
+        if targets:
+            state["tombstones"][user_id] = {
+                "user_id": user_id,
+                "employee_no": record["employee_no"],
+                "targets": sorted(targets),
+                "confirmed": [],
+                "created_at": utc_now(),
+                "stations": {
+                    target: {"sync_state": "delete_pending", "last_error": None}
+                    for target in targets
+                },
+                "record": record,
+            }
+        del state["users"][user_id]
+
+    async def async_apply_operation(
+        self,
+        changes: list[dict[str, Any]],
+        *,
+        stamp: str,
+        receipt: dict[str, Any],
+        validate: Callable[[ManagedUser], None],
+    ) -> dict[str, Any]:
+        def apply(state: dict[str, Any]) -> dict[str, Any]:
+            existing: dict[str, Any] | None = state["operation_receipts"].get(
+                receipt["operation_id"]
+            )
+            if existing:
+                if existing["actor"] != receipt["actor"]:
+                    raise AccessError("operation_not_found")
+                return existing
+            if self.bulk_stamp(state) != stamp:
+                raise AccessError("bulk_review_stale")
+            for change in changes:
+                if change["delete"]:
+                    self._delete_user(state, change["user_id"], change["revision"])
+                else:
+                    user = self._update_user(
+                        state, change["user_id"], change["data"], change["revision"]
+                    )
+                    validate(user)
+            state["operation_receipts"][receipt["operation_id"]] = deepcopy(receipt)
+            # Expired receipt IDs cannot be replayed without their missing review token.
+            while len(state["operation_receipts"]) > 1000:
+                oldest = min(
+                    state["operation_receipts"],
+                    key=lambda key: state["operation_receipts"][key]["saved_at"],
+                )
+                del state["operation_receipts"][oldest]
+            return receipt
+
+        return await self._commit(apply, offload=True)
+
+    def event_audience(self) -> dict[tuple[str, str], dict[str, Any]]:
+        """Detached current membership, restricted to observed station ownership."""
+        result: dict[tuple[str, str], dict[str, Any]] = {}
+        ambiguous: set[tuple[str, str]] = set()
+        for station, bindings in self._state["bindings"].items():
+            for uid, binding in bindings.items():
+                raw = self._state["users"].get(uid)
+                if (
+                    raw is None
+                    or raw["employee_no"] != binding["employee_no"]
+                    or not binding.get("fingerprint")
+                    or not binding.get("identity_observed_at")
+                ):
+                    continue
+                key = (station, raw["employee_no"])
+                if key in result:
+                    ambiguous.add(key)
+                result[key] = {
+                    "observed_at": binding["identity_observed_at"],
+                    "group_ids": list(raw["group_ids"]),
+                    "profile": dict(raw["profile"]),
+                }
+        return {key: value for key, value in result.items() if key not in ambiguous}
+
+    def event_portrait(
+        self, station: str, employee_no: str, occurred_at: str
+    ) -> dict[str, Any] | None:
+        """Current portrait only when station ownership is proven at the event time."""
+        policy = self.profile_settings()
+        if not policy or not policy["values"].get("photo_enabled"):
+            return None
+        reference = self.event_person_ref(station, employee_no, occurred_at)
+        if reference and self._state["users"][reference["user_id"]].get("photo"):
+            return reference
+        return None
+
+    def event_person_ref(
+        self, station: str, employee_no: str, occurred_at: str
+    ) -> dict[str, Any] | None:
+        """Reference an unambiguous observed owner, including people without photos."""
+        try:
+            when = datetime.fromisoformat(occurred_at)
+            if when.tzinfo is None:
+                return None
+        except (ValueError, TypeError):
+            return None
+        candidates = []
+        for uid, binding in self._state["bindings"].get(station, {}).items():
+            raw = self._state["users"].get(uid)
+            observed = binding.get("identity_observed_at")
+            if (
+                raw
+                and raw["employee_no"] == employee_no
+                and binding["employee_no"] == employee_no
+                and binding.get("fingerprint")
+                and observed
+                and datetime.fromisoformat(observed) <= when
+            ):
+                candidates.append(raw)
+        if len(candidates) != 1:
+            return None
+        raw = candidates[0]
+        return {"user_id": raw["id"], "revision": raw["revision"]}
+
+    def event_person_name(self, station: str, employee_no: str, occurred_at: str) -> str | None:
+        """Resolve only an observed owner on this station, never a pending ID collision.
+
+        Historic records predating observed ownership on this station remain unidentified.
+        A central user can be older than their station binding. Legacy bindings without
+        an observation time cannot establish the owner of old, nameless events.
+        """
+        try:
+            when = datetime.fromisoformat(occurred_at)
+            if when.tzinfo is None:
+                return None
+        except (ValueError, TypeError):
+            return None
+        for uid, binding in self._state["bindings"].get(station, {}).items():
+            raw = self._state["users"].get(uid)
+            if (
+                raw is None
+                or binding["employee_no"] != employee_no
+                or raw["employee_no"] != employee_no
+                or not binding["fingerprint"]
+            ):
+                continue
+            observed_at = binding.get("identity_observed_at")
+            if observed_at is not None and datetime.fromisoformat(observed_at) <= when:
+                return str(raw["display_name"])
+        return None
+
+    async def async_bind(
+        self,
+        station: str,
+        user_id: str,
+        *,
+        fingerprint: str | None,
+        intent: dict[str, Any] | None = None,
+        adopted: bool = False,
+    ) -> None:
+        """Persist explicit adoption or a create intent before any physical write."""
+
+        def bind(state: dict[str, Any]) -> None:
+            user = state["users"].get(user_id)
+            if user is None:
+                raise AccessError("user_not_found")
+            state["bindings"].setdefault(station, {})[user_id] = {
+                "employee_no": user["employee_no"],
+                "fingerprint": fingerprint,
+                "intent": intent,
+                "adopted": adopted,
+                "identity_observed_at": utc_now() if fingerprint else None,
+            }
+            user["identity_locked"] = True
+
+        await self._commit(bind)
+
+    async def async_record_observation(
+        self,
+        station: str,
+        user_id: str,
+        *,
+        fingerprint: str,
+        applied_revision: int | None,
+        timing_readback: dict[str, Any] | None = None,
+    ) -> None:
+        def observed(state: dict[str, Any]) -> None:
+            binding = state["bindings"].get(station, {}).get(user_id)
+            if binding is None:
+                raise AccessError("ownership_missing")
+            # Optional schema-3 metadata: establish a conservative starting point for
+            # legacy ownership only after this successful read, never from user creation.
+            if binding.get("identity_observed_at") is None:
+                binding["identity_observed_at"] = utc_now()
+            raw = state["users"].get(user_id)
+            assignment = raw["assignments"].get(station) if raw else None
+            if (
+                binding["fingerprint"] == fingerprint
+                and binding.get("intent") is None
+                and assignment
+                and assignment["sync_state"] == "synced"
+                and applied_revision == raw["revision"] == assignment["applied_revision"]
+            ):
+                return
+            binding["fingerprint"], binding["intent"] = fingerprint, None
+            binding["sync_state"], binding["last_error"] = "pending", None
+            if user_id in state["users"]:
+                user = state["users"][user_id]
+                assignment = user["assignments"].get(station)
+                if assignment and applied_revision == user["revision"]:
+                    binding["timing_readback"] = deepcopy(timing_readback)
+                    binding["sync_state"] = "synced"
+                    assignment.update(
+                        applied_revision=applied_revision,
+                        sync_state="synced",
+                        last_sync_at=utc_now(),
+                        last_error=None,
+                    )
+                elif assignment:
+                    assignment["sync_state"] = "pending"
+
+            sync_tracking.verified(state, user_id, station)
+
+        await self._commit(observed)
+
+    async def async_mark(
+        self, station: str, user_id: str, status: str, error: str | None = None
+    ) -> None:
+        from .models import SYNC_STATES
+
+        if (
+            status not in SYNC_STATES
+            or error is not None
+            and (
+                not isinstance(error, str)
+                or len(error) > 64
+                or not all(c.isascii() and (c.isalnum() or c == "_") for c in error)
+            )
+        ):
+            raise AccessError("invalid_sync_status")
+
+        def mark(state: dict[str, Any]) -> None:
+            user = state["users"].get(user_id)
+            if user and (assignment := user["assignments"].get(station)):
+                assignment["sync_state"], assignment["last_error"] = status, error
+            binding = state["bindings"].get(station, {}).get(user_id)
+            if binding is not None:
+                binding["sync_state"], binding["last_error"] = status, error
+                if error in {
+                    "device_changed",
+                    "unmanaged_employee",
+                    "device_conflict",
+                    "ambiguous_write",
+                }:
+                    # A known ownership discrepancy breaks the interval of evidence.
+                    # Retrying or restarting must not silently restore the old identity.
+                    binding["identity_observed_at"] = None
+            tombstone = state["tombstones"].get(user_id)
+            if tombstone is not None and station in tombstone["targets"]:
+                tombstone.setdefault("stations", {})[station] = {
+                    "sync_state": status,
+                    "last_error": error,
+                }
+
+        await self._commit(mark)
+
+    async def async_confirm_absent(
+        self, station: str, user_id: str, *, revision: int | None = None
+    ) -> None:
+        def absent(state: dict[str, Any]) -> None:
+            state["bindings"].get(station, {}).pop(user_id, None)
+            self._confirm_retired(state, station, user_id, set())
+            self._confirm_retired_pins(state, station, user_id, "")
+            tombstone = state["tombstones"].get(user_id)
+            if tombstone:
+                tombstone.setdefault("stations", {})[station] = {
+                    "sync_state": "synced",
+                    "last_error": None,
+                }
+                tombstone["confirmed"] = sorted(set(tombstone["confirmed"]) | {station})
+                if set(tombstone["targets"]) <= set(tombstone["confirmed"]):
+                    del state["tombstones"][user_id]
+            elif user_id in state["users"]:
+                user = state["users"][user_id]
+                assignment = user["assignments"].get(station)
+                if (
+                    assignment
+                    and revision == user["revision"]
+                    and not (
+                        assignment["sync_state"] == "synced"
+                        and assignment["applied_revision"] == revision
+                    )
+                ):
+                    assignment.update(
+                        applied_revision=revision,
+                        sync_state="synced",
+                        last_sync_at=utc_now(),
+                        last_error=None,
+                    )
+
+            sync_tracking.verified(state, user_id, station)
+
+        await self._commit(absent)
+
+    async def async_ignore(self, station: str, employee_no: str, *, ignored: bool) -> None:
+        from ..client.access import validate_identifier
+
+        validate_identifier(employee_no)
+
+        def ignore(state: dict[str, Any]) -> None:
+            records = state["ignored"].setdefault(station, [])
+            if ignored and employee_no not in records:
+                records.append(employee_no)
+            elif not ignored and employee_no in records:
+                records.remove(employee_no)
+
+        await self._commit(ignore)
+
+    @staticmethod
+    def _confirm_retired(
+        state: dict[str, Any], station: str, user_id: str, present_cards: set[str]
+    ) -> None:
+        for key, retired in list(state["retired_cards"].items()):
+            if (
+                retired["user_id"] != user_id
+                or station not in retired["targets"]
+                or retired["card_no"] in present_cards
+            ):
+                continue
+            retired["confirmed"] = sorted(set(retired["confirmed"]) | {station})
+            if set(retired["targets"]) <= set(retired["confirmed"]):
+                del state["retired_cards"][key]
+
+    @staticmethod
+    def _retire_pin(
+        state: dict[str, Any], previous: ManagedUser, desired: ManagedUser, targets: set[str]
+    ) -> None:
+        old = previous.pin.value if previous.pin else None
+        new = desired.pin.value if desired.pin else None
+        if old and old != new and targets:
+            state["retired_pins"][str(uuid4())] = {
+                "user_id": previous.id,
+                "pin": old,
+                "targets": sorted(targets),
+                "confirmed": [],
+            }
+        for key, item in list(state["retired_pins"].items()):
+            if item["user_id"] == previous.id and item["pin"] == new:
+                del state["retired_pins"][key]
+
+    @staticmethod
+    def _confirm_retired_pins(
+        state: dict[str, Any], station: str, user_id: str, present_pin: str
+    ) -> None:
+        for key, item in list(state["retired_pins"].items()):
+            if (
+                item["user_id"] != user_id
+                or station not in item["targets"]
+                or item["pin"] == present_pin
+            ):
+                continue
+            item["confirmed"] = sorted(set(item["confirmed"]) | {station})
+            if set(item["targets"]) <= set(item["confirmed"]):
+                del state["retired_pins"][key]
+
+    async def async_confirm_pin_removals(
+        self, station: str, user_id: str, present_pin: str
+    ) -> None:
+        await self._commit(
+            lambda state: self._confirm_retired_pins(state, station, user_id, present_pin)
+        )
+
+    async def async_confirm_card_removals(
+        self, station: str, user_id: str, present_cards: set[str]
+    ) -> None:
+        await self._commit(
+            lambda state: self._confirm_retired(state, station, user_id, present_cards)
+        )
+
+    async def async_adopt(
+        self,
+        station: str,
+        data: dict[str, Any],
+        *,
+        fingerprint: str,
+        existing_user_id: str | None = None,
+        expected_revision: int | None = None,
+        delete: bool = False,
+    ) -> ManagedUser:
+        """Adoption, desired assignment and ownership become durable in one commit."""
+        if delete and existing_user_id is not None:
+            raise AccessError("invalid_operation")
+
+        def adopt(state: dict[str, Any]) -> ManagedUser:
+            previous = None
+            if existing_user_id is not None:
+                raw = state["users"].get(existing_user_id)
+                if raw is None:
+                    raise AccessError("user_not_found")
+                previous = ManagedUser.from_private(raw)
+                if type(expected_revision) is not int or expected_revision != previous.revision:
+                    raise AccessError("revision_conflict")
+                if data.get("employee_no") != previous.employee_no:
+                    raise AccessError("identity_migration_required")
+            desired = {"employee_no": previous.employee_no} if previous else data
+            user = build_user(
+                desired, employee_no=data["employee_no"], now=utc_now(), previous=previous
+            )
+            from .models import StationAssignment
+
+            user.assignments[station] = StationAssignment(
+                station,
+                True,
+                build_user(
+                    {
+                        **data,
+                        "assignments": data.get("assignments", {station: {"allowed_locks": [1]}}),
+                    },
+                    employee_no=data["employee_no"],
+                    now=utc_now(),
+                    previous=previous,
+                )
+                .assignments[station]
+                .allowed_locks,
+                desired_revision=user.revision,
+            )
+            user.permission_overrides[station] = "allow"
+            user.identity_locked = True
+            if user.id in state["bindings"].get(station, {}):
+                raise AccessError("already_managed")
+            state["users"][user.id] = user.private()
+            state["bindings"].setdefault(station, {})[user.id] = {
+                "employee_no": user.employee_no,
+                "fingerprint": fingerprint,
+                "intent": None,
+                "adopted": True,
+                "identity_observed_at": utc_now(),
+            }
+            if delete:
+                state["tombstones"][user.id] = {
+                    "user_id": user.id,
+                    "employee_no": user.employee_no,
+                    "targets": [station],
+                    "confirmed": [],
+                    "created_at": utc_now(),
+                    "stations": {station: {"sync_state": "delete_pending", "last_error": None}},
+                    "record": state["users"].pop(user.id),
+                }
+            return user
+
+        return await self._commit(adopt)
+
+    async def async_write_intent(
+        self,
+        station: str,
+        user_id: str,
+        *,
+        revision: int,
+        expected_fingerprint: str | None,
+        desired_fingerprint: str,
+        operation: str,
+        before_fingerprint: str | None = None,
+    ) -> None:
+        """Journal a bounded operation before sending it; never lose a concurrent edit."""
+        if (
+            type(revision) is not int
+            or revision < 1
+            or operation not in {"create", "update", "delete"}
+        ):
+            raise AccessError("invalid_operation")
+
+        def intent(state: dict[str, Any]) -> None:
+            user = state["users"].get(user_id)
+            tombstone = state["tombstones"].get(user_id)
+            if user is None and tombstone is None:
+                raise AccessError("user_not_found")
+            if user is not None and user["revision"] != revision:
+                raise AccessError("revision_conflict")
+            record = user if user is not None else tombstone["record"]
+            if user is None and (operation != "delete" or record["revision"] != revision):
+                raise AccessError("revision_conflict")
+            bindings = state["bindings"].setdefault(station, {})
+            binding = bindings.get(user_id)
+            if binding is None:
+                if operation != "create" or expected_fingerprint is not None:
+                    raise AccessError("ownership_missing")
+                binding = bindings[user_id] = {
+                    "employee_no": record["employee_no"],
+                    "fingerprint": None,
+                    "intent": None,
+                    "adopted": False,
+                }
+            if binding["fingerprint"] != expected_fingerprint:
+                raise AccessError("revision_conflict")
+            binding["intent"] = {
+                "operation": operation,
+                "revision": revision,
+                "desired_fingerprint": desired_fingerprint,
+                "before_fingerprint": before_fingerprint,
+            }
+            if user is not None:
+                user["identity_locked"] = True
+
+        await self._commit(intent)
+
+    async def async_resolve(
+        self,
+        station: str,
+        user_id: str,
+        *,
+        fingerprint: str,
+        expected_revision: int,
+        device_data: dict[str, Any] | None = None,
+    ) -> ManagedUser:
+        """Explicit administrator resolution, atomically rebasing ownership and desired state."""
+
+        def resolve(state: dict[str, Any]) -> ManagedUser:
+            raw = state["users"].get(user_id)
+            binding = state["bindings"].get(station, {}).get(user_id)
+            if raw is None or binding is None:
+                raise AccessError("ownership_missing")
+            previous = ManagedUser.from_private(raw)
+            if type(expected_revision) is not int or previous.revision != expected_revision:
+                raise AccessError("revision_conflict")
+            user = build_user(
+                self.permission_data(device_data or {}, previous, state=state),
+                employee_no=previous.employee_no,
+                now=utc_now(),
+                previous=previous,
+            )
+            if user.employee_no != previous.employee_no:
+                raise AccessError("identity_migration_required")
+            # Accepting the device is a central edit; keep removed-card reservations until
+            # every formerly assigned station confirms removal, just as for ordinary CRUD.
+            removed = {card.card_no.value for card in previous.cards} - {
+                card.card_no.value for card in user.cards
+            }
+            targets = set(previous.assignments) | {
+                key for key, records in state["bindings"].items() if user_id in records
+            }
+            self._retire_pin(state, previous, user, targets)
+            for number in removed:
+                if targets:
+                    state["retired_cards"][str(uuid4())] = {
+                        "user_id": user_id,
+                        "card_no": number,
+                        "targets": sorted(targets),
+                        "confirmed": [],
+                    }
+            state["users"][user_id] = user.private()
+            binding.update(
+                fingerprint=fingerprint,
+                intent=None,
+                sync_state="pending",
+                last_error=None,
+                identity_observed_at=utc_now(),
+            )
+            return user
+
+        return await self._commit(resolve)
+
+    async def async_resolve_deletion(self, station: str, user_id: str, *, fingerprint: str) -> None:
+        """Administrator explicitly reviewed the current record before continuing deletion."""
+
+        def resolve(state: dict[str, Any]) -> None:
+            tombstone = state["tombstones"].get(user_id)
+            if (
+                tombstone is None
+                or station not in tombstone["targets"]
+                or station in tombstone["confirmed"]
+            ):
+                raise AccessError("deletion_not_pending")
+            state["bindings"].setdefault(station, {})[user_id] = {
+                "employee_no": tombstone["employee_no"],
+                "fingerprint": fingerprint,
+                "intent": None,
+                "adopted": True,
+                "sync_state": "delete_pending",
+                "last_error": None,
+            }
+            tombstone.setdefault("stations", {})[station] = {
+                "sync_state": "delete_pending",
+                "last_error": None,
+            }
+
+        await self._commit(resolve)

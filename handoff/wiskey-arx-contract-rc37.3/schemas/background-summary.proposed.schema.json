@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "D-006 proposed minimal background result; NOT IMPLEMENTED",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "permission_revision", "stations"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "generated_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "permission_revision": {"type": "integer", "minimum": 0},
+    "stations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "online", "last_seen"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "name": {"type": "string"},
+          "online": {"type": ["boolean", "null"]},
+          "last_seen": {"type": ["string", "null"], "format": "date-time", "pattern": "Z$"}
+        }
+      }
+    }
+  }
+}

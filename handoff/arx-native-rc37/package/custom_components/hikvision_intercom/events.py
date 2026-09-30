@@ -1,0 +1,419 @@
+"""Allowlisted event records and a bounded, privacy-preserving audit cache."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import hmac
+import json
+import re
+from collections import OrderedDict
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from .exceptions import HikvisionValidationError
+
+# Manufacturer Access Control Event Types, major 0x5 (not linkage/operation codes).
+KINDS = {
+    1: ("access_granted", "granted", "card"),
+    9: ("access_denied", "denied", "card"),
+    21: ("door_unlocked", "unknown", "unknown"),
+    22: ("door_locked", "unknown", "unknown"),
+    25: ("contact_open", "unknown", "unknown"),
+    26: ("contact_closed", "unknown", "unknown"),
+    92: ("unlock_exception", "unknown", "unknown"),
+    148: ("attempt_limit", "denied", "pin"),
+    150: ("access_denied", "denied", "pin"),
+    181: ("access_granted", "granted", "pin"),
+    214: ("unlock_record", "unknown", "unknown"),
+    215: ("door_not_opened", "unknown", "unknown"),
+    216: ("door_not_closed", "unknown", "unknown"),
+    229: ("access_granted", "granted", "pin"),
+}
+EVENT_TYPES = sorted({"unknown", *(item[0] for item in KINDS.values())})
+FIELDS = {
+    "id",
+    "station_id",
+    "timestamp",
+    "received_at",
+    "time_source",
+    "employee_no",
+    "person_name",
+    "door",
+    "api_door",
+    "authentication",
+    "result",
+    "event_type",
+    "major",
+    "minor",
+    "card",
+    "recovered",
+    "source",
+}
+
+
+def timestamp(value: object) -> datetime | None:
+    try:
+        if not isinstance(value, str) or len(value) > 40:
+            return None
+        parsed = datetime.fromisoformat(value)
+        return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
+    except ValueError:
+        return None
+
+
+def _integer(value: object) -> int | None:
+    if type(value) is int and 0 <= value <= 2**63 - 1:
+        return value
+    if isinstance(value, str) and re.fullmatch(r"[0-9]{1,18}", value):
+        return int(value)
+    return None
+
+
+def _text(value: object, maximum: int = 128) -> str | None:
+    if isinstance(value, str) and 0 < len(value) <= maximum and all(ord(c) >= 32 for c in value):
+        return value
+    return None
+
+
+def normalize_event(
+    payload: dict[str, Any],
+    station_id: str,
+    key: bytes,
+    *,
+    received: datetime,
+    selected_api: int | dict[int, int] | None,
+    historical: bool = False,
+    occurrence: int = 0,
+) -> dict[str, Any] | None:
+    """Drop unrelated heartbeat/video events; never copy raw device fields downstream."""
+    outer = payload.get("EventNotificationAlert", payload)
+    if not isinstance(outer, dict):
+        return None
+    row: Any
+    if historical:
+        row = outer
+        major, minor = _integer(row.get("major")), _integer(row.get("minor"))
+        when = timestamp(row.get("time"))
+    else:
+        if outer.get("eventType") != "AccessControllerEvent" or outer.get("eventState") != "active":
+            return None
+        row = outer.get("AccessControllerEvent")
+        if not isinstance(row, dict):
+            return None
+        major = _integer(row.get("majorEventType"))
+        minor = _integer(row.get("subEventType"))
+        when = timestamp(outer.get("dateTime"))
+    if major is None or minor is None:
+        return None
+    kind, result, authentication = (
+        KINDS.get(minor, ("unknown", "unknown", "unknown"))
+        if major == 5
+        else ("unknown", "unknown", "unknown")
+    )
+    if major == 5 and minor == 214:
+        authentication = {"card": "card", "password": "pin"}.get(
+            str(row.get("unlockType")), "unknown"
+        )
+    employee = _text(row.get("employeeNoString"), 32)
+    if not employee:
+        # Employee IDs are identifiers, not quantities. Preserve significant zeroes.
+        employee = _text(row.get("employeeNo"), 32)
+        if employee is None and type(row.get("employeeNo")) is int:
+            number = _integer(row["employeeNo"])
+            employee = str(number) if number else None
+    api_door = _integer(row.get("doorNo"))
+    api_door = api_door if api_door in {1, 2} else None
+    card = _text(row.get("cardNo"), 32)
+    masked = ("••••" + card[-4:]) if card and len(card) > 4 else ("••••" if card else None)
+    # Event serials wrap; timestamp is part of the key. PIN is never hashed or retained.
+    identity = [
+        station_id,
+        when.isoformat() if when else None,
+        major,
+        minor,
+        _integer(row.get("serialNo")),
+        api_door,
+        employee,
+        card,
+    ]
+    if when is None and identity[4] is None:
+        # No trustworthy event identity: do not collapse distinct unknown-time records.
+        identity.append(received.isoformat())
+    if historical:
+        identity.append(occurrence)
+    event_id = hmac.new(key, json.dumps(identity).encode(), hashlib.sha256).hexdigest()
+    current = row.get("currentEvent") is True or row.get("currentEvent") == "true"
+    recovered = (
+        historical
+        or not current
+        or when is None
+        or not -5 <= (received - when).total_seconds() <= 90
+    )
+    return {
+        "id": event_id,
+        "station_id": station_id,
+        "timestamp": (when or received).isoformat(),
+        "received_at": received.isoformat(),
+        "time_source": "device" if when else "received",
+        "employee_no": employee,
+        "person_name": _text(row.get("name")),
+        "door": (
+            (selected_api.get(api_door) if api_door is not None else None)
+            if isinstance(selected_api, dict)
+            else 1
+            if api_door is not None and api_door == selected_api
+            else None
+        ),
+        "api_door": api_door,
+        "authentication": authentication,
+        "result": result,
+        "event_type": kind,
+        "major": major,
+        "minor": minor,
+        "card": masked,
+        "recovered": recovered,
+        "source": "query" if historical else "stream",
+    }
+
+
+class EventCache:
+    """At most 5,000 safe records / 30 days. Dedupe survives restarts via stored IDs."""
+
+    def __init__(
+        self, *, limit: int = 5000, days: int = 30, maximum_bytes: int | None = None
+    ) -> None:
+        self.limit = limit
+        self.days = days
+        self.maximum_bytes = maximum_bytes
+        self._sizes: dict[str, int] = {}
+        self._bytes = 0
+        self.rows: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self._expires_at: datetime | None = None
+
+    def load(self, data: dict[str, Any] | None, now: datetime) -> None:
+        self._expires_at = None
+        if data is None:
+            return
+        rows = data.get("records")
+        if data.get("schema") != 1 or not isinstance(rows, list) or len(rows) > self.limit:
+            raise HikvisionValidationError("Invalid audit storage")
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != FIELDS:
+                raise HikvisionValidationError("Invalid audit record")
+            if (
+                not isinstance(row["id"], str)
+                or not re.fullmatch(r"[0-9a-f]{64}", row["id"])
+                or row["event_type"] not in {*EVENT_TYPES, "ring"}
+                or row["result"] not in {"granted", "denied", "unknown"}
+                or row["authentication"] not in {"card", "pin", "unknown"}
+                or type(row["recovered"]) is not bool
+                or timestamp(row["timestamp"]) is None
+                or timestamp(row["received_at"]) is None
+                or row["card"] is not None
+                and (
+                    not isinstance(row["card"], str) or not re.fullmatch(r"••••.{0,4}", row["card"])
+                )
+            ):
+                raise HikvisionValidationError("Invalid audit record")
+            for field in ("station_id", "employee_no", "person_name"):
+                if row[field] is not None and _text(row[field]) is None:
+                    raise HikvisionValidationError("Invalid audit text")
+            if row["source"] not in {"stream", "query", "call_status"} or row[
+                "time_source"
+            ] not in {"device", "received"}:
+                raise HikvisionValidationError("Invalid audit source")
+            for field in ("major", "minor", "api_door", "door"):
+                number = row[field]
+                if number is not None and (type(number) is not int or number < 0):
+                    raise HikvisionValidationError("Invalid audit number")
+            if row["door"] not in {None, 1, 2} or row["api_door"] not in {None, 1, 2}:
+                raise HikvisionValidationError("Invalid audit door")
+            self.rows[row["id"]] = copy.deepcopy(row)
+        self._measure()
+        self.prune(now)
+
+    def _measure(self) -> None:
+        self._sizes = {
+            key: len(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode()) + 1
+            for key, row in self.rows.items()
+        }
+        self._bytes = sum(self._sizes.values())
+
+    def configure(self, policy: dict[str, int], now: datetime) -> None:
+        self.days, self.limit, self.maximum_bytes = policy["days"], policy["count"], policy["bytes"]
+        self._expires_at = None
+        self._measure()
+        self.prune(now)
+
+    def _remove(self, key: str) -> None:
+        self.rows.pop(key)
+        self._bytes -= self._sizes.pop(key, 0)
+
+    def prune(self, now: datetime, *, cached: bool = False) -> None:
+        # Received timestamps determine retention; arrival order need not be sorted.
+        # Cache the earliest expiry instead of scanning all 5,000 rows per packet.
+        if not cached or self._expires_at is None or now > self._expires_at:
+            cutoff = now - timedelta(days=self.days)
+            expires = []
+            for key, row in list(self.rows.items()):
+                received = timestamp(row["received_at"])
+                if received is None or received < cutoff:
+                    self._remove(key)
+                else:
+                    expires.append(received + timedelta(days=self.days))
+            self._expires_at = min(expires) if expires else None
+        while self.rows and (
+            len(self.rows) > self.limit
+            or self.maximum_bytes is not None
+            and self._bytes > self.maximum_bytes
+        ):
+            self._remove(next(iter(self.rows)))
+
+    def add(self, row: dict[str, Any], now: datetime) -> bool:
+        self.prune(now, cached=True)
+        if row["id"] in self.rows:
+            return False
+        self.rows[row["id"]] = copy.deepcopy(row)
+        size = len(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode()) + 1
+        self._sizes[row["id"]] = size
+        self._bytes += size
+        received = timestamp(row["received_at"])
+        expiry = received + timedelta(days=self.days) if received else now - timedelta(seconds=1)
+        self._expires_at = min(self._expires_at, expiry) if self._expires_at else expiry
+        self.prune(now, cached=True)
+        return True
+
+    def dump(self) -> dict[str, Any]:
+        return {"schema": 1, "records": copy.deepcopy(list(self.rows.values()))}
+
+    def latest_access(self, station_ids: set[str], now: datetime) -> dict[str, dict[str, Any]]:
+        """Select by event time, not replay arrival; do not infer access from door motion."""
+        self.prune(now)
+        latest: dict[str, tuple[tuple[datetime, bool, bool], dict[str, Any]]] = {}
+        for row in self.rows.values():
+            station_id = row["station_id"]
+            when = timestamp(row["timestamp"])
+            if (
+                station_id not in station_ids
+                or row["event_type"]
+                not in {"access_granted", "access_denied", "attempt_limit", "unlock_record"}
+                or when is None
+                or when > now + timedelta(seconds=5)
+            ):
+                continue
+            # Choose one complete record; never transplant a name from a nearby event.
+            # Same-second records have no provable order. Prefer explicit identity, then
+            # authentication evidence over a separate door-motion report at that instant.
+            rank = (
+                when,
+                bool(row["person_name"] or row["employee_no"]),
+                row["event_type"] in {"access_granted", "access_denied", "attempt_limit"},
+            )
+            if station_id not in latest or rank > latest[station_id][0]:
+                latest[station_id] = (rank, row)
+        fields = (
+            "timestamp",
+            "time_source",
+            "person_name",
+            "employee_no",
+            "authentication",
+            "result",
+            "event_type",
+            "recovered",
+            "door",
+        )
+        return {
+            station_id: {field: row[field] for field in fields}
+            for station_id, (_, row) in latest.items()
+        }
+
+    def query(
+        self,
+        filters: dict[str, Any],
+        now: datetime,
+        *,
+        all_records: bool = False,
+        match: Callable[[dict[str, Any]], bool] | None = None,
+    ) -> dict[str, Any]:
+        allowed = {
+            "station_id",
+            "person",
+            "result",
+            "authentication",
+            "event_type",
+            "door",
+            "start",
+            "end",
+            "limit",
+            "before",
+        }
+        if set(filters) - allowed:
+            raise HikvisionValidationError("Invalid event filters")
+        limit = filters.get("limit", 100)
+        if type(limit) is not int or not 1 <= limit <= 200:
+            raise HikvisionValidationError("Invalid event limit")
+        for field, values in (
+            ("result", {"granted", "denied", "unknown"}),
+            ("authentication", {"card", "pin", "unknown"}),
+            ("event_type", set(EVENT_TYPES)),
+        ):
+            if field in filters and (
+                not isinstance(filters[field], str) or filters[field] not in values
+            ):
+                raise HikvisionValidationError("Invalid event filter")
+        if "door" in filters and (
+            type(filters["door"]) is not int or filters["door"] not in {1, 2}
+        ):
+            raise HikvisionValidationError("Invalid door filter")
+        for field in ("station_id", "person", "before"):
+            if field in filters and _text(filters[field]) is None:
+                raise HikvisionValidationError("Invalid text filter")
+        start, end = timestamp(filters.get("start")), timestamp(filters.get("end"))
+        if (
+            "start" in filters
+            and start is None
+            or "end" in filters
+            and end is None
+            or start
+            and end
+            and start >= end
+        ):
+            raise HikvisionValidationError("Invalid time filter")
+        self.prune(now)
+        matches = []
+        for row in sorted(
+            self.rows.values(),
+            key=lambda item: (timestamp(item["timestamp"]) or now, item["id"]),
+            reverse=True,
+        ):
+            when = timestamp(row["timestamp"])
+            if when is None or start and when < start or end and when > end:
+                continue
+            if any(
+                field in filters and row[field] != filters[field]
+                for field in ("station_id", "result", "authentication", "event_type", "door")
+            ):
+                continue
+            if (
+                "person" in filters
+                and filters["person"].casefold()
+                not in f"{row['employee_no'] or ''} {row['person_name'] or ''}".casefold()
+            ):
+                continue
+            if match is None or match(row):
+                matches.append(row)
+        before = filters.get("before")
+        if before:
+            index = next((i for i, row in enumerate(matches) if row["id"] == before), None)
+            if index is None:
+                raise HikvisionValidationError("Event cursor expired")
+            matches = matches[index + 1 :]
+        page = matches if all_records else matches[:limit]
+        return {
+            "records": copy.deepcopy(page),
+            "next": page[-1]["id"] if not all_records and len(matches) > limit else None,
+            "retention_days": self.days,
+            "capacity": self.limit,
+        }

@@ -1,0 +1,26 @@
+{
+  "runtime_tests": "NOT_RUN: documentation delta",
+  "source_commit": "909579e3d113803e6274dbe4e4046aa5e6bf3c3c",
+  "date": "2026-10-01",
+  "schema_meta_validation": "NOT_RUN: jsonschema unavailable in inspected Python",
+  "fixture_tests": "NOT_RUN",
+  "delivery": "rc37-contract.3",
+  "catalogs": [
+    {
+      "json_parse": "PASS",
+      "unchanged": true,
+      "file": "commands.static.json",
+      "count": 238,
+      "sha256": "2E3CD9325F182712B99F97E50A11FB902BF5B2C63D5CC3AB6EACA46C96DA8C8F"
+    },
+    {
+      "json_parse": "PASS",
+      "unchanged": true,
+      "file": "errors.static.json",
+      "count": 301,
+      "sha256": "6044DC2625302F4BE8FB8D49F972635E1829A8E91D17BA4DC16C2CFE6DCAC0C1"
+    }
+  ],
+  "proposed_schema_json_parse": "PASS",
+  "live_ha_arx_media_companion_physical_tests": "NOT_RUN"
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "source_version": "2.0.0-rc.37",
+  "evidence": "source inspection; no live HA event capture",
+  "envelope": {
+    "type": "object",
+    "required": ["id", "type", "event"],
+    "properties": {
+      "id": { "type": "integer", "description": "ID of the originating subscribe/start command" },
+      "type": { "const": "event" },
+      "event": { "type": "object" }
+    }
+  },
+  "subscriptions": {
+    "hikvision_intercom/subscribe": {
+      "request": { "type": "object", "required": ["id", "type"], "additionalProperties": false },
+      "events": [
+        { "kind": "refresh", "additional_payload": false, "coalescing_seconds": 0.25, "meaning": "Data-free invalidation; refetch active projection" },
+        { "kind": "access_revoked", "additional_payload": false, "terminal": true, "meaning": "Overview grant removed; discard private state" },
+        { "kind": "screen_locked", "additional_payload": false, "terminal": true, "meaning": "Panel security locked; discard private state" }
+      ]
+    },
+    "hikvision_intercom/audio/start": {
+      "events": [
+        { "format": "hikvision_intercom.audio", "state": "ready", "fields": { "token": "32-character hex string", "sample_rate": 8000, "packet_bytes": 800, "max_seconds": 180 } },
+        { "format": "hikvision_intercom.audio", "state": "closed", "fields": { "reason": "string code", "close_confirmed": "boolean or null" }, "terminal": true }
+      ]
+    },
+    "hikvision_intercom/tts/start": {
+      "events": [
+        { "format": "hikvision_intercom.tts", "state": "generating" },
+        { "format": "hikvision_intercom.tts", "state": "speaking", "fields": { "duration_seconds": "number", "packet_count": "integer" } },
+        { "format": "hikvision_intercom.tts", "state": "completed", "fields": { "duration_seconds": "number", "bytes_written": "integer", "physical_result": "unverified" }, "terminal": true },
+        { "format": "hikvision_intercom.tts", "state": "closed", "fields": { "reason": "string code" }, "terminal": true }
+      ]
+    }
+  },
+  "capture_status": "polled command result, not a dedicated event subscription",
+  "replay": false,
+  "ordering": "per WebSocket transport order while connected; no cross-reconnect replay or global sequence"
+}

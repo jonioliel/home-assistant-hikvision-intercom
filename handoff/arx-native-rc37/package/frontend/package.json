@@ -1,0 +1,24 @@
+{
+  "name": "hikvision-intercom-panel",
+  "version": "2.0.0-rc.37",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "tsc --noEmit",
+    "test": "playwright test",
+    "test:cross": "playwright test --config playwright.cross.config.ts",
+    "format": "prettier --write src tests build.mjs playwright.config.ts playwright.cross.config.ts",
+    "format:check": "prettier --check src tests build.mjs playwright.config.ts playwright.cross.config.ts"
+  },
+  "dependencies": {
+    "lit": "3.3.3",
+    "hls.js": "1.7.2"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "esbuild": "0.28.2",
+    "@playwright/test": "1.63.0",
+    "prettier": "3.9.6"
+  }
+}

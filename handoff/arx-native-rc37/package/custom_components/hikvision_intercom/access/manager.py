@@ -1,0 +1,1202 @@
+"""Fleet scheduling and explicit administrator workflows, independent of Home Assistant."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Callable, Coroutine
+from copy import deepcopy
+from dataclasses import asdict, dataclass
+from typing import Any
+from uuid import uuid4
+
+from ..client.access import AccessClient, StationInventory, validate_identifier
+from ..exceptions import (
+    HikvisionAuthError,
+    HikvisionBusyError,
+    HikvisionConnectionError,
+    HikvisionError,
+    HikvisionTimeoutError,
+    HikvisionUnsupportedError,
+)
+from .csv_transfer import (
+    CsvRules,
+    column_errors,
+    desired_fields,
+    export_users,
+    parse_csv,
+    public_error,
+    row_patch,
+    validate_csv_targets,
+)
+from .diagnostics import SAFE_ERRORS, SyncDiagnostics, error_code
+from .engine import SyncEngine
+from .enrollment import CardEnrollment
+from .models import (
+    SYNC_STATES,
+    AccessError,
+    ManagedCard,
+    ManagedUser,
+    SecretValue,
+    build_user,
+    utc_now,
+)
+from .normalize import assignment_doors, canonical, desired_cards, desired_person
+from .repository import AccessRepository
+from .review import compare, desired_view, public_view
+
+TaskFactory = Callable[[Coroutine[Any, Any, Any], str], asyncio.Task[Any]]
+
+
+@dataclass(slots=True, repr=False)
+class Station:
+    id: str
+    name: str
+    lock_enabled: bool
+    driver: AccessClient | None = None
+    inventory: StationInventory | None = None
+    status: str = "offline"
+    error: str | None = None
+    scanned_at: str | None = None
+    reconciled_at: str | None = None
+    scan_task: asyncio.Task[Exception | None] | None = None
+    scan_error: str | None = None
+    task: asyncio.Task[None] | None = None
+    timer: asyncio.TimerHandle | None = None
+    pending: bool = False
+    failures: int = 0
+
+
+class AccessManager:
+    """Coalesce work per station; the engine serializes writes and caps fleet concurrency."""
+
+    def __init__(
+        self,
+        repository: AccessRepository,
+        *,
+        changed: Callable[[], None] | None = None,
+        task_factory: TaskFactory | None = None,
+    ) -> None:
+        self.repository = repository
+        self._changed = changed or (lambda: None)
+        self.diagnostics = SyncDiagnostics(repository.fingerprint)
+        self.engine = SyncEngine(repository, changed=self._changed, diagnostics=self.diagnostics)
+        self.stations: dict[str, Station] = {}
+        self._read_slots = asyncio.Semaphore(3)
+        self._task_factory = task_factory or (
+            lambda coro, name: asyncio.create_task(coro, name=name)
+        )
+        self._closed = False
+        self.lifecycle_lock = asyncio.Lock()
+        self.enrollment = CardEnrollment(self)
+        from .bulk_operations import BulkOperations
+
+        self.bulk = BulkOperations(self)
+        from .policy_operations import PolicyOperations
+
+        self.policy = PolicyOperations(self)
+
+    def register(self, station_id: str, name: str, lock_enabled: bool) -> None:
+        if station_id in self.stations:
+            station = self.stations[station_id]
+            station.name, station.lock_enabled = name, lock_enabled
+        else:
+            self.stations[station_id] = Station(station_id, name, lock_enabled)
+
+    def attach(self, station_id: str, driver: AccessClient) -> None:
+        station = self._station(station_id)
+        if station.driver is not None:
+            raise AccessError("station_already_attached")
+        station.driver = driver
+        station.status = "pending"
+        self.request(station_id)
+
+    async def async_detach(self, station_id: str) -> None:
+        station = self._station(station_id)
+        station.driver = None
+        await self.enrollment.close_station(station_id)
+        if station.timer:
+            station.timer.cancel()
+            station.timer = None
+        if station.task:
+            station.task.cancel()
+            await asyncio.gather(station.task, return_exceptions=True)
+            station.task = None
+        if station.scan_task:
+            station.scan_task.cancel()
+            await asyncio.gather(station.scan_task, return_exceptions=True)
+            station.scan_task = None
+        station.driver, station.inventory, station.pending = None, None, False
+        station.status, station.error = "offline", "station_unloaded"
+        self._changed()
+
+    async def async_close(self) -> None:
+        self._closed = True
+        self.bulk.reviews.clear()
+        self.policy.reviews.clear()
+        await asyncio.gather(*(self.async_detach(key) for key in self.stations))
+
+    def _station(self, station_id: str) -> Station:
+        if station_id not in self.stations:
+            raise AccessError("station_not_found")
+        return self.stations[station_id]
+
+    def _driver(self, station: Station) -> AccessClient:
+        if station.driver is None:
+            raise AccessError("station_offline")
+        if not station.lock_enabled or not station.driver.client.enabled_doors:
+            raise AccessError("station_has_no_managed_lock")
+        return station.driver
+
+    def request(self, station_id: str) -> None:
+        station = self._station(station_id)
+        if self._closed:
+            raise AccessError("manager_closed")
+        station.pending = True
+        self.diagnostics.queued(station.id)
+        if station.timer:
+            station.timer.cancel()
+            station.timer = None
+        if station.driver is not None and station.task is None:
+            station.task = self._task_factory(
+                self._worker(station), "Hikvision access reconciliation"
+            )
+        self._changed()
+
+    def has_access(self, station_id: str) -> bool:
+        state = self.repository.snapshot()
+        return (
+            bool(state["bindings"].get(station_id))
+            or any(
+                user.active
+                and station_id in user.assignments
+                and user.assignments[station_id].enabled
+                for user in self.repository.users()
+            )
+            or any(
+                station_id in item["targets"] and station_id not in item["confirmed"]
+                for item in state["tombstones"].values()
+            )
+        )
+
+    def request_all(self) -> None:
+        for key in self.stations:
+            self.request(key)
+
+    def request_user(self, user_id: str) -> None:
+        state = self.repository.snapshot()
+        if user_id not in state["users"] and user_id not in state["tombstones"]:
+            raise AccessError("user_not_found")
+        for key in self.stations:
+            if user_id in self.engine.jobs(key):
+                self.request(key)
+
+    async def _mark_station(self, station: Station, status: str, error: str) -> None:
+        station.status, station.error = status, error
+        for user_id in self.engine.jobs(station.id):
+            await self.repository.async_mark(station.id, user_id, status, error)
+
+    async def async_rescan(self, station_id: str) -> None:
+        """Refresh access capabilities/inventory without requesting reconciliation."""
+        station = self._station(station_id)
+        try:
+            await self._scan(station)
+        except Exception as err:
+            raise AccessError(error_code(err)) from None
+
+    async def _scan(self, station: Station, *, fresh: bool = False) -> None:
+        if self._closed:
+            raise AccessError("manager_closed")
+        if station.driver is None:
+            raise AccessError("station_offline")
+        if fresh and station.scan_task is not None:
+            # A scan begun before a write cannot serve as its final inventory read.
+            await asyncio.shield(station.scan_task)
+        if station.scan_task is None:
+            station.scan_task = self._task_factory(
+                self._scan_once(station), "Hikvision station inspection"
+            )
+        # Disconnecting one admin client must not cancel another caller's shared read.
+        error = await asyncio.shield(station.scan_task)
+        if error is not None:
+            raise error
+
+    async def _scan_once(self, station: Station) -> Exception | None:
+        station.scan_error = None
+        self._changed()
+        try:
+            async with self._read_slots:
+                driver = station.driver
+                if driver is None:
+                    raise AccessError("station_offline")
+                self.diagnostics.stage(station.id, None, "identity")
+                await driver.client.async_confirm_identity()
+                self.diagnostics.stage(station.id, None, "capabilities")
+                await driver.async_capabilities()
+                self.diagnostics.stage(station.id, None, "inventory")
+                inventory = await driver.async_inventory()
+                self.diagnostics.finish(station.id, None)
+            station.inventory, station.scanned_at = inventory, utc_now()
+        except asyncio.CancelledError:
+            self.diagnostics.finish(station.id, None, outcome="cancelled")
+            raise
+        except Exception as err:
+            station.scan_error = error_code(err)
+            self.diagnostics.finish(station.id, None, error=err)
+            # A disconnected last waiter must not leave a secret-bearing task exception.
+            return err
+        finally:
+            station.scan_task = None
+            self._changed()
+        return None
+
+    async def _worker(self, station: Station) -> None:
+        retry = False
+        try:
+            while station.pending:
+                station.pending = False
+                station.status, station.error = "syncing", None
+                self._changed()
+                try:
+                    await self._scan(station)
+                    if self.engine.jobs(station.id):
+                        if not station.lock_enabled:
+                            raise AccessError("station_has_no_managed_lock")
+                        result = await self.engine.async_reconcile(
+                            station.id, self._driver(station)
+                        )
+                        retry = result.retry
+                        # Person failures belong to their matrix cell, not every station user.
+                        station.error = result.last_error if result.offline else None
+                        station.status = (
+                            "offline"
+                            if result.offline
+                            else "error"
+                            if result.failed
+                            else "pending"
+                            if result.retry
+                            else "synced"
+                        )
+                        if not result.offline:
+                            await self._scan(station, fresh=True)
+                    else:
+                        station.status = "synced"
+                    if station.status == "synced":
+                        station.reconciled_at = utc_now()
+                    station.failures = station.failures + 1 if retry else 0
+                except (HikvisionConnectionError, HikvisionTimeoutError) as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    retry = True
+                    station.failures += 1
+                    await self._mark_station(station, "offline", "connection_failed")
+                except HikvisionBusyError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    retry = True
+                    station.failures += 1
+                    await self._mark_station(station, "pending", "device_busy")
+                except HikvisionAuthError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    await self._mark_station(station, "error", "authentication_failed")
+                except HikvisionUnsupportedError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    await self._mark_station(station, "error", "operation_unsupported")
+                except AccessError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    await self._mark_station(station, "error", err.code)
+                except HikvisionError as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    await self._mark_station(station, "error", error_code(err))
+                except asyncio.CancelledError:
+                    self.diagnostics.finish(station.id, None, outcome="cancelled")
+                    raise
+                except Exception as err:
+                    self.diagnostics.finish(station.id, None, error=err)
+                    # A storage failure must halt writes. Never log secret-bearing exceptions.
+                    station.status, station.error = "error", "storage_or_internal_error"
+                    break
+                self._changed()
+                if retry:
+                    break
+        finally:
+            station.task = None
+            if not self._closed and station.driver is not None:
+                delay = min(300, 5 * 2 ** min(station.failures, 6)) if retry else 300
+                if not retry:
+                    from .timing_policy import renewal_delay
+
+                    delay = renewal_delay(
+                        self.repository.users(),
+                        station.id,
+                        delay,
+                        self.repository.snapshot()["bindings"].get(station.id, {}),
+                    )
+                station.timer = asyncio.get_running_loop().call_later(
+                    delay, self.request, station.id
+                )
+            self._changed()
+
+    def _validate(self, user: ManagedUser) -> None:
+        for key, assignment in user.assignments.items():
+            station = self._station(key)
+            if not assignment.enabled or not user.active:
+                continue
+            if not station.lock_enabled:
+                raise AccessError("station_has_no_managed_lock")
+            if station.driver and (caps := station.driver.capabilities):
+                desired_person(
+                    user, assignment_doors(user, key, station.driver.client.physical_doors), caps
+                )
+                desired_cards(user, caps)
+
+    def _csv_profile_fields(self) -> list[str]:
+        return [
+            field["id"]
+            for field in (self.repository.profile_settings() or {})
+            .get("values", {})
+            .get("fields", [])
+        ]
+
+    def export_csv(self) -> dict[str, Any]:
+        users = self.repository.users()
+        return {
+            "csv": export_users(users, self._csv_profile_fields()),
+            "count": len(users),
+            "stations": [{"id": s.id, "name": s.name} for s in self.stations.values()],
+        }
+
+    async def async_export_csv(self) -> dict[str, Any]:
+        users = self.repository.users()
+        stations = [{"id": s.id, "name": s.name} for s in self.stations.values()]
+        return {
+            "csv": await asyncio.to_thread(export_users, users, self._csv_profile_fields()),
+            "count": len(users),
+            "stations": stations,
+        }
+
+    def _csv_rules(self) -> CsvRules:
+        return {
+            key: (
+                station.name,
+                station.lock_enabled,
+                station.driver.client.physical_doors.get(1) if station.driver else None,
+                station.driver.capabilities if station.driver else None,
+            )
+            for key, station in self.stations.items()
+        }
+
+    async def async_preview_csv(
+        self, content: str, mode: str, column_map: dict[str, str] | None = None
+    ) -> dict[str, Any]:
+        repository = self.repository.preview_copy()
+        rules = self._csv_rules()
+        inventory = {
+            sid: (deepcopy(station.inventory), station.scanned_at)
+            for sid, station in self.stations.items()
+        }
+        preview, changes, _stamp = await asyncio.to_thread(
+            self._bulk_preview,
+            content,
+            mode,
+            repository,
+            rules,
+            column_map,
+        )
+        preview["capacity"] = await asyncio.to_thread(
+            self._csv_capacity, repository, changes, rules, inventory
+        )
+        return preview
+
+    @staticmethod
+    def _csv_capacity(
+        repository: AccessRepository,
+        changes: list[dict[str, Any]],
+        rules: CsvRules,
+        inventory: dict[str, tuple[StationInventory | None, str | None]],
+    ) -> list[dict[str, Any]]:
+        if not changes:
+            return []
+        previous = {user.employee_no: user for user in repository.users()}
+        proposed = repository.preview_bulk(changes)
+        affected: set[str] = set()
+        for user in proposed:
+            affected.update(user.assignments)
+            old = previous.get(user.employee_no)
+            if old is not None:
+                affected.update(old.assignments)
+        report: list[dict[str, Any]] = []
+        for sid in sorted(affected.intersection(rules)):
+            observed, checked = inventory.get(sid, (None, None))
+            caps = rules[sid][3]
+            row: dict[str, Any] = {
+                "station_id": sid,
+                "checked_at": checked,
+                "source": "cached_inventory" if observed else "unavailable",
+                "users_now": len(observed.users) if observed else None,
+                "cards_now": len(observed.cards) if observed else None,
+                "pins_now": (
+                    sum(bool(raw.get(caps.pin_field)) for raw in observed.users.values())
+                    if observed and caps and caps.pin_field
+                    else None
+                ),
+                "max_users": caps.max_users if caps else None,
+                "max_cards": caps.max_cards if caps else None,
+                "max_pins": None,
+                "users_added": 0,
+                "users_removed": 0,
+                "cards_added": 0,
+                "cards_removed": 0,
+                "pins_added": 0,
+                "pins_removed": 0,
+            }
+            if observed:
+                for user in proposed:
+                    old = previous.get(user.employee_no)
+                    if sid not in user.assignments and (old is None or sid not in old.assignments):
+                        continue
+                    present = user.employee_no in observed.users
+                    assignment = user.assignments.get(sid)
+                    wanted = bool(user.active and assignment and assignment.enabled)
+                    old_cards = {
+                        card["cardNo"]
+                        for card in observed.cards.values()
+                        if card.get("employeeNo") == user.employee_no
+                    }
+                    new_cards = (
+                        {card.card_no.value for card in user.cards if card.enabled}
+                        if wanted
+                        else set()
+                    )
+                    current_pin = bool(
+                        caps
+                        and caps.pin_field
+                        and observed.users.get(user.employee_no, {}).get(caps.pin_field)
+                    )
+                    wanted_pin = bool(wanted and user.pin is not None)
+                    row["users_added"] += int(wanted and not present)
+                    row["users_removed"] += int(present and not wanted)
+                    row["cards_added"] += len(new_cards - old_cards)
+                    row["cards_removed"] += len(old_cards - new_cards)
+                    row["pins_added"] += int(wanted_pin and not current_pin)
+                    row["pins_removed"] += int(current_pin and not wanted_pin)
+            for name in ("users", "cards", "pins"):
+                current = row[name + "_now"]
+                row[name + "_projected"] = (
+                    current + row[name + "_added"] - row[name + "_removed"]
+                    if current is not None
+                    else None
+                )
+                row[name + "_peak"] = (
+                    current + row[name + "_added"] if current is not None else None
+                )
+            row["capacity_warning"] = any(
+                row[name + "_peak"] is not None
+                and row["max_" + name] is not None
+                and row[name + "_peak"] > row["max_" + name]
+                for name in ("users", "cards", "pins")
+            )
+            report.append(row)
+        return report
+
+    def _bulk_preview(
+        self,
+        content: str,
+        mode: str,
+        repository: AccessRepository | None = None,
+        rules: CsvRules | None = None,
+        column_map: dict[str, str] | None = None,
+    ) -> tuple[dict[str, Any], list[dict[str, Any]], str]:
+        if mode not in {"create", "upsert"}:
+            raise AccessError("csv_invalid_mode")
+        repository = repository if repository is not None else self.repository
+        rules = rules if rules is not None else self._csv_rules()
+        parsed = parse_csv(content, column_map)
+        existing = {user.employee_no: user for user in repository.users()}
+        stations = {key: item[0] for key, item in rules.items()}
+        changes, rows = [], []
+        errors: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for line, row in parsed:
+            try:
+                employee = validate_identifier(row["employee_no"])
+                if employee in seen:
+                    raise AccessError("csv_duplicate_employee")
+                seen.add(employee)
+                previous = existing.get(employee)
+                if previous and mode == "create":
+                    raise AccessError("employee_conflict")
+                issues = column_errors(row, previous, stations, repository.profile_settings())
+                if issues:
+                    errors.extend({"line": line, **issue} for issue in issues)
+                    continue
+                data = row_patch(row, previous, stations, repository.profile_settings())
+                user = build_user(
+                    repository.permission_data(data, previous),
+                    employee_no=employee,
+                    now=utc_now(),
+                    previous=previous,
+                )
+                before = desired_fields(previous) if previous else {}
+                after = desired_fields(user)
+                if before != after:
+                    validate_csv_targets(user, rules)
+                fields = [key for key in after if before.get(key) != after[key]]
+                for key in (
+                    "profile",
+                    "group_ids",
+                    "permission_overrides",
+                    "phone",
+                    "access_category",
+                    "responsible_person",
+                    "access_purpose",
+                ):
+                    if getattr(previous, key, None) != getattr(user, key) and (
+                        previous or getattr(user, key)
+                    ):
+                        fields.append(key)
+                operation = "create" if previous is None else "update" if fields else "unchanged"
+                if operation != "unchanged":
+                    changes.append(
+                        {
+                            "user_id": previous.id if previous else None,
+                            "revision": previous.revision if previous else None,
+                            "data": data,
+                        }
+                    )
+                targets = set(user.assignments) | (set(previous.assignments) if previous else set())
+                rows.append(
+                    {
+                        "line": line,
+                        "employee_no": employee,
+                        "display_name": user.display_name,
+                        "operation": operation,
+                        "changed_fields": fields,
+                        "active": user.active,
+                        "pin_configured": user.pin is not None,
+                        "card_count": len(user.cards),
+                        "stations": sorted(targets),
+                        "profile": user.profile,
+                        "group_ids": user.group_ids,
+                        "permission_overrides": user.permission_overrides,
+                        "access_timing_policy": user.access_timing_policy,
+                        "access_removed": bool(
+                            previous
+                            and (
+                                not user.active
+                                or set(previous.assignments) - set(user.assignments)
+                                or any(
+                                    a.enabled and not user.assignments.get(sid, a).enabled
+                                    for sid, a in previous.assignments.items()
+                                )
+                            )
+                        ),
+                    }
+                )
+            except (AccessError, HikvisionError) as err:
+                errors.append({"line": line, "code": public_error(err)})
+        if not errors:
+            try:
+                repository.preview_bulk(changes)
+            except AccessError as err:
+                errors.append({"line": None, "code": err.code})
+        stamp = repository.bulk_stamp()
+        captured_rules = {
+            key: [
+                *rule[:3],
+                {
+                    field: sorted(value) if isinstance(value, frozenset) else value
+                    for field, value in asdict(rule[3]).items()
+                }
+                if rule[3] is not None
+                else None,
+            ]
+            for key, rule in rules.items()
+        }
+        token = repository.fingerprint(
+            {
+                "content": content,
+                "column_map": column_map,
+                "mode": mode,
+                "stamp": stamp,
+                "stations": captured_rules,
+            }
+        )
+        return (
+            {
+                "rows": rows,
+                "errors": errors,
+                "review_token": None if errors else token,
+                "counts": {
+                    key: sum(row["operation"] == key for row in rows)
+                    for key in ("create", "update", "unchanged")
+                },
+            },
+            changes,
+            stamp,
+        )
+
+    def preview_csv(self, content: str, mode: str) -> dict[str, Any]:
+        return self._bulk_preview(content, mode)[0]
+
+    async def async_import_csv(
+        self,
+        content: str,
+        mode: str,
+        *,
+        review_token: str,
+        column_map: dict[str, str] | None = None,
+        actor: str = "",
+    ) -> dict[str, Any]:
+        rules = self._csv_rules()
+        preview, changes, stamp = await asyncio.to_thread(
+            self._bulk_preview, content, mode, self.repository.preview_copy(), rules, column_map
+        )
+        if preview["errors"]:
+            raise AccessError("csv_validation_failed")
+        if (
+            not review_token
+            or preview["review_token"] != review_token
+            or self._csv_rules() != rules
+        ):
+            raise AccessError("csv_review_stale")
+        access_employees = {
+            row["employee_no"]
+            for row in preview["rows"]
+            if set(row["changed_fields"])
+            - {
+                "profile",
+                "group_ids",
+                "permission_overrides",
+                "phone",
+                "access_category",
+                "responsible_person",
+                "access_purpose",
+            }
+        }
+        device_changes = {
+            change["user_id"]
+            for change in changes
+            if change["user_id"] is not None and change["data"]["employee_no"] in access_employees
+        }
+        prior_targets = {
+            key for uid in device_changes for key in self.repository.get(uid).assignments
+        }
+        created_employees = {
+            change["data"]["employee_no"] for change in changes if change["user_id"] is None
+        }
+        operation_id = uuid4().hex if actor else None
+        receipt = (
+            {
+                "operation_id": operation_id,
+                "actor": actor,
+                "action": "bulk/csv_import",
+                "saved_at": utc_now(),
+                "stations": sorted(
+                    {
+                        station
+                        for row in preview["rows"]
+                        if row["operation"] != "unchanged"
+                        for station in row["stations"]
+                    }
+                ),
+            }
+            if operation_id
+            else None
+        )
+        users = await self.repository.async_bulk_apply(
+            changes,
+            stamp=stamp,
+            validate=lambda user: (
+                validate_csv_targets(user, rules)
+                if user.id in device_changes or user.employee_no in created_employees
+                else None
+            ),
+            receipt=receipt,
+        )
+        changed_ids = {
+            user.id
+            for user in users
+            if user.id in device_changes or user.employee_no in created_employees
+        }
+        state = self.repository.snapshot()
+        targets = prior_targets | {
+            key for user in users if user.id in changed_ids for key in user.assignments
+        }
+        targets.update(
+            key for key, bindings in state["bindings"].items() if changed_ids.intersection(bindings)
+        )
+        for collection in ("retired_cards", "retired_pins"):
+            targets.update(
+                key
+                for item in state[collection].values()
+                if item["user_id"] in changed_ids
+                for key in item["targets"]
+            )
+        for station_id in targets.intersection(self.stations):
+            self.request(station_id)
+        self._changed()
+        return {
+            "counts": preview["counts"],
+            "saved": len(users),
+            "operation_id": operation_id,
+            "durable": bool(operation_id),
+        }
+
+    async def async_create(self, data: dict[str, Any], *, sync_now: bool = True) -> dict[str, Any]:
+        self._validate(
+            build_user(
+                self.repository.permission_data(data), employee_no="100000000", now=utc_now()
+            )
+        )
+        user = await self.repository.async_create(data)
+        # Saving changes does not suspend periodic or already-running reconciliation.
+        if sync_now:
+            self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_update(
+        self, user_id: str, data: dict[str, Any], *, revision: int, sync_now: bool = True
+    ) -> dict[str, Any]:
+        previous = self.repository.get(user_id)
+        self._validate(
+            build_user(
+                self.repository.permission_data(data, previous),
+                employee_no=previous.employee_no,
+                now=utc_now(),
+                previous=previous,
+            )
+        )
+        user = await self.repository.async_update(user_id, data, expected_revision=revision)
+        # Saving changes does not suspend periodic or already-running reconciliation.
+        from .csv_transfer import desired_fields
+
+        if sync_now and desired_fields(user) != desired_fields(previous):
+            self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_delete(self, user_id: str, *, revision: int) -> None:
+        await self.repository.async_delete(user_id, expected_revision=revision)
+        # Users with no station targets are deleted immediately.
+        for key in self.stations:
+            if user_id in self.engine.jobs(key):
+                self.request(key)
+        self._changed()
+
+    async def async_archive(self, user_id: str, *, revision: int, archived: bool) -> dict[str, Any]:
+        # Disable intent must persist even when equipment cannot be reached.
+        user = await self.repository.async_archive(
+            user_id, expected_revision=revision, archived=archived
+        )
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_cancel_temporary(self, user_id: str, *, revision: int) -> dict[str, Any]:
+        # Disabling existing access does not require fresh firmware capability reads.
+        # Desired disable intent must be saved even when a station is disconnected.
+        user = await self.repository.async_cancel_temporary(user_id, expected_revision=revision)
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_create_visit(
+        self, data: dict[str, Any], *, actor: str, approver: str
+    ) -> dict[str, Any]:
+        data = {**data, "active": False}
+        self._validate(
+            build_user(
+                self.repository.permission_data(data), employee_no="100000000", now=utc_now()
+            )
+        )
+        user = await self.repository.async_create(data, approval=(actor, approver))
+        self._changed()
+        return user.public()
+
+    async def async_decide_visit(
+        self, request_id: str, *, revision: int, actor: str, decision: str
+    ) -> dict[str, Any]:
+        row = await self.repository.async_decide_visit(
+            request_id,
+            expected_revision=revision,
+            actor=actor,
+            decision=decision,
+            validate=self._validate,
+        )
+        if decision == "approve":
+            self.request_user(row["user_id"])
+        self._changed()
+        return row
+
+    @staticmethod
+    def _pending_users(state: dict[str, Any], station_id: str) -> set[str]:
+        from .sync_tracking import pending_users
+
+        return pending_users(state, station_id)
+
+    def public(self, *, include_users: bool = True) -> dict[str, Any]:
+        # This synchronous read cannot interleave with an async commit. Avoid
+        # copying the entire private store merely to render station counters.
+        state = self.repository._state
+        stations = []
+        for station in self.stations.values():
+            caps = station.driver.capabilities if station.driver else None
+            inventory = station.inventory
+            owned = {item["employee_no"] for item in state["bindings"].get(station.id, {}).values()}
+            ignored = set(state["ignored"].get(station.id, []))
+            stations.append(
+                {
+                    "id": station.id,
+                    "sync_reference": self.diagnostics.reference(station.id),
+                    "name": station.name,
+                    "lock_enabled": station.lock_enabled,
+                    "loaded": station.driver is not None,
+                    "sync_state": station.status,
+                    "last_error": station.error,
+                    "scanned_at": station.scanned_at,
+                    "scanning": station.scan_task is not None,
+                    "scan_error": station.scan_error,
+                    "reconciled_at": station.reconciled_at,
+                    "managed_user_count": len(set(inventory.users) & owned) if inventory else None,
+                    "pending_user_count": len(self._pending_users(state, station.id)),
+                    "user_count": len(inventory.users) if inventory else None,
+                    "card_count": len(inventory.cards) if inventory else None,
+                    "unmanaged_count": len(set(inventory.users) - owned - ignored)
+                    if inventory
+                    else None,
+                    "capabilities": {
+                        "max_users": caps.max_users,
+                        "max_cards": caps.max_cards,
+                        "cards_per_person": caps.cards_per_person,
+                        "pin_mode": caps.pin_mode,
+                        "pin_writable": caps.pin_field is not None,
+                        "pin_min": caps.pin_min,
+                        "pin_max": caps.pin_max,
+                        "card_min": caps.card_min,
+                        "card_max": caps.card_max,
+                        "name_max": caps.name_max,
+                        "schedules": False,
+                    }
+                    if caps
+                    else None,
+                }
+            )
+        public = self.repository.public(include_users=include_users)
+        for user in public["users"]:
+            user["sync_reference"] = self.diagnostics.reference(user["id"])
+        return {**public, "stations": stations}
+
+    def station_metrics(self, station_id: str) -> dict[str, Any] | None:
+        """Nonpersonal, read-only HA projection; no I/O or full user serialization."""
+        station = self.stations.get(station_id)
+        if self._closed or station is None:
+            return None
+        state = self.repository._state
+        from .sync_tracking import pending_age
+
+        pending = len(self._pending_users(state, station_id))
+        owned = {b["employee_no"] for b in state["bindings"].get(station_id, {}).values()}
+        status = station.status if station.status in SYNC_STATES else "unknown"
+        # A queued change can precede the worker's state transition.
+        if status == "synced" and pending:
+            status = "pending"
+        return {
+            "managed_users": len(set(station.inventory.users) & owned)
+            if station.inventory is not None
+            else None,
+            "pending_users": pending,
+            "pending_age": pending_age(state, station_id),
+            "sync_health": status,
+            "last_reconciled": station.reconciled_at,
+            "inventory_sampled_at": station.scanned_at,
+        }
+
+    def sync_diagnostics(self) -> dict[str, Any]:
+        """A support export excludes host/title/person/employee/credential identifiers."""
+        stations = []
+        for station in self.stations.values():
+            stations.append(
+                {
+                    "station_ref": self.diagnostics.reference(station.id),
+                    "state": station.status if station.status in SYNC_STATES else "unknown",
+                    "last_error": station.error
+                    if station.error is None or station.error in SAFE_ERRORS
+                    else "other",
+                    "loaded": station.driver is not None,
+                    "managed_lock": station.lock_enabled,
+                    "worker_active": station.task is not None,
+                    "pending_request": station.pending,
+                    "reconciliation_targets": len(self.engine.jobs(station.id)),
+                }
+            )
+        return {"stations": stations, **self.diagnostics.public()}
+
+    async def async_inventory(self, station_id: str) -> list[dict[str, Any]]:
+        station = self._station(station_id)
+        await self._scan(station)
+        driver = station.driver
+        assert driver and driver.capabilities and station.inventory
+        state = self.repository.snapshot()
+        owned = {
+            value["employee_no"]: key
+            for key, value in state["bindings"].get(station_id, {}).items()
+        }
+        ignored = set(state["ignored"].get(station_id, []))
+        rows = []
+        for employee_no, raw in station.inventory.users.items():
+            try:
+                normal = canonical(station.inventory, employee_no, driver.capabilities)
+                token = self.repository.fingerprint(normal)
+                self._import_data(station, employee_no, station.inventory)
+                import_error = None
+            except AccessError as err:
+                token, import_error = None, err.code
+            rows.append(
+                {
+                    "employee_no": employee_no,
+                    "display_name": raw.get("name", ""),
+                    "user_id": owned.get(employee_no),
+                    "ignored": employee_no in ignored,
+                    "review_token": token,
+                    "import_error": import_error,
+                    "pin_configured": bool(raw.get(driver.capabilities.pin_field or "")),
+                    "cards": [
+                        ManagedCard(str(uuid4()), SecretValue(number)).public()
+                        for number, card in station.inventory.cards.items()
+                        if card["employeeNo"] == employee_no
+                    ],
+                }
+            )
+        self._changed()
+        return rows
+
+    def _import_data(
+        self, station: Station, employee_no: str, inventory: StationInventory
+    ) -> dict[str, Any]:
+        driver = self._driver(station)
+        caps = driver.capabilities
+        assert caps is not None
+        normal = canonical(inventory, employee_no, caps)
+        raw, person = inventory.users.get(employee_no), normal["person"]
+        if raw is None or person is None:
+            raise AccessError("device_user_missing")
+        if person["RightPlan"] != []:
+            raise AccessError("schedule_unverified")
+        reverse = {str(api): physical for physical, api in driver.client.physical_doors.items()}
+        door_ids = str(person["doorRight"]).split(",")
+        if (
+            not door_ids
+            or any(door not in reverse for door in door_ids)
+            or len(set(door_ids)) != len(door_ids)
+        ):
+            raise AccessError("unmanaged_lock")
+        imported_locks = sorted(reverse[door] for door in door_ids)
+        if person["localUIRight"] is not False or any(
+            raw.get(key, 0) for key in ("numOfFace", "numOfFP")
+        ):
+            raise AccessError("unsupported_credentials")
+        if caps.pin_field is None:
+            raise AccessError("pin_device_managed")
+        valid = person["Valid"]
+        if valid["enable"] and valid["timeType"] != "UTC":
+            raise AccessError("local_validity_needs_conversion")
+        return {
+            "employee_no": employee_no,
+            "display_name": person["name"],
+            "user_type": person["userType"],
+            "pin": person["pin"] or None,
+            "valid_from": valid.get("beginTime"),
+            "valid_until": valid.get("endTime"),
+            "cards": [
+                {"card_no": card["cardNo"], "card_type": card["cardType"]}
+                for card in normal["cards"]
+            ],
+            "assignments": {station.id: {"allowed_locks": imported_locks}},
+        }
+
+    async def async_adopt(
+        self,
+        station_id: str,
+        employee_no: str,
+        *,
+        review_token: str,
+        user_id: str | None = None,
+        revision: int | None = None,
+        delete: bool = False,
+    ) -> dict[str, Any]:
+        validate_identifier(employee_no)
+        station = self._station(station_id)
+        driver = self._driver(station)
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(employee_no)
+            fingerprint = self.repository.fingerprint(canonical(inventory, employee_no, caps))
+            if not review_token or fingerprint != review_token:
+                raise AccessError("review_stale")
+            data = self._import_data(station, employee_no, inventory)
+            if not delete:
+                self._validate(build_user(data, employee_no=employee_no, now=utc_now()))
+            user = await self.repository.async_adopt(
+                station_id,
+                data,
+                fingerprint=fingerprint,
+                existing_user_id=user_id,
+                expected_revision=revision,
+                delete=delete,
+            )
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_ignore(self, station_id: str, employee_no: str, *, ignored: bool) -> None:
+        self._station(station_id)
+        if type(ignored) is not bool:
+            raise AccessError("invalid_boolean")
+        await self.repository.async_ignore(station_id, employee_no, ignored=ignored)
+        self._changed()
+
+    async def async_resolve(
+        self, station_id: str, user_id: str, *, review_token: str, revision: int, direction: str
+    ) -> dict[str, Any]:
+        if direction not in {"central", "device"}:
+            raise AccessError("invalid_resolution")
+        station = self._station(station_id)
+        driver = self._driver(station)
+        user = self.repository.get(user_id)
+        if user.revision != revision:
+            raise AccessError("revision_conflict")
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(user.employee_no)
+            fingerprint = self.repository.fingerprint(canonical(inventory, user.employee_no, caps))
+            if not review_token or fingerprint != review_token:
+                raise AccessError("review_stale")
+            # Both directions require reviewable supported credentials; no hidden schedule takeover.
+            data = (
+                self._import_data(station, user.employee_no, inventory) if inventory.users else None
+            )
+            if direction == "device":
+                if data is None:
+                    raise AccessError("device_user_missing")
+                data.pop("assignments")
+                self._validate(
+                    build_user(data, employee_no=user.employee_no, now=utc_now(), previous=user)
+                )
+            user = await self.repository.async_resolve(
+                station_id,
+                user_id,
+                fingerprint=fingerprint,
+                expected_revision=revision,
+                device_data=data if direction == "device" else None,
+            )
+        self.request_user(user.id)
+        self._changed()
+        return user.public()
+
+    async def async_review(self, station_id: str, user_id: str) -> dict[str, Any]:
+        station = self._station(station_id)
+        driver = self._driver(station)
+        state = self.repository.snapshot()
+        raw = state["users"].get(user_id)
+        tombstone = state["tombstones"].get(user_id)
+        if raw is None and tombstone is None:
+            raise AccessError("user_not_found")
+        employee_no = raw["employee_no"] if raw is not None else tombstone["employee_no"]
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(employee_no)
+            normal = canonical(inventory, employee_no, caps)
+            token = self.repository.fingerprint(normal)
+        user = ManagedUser.from_private(raw) if raw is not None else None
+        binding = state["bindings"].get(station_id, {}).get(user_id)
+        targets = set(user.assignments) if user else set(tombstone["targets"])
+        targets.update(key for key, records in state["bindings"].items() if user_id in records)
+        reasons: dict[str, str | None] = {"central": None, "device": None, "delete": None}
+        if user is not None:
+            reasons["delete"] = "deletion_not_pending"
+            if binding is None:
+                reasons["central"] = reasons["device"] = "ownership_missing"
+        else:
+            reasons["central"] = reasons["device"] = "user_not_found"
+            if station_id not in tombstone["targets"] or station_id in tombstone["confirmed"]:
+                reasons["delete"] = "deletion_not_pending"
+        data = None
+        if normal["person"] is not None:
+            try:
+                data = self._import_data(station, employee_no, inventory)
+            except AccessError as err:
+                for action in reasons:
+                    reasons[action] = reasons[action] or err.code
+        else:
+            reasons["device"] = reasons["device"] or "device_user_missing"
+        desired = None
+        comparison: dict[str, Any] = {"differences": [], "plan": None}
+        try:
+            desired = desired_view(
+                user,
+                station_id,
+                assignment_doors(user, station_id, driver.client.physical_doors)
+                if user and user.assignments.get(station_id)
+                else (),
+                caps,
+            )
+            comparison = compare(desired, normal)
+        except AccessError as err:
+            reasons["central"] = reasons["central"] or err.code
+        if user is not None and data is not None and reasons["device"] is None:
+            try:
+                self._validate(
+                    build_user(
+                        {key: value for key, value in data.items() if key != "assignments"},
+                        employee_no=employee_no,
+                        now=utc_now(),
+                        previous=user,
+                    )
+                )
+            except AccessError as err:
+                reasons["device"] = err.code
+        device = public_view(normal, caps)
+        return {
+            "user_id": user_id,
+            "employee_no": employee_no,
+            "station_id": station_id,
+            "review_token": token,
+            "revision": user.revision if user else None,
+            "reviewed_at": utc_now(),
+            "absent": not device["present"],
+            "display_name": device["display_name"],
+            "pin_configured": device["pin_configured"],
+            "cards": device["cards"],
+            "deletion_pending": tombstone is not None,
+            "central": public_view(desired, caps) if desired is not None else None,
+            "device": device,
+            "active": user.active if user else False,
+            "unverified_fields": ["pin"] if caps.pin_field is None else [],
+            "affected_stations": sorted(targets),
+            "actions": {
+                key: {"allowed": reason is None, "reason": reason}
+                for key, reason in reasons.items()
+            },
+            **comparison,
+        }
+
+    async def async_resolve_deletion(
+        self, station_id: str, user_id: str, *, review_token: str
+    ) -> None:
+        station = self._station(station_id)
+        driver = self._driver(station)
+        tombstone = self.repository.snapshot()["tombstones"].get(user_id)
+        if tombstone is None:
+            raise AccessError("deletion_not_pending")
+        employee_no = tombstone["employee_no"]
+        async with driver.transaction():
+            caps = await driver.async_capabilities()
+            inventory = await driver.async_person(employee_no)
+            fingerprint = self.repository.fingerprint(canonical(inventory, employee_no, caps))
+            if not review_token or fingerprint != review_token:
+                raise AccessError("review_stale")
+            if inventory.users:
+                self._import_data(station, employee_no, inventory)
+            await self.repository.async_resolve_deletion(
+                station_id, user_id, fingerprint=fingerprint
+            )
+        self.request(station_id)

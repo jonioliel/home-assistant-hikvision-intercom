@@ -1,0 +1,4 @@
+Version: 2.0.0-rc.37
+Tag: v2.0.0-rc.37
+Release commit: 4bffe0810dd93e61191140b7241a01892e26b8dc
+Contract: embed-api-v1 (additive)

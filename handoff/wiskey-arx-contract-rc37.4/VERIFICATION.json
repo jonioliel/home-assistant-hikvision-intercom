@@ -1,0 +1,24 @@
+{
+  "delivery": "rc37-contract.4",
+  "date": "2026-10-01",
+  "proposed_schema_json_parse": "PASS",
+  "fixture_runtime_load_live_tests": "NOT_RUN: documentation delta",
+  "schema_meta_validation": "NOT_RUN",
+  "catalogs": [
+    {
+      "json_parse": "PASS",
+      "file": "commands.static.json",
+      "unchanged": true,
+      "count": 238,
+      "sha256": "2E3CD9325F182712B99F97E50A11FB902BF5B2C63D5CC3AB6EACA46C96DA8C8F"
+    },
+    {
+      "json_parse": "PASS",
+      "file": "errors.static.json",
+      "unchanged": true,
+      "count": 301,
+      "sha256": "6044DC2625302F4BE8FB8D49F972635E1829A8E91D17BA4DC16C2CFE6DCAC0C1"
+    }
+  ],
+  "source_commit": "909579e3d113803e6274dbe4e4046aa5e6bf3c3c"
+}

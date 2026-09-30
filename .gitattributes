@@ -1,3 +1,7 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+
+# Historical delivery artifacts must retain the published byte hashes.
+handoff/** -text -eol
+docs/design/v4/** -text -eol

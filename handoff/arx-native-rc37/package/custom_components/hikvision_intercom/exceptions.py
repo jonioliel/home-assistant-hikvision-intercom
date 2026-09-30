@@ -1,0 +1,54 @@
+"""Normalized errors; never attach device bodies, URLs, or credentials."""
+
+
+class HikvisionError(Exception):
+    """Base protocol failure; optional protocol identifiers contain no response text."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        sub_status: str | None = None,
+        fields: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.sub_status = sub_status
+        self.fields = fields
+
+
+class HikvisionAuthError(HikvisionError):
+    """Authentication or authorization failed."""
+
+
+class HikvisionConnectionError(HikvisionError):
+    """Transport connection failed."""
+
+
+class HikvisionTimeoutError(HikvisionError):
+    """A bounded request timed out."""
+
+
+class HikvisionUnsupportedError(HikvisionError):
+    """The device explicitly rejected an unsupported operation."""
+
+
+class HikvisionValidationError(HikvisionError):
+    """Input or response was invalid."""
+
+
+class HikvisionConflictError(HikvisionError):
+    """The device reported a conflict."""
+
+
+class HikvisionCapacityError(HikvisionError):
+    """The device reported capacity exhaustion."""
+
+
+class HikvisionDeviceError(HikvisionError):
+    """The device reported an otherwise unclassified failure."""
+
+
+class HikvisionBusyError(HikvisionDeviceError):
+    """The device is temporarily busy; callers must not blindly replay writes."""

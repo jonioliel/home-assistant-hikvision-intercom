@@ -1,0 +1,1235 @@
+import "./user-photo";
+import { formatTime, localInput, resolveLocalInput, UTC_ZONE, type DisplayZone } from "./time";
+import { LitElement, html, nothing, css, type PropertyValues } from "lit";
+import { styles } from "./styles";
+import { adminStyles } from "./admin-styles";
+import { translate } from "./i18n";
+import { downloadText } from "./download";
+import { boundedRequest } from "./request";
+import { printableReport, checkedReportQuery } from "./report-tools";
+import type { ProfilePolicy } from "./profile-settings";
+import type { Hass, Station } from "./types";
+
+interface AuditEvent {
+  portrait?: { user_id: string; revision: number } | null;
+  person_link?: { user_id: string; revision: number } | null;
+  received_at?: string;
+  time_source?: string;
+  evidence?: { identity_state: string; origin: string; arrival_delay_seconds: number | null };
+  id: string;
+  station_id: string;
+  timestamp: string;
+  person_name: string | null;
+  employee_no: string | null;
+  door: number | null;
+  authentication: string;
+  result: string;
+  event_type: string;
+  card: string | null;
+  recovered: boolean;
+  major: number | null;
+  minor: number | null;
+}
+interface Counts {
+  records: number;
+  authentication: number;
+  granted: number;
+  denied: number;
+  unknown: number;
+  other: number;
+  recovered: number;
+}
+interface ActivityReport {
+  day_timezone?: string;
+  generated_at: string;
+  oldest: string | null;
+  newest: string | null;
+  totals: Counts;
+  methods: Record<string, number>;
+  anomalies?: Record<string, number>;
+  anomaly_by_station?: { station_id: string; total: number; counts: Record<string, number> }[];
+  by_station: (Counts & { station_id: string })[];
+  by_day: (Counts & { day: string })[];
+  storage_failed: boolean;
+  stations: Record<string, { history: string }>;
+  csv?: string;
+  membership_basis?: string | null;
+  filters?: Record<string, unknown>;
+  print_records?: Record<string, unknown>[];
+}
+interface AuditPage {
+  records: AuditEvent[];
+  next: string | null;
+  storage_failed: boolean;
+  stations: Record<string, { stream: string; history: string }>;
+}
+
+export class IntercomEvents extends LitElement {
+  static styles = [
+    styles,
+    css`
+      :host {
+        height: auto;
+        overflow: visible;
+      }
+      .record-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+      }
+      .audit-row {
+        background: var(--surface);
+        border: 1px solid var(--divider-color, #dce5e6);
+        border-radius: 12px;
+      }
+      .anomaly-digest {
+        margin-block: 18px;
+        padding: 16px;
+        border: 1px solid var(--divider-color, #dce5e6);
+        border-radius: 12px;
+      }
+      .anomaly-digest h4 {
+        margin: 0 0 10px;
+      }
+      .anomaly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+        gap: 8px;
+      }
+      .anomaly-grid button {
+        text-align: start;
+      }
+      .anomaly-grid strong {
+        display: block;
+        font-size: 1.4em;
+      }
+      :host([v4]) .event-filters {
+        padding: 10px 14px;
+        margin: 8px 0;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 10px;
+        background: var(--wk4-surface, #fff);
+      }
+      :host([v4]) .event-filters summary {
+        cursor: pointer;
+        font-weight: 650;
+        color: var(--wk4-ink, #192a2d);
+      }
+      :host([v4]) .event-filters:not([open]) {
+        max-width: 280px;
+      }
+      :host([v4]) .toolbar {
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 6px 0;
+      }
+      :host([v4]) .wk4-report-actions {
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 0 12px;
+        padding: 6px 12px;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 8px;
+        background: var(--wk4-surface, #fff);
+      }
+      :host([v4]) .wk4-report-actions[open] {
+        width: 100%;
+      }
+      :host([v4]) .wk4-report-actions summary {
+        cursor: pointer;
+        font-weight: 650;
+      }
+      :host([v4]) .result-summary {
+        margin: 14px 0 8px;
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-activity-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        gap: 18px;
+        align-items: start;
+        direction: rtl;
+      }
+      .wk4-activity-table {
+        min-width: 0;
+        overflow-x: auto;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 12px;
+        background: var(--wk4-surface, #fff);
+      }
+      .wk4-activity-table table {
+        width: 100%;
+        min-width: 650px;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .wk4-activity-table th,
+      .wk4-activity-table td {
+        text-align: start;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--wk4-line, #dfe6e3);
+        overflow-wrap: anywhere;
+      }
+      .wk4-activity-table th {
+        color: var(--wk4-muted, #5f7170);
+        background: var(--wk4-wash, #f7f9f8);
+        font-size: 12px;
+      }
+      .wk4-activity-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .wk4-activity-table tr[aria-selected="true"] {
+        background: var(--wk4-accent-soft, #e8f4ef);
+      }
+      .wk4-activity-table tr:hover {
+        background: var(--wk4-wash, #f7f9f8);
+      }
+      .wk4-activity-table td button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 34px;
+        padding: 3px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: start;
+        cursor: pointer;
+      }
+      .wk4-activity-table td button:focus-visible {
+        outline: 3px solid var(--wk4-accent, #087e70);
+        outline-offset: 2px;
+      }
+      .wk4-activity-table td hikvision-user-photo {
+        flex: 0 0 auto;
+      }
+      .wk4-activity-table .badge:not(.error),
+      .wk4-event-inspector .badge:not(.error) {
+        background: var(--wk4-green-soft, #edf6ee);
+        color: var(--wk4-green, #247553);
+      }
+      .wk4-activity-table .badge.error,
+      .wk4-event-inspector .badge.error {
+        background: var(--wk4-red-soft, #fbeef0);
+        color: var(--wk4-red, #b84045);
+      }
+      .wk4-activity-table td small {
+        display: block;
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-event-inspector {
+        padding: 16px;
+        border: 1px solid var(--wk4-line, #dfe6e3);
+        border-radius: 12px;
+        background: var(--wk4-surface, #fff);
+      }
+      .wk4-event-inspector h3 {
+        margin: 0 0 14px;
+      }
+      .wk4-event-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        font-weight: 700;
+      }
+      .wk4-event-inspector dl {
+        display: grid;
+        grid-template-columns: minmax(90px, 1fr) minmax(0, 1.5fr);
+        gap: 0 8px;
+        margin: 0;
+      }
+      .wk4-event-inspector dt,
+      .wk4-event-inspector dd {
+        margin: 0;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--wk4-line, #dfe6e3);
+      }
+      .wk4-event-inspector dt {
+        color: var(--wk4-muted, #5f7170);
+      }
+      .wk4-event-inspector .sub {
+        line-height: 1.5;
+      }
+      @container intercom-panel (max-width: 850px) {
+        .wk4-activity-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .wk4-event-inspector {
+          order: -1;
+        }
+      }
+      input,
+      select {
+        min-width: 0;
+        width: 100%;
+      }
+      @container intercom-panel (max-width: 650px) {
+        .record-person {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .form-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    `,
+    adminStyles,
+  ];
+  static properties = {
+    hass: { attribute: false },
+    v4: { type: Boolean, reflect: true },
+    _selectedEvent: { state: true },
+    stations: { attribute: false },
+    policy: { attribute: false },
+    _print: { state: true },
+    _printReady: { state: true },
+    defaultZone: { attribute: false },
+    _data: { state: true },
+    _filterDirty: { state: true },
+    _filtersOpen: { state: true },
+    _busy: { state: true },
+    _error: { state: true },
+    _listError: { state: true },
+    _reportError: { state: true },
+    _haConnected: { state: true },
+    _report: { state: true },
+    _reportBusy: { state: true },
+  };
+  hass?: Hass;
+  stations: Station[] = [];
+  policy?: ProfilePolicy | null;
+  v4 = false;
+  private _selectedEvent = "";
+  private _print = "";
+  private _printReady = false;
+  private actor?: string;
+  defaultZone: DisplayZone = UTC_ZONE;
+  private _filtersOpen = !window.matchMedia("(max-width: 650px)").matches;
+  private _inputZone: DisplayZone = UTC_ZONE;
+  private _knownTimes: Record<string, unknown> = {};
+  private _filterStation = "";
+  private _filterDirty = false;
+  private _data?: AuditPage;
+  private _busy = false;
+  private _error = "";
+  private _listError = "";
+  private _reportError = "";
+  private _haConnected = true;
+  private connection?: Hass["connection"];
+  private _lifecycle = 0;
+  private _reloadQueued = false;
+  private requests = new Set<AbortController>();
+  private listRequest?: AbortController;
+  private reportRequest?: AbortController;
+  private haDisconnected = () => {
+    this._haConnected = false;
+    this._reloadQueued = false;
+    this.cancelRequests();
+  };
+  private haReady = () => {
+    this._haConnected = true;
+    void this.load();
+  };
+  private bindConnection(connection?: Hass["connection"]) {
+    this.connection?.removeEventListener?.("disconnected", this.haDisconnected);
+    this.connection?.removeEventListener?.("ready", this.haReady);
+    this.connection = connection;
+    this._haConnected = connection?.connected !== false;
+    connection?.addEventListener?.("disconnected", this.haDisconnected);
+    connection?.addEventListener?.("ready", this.haReady);
+  }
+  private cancelRequests() {
+    for (const controller of this.requests) controller.abort();
+    this.requests.clear();
+  }
+  private invalidate() {
+    this.renderRoot.querySelector<HTMLFormElement>("form")?.reset();
+    this._lifecycle++;
+    this._generation++;
+    this._reloadQueued = false;
+    this.cancelRequests();
+    this._busy = false;
+    this._data = undefined;
+    this._error = "";
+    this._listError = "";
+    this._filters = {};
+    this._knownTimes = {};
+    this._filterStation = "";
+    this._filterDirty = false;
+    this.clearReport();
+  }
+  private async request<T>(
+    command: string,
+    data: Record<string, unknown>,
+    timeout: number,
+    controller = new AbortController(),
+  ): Promise<T> {
+    if (
+      !this.isConnected ||
+      !this.hass?.user?.is_admin ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      throw new Error("disconnected");
+    const hass = this.hass,
+      lifecycle = this._lifecycle;
+    this.requests.add(controller);
+    try {
+      const result = await boundedRequest(
+        () =>
+          hass.callWS<T>({
+            type: `hikvision_intercom/events/${command}`,
+            ...data,
+          }),
+        timeout,
+        controller.signal,
+      );
+      if (
+        !this.isConnected ||
+        !this.hass?.user?.is_admin ||
+        lifecycle !== this._lifecycle ||
+        this.hass.connection !== hass.connection
+      )
+        throw new Error("discarded");
+      return result;
+    } finally {
+      this.requests.delete(controller);
+    }
+  }
+  private _filters: Record<string, unknown> = {};
+  private _generation = 0;
+  private _report?: ActivityReport;
+  private _reportBusy = false;
+  private _reportEpoch = 0;
+  private t = (key: string) => translate(this.hass?.language ?? "en", key);
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.hass?.user?.is_admin) {
+      this.bindConnection(this.hass.connection);
+      if (this.hasUpdated) void this.load();
+    }
+  }
+  protected updated(changed: PropertyValues) {
+    if (!this.isConnected) return;
+    if (changed.has("v4") && this.v4 && !this._filterDirty) this._filtersOpen = false;
+    const connection = this.hass?.user?.is_admin ? this.hass.connection : undefined;
+    const replaced = this.connection !== connection || this.actor !== this.hass?.user?.id;
+    this.actor = this.hass?.user?.id;
+    if (replaced) {
+      this.invalidate();
+      this.bindConnection(connection);
+    }
+    if (!this.hass?.user?.is_admin) {
+      if (changed.has("hass") && !replaced) this.invalidate();
+      return;
+    }
+    this.refreshFilterZone();
+    if (replaced || changed.has("stations")) void this.load();
+  }
+  disconnectedCallback() {
+    this.invalidate();
+    this.bindConnection(undefined);
+    super.disconnectedCallback();
+  }
+  private cancelList() {
+    this._generation++;
+    this.listRequest?.abort();
+    this._reloadQueued = false;
+    this._busy = false;
+  }
+  private async load(more = false) {
+    if (
+      !this.hass?.user?.is_admin ||
+      !this.isConnected ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      return;
+    if (this._busy) {
+      if (!more) this._reloadQueued = true;
+      return;
+    }
+    const generation = ++this._generation;
+    this._busy = true;
+    this.listRequest = new AbortController();
+    try {
+      const data = await this.request<AuditPage>(
+        "list",
+        {
+          filters: {
+            ...this._filters,
+            limit: 100,
+            ...(more && this._data?.next ? { before: this._data.next } : {}),
+          },
+        },
+        20000,
+        this.listRequest,
+      );
+      if (generation !== this._generation || !this.isConnected || !this.hass?.user?.is_admin)
+        return;
+      this._data = {
+        ...data,
+        records: more ? [...(this._data?.records ?? []), ...data.records] : data.records,
+      };
+      this._listError = "";
+    } catch {
+      if (generation === this._generation) this._listError = this.t("events_load_failed");
+    } finally {
+      if (generation === this._generation) {
+        this._busy = false;
+        this.listRequest = undefined;
+        if (this._reloadQueued) {
+          this._reloadQueued = false;
+          void this.load();
+        }
+      }
+    }
+  }
+  private refreshFilterZone() {
+    const form = this.renderRoot.querySelector<HTMLFormElement>("form");
+    if (this._filterStation && !this.stations.some((s) => s.id === this._filterStation)) {
+      this._filterStation = "";
+      const select = form?.elements.namedItem("station_id") as HTMLSelectElement | null;
+      if (select) select.value = "";
+      this._filterDirty = true;
+    }
+    const station = this.stations.find((s) => s.id === this._filterStation);
+    const zone = station ? (station.clock?.zone ?? UTC_ZONE) : this.defaultZone;
+    if (JSON.stringify(zone) === JSON.stringify(this._inputZone)) return;
+    if (form) {
+      const inputs = ["start", "end"].map(
+        (key) => form.elements.namedItem(key) as HTMLInputElement,
+      );
+      try {
+        const times = inputs.map((input) =>
+          resolveLocalInput(input.value, this._inputZone, this._knownTimes[input.name]),
+        );
+        inputs.forEach((input, i) => {
+          input.value = localInput(times[i], zone);
+          this._knownTimes[input.name] = times[i];
+        });
+      } catch {
+        inputs.forEach((input) => {
+          input.value = "";
+        });
+        this._knownTimes = {};
+        this._filterDirty = true;
+        this._error = this.t("filter_zone_changed_invalid");
+      }
+    }
+    this._inputZone = structuredClone(zone);
+  }
+  private apply(event: Event) {
+    event.preventDefault();
+    const form = new FormData(event.target as HTMLFormElement);
+    const filters: Record<string, unknown> = {};
+    const zone = this._inputZone;
+    try {
+      for (const [key, raw] of form.entries()) {
+        if (!raw) continue;
+        if (key.startsWith("profile:")) {
+          const values = (filters.current_profile ?? {}) as Record<string, string>;
+          values[key.slice(8)] = String(raw);
+          filters.current_profile = values;
+          continue;
+        }
+        filters[key] =
+          key === "door"
+            ? Number(raw)
+            : key === "start" || key === "end"
+              ? resolveLocalInput(String(raw), zone, this._knownTimes[key])
+              : raw;
+      }
+    } catch (e) {
+      this._error = this.t((e as Error).message);
+      return;
+    }
+    this.cancelList();
+    this._error = "";
+    this._data = undefined;
+    this._filters = filters;
+    this._knownTimes = { start: filters.start, end: filters.end };
+    this._filterDirty = false;
+    this.clearReport();
+    void this.load();
+  }
+  private loadQuery(value: Record<string, unknown>) {
+    try {
+      const filters = checkedReportQuery(value);
+      if (filters.station_id && !this.stations.some((s) => s.id === filters.station_id))
+        throw Error();
+      if (filters.current_group && !this.policy?.groups.some((g) => g.id === filters.current_group))
+        throw Error();
+      if (
+        Object.keys((filters.current_profile ?? {}) as object).some(
+          (id) => !this.policy?.fields.some((f) => f.id === id && f.enabled),
+        )
+      )
+        throw Error();
+      const form = this.renderRoot.querySelector<HTMLFormElement>("form");
+      if (!form) return;
+      form.reset();
+      this._filterStation = String(filters.station_id ?? "");
+      this._inputZone =
+        this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? this.defaultZone;
+      for (const [key, raw] of Object.entries(filters)) {
+        if (key === "current_profile") {
+          for (const [id, v] of Object.entries(raw as Record<string, string>)) {
+            const input = form.elements.namedItem("profile:" + id) as HTMLInputElement | null;
+            if (input) input.value = v;
+          }
+        } else {
+          const input = form.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
+          if (input)
+            input.value = ["start", "end"].includes(key)
+              ? localInput(String(raw), this._inputZone)
+              : String(raw);
+        }
+      }
+      this.cancelList();
+      this._filters = filters;
+      this._knownTimes = { start: filters.start, end: filters.end };
+      this._filterDirty = false;
+      this._data = undefined;
+      this._error = "";
+      this.clearReport();
+      void this.load();
+    } catch {
+      this._error = this.t("report_query_unavailable");
+    }
+  }
+  private resetFilters() {
+    this.cancelList();
+    this._error = "";
+    this._data = undefined;
+    this.renderRoot.querySelector<HTMLFormElement>("form")?.reset();
+    this._filterStation = "";
+    this._filterDirty = false;
+    this._filters = {};
+    this._knownTimes = {};
+    this.clearReport();
+    void this.load();
+  }
+  private clearReport() {
+    this._print = "";
+    this._printReady = false;
+    this._reportEpoch++;
+    this.reportRequest?.abort();
+    this.reportRequest = undefined;
+    this._reportError = "";
+    this._report = undefined;
+    this._reportBusy = false;
+  }
+  private async report(exportCsv = false, print = false) {
+    if (
+      this._reportBusy ||
+      !this.hass?.user?.is_admin ||
+      !this.isConnected ||
+      !this._haConnected ||
+      this.hass.connection.connected === false
+    )
+      return;
+    const epoch = this._reportEpoch;
+    this._reportBusy = true;
+    this._reportError = "";
+    this.reportRequest = new AbortController();
+    try {
+      const result = await this.request<ActivityReport>(
+        print ? "print" : exportCsv ? "export" : "report",
+        {
+          filters: { ...this._filters },
+        },
+        60000,
+        this.reportRequest,
+      );
+      if (epoch !== this._reportEpoch || !this.isConnected || !this.hass?.user?.is_admin) return;
+      const { csv, print_records, ...report } = result;
+      this._report = report;
+      if (print) {
+        this._printReady = false;
+        this._print = printableReport({ ...report, print_records }, this.hass?.language ?? "en", {
+          ...(this._filters.station_id
+            ? {
+                station_id:
+                  this.stations.find((s) => s.id === this._filters.station_id)?.name ??
+                  this.t("removed_station"),
+              }
+            : {}),
+          ...(this._filters.current_group
+            ? {
+                current_group:
+                  this.policy?.groups.find((g) => g.id === this._filters.current_group)?.label ??
+                  this.t("unknown"),
+              }
+            : {}),
+          ...Object.fromEntries(
+            (this.policy?.fields ?? []).map((f) => ["profile:" + f.id, f.label]),
+          ),
+        });
+      }
+      if (exportCsv && csv !== undefined) downloadText(csv, "hikvision-events.csv");
+    } catch {
+      if (epoch === this._reportEpoch) this._reportError = this.t("events_report_failed");
+    } finally {
+      if (epoch === this._reportEpoch) {
+        this._reportBusy = false;
+        this.reportRequest = undefined;
+      }
+    }
+  }
+  private reportView() {
+    const report = this._report;
+    if (!report) return nothing;
+    return html`<section class="card activity-report" aria-label=${this.t("activity_report")}>
+      <h3>${this.t("activity_report")}</h3>
+      <p class="sub">
+        ${this.t("report_generated")}:
+        ${formatTime(report.generated_at, this.hass?.language, this.defaultZone)}
+      </p>
+      <p>
+        ${this.t("report_records")}: <strong>${report.totals.records}</strong> ·
+        ${this.t("report_auth")}: <strong>${report.totals.authentication}</strong> ·
+        ${this.t("granted")}: <strong>${report.totals.granted}</strong> · ${this.t("denied")}:
+        <strong>${report.totals.denied}</strong>
+      </p>
+      <p>
+        ${this.t("report_other")}: ${report.totals.other} · ${this.t("historical_record")}:
+        ${report.totals.recovered}
+      </p>
+      <p class="field-note">${this.t("report_scope")}</p>
+      ${
+        report.anomalies
+          ? html`<section class="anomaly-digest" aria-label=${this.t("event_anomaly_digest")}>
+              <h4>${this.t("event_anomaly_digest")}</h4>
+              <div class="anomaly-grid">
+                ${["access_denied", "attempt_limit", "unlock_exception", "door_not_closed"].map(
+                  (kind) =>
+                    html`<button
+                      ?disabled=${!report.anomalies?.[kind]}
+                      @click=${() => this.loadQuery({ ...this._filters, event_type: kind })}
+                    >
+                      <strong>${report.anomalies?.[kind] ?? 0}</strong>${this.t(kind)}
+                    </button>`,
+                )}
+              </div>
+              ${
+                report.anomaly_by_station?.length
+                  ? html`<p>${this.t("event_anomaly_stations")}</p>
+                      <div class="toolbar">
+                        ${report.anomaly_by_station.slice(0, 5).map((row) => {
+                          const station = this.stations.find((item) => item.id === row.station_id);
+                          return html`<button
+                            ?disabled=${!station}
+                            @click=${() => this.loadQuery({ ...this._filters, station_id: row.station_id })}
+                          >
+                            ${station?.name ?? this.t("removed_station")} · ${row.total}
+                          </button>`;
+                        })}
+                      </div>`
+                  : nothing
+              }
+              <p class="sub">${this.t("event_anomaly_scope")}</p>
+            </section>`
+          : nothing
+      }
+      ${report.membership_basis ? html`<p>${this.t("report_current_membership")}</p>` : nothing}
+      ${report.storage_failed ? html`<p class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
+      ${Object.entries(report.stations)
+        .filter(([, station]) => !["recovered", "pending"].includes(station.history))
+        .map(
+          ([id]) =>
+            html`<p class="notice">
+              ${this.stations.find((station) => station.id === id)?.name ?? this.t("removed_station")}:
+              ${this.t("history_incomplete")}
+            </p>`,
+        )}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("station")}</th>
+              <th>${this.t("report_records")}</th>
+              <th>${this.t("granted")}</th>
+              <th>${this.t("denied")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${report.by_station.map(
+              (row) =>
+                html`<tr>
+                  <td>
+                    ${this.stations.find((station) => station.id === row.station_id)?.name ?? this.t("removed_station")}
+                  </td>
+                  <td>${row.records}</td>
+                  <td>${row.granted}</td>
+                  <td>${row.denied}</td>
+                </tr>`,
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p>
+        ${Object.entries(report.methods)
+          .map(([method, count]) => `${this.t(method)}: ${count}`)
+          .join(" · ")}
+      </p>
+      <details>
+        <summary>${this.t("report_daily")}</summary>
+        <p class="sub">
+          ${this.t(report.day_timezone === "station" ? "report_station_time" : "report_utc")}
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>${this.t("report_date")}</th>
+                <th>${this.t("report_records")}</th>
+                <th>${this.t("granted")}</th>
+                <th>${this.t("denied")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${report.by_day.map(
+                (row) =>
+                  html`<tr>
+                    <td><bdi>${row.day}</bdi></td>
+                    <td>${row.records}</td>
+                    <td>${row.granted}</td>
+                    <td>${row.denied}</td>
+                  </tr>`,
+              )}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>`;
+  }
+  private async support(id: string) {
+    const epoch = this._generation;
+    if (!this.hass?.user?.is_admin) return;
+    try {
+      const report = await this.request("support", { event_id: id }, 20000);
+      if (epoch === this._generation && this.isConnected && this.hass?.user?.is_admin)
+        downloadText(JSON.stringify(report, null, 2), "hikvision-event.json", "application/json");
+    } catch {
+      if (epoch === this._generation) this._error = this.t("failed");
+    }
+  }
+  private evidenceView(row: AuditEvent) {
+    const evidence = row.evidence;
+    if (!evidence) return nothing;
+    const zone = this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE;
+    return html`<p class="sub">${this.t(evidence.origin)}</p>
+      ${evidence.identity_state !== "identified" ? html`<p class="sub">${this.t(evidence.identity_state)}</p>` : nothing}
+      <details>
+        <summary>${this.t("event_detail")}</summary>
+        <p>
+          ${this.t("event_received")}:
+          ${row.received_at ? formatTime(row.received_at, this.hass?.language, zone) : this.t("unknown")}
+        </p>
+        <p>${this.t("event_delay")}: ${evidence.arrival_delay_seconds ?? this.t("unknown")}</p>
+        <p class="sub">${this.t("event_clock_hint")}</p>
+        <p>ISAPI: ${row.major ?? "?"} / ${row.minor ?? "?"}</p>
+        <p class="sub">${this.t("event_export_hint")}</p>
+        <button ?disabled=${!this._haConnected} @click=${() => this.support(row.id)}>
+          ${this.t("event_support")}
+        </button>
+      </details>`;
+  }
+  private personLink(row: AuditEvent) {
+    return row.person_link
+      ? html`<button
+          @click=${(event: Event) => {
+            event.stopPropagation();
+            this.dispatchEvent(
+              new CustomEvent("event-person", {
+                detail: row.person_link,
+                bubbles: true,
+                composed: true,
+              }),
+            );
+          }}
+        >
+          ${this.t("investigation_user_details")}
+        </button>`
+      : nothing;
+  }
+  private v4ListView() {
+    const records = this._data?.records ?? [];
+    const selected = records.find((row) => row.id === this._selectedEvent) ?? records[0];
+    const zone = selected
+      ? (this.stations.find((station) => station.id === selected.station_id)?.clock?.zone ??
+        UTC_ZONE)
+      : UTC_ZONE;
+    return html`<div class="wk4-activity-layout">
+      <div class="wk4-activity-table">
+        <table>
+          <thead>
+            <tr>
+              <th>${this.t("report_date")}</th>
+              <th>${this.t("person")}</th>
+              <th>${this.t("station")}</th>
+              <th>${this.t("authentication")}</th>
+              <th>${this.t("result")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((row) => {
+              const station = this.stations.find((item) => item.id === row.station_id);
+              return html`<tr
+                class="audit-row"
+                aria-selected=${row.id === selected?.id ? "true" : "false"}
+              >
+                <td>
+                  <time datetime=${row.timestamp}
+                    ><bdi
+                      >${formatTime(row.timestamp, this.hass?.language, station?.clock?.zone ?? UTC_ZONE)}</bdi
+                    ></time
+                  >
+                </td>
+                <td>
+                  <button
+                    aria-label=${this.t("event_detail") + ": " + (row.person_name ?? this.t("unknown"))}
+                    @click=${() => (this._selectedEvent = row.id)}
+                  >
+                    ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                    <span
+                      >${row.person_name ?? this.t("unknown")}<small
+                        ><bdi>${row.employee_no ?? ""}</bdi></small
+                      ></span
+                    >
+                  </button>
+                </td>
+                <td>
+                  ${station?.name ?? this.t("removed_station")}<small
+                    >${this.t("door")}: ${row.door ?? this.t("unknown")}</small
+                  >
+                </td>
+                <td>${this.t(row.authentication)}</td>
+                <td>
+                  <span class="badge ${row.result === "denied" ? "error" : ""}"
+                    >${this.t(row.result)}</span
+                  >
+                </td>
+              </tr>`;
+            })}
+          </tbody>
+        </table>
+      </div>
+      ${
+        selected
+          ? html`<aside class="wk4-event-inspector" aria-label=${this.t("event_detail")}>
+              <h3>${this.t("event_detail")}</h3>
+              <div class="wk4-event-person">
+                ${selected.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${selected.portrait.user_id} .revision=${selected.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                <span>${selected.person_name ?? this.t("unknown")}</span>
+                ${this.personLink(selected)}
+              </div>
+              <dl>
+                <dt>${this.t("report_date")}</dt>
+                <dd><bdi>${formatTime(selected.timestamp, this.hass?.language, zone)}</bdi></dd>
+                <dt>${this.t("station")}</dt>
+                <dd>
+                  ${this.stations.find((item) => item.id === selected.station_id)?.name ?? this.t("removed_station")}
+                </dd>
+                <dt>${this.t("door")}</dt>
+                <dd>${selected.door ?? this.t("unknown")}</dd>
+                <dt>${this.t("authentication")}</dt>
+                <dd>${this.t(selected.authentication)}</dd>
+                <dt>${this.t("result")}</dt>
+                <dd>
+                  <span class="badge ${selected.result === "denied" ? "error" : ""}"
+                    >${this.t(selected.result)}</span
+                  >
+                </dd>
+                <dt>${this.t("event_detail")}</dt>
+                <dd>${this.t(selected.event_type)}</dd>
+                ${
+                  selected.employee_no
+                    ? html`<dt>${this.t("employee_no")}</dt>
+                        <dd><bdi>${selected.employee_no}</bdi></dd>`
+                    : nothing
+                }
+                ${
+                  selected.card
+                    ? html`<dt>${this.t("card")}</dt>
+                        <dd><bdi>${selected.card}</bdi></dd>`
+                    : nothing
+                }
+              </dl>
+              ${selected.recovered ? html`<p class="sub">${this.t("historical_record")}</p>` : nothing}
+              ${this.evidenceView(selected)}
+              ${!selected.evidence ? html`<button ?disabled=${!this._haConnected} @click=${() => this.support(selected.id)}>${this.t("event_support")}</button>` : nothing}
+            </aside>`
+          : nothing
+      }
+    </div>`;
+  }
+  private reportActionsView() {
+    return html`
+      <wiskey-saved-reports
+        .hass=${this.hass}
+        .filters=${this._filters}
+        .locked=${this._busy || this._reportBusy}
+        @report-query=${(e: CustomEvent<Record<string, unknown>>) => this.loadQuery(e.detail)}
+      ></wiskey-saved-reports>
+      ${this._filterDirty ? html`<p class="filter-pending" role="status">${this.t("filters_not_applied")}</p>` : nothing}
+      <div class="toolbar">
+        <button @click=${() => this.resetFilters()}>${this.t("clear_user_filters")}</button>
+        <button ?disabled=${this._reportBusy || !this._haConnected} @click=${() => this.report()}>
+          ${this.t("report_generate")}</button
+        ><button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(true)}
+        >
+          ${this.t("report_export")}
+        </button>
+        <button
+          ?disabled=${this._reportBusy || !this._haConnected}
+          @click=${() => this.report(false, true)}
+        >
+          ${this.t("report_print_preview")}
+        </button>
+      </div>
+      <p class="sub">
+        ${this.t("clock_filter_basis")}:
+        <bdi
+          >${this._filterStation ? (this.stations.find((s) => s.id === this._filterStation)?.clock?.zone ?? UTC_ZONE).name : this.defaultZone.name}</bdi
+        >
+      </p>
+      <details class="report-help">
+        <summary>${this.t("report_help")}</summary>
+        <p class="sub">${this.t("report_filter_hint")}</p>
+        <p class="record-meta">${this.t("audit_retention")}</p>
+      </details>
+    `;
+  }
+  render() {
+    if (!this.hass?.user?.is_admin) return nothing;
+    return html`<section aria-label=${this.t("events")}>
+      ${!this._haConnected ? html`<p class="notice" role="status">${this.t("events_connection_lost")}</p>` : nothing}
+      <div class="page-heading">
+        <div>
+          <h2>${this.t("events")}</h2>
+          <p>${this.t("events_intro")}</p>
+        </div>
+        <button ?disabled=${this._busy || !this._haConnected} @click=${() => this.load()}>
+          ${this.t("refresh")}
+        </button>
+      </div>
+      <div class="toolbar" aria-label=${this.t("event_investigation_quick")}>
+        <span>${this.t("event_investigation_quick")}</span>
+        <button @click=${() => this.loadQuery({ result: "denied" })}>
+          ${this.t("event_quick_denied")}
+        </button>
+        <button @click=${() => this.loadQuery({ event_type: "attempt_limit" })}>
+          ${this.t("event_quick_pin_limit")}
+        </button>
+        <button @click=${() => this.loadQuery({ event_type: "door_not_closed" })}>
+          ${this.t("event_quick_door_open")}
+        </button>
+      </div>
+      <details
+        class="filter-panel event-filters"
+        .open=${this._filtersOpen}
+        @toggle=${(event: Event) => {
+          this._filtersOpen = (event.currentTarget as HTMLDetailsElement).open;
+        }}
+      >
+        <summary>
+          ${this.t("event_filters")} ·
+          ${Object.keys(this._filters).length ? this.t("event_filters_active") + ": " + Object.keys(this._filters).length : this.t("event_filters_all")}
+        </summary>
+        <form
+          @submit=${this.apply}
+          @input=${() => {
+            this._filterDirty = true;
+          }}
+          @change=${() => {
+            this._filterDirty = true;
+          }}
+          class="form-grid"
+        >
+          <label
+            >${this.t("station")}<select
+              name="station_id"
+              aria-label=${this.t("station")}
+              @change=${(e: Event) => {
+                this._filterStation = (e.target as HTMLSelectElement).value;
+                this.refreshFilterZone();
+                this.requestUpdate();
+              }}
+            >
+              <option value="">${this.t("all")}</option>
+              ${this.stations.map((s) => html`<option value=${s.id}>${s.name}</option>`)}
+            </select></label
+          >
+          <label>${this.t("person")}<input name="person" maxlength="128" /></label>
+          ${
+            this.policy?.groups.length
+              ? html`<label
+                  >${this.t("report_current_group")}<select
+                    name="current_group"
+                    aria-label=${this.t("report_current_group")}
+                  >
+                    <option value="">${this.t("all")}</option>
+                    ${this.policy.groups.map((g) => html`<option value=${g.id}>${g.label}</option>`)}
+                  </select></label
+                >`
+              : nothing
+          }
+          ${this.policy?.fields.filter((f) => f.enabled).map((f) => html`<label>${f.label} · ${this.t("report_current_value")}<input name=${"profile:" + f.id} maxlength="100" /></label>`)}
+          <label
+            >${this.t("result")}<select name="result" aria-label=${this.t("result")}>
+              <option value="">${this.t("all")}</option>
+              ${["granted", "denied", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("event_type")}<select name="event_type" aria-label=${this.t("event_type")}>
+              <option value="">${this.t("all")}</option>
+              ${["access_granted", "access_denied", "attempt_limit", "unlock_exception", "door_not_closed", "door_not_opened", "contact_open", "contact_closed", "door_unlocked", "door_locked", "unlock_record", "unknown"].map((kind) => html`<option value=${kind}>${this.t(kind)}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("authentication")}<select
+              name="authentication"
+              aria-label=${this.t("authentication")}
+            >
+              <option value="">${this.t("all")}</option>
+              ${["card", "pin", "unknown"].map((v) => html`<option value=${v}>${this.t(v)}</option>`)}
+            </select></label
+          >
+          <label
+            >${this.t("door")}<select name="door" aria-label=${this.t("door")}>
+              <option value="">${this.t("all")}</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select></label
+          >
+          <label>${this.t("from_time")}<input type="datetime-local" name="start" /></label>
+          <label>${this.t("until_time")}<input type="datetime-local" name="end" /></label>
+          <button class="primary" type="submit" ?disabled=${!this._haConnected}>
+            ${this.t("filter")}
+          </button>
+        </form>
+      </details>
+      ${this._filters.current_group || this._filters.current_profile ? html`<p class="notice">${this.t("report_current_membership")}</p>` : nothing}
+      ${
+        this.v4
+          ? html`<details class="wk4-report-actions">
+              <summary>${this.t("wk4_report_actions")}</summary>
+              ${this.reportActionsView()}
+            </details>`
+          : this.reportActionsView()
+      }
+      ${this.reportView()}
+      ${
+        this._print
+          ? html`<section class="card print-preview" aria-label=${this.t("report_print_preview")}>
+              <div class="toolbar">
+                <button
+                  ?disabled=${!this._printReady}
+                  @click=${() => {
+                    try {
+                      const frame =
+                        this.renderRoot.querySelector<HTMLIFrameElement>("iframe.print-frame");
+                      frame?.contentWindow?.focus();
+                      frame?.contentWindow?.print();
+                    } catch {
+                      this._reportError = this.t("events_report_failed");
+                    }
+                  }}
+                >
+                  ${this.t("report_print_pdf")}</button
+                ><button
+                  @click=${() => {
+                    this._print = "";
+                    this._printReady = false;
+                  }}
+                >
+                  ${this.t("close")}
+                </button>
+              </div>
+              <p>${this.t("report_print_hint")}</p>
+              <iframe
+                class="print-frame"
+                title=${this.t("report_print_preview")}
+                sandbox="allow-same-origin allow-modals"
+                .srcdoc=${this._print}
+                style="width:100%;height:70vh;border:1px solid var(--divider-color)"
+                @load=${() => (this._printReady = true)}
+              ></iframe>
+            </section>`
+          : nothing
+      }
+      ${[this._error, this._listError, this._reportError].filter(Boolean).map((error) => html`<p role="alert" class="notice error">${error}</p>`)}
+      ${this._data?.storage_failed ? html`<p role="alert" class="notice error">${this.t("audit_save_failed")}</p>` : nothing}
+      ${Object.entries(this._data?.stations ?? {})
+        .filter(([, s]) => !["recovered", "pending"].includes(s.history))
+        .map(
+          ([id]) =>
+            html`<p class="notice">
+              ${this.stations.find((s) => s.id === id)?.name ?? id}: ${this.t("history_incomplete")}
+            </p>`,
+        )}
+      <div class="result-summary" role="status">
+        ${this._busy ? this.t("loading") : this.t("loaded_records") + ": " + (this._data?.records.length ?? 0)}
+      </div>
+      ${
+        this.v4
+          ? this.v4ListView()
+          : html`
+              <div class="audit-list" aria-busy=${this._busy}>
+                ${(this._data?.records ?? []).map(
+                  (row) =>
+                    html`<article class="card audit-row">
+                      <div class="record-heading">
+                        <h3>${this.t(row.event_type)}</h3>
+                        <time datetime=${row.timestamp}
+                          ><bdi
+                            >${formatTime(row.timestamp, this.hass?.language, this.stations.find((s) => s.id === row.station_id)?.clock?.zone ?? UTC_ZONE)}</bdi
+                          ></time
+                        >
+                      </div>
+                      <div class="record-meta">
+                        <strong
+                          >${this.stations.find((s) => s.id === row.station_id)?.name ?? this.t("removed_station")}</strong
+                        >
+                      </div>
+                      <div class="record-person">
+                        ${row.portrait ? html`<hikvision-user-photo compact .hass=${this.hass} .userId=${row.portrait.user_id} .revision=${row.portrait.revision} .configured=${true} title=${this.t("event_current_photo")}></hikvision-user-photo>` : nothing}
+                        ${row.person_name ?? this.t("unknown")}${row.employee_no ? html` · <bdi>${row.employee_no}</bdi>` : nothing}
+                        · ${this.t("door")}: ${row.door ?? this.t("unknown")}
+                        ${this.personLink(row)}
+                      </div>
+                      <p>
+                        ${this.t(row.authentication)} ·
+                        <span class="badge ${row.result === "denied" ? "error" : ""}"
+                          >${this.t(row.result)}</span
+                        >${row.card ? html` · <bdi>${row.card}</bdi>` : nothing}
+                      </p>
+                      ${row.recovered ? html`<small class="muted">${this.t("historical_record")}</small>` : nothing}
+                      ${this.evidenceView(row)}
+                      ${row.event_type === "unknown" ? html`<small> · ${row.major}/${row.minor}</small>` : nothing}
+                    </article>`,
+                )}
+              </div>
+            `
+      }
+      ${!this._data?.records.length && !this._busy && !this._error ? html`<p class="empty">${this.t("no_events")}</p>` : nothing}
+      ${this._data?.next ? html`<button ?disabled=${this._busy || !this._haConnected} @click=${() => this.load(true)}>${this.t("load_more")}</button>` : nothing}
+    </section>`;
+  }
+}
+customElements.define("hikvision-intercom-events", IntercomEvents);

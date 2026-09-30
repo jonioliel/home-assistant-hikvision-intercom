@@ -1,0 +1,30 @@
+import { svg } from "lit";
+const paths: Record<string, string> = {
+  search: "M21 21l-6-6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z",
+  phone: "M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4c0 2-2 3-4 2C9 19 5 15 3 7c-1-2 0-4 2-4Z",
+  hangup: "M3 15v-4c5-5 13-5 18 0v4h-5v-3a13 13 0 0 0-8 0v3Z",
+  microphone: "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8",
+  speaker: "M3 9h4l5-5v16l-5-5H3ZM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14",
+  fullscreen: "M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5",
+
+  media_options: "M4 7h16M4 17h16M9 4v6m6 4v6",
+  tools: "M14 6l4-3 3 3-3 4-4 1-8 10-3-3 10-8ZM5 3l4 4M3 5l4 4",
+  appearance:
+    "M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1 1 0 0 1 .7-1.7H17a4 4 0 0 0 4-4A9 9 0 0 0 12 3ZM7 10h.01M10 6h.01M15 6h.01M18 10h.01",
+  overview: "M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z",
+  users:
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 4a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
+  devices: "M6 3h12v18H6ZM9 7h6M9 11h6M11 17h2",
+  events: "M5 3h14v18H5ZM8 7h8M8 11h5M8 15h7",
+  sync: "M20 7a8 8 0 0 0-14-2L3 8m0-5v5h5M4 17a8 8 0 0 0 14 2l3-3m0 5v-5h-5",
+  operations_center: "M4 5h16v4H4ZM4 12h16v7H4ZM8 7h.01M8 15h.01M11 15h6",
+  audit: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  health: "M2 12h5l3-8 4 16 3-8h5",
+  schedules: "M4 5h16v16H4ZM4 10h16M8 3v4m8-4v4",
+  lock: "M6 10h12v11H6ZM8 10V7a4 4 0 0 1 8 0M12 14v3",
+  camera: "M3 6h12v12H3ZM15 10l6-4v12l-6-4",
+  menu: "M4 6h16M4 12h16M4 18h16",
+  arrow: "M7 17 17 7M7 7h10v10",
+};
+export const icon = (name: string) =>
+  svg`<svg class="ui-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d=${paths[name] ?? paths.overview}></path></svg>`;

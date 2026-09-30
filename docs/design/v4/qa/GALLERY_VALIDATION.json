@@ -1,0 +1,103 @@
+{
+  "featured": 12,
+  "all": 49,
+  "mobile": 14,
+  "search": 1,
+  "modal": true,
+  "escapeClosed": true,
+  "themeWorks": true,
+  "overflow": false,
+  "errors": [],
+  "contrast": [
+    {
+      "theme": "light",
+      "pairs": [
+        {
+          "a": "--ink",
+          "b": "--surface",
+          "ratio": 14.89
+        },
+        {
+          "a": "--muted",
+          "b": "--surface",
+          "ratio": 5.14
+        },
+        {
+          "a": "--muted",
+          "b": "--bg",
+          "ratio": 4.74
+        },
+        {
+          "a": "--accent",
+          "b": "--surface",
+          "ratio": 4.97
+        },
+        {
+          "a": "--on-accent",
+          "b": "--accent",
+          "ratio": 4.97
+        },
+        {
+          "a": "--green",
+          "b": "--green-soft",
+          "ratio": 5.08
+        },
+        {
+          "a": "--amber",
+          "b": "--amber-soft",
+          "ratio": 5.06
+        },
+        {
+          "a": "--red",
+          "b": "--red-soft",
+          "ratio": 4.82
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "pairs": [
+        {
+          "a": "--ink",
+          "b": "--surface",
+          "ratio": 13.54
+        },
+        {
+          "a": "--muted",
+          "b": "--surface",
+          "ratio": 7.02
+        },
+        {
+          "a": "--muted",
+          "b": "--bg",
+          "ratio": 8.02
+        },
+        {
+          "a": "--accent",
+          "b": "--surface",
+          "ratio": 9.54
+        },
+        {
+          "a": "--on-accent",
+          "b": "--accent",
+          "ratio": 9.34
+        },
+        {
+          "a": "--green",
+          "b": "--green-soft",
+          "ratio": 7.98
+        },
+        {
+          "a": "--amber",
+          "b": "--amber-soft",
+          "ratio": 7.23
+        },
+        {
+          "a": "--red",
+          "b": "--red-soft",
+          "ratio": 7.6
+        }
+      ]
+    }
+  ]
+}
