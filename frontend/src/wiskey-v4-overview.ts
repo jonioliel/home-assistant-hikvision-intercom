@@ -121,10 +121,9 @@ export function wiskeyOverview(o: WiskeyOverviewOptions) {
             >${o.t("wall_density")}
             <select
               aria-label=${o.t("wall_density")}
-              .value=${String(o.density)}
               @change=${(e: Event) => o.setDensity(Number((e.target as HTMLSelectElement).value))}
             >
-              ${[0, 4, 6, 9, 12].map((n) => html`<option value=${n}>${n || o.t("wall_auto")}</option>`)}
+              ${[0, 4, 6, 8, 9, 12].map((n) => html`<option value=${n} ?selected=${n === o.density}>${n || o.t("wall_auto")}</option>`)}
             </select>
           </label>
           <button

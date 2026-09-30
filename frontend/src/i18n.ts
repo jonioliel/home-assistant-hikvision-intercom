@@ -849,7 +849,7 @@ const en = {
   wall_layout_missing:
     "Some saved cameras are no longer available. Only remaining cameras were selected; playback is stopped.",
   camera_wall: "Live camera wall",
-  tools_camera_wall: "View up to four or nine selected cameras with a shared stream budget.",
+  tools_camera_wall: "View up to twelve selected cameras with a shared stream budget.",
   camera_wall_hint:
     "Choose cameras and start viewing. Streams outside the viewport or in a hidden tab stop. Opening a single camera pauses the wall. Real fleet capacity depends on the server, browser and network.",
   camera_wall_budget: "Maximum streams",
@@ -3320,7 +3320,7 @@ const he: Record<keyof typeof en, string> = {
   wall_layout_missing:
     "חלק מהמצלמות השמורות אינן זמינות עוד. נבחרו רק המצלמות שנותרו והניגון נעצר.",
   camera_wall: "קיר מצלמות חי",
-  tools_camera_wall: "צפייה בארבע או תשע מצלמות נבחרות עם הגבלה משותפת למספר הזרמים.",
+  tools_camera_wall: "צפייה בעד שתים עשרה מצלמות נבחרות עם הגבלה משותפת למספר הזרמים.",
   camera_wall_hint:
     "בחר מצלמות והפעל צפייה. זרמים מחוץ לאזור הנראה או בלשונית מוסתרת נעצרים. פתיחת מצלמה יחידה משהה את הקיר. קיבולת בפועל תלויה בשרת, בדפדפן וברשת.",
   camera_wall_budget: "מספר זרמים מרבי",

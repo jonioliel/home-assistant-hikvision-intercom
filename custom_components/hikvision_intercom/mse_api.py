@@ -62,7 +62,7 @@ class MSEView(HomeAssistantView):
         runtime = getattr(entry, "runtime_data", None) if entry and entry.domain == DOMAIN else None
         if runtime is None or runtime.is_closed or not runtime.profile.stream:
             raise web.HTTPNotFound()
-        if len(self.active) >= 9:
+        if len(self.active) >= 12:
             raise web.HTTPTooManyRequests()
         policy = settings(self.hass).public()
         if policy["transport"] != "webrtc" or policy["webrtc_mode"] != "mse":

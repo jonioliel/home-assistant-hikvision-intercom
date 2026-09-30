@@ -466,6 +466,7 @@ export class IntercomManagerPanel extends LitElement {
   private _appearanceOverride: Appearance | null = null;
   private _appearanceFollow = true;
   private _wallDensity = 0;
+  private _cameraWallLimit = 0;
   private _wallPage = 0;
   private _wallQuery = "";
   private _wallCapacity = 12;
@@ -475,24 +476,13 @@ export class IntercomManagerPanel extends LitElement {
     const narrow = this.clientWidth < 1100;
     if (this._accessNarrow !== narrow) this._accessNarrow = narrow;
     if (isWiskeyAppearance(this._appearance)) {
-      const height = window.visualViewport?.height ?? window.innerHeight;
-      const width = this.clientWidth;
-      const capacity =
-        width < 700
-          ? 4
-          : width < 980
-            ? height < 760
-              ? 4
-              : 6
-            : width < 1200
-              ? height < 820
-                ? 6
-                : 9
-              : height < 800
-                ? 4
-                : height < 880
-                  ? 8
-                  : 12;
+      const grid = this.renderRoot.querySelector<HTMLElement>(".wk4-door-grid");
+      if (!grid) return;
+      const rect = grid.getBoundingClientRect();
+      const availableHeight = Math.max(200, document.documentElement.clientHeight - rect.top - 24);
+      const columns = Math.max(1, Math.floor((rect.width + 14) / 224));
+      const rows = Math.max(1, Math.floor((availableHeight + 14) / 204));
+      const capacity = Math.min(12, columns * rows);
       if (this._wallCapacity !== capacity) this._wallCapacity = capacity;
       return;
     }
@@ -508,17 +498,18 @@ export class IntercomManagerPanel extends LitElement {
     const rows = rect.width < 520 ? 1 : Math.max(1, Math.min(3, Math.floor((height + 12) / 202)));
     this._wallCapacity = columns * rows;
     const count = Math.min(
-      this._wallDensity || 12,
-      this._wallCapacity,
+      this._wallDensity || this._wallCapacity,
       Math.max(1, this.wallStations().length),
     );
+    const layoutRows = this._wallDensity ? Math.ceil(count / columns) : rows;
+    const layoutHeight = this._wallDensity ? Math.max(height, layoutRows * 202) : height;
     // Pick the arrangement with the largest undistorted camera viewport.
     // Cap card width by available image height rather than stretching shallow rows.
     let best = { columns: 1, rows: count, width: 0, area: -1 };
     for (let candidate = 1; candidate <= Math.min(columns, count); candidate++) {
       const candidateRows = Math.ceil(count / candidate);
-      if (candidateRows > rows) continue;
-      const rowHeight = (height - 12 * (candidateRows - 1)) / candidateRows;
+      if (candidateRows > layoutRows) continue;
+      const rowHeight = (layoutHeight - 12 * (candidateRows - 1)) / candidateRows;
       const width = Math.min(
         (rect.width - 12 * (candidate - 1)) / candidate,
         ((rowHeight - 104) * 16) / 9 + 16,
@@ -529,7 +520,7 @@ export class IntercomManagerPanel extends LitElement {
     grid.style.setProperty("--wall-columns", String(best.columns));
     grid.style.setProperty("--wall-rows", String(best.rows));
     grid.style.setProperty("--wall-card-width", `${Math.max(100, best.width)}px`);
-    grid.style.setProperty("--wall-height", `${height}px`);
+    grid.style.setProperty("--wall-height", `${layoutHeight}px`);
   };
   private wallStations() {
     const query = this._wallQuery.trim().toLocaleLowerCase();
@@ -613,6 +604,8 @@ export class IntercomManagerPanel extends LitElement {
   }
 
   private embed = false;
+  private chromeNone = false;
+  private embedDocumentStyles?: [string, string, string, string, string, string];
   private locationPath = "";
   private pendingLocation: string | null = null;
   private lastLocation = "";
@@ -633,6 +626,34 @@ export class IntercomManagerPanel extends LitElement {
   private setEmbed(enabled: boolean) {
     this.embed = enabled;
     this.toggleAttribute("data-embed", enabled);
+    if (enabled && !this.embedDocumentStyles) {
+      const root = document.documentElement.style;
+      const body = document.body.style;
+      this.embedDocumentStyles = [
+        root.margin,
+        root.backgroundColor,
+        root.colorScheme,
+        body.margin,
+        body.backgroundColor,
+        body.colorScheme,
+      ];
+      root.margin = body.margin = "0";
+      root.backgroundColor = body.backgroundColor = "transparent";
+    } else if (!enabled && this.embedDocumentStyles) {
+      const [rootMargin, rootBackground, rootScheme, bodyMargin, bodyBackground, bodyScheme] =
+        this.embedDocumentStyles;
+      Object.assign(document.documentElement.style, {
+        margin: rootMargin,
+        backgroundColor: rootBackground,
+        colorScheme: rootScheme,
+      });
+      Object.assign(document.body.style, {
+        margin: bodyMargin,
+        backgroundColor: bodyBackground,
+        colorScheme: bodyScheme,
+      });
+      this.embedDocumentStyles = undefined;
+    }
     if (enabled && !this.kioskActive) {
       this.previousKiosk = Boolean(
         (this.hass as (Hass & { kioskMode?: boolean }) | undefined)?.kioskMode,
@@ -652,6 +673,12 @@ export class IntercomManagerPanel extends LitElement {
     if (location.pathname !== this.locationPath) return;
     const params = new URLSearchParams(location.search);
     this.setEmbed(params.get("embed") === "1");
+    this.chromeNone = this.embed && params.get("chrome") === "none";
+    this.toggleAttribute("data-chrome-none", this.chromeNone);
+    const density = Number(params.get("density"));
+    if ([4, 6, 8, 9, 12].includes(density)) this._wallDensity = density;
+    const wall = Number(params.get("wall") ?? params.get("density"));
+    if ([4, 9, 12].includes(wall)) this._cameraWallLimit = wall;
     this.pendingLocation =
       requestedScreen(params.get("tab") ?? "overview", params.get("tool")) ?? "overview";
     this.applyPendingLocation();
@@ -988,6 +1015,11 @@ export class IntercomManagerPanel extends LitElement {
   }
   protected updated(changed: PropertyValues) {
     this.fitWall();
+    if (this.embed) {
+      const scheme = getComputedStyle(this).colorScheme.includes("dark") ? "dark" : "light";
+      document.documentElement.style.colorScheme = scheme;
+      document.body.style.colorScheme = scheme;
+    }
     if (this._viewsActor !== this.hass?.user?.id) {
       this._viewsActor = this.hass?.user?.id;
       this._userColumns = null;
@@ -3157,7 +3189,7 @@ export class IntercomManagerPanel extends LitElement {
   }
   private wallView() {
     const stations = this.wallStations();
-    const size = Math.min(this._wallDensity || 12, this._wallCapacity);
+    const size = this._wallDensity || this._wallCapacity;
     const pages = Math.max(1, Math.ceil(stations.length / size));
     const page = Math.min(this._wallPage, pages - 1);
     const all = this._data?.stations ?? [];
@@ -3193,13 +3225,12 @@ export class IntercomManagerPanel extends LitElement {
             >${this.t("wall_density")}
             <select
               aria-label=${this.t("wall_density")}
-              .value=${String(this._wallDensity)}
               @change=${(e: Event) => {
                 this._wallDensity = Number(value(e));
                 this._wallPage = 0;
               }}
             >
-              ${[0, 4, 6, 9, 12].map((n) => html`<option value=${n}>${n || this.t("wall_auto")}</option>`)}
+              ${[0, 4, 6, 8, 9, 12].map((n) => html`<option value=${n} ?selected=${n === this._wallDensity}>${n || this.t("wall_auto")}</option>`)}
             </select></label
           >
           <button @click=${() => this.wallFullscreen()}>${this.t("wall_fullscreen")}</button>
@@ -3283,7 +3314,7 @@ export class IntercomManagerPanel extends LitElement {
         query: this._wallQuery,
         filter: this._v4DoorFilter,
         page: this._wallPage,
-        capacity: Math.min(this._wallDensity || 12, this._wallCapacity),
+        capacity: this._wallDensity || this._wallCapacity,
         density: this._wallDensity,
         pending: this.pendingCount(),
         canUsers: this.canManage("users"),
@@ -6174,6 +6205,8 @@ export class IntercomManagerPanel extends LitElement {
                         .media=${this._data.media_settings}
                         .version=${this._data.version}
                         .suspended=${!!this._dialog}
+                        .requestedLimit=${this._cameraWallLimit}
+                        .compact=${this.embed}
                         @open-station=${(e: CustomEvent<string>) => {
                           this._cameraStation = this._data?.stations.find((s) => s.id === e.detail);
                           this._dialog = "camera";
